@@ -1,0 +1,23 @@
+{
+  "phase": "phase01_acquisition",
+  "generated_utc": "2026-07-12T21:10:35+00:00",
+  "parameters": {
+    "aoi_area_ha": 89.7,
+    "period": [
+      "2022-01-01",
+      "2024-12-31"
+    ],
+    "s2_max_cloud": 20,
+    "candidate_track": {
+      "flight_direction": "ASCENDING",
+      "relative_orbit": 175,
+      "full_burst_id": "175_374052_IW1"
+    }
+  },
+  "products": {
+    "s1_burst_inventory.csv": 450,
+    "s1_track_summary.csv": 5,
+    "s2_inventory.csv": 69,
+    "era5": "/content/drive/MyDrive/insar_rzecin/era5_rzecin.nc"
+  }
+}
