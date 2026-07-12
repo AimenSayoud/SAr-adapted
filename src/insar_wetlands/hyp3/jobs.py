@@ -70,9 +70,10 @@ def submit_pairs(pairs: pd.DataFrame, granules: dict, name: str,
             rows.append({"pair": p.pair, "job_id": None,
                          "status": "MISSING_GRANULE"})
             continue
+        # Arguments positionnels : le nom des 2 premiers parametres differe
+        # selon la version de hyp3_sdk (reference/secondary vs granule1/2).
         job = hyp3.submit_insar_isce_burst_job(
-            granule1=ref_g, granule2=sec_g, name=name, looks=looks,
-            apply_water_mask=False,
+            ref_g, sec_g, name=name, looks=looks, apply_water_mask=False,
         )
         j = job.jobs[0] if hasattr(job, "jobs") else job
         rows.append({"pair": p.pair, "job_id": j.job_id, "status": "PENDING"})
@@ -87,7 +88,11 @@ def fetch_jobs(name: str) -> "object":
     return hyp3.find_jobs(name=name)
 
 
-def check_credits() -> float:
-    import hyp3_sdk as sdk
+def check_credits():
+    """Solde de credits HyP3 ; non bloquant si l'API differe/echoue."""
+    try:
+        import hyp3_sdk as sdk
 
-    return sdk.HyP3().check_credits()
+        return sdk.HyP3().check_credits()
+    except Exception as e:
+        return f"(indisponible: {e})"
