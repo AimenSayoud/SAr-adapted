@@ -100,7 +100,7 @@ def _backfill_missing_vars(cfg: dict, out: Path, year: int,
         if not part.exists() or _missing_variables(part, [var]):
             _retrieve(cfg, part, year, [var])
         with xr.open_dataset(part) as ds_var:
-            base = xr.merge([base, ds_var], join="outer")
+            base = xr.merge([base, ds_var], join="outer", compat="override")
     tmp = out.with_suffix(".backfill.nc")
     base.to_netcdf(tmp)
     base.close()
