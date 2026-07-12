@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+# =========================================================
+# Installation de l'environnement dans une session Colab.
+# A executer au debut de CHAQUE session (le disque Colab
+# est efface entre les sessions) :
+#   !bash environment/colab_setup.sh
+# =========================================================
+set -e
+
+echo ">>> Installation des dependances pip..."
+pip install -q --upgrade \
+    asf_search \
+    hyp3_sdk \
+    pystac-client \
+    cdsapi \
+    rioxarray \
+    rasterio \
+    geopandas \
+    shapely \
+    pyproj \
+    xarray \
+    h5py \
+    netcdf4 \
+    pyyaml
+
+# MintPy n'est necessaire qu'a partir de la Phase 8 — installation separee
+# (plus lourde) pour ne pas ralentir les phases 1-7 :
+#   pip install -q mintpy
+
+echo ">>> Installation du package local insar_wetlands..."
+pip install -q -e .
+
+echo ">>> Environnement pret."
