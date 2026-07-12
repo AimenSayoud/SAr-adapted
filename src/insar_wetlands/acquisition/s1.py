@@ -70,3 +70,40 @@ def summarize_tracks(df: pd.DataFrame) -> pd.DataFrame:
         })
     out = pd.DataFrame(groups).sort_values("n_acquisitions", ascending=False)
     return out.reset_index(drop=True)
+
+
+def granule_geometry(granule: str) -> dict:
+    """Empreinte (GeoJSON geometry) d'un granule burst, via une recherche ciblee."""
+    import asf_search as asf
+
+    results = asf.search(product_list=[granule])
+    if not results:
+        raise ValueError(f"granule introuvable: {granule}")
+    return results[0].geojson()["geometry"]
+
+
+def coverage_fraction(aoi_geom, burst_geojson: dict) -> float:
+    """Fraction (0-1) de l'AOI couverte par l'empreinte d'un burst."""
+    from shapely.geometry import shape
+
+    footprint = shape(burst_geojson)
+    return aoi_geom.intersection(footprint).area / aoi_geom.area
+
+
+def check_candidates_coverage(s1_df: pd.DataFrame, summary: pd.DataFrame,
+                              aoi_geom, top_n: int = 5) -> pd.DataFrame:
+    """Verifie, pour les meilleurs candidats de `summarize_tracks`, la fraction
+    de l'AOI reellement couverte par l'empreinte du burst (pas juste
+    'intersecte'). Deux bursts adjacents peuvent se partager la meme cadence
+    si l'AOI est a cheval sur leur zone de recouvrement -> aucun des deux ne
+    couvrirait alors 100% de la tourbiere.
+    """
+    rows = []
+    for _, r in summary.head(top_n).iterrows():
+        sub = s1_df[(s1_df.relative_orbit == r.relative_orbit)
+                    & (s1_df.full_burst_id == r.full_burst_id)]
+        granule = sub.iloc[0]["granule"]
+        geom = granule_geometry(granule)
+        cov = coverage_fraction(aoi_geom, geom)
+        rows.append({**r.to_dict(), "aoi_coverage_pct": round(cov * 100, 2)})
+    return pd.DataFrame(rows)
