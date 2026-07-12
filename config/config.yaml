@@ -7,8 +7,11 @@ site:
   - 52.7632
   buffer_m: 500
 time:
-  start: '2021-01-01'
-  end: '2026-06-30'
+  # Choix utilisateur : 3 ans 2022-2024 (periode S1A seul, cadence 12 j).
+  # NB: les paires 6 j n'existent qu'en 2021 (S1B) et ~2025+ (S1C) ;
+  # pour les recuperer, elargir a 2021-01-01 / 2026-06-30 et relancer Phase 1-2.
+  start: '2022-01-01'
+  end: '2024-12-31'
 sentinel1:
   flight_direction: ASCENDING
   relative_orbit: 175
