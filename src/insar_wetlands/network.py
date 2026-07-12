@@ -1,0 +1,94 @@
+"""Phase 3 — Controle qualite du reseau interferometrique et connectivite."""
+
+from __future__ import annotations
+
+import numpy as np
+import pandas as pd
+import xarray as xr
+
+
+def pair_stats(corr_stack: xr.DataArray, aoi: xr.DataArray) -> pd.DataFrame:
+    """Coherence moyenne/mediane par paire, sur l'AOI et hors AOI."""
+    inside = corr_stack.where(aoi)
+    outside = corr_stack.where(~aoi)
+    df = pd.DataFrame({
+        "pair": corr_stack.pair.values,
+        "ref_date": pd.to_datetime(corr_stack.ref_date.values),
+        "sec_date": pd.to_datetime(corr_stack.sec_date.values),
+        "coh_aoi_mean": inside.mean(("y", "x")).values,
+        "coh_aoi_median": inside.median(("y", "x")).values,
+        "coh_out_mean": outside.mean(("y", "x")).values,
+        "frac_aoi_coh_gt_0p3": (inside > 0.3).mean(("y", "x")).values,
+    })
+    df["dt_days"] = (df.sec_date - df.ref_date).dt.days
+    df["season"] = df.ref_date.dt.month.map(
+        lambda m: "DJF" if m in (12, 1, 2) else
+                  "MAM" if m in (3, 4, 5) else
+                  "JJA" if m in (6, 7, 8) else "SON")
+    return df
+
+
+def select_pairs(stats: pd.DataFrame, min_coherence: float = 0.30) -> pd.DataFrame:
+    """Marque les paires conservees (keep=True) selon la coherence AOI."""
+    out = stats.copy()
+    out["keep"] = out["coh_aoi_mean"] >= min_coherence
+    return out
+
+
+def connectivity(stats: pd.DataFrame, keep_col: str = "keep"):
+    """Composantes connexes du graphe temporel avec les paires conservees.
+
+    Retourne (n_components, labels_par_date, dates). n_components > 1 =>
+    l'inversion SBAS sera singuliere : il faut des paires-ponts.
+    """
+    from scipy.sparse import coo_matrix
+    from scipy.sparse.csgraph import connected_components
+
+    kept = stats[stats[keep_col]]
+    dates = sorted(set(stats.ref_date) | set(stats.sec_date))
+    idx = {d: i for i, d in enumerate(dates)}
+    i = [idx[d] for d in kept.ref_date]
+    j = [idx[d] for d in kept.sec_date]
+    n = len(dates)
+    adj = coo_matrix((np.ones(len(i)), (i, j)), shape=(n, n))
+    n_comp, labels = connected_components(adj, directed=False)
+    return n_comp, labels, pd.DatetimeIndex(dates)
+
+
+def suggest_bridges(stats: pd.DataFrame, max_bridge_days: int = 120) -> pd.DataFrame:
+    """Paires-ponts a soumettre pour reconnecter les composantes isolees.
+
+    Pour chaque frontiere entre composantes, propose les 3 paires inter-
+    composantes les plus courtes (a soumettre a HyP3 puis re-evaluer).
+    """
+    n_comp, labels, dates = connectivity(stats)
+    if n_comp == 1:
+        return pd.DataFrame(columns=["ref_date", "sec_date", "dt_days", "pair"])
+    rows = []
+    for ca in range(n_comp):
+        for cb in range(ca + 1, n_comp):
+            da = dates[labels == ca]
+            db = dates[labels == cb]
+            cands = [(a, b) if a < b else (b, a)
+                     for a in da for b in db
+                     if abs((b - a).days) <= max_bridge_days]
+            cands = sorted(set(cands), key=lambda p: (p[1] - p[0]).days)[:3]
+            for a, b in cands:
+                rows.append({"ref_date": a, "sec_date": b,
+                             "dt_days": (b - a).days,
+                             "pair": f"{a:%Y%m%d}_{b:%Y%m%d}"})
+    return pd.DataFrame(rows)
+
+
+def design_matrix(pairs: list[str], dates: pd.DatetimeIndex) -> np.ndarray:
+    """Matrice de design SBAS A (n_pairs x n_dates-1), phase incrementale.
+
+    phi_pair = somme des increments entre ref_date et sec_date.
+    """
+    idx = {d: i for i, d in enumerate(dates)}
+    A = np.zeros((len(pairs), len(dates) - 1))
+    for k, p in enumerate(pairs):
+        a, b = p.split("_")
+        i, j = idx[pd.Timestamp(a)], idx[pd.Timestamp(b)]
+        A[k, i:j] = 1.0
+    return A

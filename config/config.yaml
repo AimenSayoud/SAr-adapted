@@ -32,6 +32,7 @@ sentinel2:
   stac_url: "https://earth-search.aws.element84.com/v1"
   max_cloud_cover: 20           # %
   bands: ["green", "nir", "swir16", "scl"]   # NDWI=(G-NIR), MNDWI=(G-SWIR)
+  max_gap_days: 12              # tolerance interpolation optique -> dates S1
 
 era5:
   dataset: "reanalysis-era5-single-levels"
@@ -46,9 +47,13 @@ hyp3:
   # Phase 2 — interferometrie par burst (economie de credits + Colab-friendly)
   job_type: "INSAR_ISCE_BURST"
   looks: "10x2"                 # ~40 m ; "5x1" pour ~20 m si la coherence le permet
+  job_name_prefix: "rzecin"
   # Reseau SBAS initial
   max_temporal_baseline_days: 48
-  max_spatial_baseline_m: 150
+  max_spatial_baseline_m: 150   # informatif : les bursts S1 restent < 150 m
+  max_pairs_per_date: 4         # connexions vers l'avant par date
+  test_batch_size: 12           # lot go/no-go avant le reseau complet
+  crop_buffer_m: 2000           # marge de crop (point de reference Classe A)
 
 network:
   # Phase 3 — controle qualite
@@ -61,11 +66,22 @@ quality_index:
 
 isbas:
   min_coherent_pairs: 20          # N >= 20 paires coherentes par pixel
+  gamma_min: 0.30                 # coherence min pour qu'une paire compte
 
 masking:
   ndwi_water_threshold: 0.2
   mndwi_water_threshold: 0.0
   sigma0_vv_water_db: -17.0       # reflexion speculaire eau libre
+  double_bounce_delta_db: 4.0     # rehaussement vs mediane = veg. inondee
+
+classification:
+  permanent_water_frac: 0.80      # classe E
+  intermittent_frac: 0.15         # limite classes C/B vs D
+  stable_coherence: 0.45          # limite A vs B (hors AOI)
+
+products:
+  subsidence_threshold_mm_yr: -2.0
+  breathing_threshold_mm: 10.0
 
 paths:
   outputs: "outputs"

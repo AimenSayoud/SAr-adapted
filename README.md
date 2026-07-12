@@ -36,19 +36,32 @@ outputs/                  # produits par phase (non versionnés ici)
 | # | Phase | Notebook | Statut |
 |---|-------|----------|--------|
 | 1 | Acquisition multi-source (inventaires S1/S2 + ERA5) | `phase01_acquisition.ipynb` | ✅ prêt |
-| 2 | Interférogrammes HyP3 (burst InSAR, réseau SBAS) | — | à venir |
-| 3 | Contrôle qualité & topologie du réseau (go/no-go cohérence) | — | à venir |
-| 4 | Fusion multi-capteurs (S2 → grille UTM HyP3, nearest) | — | à venir |
-| 5 | Masque dynamique de l'eau (NDWI/MNDWI/σ⁰) | — | à venir |
-| 6 | Classification spatio-temporelle (5 classes) | — | à venir |
-| 7 | Indice de qualité W_i & matrice de pondération | — | à venir |
-| 8 | Inversion SBAS (MintPy) | — | à venir |
-| 9 | Inversion ISBAS customisée (+ contrôle *phase closure*) | — | à venir |
-| 10 | Comparaison quantitative SBAS vs ISBAS | — | à venir |
-| 11 | Correction atmosphérique comparative (ERA5/GACOS vs réf. locale) | — | à venir |
-| 12 | Décomposition LOS → vertical (d_vert = d_LOS / cos θ) | — | à venir |
-| 13 | Analyse hydrologique & séparation signal diélectrique | — | à venir |
-| 14 | Incertitudes & produits finaux (mm/an, RMSE, cartes) | — | à venir |
+| 2 | Interférogrammes HyP3 (burst InSAR, lot test + réseau SBAS) | `phase02_hyp3_jobs.ipynb` | ✅ prêt |
+| 3 | Contrôle qualité & topologie du réseau (go/no-go cohérence) | `phase03_network_qc.ipynb` | ✅ prêt |
+| 4 | Fusion multi-capteurs (S2 → grille UTM HyP3, nearest) | `phase04_s2_fusion.ipynb` | ✅ prêt |
+| 5 | Masque dynamique de l'eau (NDWI/MNDWI/σ⁰ RTC) | `phase05_water_mask.ipynb` | ✅ prêt |
+| 6 | Classification spatio-temporelle (5 classes + réf. Classe A) | `phase06_classification.ipynb` | ✅ prêt |
+| 7 | Indice de qualité W_i & matrice de pondération | `phase07_quality_index.ipynb` | ✅ prêt |
+| 8 | Inversion SBAS (MintPy) | `phase08_sbas_mintpy.ipynb` | ✅ prêt |
+| 9 | Inversion ISBAS customisée (+ contrôle *phase closure*) | `phase09_isbas.ipynb` | ✅ prêt |
+| 10 | Comparaison quantitative SBAS vs ISBAS | `phase10_comparison.ipynb` | ✅ prêt |
+| 11 | Correction atmosphérique comparative (ERA5 vs réf. locale) | `phase11_atmosphere.ipynb` | ✅ prêt |
+| 12 | Décomposition LOS → vertical (d_vert = d_LOS / cos θ) | `phase12_los_vertical.ipynb` | ✅ prêt |
+| 13 | Analyse hydrologique & séparation signal diélectrique | `phase13_hydrology.ipynb` | ✅ prêt |
+| 14 | Incertitudes & produits finaux (mm/an, RMSE, cartes) | `phase14_products.ipynb` | ✅ prêt |
+
+Le cœur scientifique (matrice de design, inversion ISBAS, récupération des
+pixels intermittents, *phase closure*) est validé par un test synthétique :
+`python tests/test_synthetic_inversion.py`.
+
+### Flux de données entre phases
+
+- **Drive** (`/content/drive/MyDrive/insar_rzecin/`) : données lourdes et
+  persistantes — produits HyP3 croppés (`hyp3_cropped/`), stacks netCDF
+  (S2, RTC, masque d'eau, séries temporelles), artefacts inter-phases
+  (`artifacts/` : sélection de paires, pixel de référence, inventaires).
+- **Branches `outputs/phaseXX`** : produits légers (CSV, PNG, GeoTIFF finaux,
+  `manifest.json`) poussés à la fin de chaque notebook.
 
 ## Corrections apportées au pipeline initial
 

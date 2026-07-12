@@ -21,7 +21,8 @@ pip install -q --upgrade \
     xarray \
     h5py \
     netcdf4 \
-    pyyaml
+    pyyaml \
+    planetary-computer
 
 # MintPy n'est necessaire qu'a partir de la Phase 8 — installation separee
 # (plus lourde) pour ne pas ralentir les phases 1-7 :
