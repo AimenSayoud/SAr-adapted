@@ -39,10 +39,30 @@ def _retrieve(cfg: dict, out: Path, year: int,
             "day": [f"{d:02d}" for d in range(1, 32)],
             "time": [f"{h:02d}:00" for h in range(0, 24, 6)],
             "area": e5["area"],  # N, W, S, E
-            "format": "netcdf",
+            # Le nouveau backend CDS zippe par defaut ("download_format":
+            # "zip") meme avec un nom de sortie en .nc -> forcer un fichier
+            # netCDF brut, non archive.
+            "data_format": "netcdf",
+            "download_format": "unarchived",
         },
         str(out),
     )
+    _unwrap_if_zipped(out)
+
+
+def _unwrap_if_zipped(path: Path) -> None:
+    """Le CDS renvoie parfois un zip malgre 'unarchived' (bug connu) ->
+    extrait le .nc qu'il contient et remplace le fichier."""
+    import zipfile
+
+    if not zipfile.is_zipfile(path):
+        return
+    with zipfile.ZipFile(path) as zf:
+        members = [n for n in zf.namelist() if n.endswith(".nc")]
+        if not members:
+            raise ValueError(f"zip ERA5 sans fichier .nc: {path} ({zf.namelist()})")
+        data = zf.read(members[0])
+    path.write_bytes(data)
 
 
 def _download_year(cfg: dict, cache_dir: Path, year: int) -> Path:
@@ -52,6 +72,7 @@ def _download_year(cfg: dict, cache_dir: Path, year: int) -> Path:
 
     out = cache_dir / f"era5_{year}.nc"
     if out.exists():
+        _unwrap_if_zipped(out)  # repare les fichiers deja telecharges (zip masque)
         return out
     variables = cfg["era5"]["variables"]
     try:
