@@ -12,10 +12,21 @@ from __future__ import annotations
 from pathlib import Path
 
 
+def _ensure_cdsapirc() -> None:
+    """Reecrit ~/.cdsapirc si absent (ex: kernel Colab redemarre entre-temps)."""
+    from pathlib import Path as _Path
+
+    if not (_Path.home() / ".cdsapirc").exists():
+        from ..config import setup_cdsapi
+
+        setup_cdsapi()
+
+
 def _retrieve(cfg: dict, out: Path, year: int,
               variables: list[str]) -> None:
     import cdsapi
 
+    _ensure_cdsapirc()
     e5 = cfg["era5"]
     c = cdsapi.Client()
     c.retrieve(
