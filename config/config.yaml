@@ -1,88 +1,71 @@
-# ============================================================
-# Configuration unique du pipeline InSAR zones humides — Rzecin
-# Toutes les phases lisent CE fichier. Ne pas dupliquer les
-# paramètres dans les notebooks.
-# ============================================================
-
 site:
-  name: "Rzecin peatland"
-  country: "Poland"
-  aoi_geojson: "data/aoi/Rzecin_corrected.geojson"
-  # Surface mesurée du polygone : ~89.7 ha (le document de these dit 60 ha ;
-  # le polygone fourni fait foi).
-  centroid: [16.3098, 52.7632]   # lon, lat
-  # Marge autour de l'AOI pour le crop des rasters (metres)
+  name: Rzecin peatland
+  country: Poland
+  aoi_geojson: data/aoi/Rzecin_corrected.geojson
+  centroid:
+  - 16.3098
+  - 52.7632
   buffer_m: 500
-
 time:
-  # Horizon 3-5 ans -> on prend 5 ans glissants, ajustable
-  start: "2021-01-01"
-  end: "2026-06-30"
-
+  start: '2021-01-01'
+  end: '2026-06-30'
 sentinel1:
-  # Determines en Phase 1 apres inventaire ASF, puis figes ici.
-  # null = pas encore choisi (le notebook phase01 propose le meilleur choix).
-  flight_direction: null        # "DESCENDING" ou "ASCENDING"
-  relative_orbit: null          # ex: 95
-  burst_id: null                # full burst ID ex: "146142_IW2"
-  polarization: "VV"
-
+  flight_direction: ASCENDING
+  relative_orbit: 175
+  burst_id: 175_374052_IW1
+  polarization: VV
 sentinel2:
-  collection: "sentinel-2-l2a"
-  stac_url: "https://earth-search.aws.element84.com/v1"
-  max_cloud_cover: 20           # %
-  bands: ["green", "nir", "swir16", "scl"]   # NDWI=(G-NIR), MNDWI=(G-SWIR)
-  max_gap_days: 12              # tolerance interpolation optique -> dates S1
-
+  collection: sentinel-2-l2a
+  stac_url: https://earth-search.aws.element84.com/v1
+  max_cloud_cover: 20
+  bands:
+  - green
+  - nir
+  - swir16
+  - scl
+  max_gap_days: 12
 era5:
-  dataset: "reanalysis-era5-single-levels"
+  dataset: reanalysis-era5-single-levels
   variables:
-    - "total_precipitation"
-    - "2m_temperature"
-    - "total_column_water_vapour"
-  # bbox N,W,S,E avec marge (~0.5 deg) autour de Rzecin
-  area: [53.3, 15.8, 52.3, 16.8]
-
+  - total_precipitation
+  - 2m_temperature
+  - total_column_water_vapour
+  area:
+  - 53.3
+  - 15.8
+  - 52.3
+  - 16.8
 hyp3:
-  # Phase 2 — interferometrie par burst (economie de credits + Colab-friendly)
-  job_type: "INSAR_ISCE_BURST"
-  looks: "10x2"                 # ~40 m ; "5x1" pour ~20 m si la coherence le permet
-  job_name_prefix: "rzecin"
-  # Reseau SBAS initial
+  job_type: INSAR_ISCE_BURST
+  looks: 10x2
+  job_name_prefix: rzecin
   max_temporal_baseline_days: 48
-  max_spatial_baseline_m: 150   # informatif : les bursts S1 restent < 150 m
-  max_pairs_per_date: 4         # connexions vers l'avant par date
-  test_batch_size: 12           # lot go/no-go avant le reseau complet
-  crop_buffer_m: 2000           # marge de crop (point de reference Classe A)
-
+  max_spatial_baseline_m: 150
+  max_pairs_per_date: 4
+  test_batch_size: 12
+  crop_buffer_m: 2000
 network:
-  # Phase 3 — controle qualite
-  min_mean_coherence_pair: 0.30   # rejet des paires sous ce seuil sur l'AOI
-  bridge_pairs_days: [36, 48]     # ponts saisonniers
-
+  min_mean_coherence_pair: 0.3
+  bridge_pairs_days:
+  - 36
+  - 48
 quality_index:
-  # Phase 7 — W_i = coherence conditionnelle hors-eau x fraction hors-eau
   sbas_threshold: 0.5
-
 isbas:
-  min_coherent_pairs: 20          # N >= 20 paires coherentes par pixel
-  gamma_min: 0.30                 # coherence min pour qu'une paire compte
-
+  min_coherent_pairs: 20
+  gamma_min: 0.3
 masking:
   ndwi_water_threshold: 0.2
   mndwi_water_threshold: 0.0
-  sigma0_vv_water_db: -17.0       # reflexion speculaire eau libre
-  double_bounce_delta_db: 4.0     # rehaussement vs mediane = veg. inondee
-
+  sigma0_vv_water_db: -17.0
+  double_bounce_delta_db: 4.0
 classification:
-  permanent_water_frac: 0.80      # classe E
-  intermittent_frac: 0.15         # limite classes C/B vs D
-  stable_coherence: 0.45          # limite A vs B (hors AOI)
-
+  permanent_water_frac: 0.8
+  intermittent_frac: 0.15
+  stable_coherence: 0.45
 products:
   subsidence_threshold_mm_yr: -2.0
   breathing_threshold_mm: 10.0
-
 paths:
-  outputs: "outputs"
-  drive_data_root: "/content/drive/MyDrive/insar_rzecin"  # stockage lourd (stacks HyP3)
+  outputs: outputs
+  drive_data_root: /content/drive/MyDrive/insar_rzecin
