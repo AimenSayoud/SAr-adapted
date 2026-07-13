@@ -78,14 +78,22 @@ def water_mask(s2_on_s1: xr.Dataset, rtc: xr.Dataset, cfg: dict) -> xr.Dataset:
 
     water = optical_water.fillna(False) | radar_dark.fillna(False)
     hidden = double_bounce.fillna(False) & ~water
-    return xr.Dataset({
+    # .where()/.fillna() propagent par defaut les attrs source (ex: le
+    # long_name du GeoTIFF RTC "Sentinel-1 Calibrated..." de gamma0_vv_db) ->
+    # on les efface explicitement pour ne pas polluer les figures en aval.
+    out = xr.Dataset({
         "water": water,
         "hidden_water": hidden,
         "water_or_hidden": water | hidden,
         "optical_valid": s2_on_s1["ndwi"].notnull(),
     })
+    for v in out.data_vars:
+        out[v].attrs = {}
+    return out
 
 
 def flooded_fraction(mask: xr.Dataset, var: str = "water_or_hidden") -> xr.DataArray:
     """Fraction du temps ou chaque pixel est inonde (base de la Phase 6/7)."""
-    return mask[var].mean("time").rename("flooded_fraction")
+    ff = mask[var].mean("time")
+    ff.attrs = {"long_name": "Fraction du temps inondee", "units": "0-1"}
+    return ff.rename("flooded_fraction")
