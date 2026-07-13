@@ -31,8 +31,9 @@ mintpy.network.minCoherence   = {network_min_coherence}
 # Les pixels coherents isoles (fermes, routes) au milieu de champs/tourbiere
 # decorreles accumulent des sauts de 2*pi (+-28 mm) que SNAPHU ne peut pas
 # resoudre sans contexte spatial -> fausses vitesses de +-15 mm/an.
-# bridging utilise les conn_comp HyP3 ; phase_closure utilise les triplets.
-mintpy.unwrapError.method    = bridging+phase_closure
+# 'phase_closure' (fermeture de triplets) ne depend PAS des conn_comp -> plus
+# robuste ; 'bridging' les exige (dataset connectComponent dans le stack).
+mintpy.unwrapError.method    = {unwrap_error_method}
 
 mintpy.networkInversion.weightFunc    = var
 mintpy.networkInversion.maskDataset   = coherence
@@ -49,7 +50,14 @@ def write_config(work_dir: str | Path, data_dir: str | Path, first_pair: str,
                  ref_lat: float, ref_lon: float, coh_threshold: float = 0.4,
                  temp_base_max: int = 48, tropo: bool = False,
                  exclude_ifg: str = "no",
-                 network_min_coherence: float = 0.30) -> Path:
+                 network_min_coherence: float = 0.30,
+                 unwrap_error_method: str = "phase_closure") -> Path:
+    """Ecrit la config MintPy.
+
+    unwrap_error_method : 'phase_closure' (defaut, robuste, sans conn_comp),
+    'bridging' ou 'bridging+phase_closure' (exigent le dataset
+    connectComponent -> voir has_connected_component()).
+    """
     work_dir = Path(work_dir)
     work_dir.mkdir(parents=True, exist_ok=True)
     cfg = MINTPY_CFG_TEMPLATE.format(
@@ -59,10 +67,18 @@ def write_config(work_dir: str | Path, data_dir: str | Path, first_pair: str,
         tropo_method="pyaps" if tropo else "no",
         exclude_ifg=exclude_ifg,
         network_min_coherence=network_min_coherence,
+        unwrap_error_method=unwrap_error_method,
     )
     path = work_dir / "rzecin.cfg"
     path.write_text(cfg)
     return path
+
+
+def has_connected_component(cropped_root: str | Path) -> bool:
+    """Vrai si des fichiers conn_comp existent dans les produits croppes
+    (condition necessaire pour la methode 'bridging')."""
+    root = Path(cropped_root)
+    return any(root.glob("*/*_conn_comp.tif"))
 
 
 def run(cfg_path: str | Path, work_dir: str | Path,
