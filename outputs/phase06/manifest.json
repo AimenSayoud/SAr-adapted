@@ -1,0 +1,16 @@
+{
+  "phase": "phase06_classification",
+  "generated_utc": "2026-07-13T13:41:00+00:00",
+  "parameters": {
+    "permanent_water_frac": 0.8,
+    "intermittent_frac": 0.15,
+    "stable_coherence": 0.45
+  },
+  "products": {
+    "A_stable_ground": 6712,
+    "B_stable_vegetation": 7217,
+    "C_peat_core": 486,
+    "D_transition_flooded": 56,
+    "E_permanent_water": 22
+  }
+}
