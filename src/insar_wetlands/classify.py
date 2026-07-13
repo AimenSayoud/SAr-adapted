@@ -24,14 +24,21 @@ def classify(flooded_frac: xr.DataArray, mean_coh: xr.DataArray,
     intermittent = float(c.get("intermittent_frac", 0.15))
     coh_stable = float(c.get("stable_coherence", 0.45))
 
-    cls = xr.full_like(flooded_frac, np.nan)
+    # Les classes hydro (C/D/E) n'ont de sens physique que DANS l'AOI : hors
+    # AOI, un pixel intermittent est un fosse/champ agricole, pas une zone de
+    # transition de la tourbiere. On borne D et E a l'AOI (C l'est deja), et
+    # hors AOI tout devient A/B (sol/vegetation de reference).
     never = flooded_frac <= intermittent
-    cls = cls.where(~((flooded_frac >= permanent)), 5)                    # E
-    cls = cls.where(~((flooded_frac > intermittent)
-                      & (flooded_frac < permanent)), 4)                    # D
-    cls = cls.where(~(never & aoi), 3)                                     # C
-    cls = cls.where(~(never & ~aoi & (mean_coh >= coh_stable)), 1)         # A
-    cls = cls.where(~(never & ~aoi & (mean_coh < coh_stable)), 2)          # B
+    flooded_in = flooded_frac.where(aoi)
+
+    cls = xr.full_like(flooded_frac, np.nan)
+    cls = cls.where(~(aoi & (flooded_in >= permanent)), 5)                # E
+    cls = cls.where(~(aoi & (flooded_frac > intermittent)
+                      & (flooded_frac < permanent)), 4)                   # D
+    cls = cls.where(~(aoi & never), 3)                                    # C
+    cls = cls.where(~(~aoi & (mean_coh >= coh_stable)), 1)                # A
+    cls = cls.where(~(~aoi & (mean_coh < coh_stable)), 2)                 # B
+    cls.attrs = {"long_name": "Classe comportementale (1=A..5=E)"}
     return cls.rename("behavior_class")
 
 
