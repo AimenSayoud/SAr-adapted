@@ -1,0 +1,14 @@
+{
+  "phase": "phase05_water_mask",
+  "generated_utc": "2026-07-13T10:21:44+00:00",
+  "parameters": {
+    "ndwi_water_threshold": 0.2,
+    "mndwi_water_threshold": 0.0,
+    "sigma0_vv_water_db": -17.0,
+    "double_bounce_delta_db": 4.0
+  },
+  "products": {
+    "mask_nc": "/content/drive/MyDrive/insar_rzecin/water_mask.nc",
+    "n_dates": 90
+  }
+}
