@@ -1,0 +1,23 @@
+{
+  "phase": "phase03_network_qc",
+  "generated_utc": "2026-07-13T09:49:26+00:00",
+  "parameters": {
+    "min_coherence": 0.3
+  },
+  "products": {
+    "pairs_total": 346,
+    "pairs_kept": 277,
+    "connectivity": {
+      "n_components": 1,
+      "n_dates": 90,
+      "largest_component": 90,
+      "coverage_pct": 100.0,
+      "n_orphan_dates": 0,
+      "orphan_dates": [],
+      "big_component_sizes": [
+        90
+      ],
+      "verdict": "connexe"
+    }
+  }
+}
