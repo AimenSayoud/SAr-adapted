@@ -29,12 +29,12 @@ mintpy.network.excludeIfgIndex = {exclude_ifg}
 mintpy.network.coherenceBased = yes
 mintpy.network.minCoherence   = {network_min_coherence}
 
-# Correction des erreurs de deroulement AVANT inversion : indispensable ici.
-# Les pixels coherents isoles (fermes, routes) au milieu de champs/tourbiere
-# decorreles accumulent des sauts de 2*pi (+-28 mm) que SNAPHU ne peut pas
-# resoudre sans contexte spatial -> fausses vitesses de +-15 mm/an.
-# 'phase_closure' (fermeture de triplets) ne depend PAS des conn_comp -> plus
-# robuste ; 'bridging' les exige (dataset connectComponent dans le stack).
+# Correction des erreurs de deroulement : DESACTIVEE ('no') car les DEUX
+# methodes MintPy (bridging ET phase_closure) exigent le dataset
+# connectComponent, absent des produits HyP3 INSAR_ISCE_BURST. C'est une
+# limitation documentee du SBAS standard sur ce type de produit ; la
+# correction des sauts est faite en Phase 9 (ISBAS) par notre propre
+# fermeture de triplets, independante de MintPy et sans conn_comp.
 mintpy.unwrapError.method    = {unwrap_error_method}
 
 mintpy.networkInversion.weightFunc    = var
@@ -53,12 +53,14 @@ def write_config(work_dir: str | Path, data_dir: str | Path, first_pair: str,
                  temp_base_max: int = 48, tropo: bool = False,
                  exclude_ifg: str = "no",
                  network_min_coherence: float = 0.30,
-                 unwrap_error_method: str = "phase_closure") -> Path:
+                 unwrap_error_method: str = "no") -> Path:
     """Ecrit la config MintPy.
 
-    unwrap_error_method : 'phase_closure' (defaut, robuste, sans conn_comp),
-    'bridging' ou 'bridging+phase_closure' (exigent le dataset
-    connectComponent -> voir has_connected_component()).
+    unwrap_error_method : 'no' (defaut) car les methodes MintPy 'bridging' et
+    'phase_closure' exigent toutes deux le dataset connectComponent, absent
+    des produits HyP3 INSAR_ISCE_BURST. La correction des sauts de phase est
+    faite en Phase 9 (ISBAS). Ne passer 'bridging'/'phase_closure' que si
+    has_connected_component() est vrai (produits GAMMA, p.ex.).
     """
     work_dir = Path(work_dir)
     work_dir.mkdir(parents=True, exist_ok=True)
