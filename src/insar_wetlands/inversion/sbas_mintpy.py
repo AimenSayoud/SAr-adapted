@@ -66,18 +66,34 @@ def write_config(work_dir: str | Path, data_dir: str | Path, first_pair: str,
 
 
 def run(cfg_path: str | Path, work_dir: str | Path,
-        dostep: str | None = None, start: str | None = None) -> int:
-    """Lance smallbaselineApp.py ; retourne le code de sortie (log affiche).
+        dostep: str | None = None, start: str | None = None,
+        tail: int = 40) -> int:
+    """Lance smallbaselineApp.py, capture le log et affiche sa fin.
 
-    start='modify_network' permet de relancer apres un changement de config
-    sans recharger les 346 GeoTIFF (le stack ifgramStack.h5 est reutilise).
+    - Le log COMPLET (stdout+stderr) est ecrit dans work_dir/mintpy_run.log
+      (persistant sur Drive) ;
+    - les `tail` dernieres lignes sont affichees dans la cellule -> c'est la
+      qu'apparait le Traceback/Error en cas d'echec ;
+    - retourne le code de sortie (0 = succes).
+
+    start='modify_network' relance apres un changement de config sans
+    recharger les 346 GeoTIFF (le stack ifgramStack.h5 est reutilise).
     """
     cmd = ["smallbaselineApp.py", str(cfg_path), "--work-dir", str(work_dir)]
     if dostep:
         cmd += ["--dostep", dostep]
     if start:
         cmd += ["--start", start]
-    proc = subprocess.run(cmd, text=True)
+
+    proc = subprocess.run(cmd, text=True, capture_output=True)
+    log = (proc.stdout or "") + "\n===== STDERR =====\n" + (proc.stderr or "")
+    log_path = Path(work_dir) / "mintpy_run.log"
+    log_path.write_text(log)
+
+    lines = log.splitlines()
+    print(f"EXIT CODE: {proc.returncode}  (log complet: {log_path})")
+    print(f"----- {tail} dernieres lignes du log -----")
+    print("\n".join(lines[-tail:]))
     return proc.returncode
 
 
