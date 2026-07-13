@@ -11,6 +11,10 @@ def pair_stats(corr_stack: xr.DataArray, aoi: xr.DataArray) -> pd.DataFrame:
     """Coherence moyenne/mediane par paire, sur l'AOI et hors AOI."""
     inside = corr_stack.where(aoi)
     outside = corr_stack.where(~aoi)
+    # NB: (inside > 0.3).mean() serait faux — la comparaison transforme les
+    # NaN hors-AOI en False, donc la moyenne se ferait sur TOUTE la grille
+    # croppee (AOI ~3% de la grille) au lieu des seuls pixels AOI.
+    n_aoi = float(aoi.sum())
     df = pd.DataFrame({
         "pair": corr_stack.pair.values,
         "ref_date": pd.to_datetime(corr_stack.ref_date.values),
@@ -18,7 +22,7 @@ def pair_stats(corr_stack: xr.DataArray, aoi: xr.DataArray) -> pd.DataFrame:
         "coh_aoi_mean": inside.mean(("y", "x")).values,
         "coh_aoi_median": inside.median(("y", "x")).values,
         "coh_out_mean": outside.mean(("y", "x")).values,
-        "frac_aoi_coh_gt_0p3": (inside > 0.3).mean(("y", "x")).values,
+        "frac_aoi_coh_gt_0p3": (inside > 0.3).sum(("y", "x")).values / n_aoi,
     })
     df["dt_days"] = (df.sec_date - df.ref_date).dt.days
     df["season"] = df.ref_date.dt.month.map(
