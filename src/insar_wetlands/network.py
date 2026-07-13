@@ -59,6 +59,37 @@ def connectivity(stats: pd.DataFrame, keep_col: str = "keep"):
     return n_comp, labels, pd.DatetimeIndex(dates)
 
 
+def component_report(stats: pd.DataFrame, keep_col: str = "keep") -> dict:
+    """Diagnostic de connectivite exploitable pour le go/no-go SBAS.
+
+    Distingue deux situations tres differentes derriere un meme n_comp :
+      - des dates ORPHELINES (toutes leurs paires rejetees) : MintPy les
+        ignore simplement, ce n'est PAS bloquant ;
+      - une vraie SCISSION du reseau en gros blocs (ex: un ete decorrele qui
+        coupe annee N / annee N+1) : la, il faut des ponts.
+    """
+    n_comp, labels, dates = connectivity(stats, keep_col)
+    sizes = pd.Series(labels).value_counts().sort_values(ascending=False)
+    comp_dates = {int(c): sorted(dates[labels == c]) for c in sizes.index}
+    orphans = [d for c in sizes.index if sizes[c] == 1
+               for d in comp_dates[int(c)]]
+    big = sizes[sizes > 1]
+    largest = int(sizes.iloc[0])
+    verdict = ("connexe" if n_comp == 1
+               else "orphelins_seulement" if len(big) <= 1
+               else "scission_reelle")
+    return {
+        "n_components": int(n_comp),
+        "n_dates": len(dates),
+        "largest_component": largest,
+        "coverage_pct": round(100 * largest / len(dates), 1),
+        "n_orphan_dates": len(orphans),
+        "orphan_dates": [d.date().isoformat() for d in orphans],
+        "big_component_sizes": [int(s) for s in big.tolist()],
+        "verdict": verdict,
+    }
+
+
 def suggest_bridges(stats: pd.DataFrame, max_bridge_days: int = 120,
                     per_boundary: int = 3) -> pd.DataFrame:
     """Paires-ponts NOUVELLES a soumettre pour reconnecter les composantes.
