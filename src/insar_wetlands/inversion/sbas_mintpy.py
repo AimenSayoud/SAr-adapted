@@ -22,6 +22,17 @@ mintpy.load.waterMaskFile    = {data_dir}/{first_pair}/*_water_mask.tif
 mintpy.reference.lalo        = {ref_lat},{ref_lon}
 mintpy.network.tempBaseMax   = {temp_base_max}
 mintpy.network.excludeIfgIndex = {exclude_ifg}
+# Selection de reseau alignee sur la Phase 3 : rejette les paires dont la
+# coherence spatiale moyenne est sous le seuil (etes decorreles).
+mintpy.network.coherenceBased = yes
+mintpy.network.minCoherence   = {network_min_coherence}
+
+# Correction des erreurs de deroulement AVANT inversion : indispensable ici.
+# Les pixels coherents isoles (fermes, routes) au milieu de champs/tourbiere
+# decorreles accumulent des sauts de 2*pi (+-28 mm) que SNAPHU ne peut pas
+# resoudre sans contexte spatial -> fausses vitesses de +-15 mm/an.
+# bridging utilise les conn_comp HyP3 ; phase_closure utilise les triplets.
+mintpy.unwrapError.method    = bridging+phase_closure
 
 mintpy.networkInversion.weightFunc    = var
 mintpy.networkInversion.maskDataset   = coherence
@@ -37,7 +48,8 @@ mintpy.topographicResidual   = yes
 def write_config(work_dir: str | Path, data_dir: str | Path, first_pair: str,
                  ref_lat: float, ref_lon: float, coh_threshold: float = 0.4,
                  temp_base_max: int = 48, tropo: bool = False,
-                 exclude_ifg: str = "no") -> Path:
+                 exclude_ifg: str = "no",
+                 network_min_coherence: float = 0.30) -> Path:
     work_dir = Path(work_dir)
     work_dir.mkdir(parents=True, exist_ok=True)
     cfg = MINTPY_CFG_TEMPLATE.format(
@@ -46,6 +58,7 @@ def write_config(work_dir: str | Path, data_dir: str | Path, first_pair: str,
         temp_base_max=temp_base_max, coh_threshold=coh_threshold,
         tropo_method="pyaps" if tropo else "no",
         exclude_ifg=exclude_ifg,
+        network_min_coherence=network_min_coherence,
     )
     path = work_dir / "rzecin.cfg"
     path.write_text(cfg)
@@ -53,11 +66,17 @@ def write_config(work_dir: str | Path, data_dir: str | Path, first_pair: str,
 
 
 def run(cfg_path: str | Path, work_dir: str | Path,
-        dostep: str | None = None) -> int:
-    """Lance smallbaselineApp.py ; retourne le code de sortie (log affiche)."""
+        dostep: str | None = None, start: str | None = None) -> int:
+    """Lance smallbaselineApp.py ; retourne le code de sortie (log affiche).
+
+    start='modify_network' permet de relancer apres un changement de config
+    sans recharger les 346 GeoTIFF (le stack ifgramStack.h5 est reutilise).
+    """
     cmd = ["smallbaselineApp.py", str(cfg_path), "--work-dir", str(work_dir)]
     if dostep:
         cmd += ["--dostep", dostep]
+    if start:
+        cmd += ["--start", start]
     proc = subprocess.run(cmd, text=True)
     return proc.returncode
 

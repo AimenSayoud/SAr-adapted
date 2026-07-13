@@ -19,7 +19,13 @@ def fit_velocity(ts_mm: xr.DataArray) -> xr.Dataset:
     vel = np.tensordot(t_c, y0 - y0.mean(axis=0), axes=(0, 0)) / denom
     pred = y0.mean(axis=0)[None] + vel[None] * t_c[:, None, None]
     resid = np.where(np.isfinite(y), y - pred, np.nan)
-    rmse = np.sqrt(np.nanmean(resid ** 2, axis=0))
+    import warnings
+
+    with warnings.catch_warnings():
+        # pixels tout-NaN (non resolus) : nanmean rale mais NaN est le
+        # resultat voulu
+        warnings.simplefilter("ignore", category=RuntimeWarning)
+        rmse = np.sqrt(np.nanmean(resid ** 2, axis=0))
     se = rmse / np.sqrt(denom)
     vel[~valid] = np.nan
     rmse[~valid] = np.nan
