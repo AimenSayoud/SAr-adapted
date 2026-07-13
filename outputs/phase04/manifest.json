@@ -1,0 +1,12 @@
+{
+  "phase": "phase04_s2_fusion",
+  "generated_utc": "2026-07-13T10:13:18+00:00",
+  "parameters": {
+    "resampling": "nearest",
+    "grid": "HyP3 UTM"
+  },
+  "products": {
+    "n_dates": 69,
+    "stack": "/content/drive/MyDrive/insar_rzecin/s2_stack.nc"
+  }
+}
