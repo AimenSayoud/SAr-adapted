@@ -1,0 +1,11 @@
+{
+  "phase": "phase07_quality_index",
+  "generated_utc": "2026-07-13T13:46:22+00:00",
+  "parameters": {
+    "formula": "coh_cond_dry * (1 - flooded_frac)",
+    "sbas_threshold": 0.5
+  },
+  "products": {
+    "quality_nc": "/content/drive/MyDrive/insar_rzecin/quality_index.nc"
+  }
+}
