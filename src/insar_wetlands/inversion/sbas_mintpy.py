@@ -14,10 +14,12 @@ MINTPY_CFG_TEMPLATE = """\
 mintpy.load.processor        = hyp3
 mintpy.load.unwFile          = {data_dir}/*/*_unw_phase.tif
 mintpy.load.corFile          = {data_dir}/*/*_corr.tif
-mintpy.load.connCompFile     = {data_dir}/*/*_conn_comp.tif
 mintpy.load.demFile          = {data_dir}/{first_pair}/*_dem.tif
 mintpy.load.incAngleFile     = {data_dir}/{first_pair}/*_lv_theta.tif
-mintpy.load.waterMaskFile    = {data_dir}/{first_pair}/*_water_mask.tif
+# NB: les produits HyP3 INSAR_ISCE_BURST ne fournissent ni conn_comp ni
+# water_mask -> pas de connCompFile/waterMaskFile ici. Le masque d'eau vient
+# de notre Phase 5 (dynamique), et la correction de deroulement utilise
+# phase_closure (sans conn_comp).
 
 mintpy.reference.lalo        = {ref_lat},{ref_lon}
 mintpy.network.tempBaseMax   = {temp_base_max}
