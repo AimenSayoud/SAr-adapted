@@ -26,6 +26,39 @@ def optical_to_s1_dates(s2_stack: xr.Dataset, s1_dates: pd.DatetimeIndex,
     return out
 
 
+def mask_frozen_dates(s2_stack: xr.Dataset, era5: xr.Dataset,
+                      lon: float, lat: float,
+                      t2m_threshold_c: float = 1.0) -> xr.Dataset:
+    """Invalide les dates optiques ou T2m ERA5 est proche/sous 0 degC.
+
+    Le SCL de Sentinel-2 rate parfois de la neige fine/fondante en bordure
+    de parcelles, laissant passer des pixels contamines dans le NDWI (visible
+    typiquement sur des scenes de plein hiver). ERA5 T2m sert de garde-fou
+    independant de l'optique.
+    """
+    pt = era5["t2m"].sel(latitude=lat, longitude=lon, method="nearest") - 273.15
+    time_coord = "valid_time" if "valid_time" in pt.coords else "time"
+    daily_min = pt.resample({time_coord: "1D"}).min()
+    frozen_days = set(pd.to_datetime(
+        daily_min.where(daily_min < t2m_threshold_c, drop=True)[time_coord].values
+    ).normalize())
+
+    is_frozen = xr.DataArray(
+        [pd.Timestamp(t).normalize() in frozen_days
+         for t in s2_stack.time.values],
+        dims="time", coords={"time": s2_stack.time},
+    )
+    out = s2_stack.copy()
+    for v in ("ndwi", "mndwi"):
+        if v in out:
+            out[v] = out[v].where(~is_frozen)
+    n = int(is_frozen.sum())
+    if n:
+        print(f"  {n} date(s) optique(s) sous {t2m_threshold_c}degC exclues "
+              f"(risque de neige non filtree par le SCL)")
+    return out
+
+
 def water_mask(s2_on_s1: xr.Dataset, rtc: xr.Dataset, cfg: dict) -> xr.Dataset:
     """Masque d'eau par date S1 + drapeau double-bounce (vegetation inondee)."""
     m = cfg["masking"]
