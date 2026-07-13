@@ -14,12 +14,11 @@ MINTPY_CFG_TEMPLATE = """\
 mintpy.load.processor        = hyp3
 mintpy.load.unwFile          = {data_dir}/*/*_unw_phase.tif
 mintpy.load.corFile          = {data_dir}/*/*_corr.tif
+# ISCE burst nomme les composantes connexes '_conncomp.tif' (sans underscore
+# median) — indispensable aux corrections d'erreurs de deroulement.
+mintpy.load.connCompFile     = {data_dir}/*/*_conncomp.tif
 mintpy.load.demFile          = {data_dir}/{first_pair}/*_dem.tif
 mintpy.load.incAngleFile     = {data_dir}/{first_pair}/*_lv_theta.tif
-# NB: les produits HyP3 INSAR_ISCE_BURST ne fournissent ni conn_comp ni
-# water_mask -> pas de connCompFile/waterMaskFile ici. Le masque d'eau vient
-# de notre Phase 5 (dynamique), et la correction de deroulement utilise
-# phase_closure (sans conn_comp).
 
 mintpy.reference.lalo        = {ref_lat},{ref_lon}
 mintpy.network.tempBaseMax   = {temp_base_max}
@@ -29,12 +28,10 @@ mintpy.network.excludeIfgIndex = {exclude_ifg}
 mintpy.network.coherenceBased = yes
 mintpy.network.minCoherence   = {network_min_coherence}
 
-# Correction des erreurs de deroulement : DESACTIVEE ('no') car les DEUX
-# methodes MintPy (bridging ET phase_closure) exigent le dataset
-# connectComponent, absent des produits HyP3 INSAR_ISCE_BURST. C'est une
-# limitation documentee du SBAS standard sur ce type de produit ; la
-# correction des sauts est faite en Phase 9 (ISBAS) par notre propre
-# fermeture de triplets, independante de MintPy et sans conn_comp.
+# Correction des erreurs de deroulement AVANT inversion. Les deux methodes
+# exigent le dataset connectComponent (produit par SNAPHU, fichiers
+# _conncomp.tif du produit burst). bridging reconnecte les ilots coherents
+# isoles ; phase_closure corrige les sauts 2*pi par fermeture de triplets.
 mintpy.unwrapError.method    = {unwrap_error_method}
 
 mintpy.networkInversion.weightFunc    = var
@@ -53,14 +50,13 @@ def write_config(work_dir: str | Path, data_dir: str | Path, first_pair: str,
                  temp_base_max: int = 48, tropo: bool = False,
                  exclude_ifg: str = "no",
                  network_min_coherence: float = 0.30,
-                 unwrap_error_method: str = "no") -> Path:
+                 unwrap_error_method: str = "bridging+phase_closure") -> Path:
     """Ecrit la config MintPy.
 
-    unwrap_error_method : 'no' (defaut) car les methodes MintPy 'bridging' et
-    'phase_closure' exigent toutes deux le dataset connectComponent, absent
-    des produits HyP3 INSAR_ISCE_BURST. La correction des sauts de phase est
-    faite en Phase 9 (ISBAS). Ne passer 'bridging'/'phase_closure' que si
-    has_connected_component() est vrai (produits GAMMA, p.ex.).
+    unwrap_error_method : necessite les fichiers _conncomp.tif dans les
+    produits croppes (verifier avec has_connected_component() ; si absent,
+    relancer download_and_crop qui re-telecharge les produits incomplets).
+    Passer 'no' pour desactiver.
     """
     work_dir = Path(work_dir)
     work_dir.mkdir(parents=True, exist_ok=True)
@@ -79,10 +75,13 @@ def write_config(work_dir: str | Path, data_dir: str | Path, first_pair: str,
 
 
 def has_connected_component(cropped_root: str | Path) -> bool:
-    """Vrai si des fichiers conn_comp existent dans les produits croppes
-    (condition necessaire pour la methode 'bridging')."""
+    """Vrai si des fichiers de composantes connexes existent dans les
+    produits croppes (necessaire aux corrections d'erreurs de deroulement).
+    Les produits ISCE burst utilisent '_conncomp.tif', les GAMMA
+    '_conn_comp.tif'."""
     root = Path(cropped_root)
-    return any(root.glob("*/*_conn_comp.tif"))
+    return (any(root.glob("*/*_conncomp.tif"))
+            or any(root.glob("*/*_conn_comp.tif")))
 
 
 def run(cfg_path: str | Path, work_dir: str | Path,

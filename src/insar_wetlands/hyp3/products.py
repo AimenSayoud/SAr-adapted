@@ -11,9 +11,12 @@ import shutil
 import zipfile
 from pathlib import Path
 
-# Couches conservees apres crop (suffixes des GeoTIFF HyP3 burst InSAR)
+# Couches conservees apres crop (suffixes des GeoTIFF HyP3 burst InSAR).
+# NB: le produit ISCE burst nomme les composantes connexes '_conncomp.tif'
+# (PAS '_conn_comp.tif' comme les produits GAMMA) — les deux formes sont
+# gardees. 'amp' = amplitude de retrodiffusion.
 KEEP_LAYERS = ["unw_phase", "wrapped_phase", "corr", "lv_theta", "lv_phi",
-               "dem", "water_mask", "conn_comp"]
+               "dem", "water_mask", "conn_comp", "conncomp", "amp"]
 
 
 def utm_crop_bounds(cfg: dict, template_crs, margin_m: float | None = None):
@@ -56,11 +59,29 @@ def crop_product(product_dir: Path, cfg: dict, out_root: Path,
     return out_dir
 
 
+def _crop_is_complete(pair_dir: Path, required_layers=("conncomp",)) -> bool:
+    """Vrai si le crop existe ET contient les couches requises.
+
+    Sert au rattrapage : les crops historiques ont perdu _conncomp.tif
+    (mauvais motif de nom) -> ils sont consideres incomplets et la paire est
+    re-telechargee (gratuit tant que le job HyP3 n'a pas expire, 14 jours).
+    """
+    if not (pair_dir / "ok").exists():
+        return False
+    for layer in required_layers:
+        if not list(pair_dir.glob(f"*_{layer}.tif")):
+            return False
+    return True
+
+
 def download_and_crop(jobs, cfg: dict, drive_root: str | Path,
-                      pair_of_job: dict | None = None) -> list[str]:
+                      pair_of_job: dict | None = None,
+                      required_layers=("conncomp",)) -> list[str]:
     """Telecharge chaque job reussi, extrait, croppe, nettoie. Idempotent.
 
     pair_of_job : mapping job_id -> nom de paire (sinon deduit du nom de zip).
+    required_layers : couches dont l'absence declenche un re-telechargement
+    du produit (rattrapage des crops incomplets).
     Retourne la liste des paires traitees.
     """
     drive_root = Path(drive_root)
@@ -72,7 +93,12 @@ def download_and_crop(jobs, cfg: dict, drive_root: str | Path,
         if not job.succeeded():
             continue
         pair = (pair_of_job or {}).get(job.job_id)
-        if pair and (cropped_root / pair / "ok").exists():
+        if pair is None:
+            # nom de paire deductible des parametres du job sans telecharger
+            g = (getattr(job, "job_parameters", None) or {}).get("granules") or []
+            if len(g) >= 2:
+                pair = f"{g[0].split('_')[3][:8]}_{g[1].split('_')[3][:8]}"
+        if pair and _crop_is_complete(cropped_root / pair, required_layers):
             done.append(pair)
             continue
         files = job.download_files(location=str(tmp))
