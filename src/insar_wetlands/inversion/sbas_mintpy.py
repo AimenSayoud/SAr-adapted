@@ -62,8 +62,39 @@ def run(cfg_path: str | Path, work_dir: str | Path,
     return proc.returncode
 
 
-def load_timeseries(work_dir: str | Path):
-    """Charge la serie temporelle MintPy (timeseries.h5) en xarray."""
+def _grid_coords(attrs, ny, nx):
+    import numpy as np
+
+    x0 = float(attrs.get("X_FIRST", 0)); dx = float(attrs.get("X_STEP", 1))
+    y0 = float(attrs.get("Y_FIRST", 0)); dy = float(attrs.get("Y_STEP", -1))
+    return {"y": y0 + dy * np.arange(ny), "x": x0 + dx * np.arange(nx)}
+
+
+def load_temporal_coherence(work_dir: str | Path):
+    """Charge temporalCoherence.h5 (qualite d'inversion par pixel, 0-1).
+
+    C'est le critere standard MintPy pour separer les pixels fiables du bruit
+    de decorrelation : sans ce masque, la carte de vitesse montre tous les
+    pixels, y compris ceux dont la phase est aleatoire.
+    """
+    import h5py
+    import xarray as xr
+
+    with h5py.File(Path(work_dir) / "temporalCoherence.h5") as f:
+        data = f["temporalCoherence"][:]
+        attrs = dict(f.attrs)
+    return xr.DataArray(data, dims=("y", "x"),
+                        coords=_grid_coords(attrs, *data.shape),
+                        name="temporal_coherence")
+
+
+def load_timeseries(work_dir: str | Path, coh_threshold: float | None = 0.7):
+    """Charge la serie temporelle MintPy (timeseries.h5) en xarray (mm).
+
+    Si coh_threshold est fourni, les pixels dont la coherence temporelle
+    d'inversion est sous le seuil sont mis a NaN (recommande : 0.7 standard,
+    0.5-0.6 acceptable sur tourbiere). Passer None pour la serie brute.
+    """
     import h5py
     import numpy as np
     import pandas as pd
@@ -74,14 +105,14 @@ def load_timeseries(work_dir: str | Path):
         data = f["timeseries"][:]          # (n_dates, y, x), metres
         dates = pd.to_datetime([d.decode() for d in f["date"][:]])
         attrs = dict(f.attrs)
-    x0 = float(attrs.get("X_FIRST", 0)); dx = float(attrs.get("X_STEP", 1))
-    y0 = float(attrs.get("Y_FIRST", 0)); dy = float(attrs.get("Y_STEP", -1))
     ny, nx = data.shape[1:]
-    return xr.DataArray(
+    ts = xr.DataArray(
         data * 1000.0,  # -> mm
         dims=("time", "y", "x"),
-        coords={"time": dates,
-                "y": y0 + dy * np.arange(ny),
-                "x": x0 + dx * np.arange(nx)},
+        coords={"time": dates, **_grid_coords(attrs, ny, nx)},
         name="los_displacement_mm", attrs={"units": "mm"},
     )
+    if coh_threshold is not None:
+        tcoh = load_temporal_coherence(work_dir)
+        ts = ts.where(tcoh >= coh_threshold)
+    return ts
