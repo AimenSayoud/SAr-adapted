@@ -59,29 +59,43 @@ def connectivity(stats: pd.DataFrame, keep_col: str = "keep"):
     return n_comp, labels, pd.DatetimeIndex(dates)
 
 
-def suggest_bridges(stats: pd.DataFrame, max_bridge_days: int = 120) -> pd.DataFrame:
-    """Paires-ponts a soumettre pour reconnecter les composantes isolees.
+def suggest_bridges(stats: pd.DataFrame, max_bridge_days: int = 120,
+                    per_boundary: int = 3) -> pd.DataFrame:
+    """Paires-ponts NOUVELLES a soumettre pour reconnecter les composantes.
 
-    Pour chaque frontiere entre composantes, propose les 3 paires inter-
-    composantes les plus courtes (a soumettre a HyP3 puis re-evaluer).
+    Exclut les paires deja presentes dans le reseau (rejetees pour coherence
+    basse : les resoumettre a HyP3 donnerait le meme resultat). Pour chaque
+    frontiere entre composantes, propose les paires inter-composantes les
+    plus courtes qui n'existent pas encore.
     """
     n_comp, labels, dates = connectivity(stats)
+    cols = ["ref_date", "sec_date", "dt_days", "pair"]
     if n_comp == 1:
-        return pd.DataFrame(columns=["ref_date", "sec_date", "dt_days", "pair"])
+        return pd.DataFrame(columns=cols)
+    existing = set(stats["pair"])
     rows = []
     for ca in range(n_comp):
         for cb in range(ca + 1, n_comp):
             da = dates[labels == ca]
             db = dates[labels == cb]
-            cands = [(a, b) if a < b else (b, a)
-                     for a in da for b in db
-                     if abs((b - a).days) <= max_bridge_days]
-            cands = sorted(set(cands), key=lambda p: (p[1] - p[0]).days)[:3]
+            cands = sorted({(a, b) if a < b else (b, a)
+                            for a in da for b in db
+                            if abs((b - a).days) <= max_bridge_days},
+                           key=lambda p: (p[1] - p[0]).days)
+            kept = 0
             for a, b in cands:
+                pair = f"{a:%Y%m%d}_{b:%Y%m%d}"
+                if pair in existing:
+                    continue
                 rows.append({"ref_date": a, "sec_date": b,
-                             "dt_days": (b - a).days,
-                             "pair": f"{a:%Y%m%d}_{b:%Y%m%d}"})
-    return pd.DataFrame(rows)
+                             "dt_days": (b - a).days, "pair": pair})
+                kept += 1
+                if kept >= per_boundary:
+                    break
+    return (pd.DataFrame(rows, columns=cols)
+            .drop_duplicates("pair")
+            .sort_values("dt_days")
+            .reset_index(drop=True))
 
 
 def design_matrix(pairs: list[str], dates: pd.DatetimeIndex) -> np.ndarray:

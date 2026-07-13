@@ -56,13 +56,42 @@ def date_to_granule(inventory: pd.DataFrame) -> dict:
     return dict(zip(inv["date"], inv["granule"]))
 
 
+def _existing_granule_pairs(hyp3, name: str) -> set:
+    """Couples (granule_ref, granule_sec) deja soumis sous ce nom de job.
+
+    Sert a la fois d'idempotence (relancer la cellule ne cree pas de
+    doublons) et de rattrapage apres un 504 : un timeout du POST ne dit pas
+    si le serveur a cree les jobs ou non.
+    """
+    seen = set()
+    try:
+        for j in hyp3.find_jobs(name=name):
+            g = (getattr(j, "job_parameters", None) or {}).get("granules") or []
+            if len(g) >= 2:
+                seen.add((g[0], g[1]))
+    except Exception:
+        pass
+    return seen
+
+
 def submit_pairs(pairs: pd.DataFrame, granules: dict, name: str,
-                 looks: str = "10x2") -> pd.DataFrame:
-    """Soumet les paires en jobs INSAR_ISCE_BURST. Retourne le suivi (job_id)."""
+                 looks: str = "10x2", chunk_size: int = 25,
+                 max_retries: int = 4) -> pd.DataFrame:
+    """Soumet les paires en jobs INSAR_ISCE_BURST. Retourne le suivi (job_id).
+
+    Robuste : saute les paires deja soumises (idempotent), envoie par petits
+    lots groupes (1 POST pour 25 jobs au lieu de 25 POST), et re-essaie avec
+    attente progressive apres un 504/erreur serveur — en re-verifiant a
+    chaque fois cote serveur ce qui a reellement ete cree.
+    """
+    import time
+
     import hyp3_sdk as sdk
 
     hyp3 = sdk.HyP3()  # lit ~/.netrc (setup_earthdata)
-    rows = []
+    seen = _existing_granule_pairs(hyp3, name)
+
+    rows, prepared = [], []
     for _, p in pairs.iterrows():
         ref_g = granules.get(pd.Timestamp(p.ref_date))
         sec_g = granules.get(pd.Timestamp(p.sec_date))
@@ -70,14 +99,43 @@ def submit_pairs(pairs: pd.DataFrame, granules: dict, name: str,
             rows.append({"pair": p.pair, "job_id": None,
                          "status": "MISSING_GRANULE"})
             continue
+        if (ref_g, sec_g) in seen:
+            rows.append({"pair": p.pair, "job_id": None,
+                         "status": "ALREADY_SUBMITTED"})
+            continue
         # Arguments positionnels : le nom des 2 premiers parametres differe
         # selon la version de hyp3_sdk (reference/secondary vs granule1/2).
-        job = hyp3.submit_insar_isce_burst_job(
-            ref_g, sec_g, name=name, looks=looks, apply_water_mask=False,
-        )
-        j = job.jobs[0] if hasattr(job, "jobs") else job
-        rows.append({"pair": p.pair, "job_id": j.job_id, "status": "PENDING"})
-    return pairs.merge(pd.DataFrame(rows), on="pair")
+        prepared.append((p.pair, (ref_g, sec_g),
+                         hyp3.prepare_insar_isce_burst_job(
+                             ref_g, sec_g, name=name, looks=looks,
+                             apply_water_mask=False)))
+
+    for i in range(0, len(prepared), chunk_size):
+        chunk = prepared[i:i + chunk_size]
+        for attempt in range(max_retries):
+            payload = [d for _, _, d in chunk]
+            if not payload:
+                break
+            try:
+                batch = hyp3.submit_prepared_jobs(prepared_jobs=payload)
+                for (pairname, _, _), job in zip(chunk, batch):
+                    rows.append({"pair": pairname, "job_id": job.job_id,
+                                 "status": "PENDING"})
+                break
+            except Exception as e:
+                if attempt == max_retries - 1:
+                    raise
+                wait = 15 * (attempt + 1)
+                print(f"  ! erreur serveur ({type(e).__name__}) — retry dans "
+                      f"{wait}s (le POST a pu passer, verification...)")
+                time.sleep(wait)
+                seen = _existing_granule_pairs(hyp3, name)
+                confirmed = [c for c in chunk if c[1] in seen]
+                for pairname, _, _ in confirmed:
+                    rows.append({"pair": pairname, "job_id": None,
+                                 "status": "SUBMITTED_CONFIRMED_AFTER_RETRY"})
+                chunk = [c for c in chunk if c[1] not in seen]
+    return pairs.merge(pd.DataFrame(rows), on="pair", how="left")
 
 
 def fetch_jobs(name: str) -> "object":
