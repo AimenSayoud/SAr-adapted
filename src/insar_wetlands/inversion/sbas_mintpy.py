@@ -121,7 +121,8 @@ def inspect_h5(path: str | Path) -> None:
                 continue
             arr = ds[()]
             info = f"  {k}: dtype={arr.dtype} shape={arr.shape}"
-            if arr.size and np.issubdtype(arr.dtype, np.number):
+            if arr.size and (np.issubdtype(arr.dtype, np.number)
+                             or np.issubdtype(arr.dtype, np.bool_)):
                 finite = arr[np.isfinite(arr)] if np.issubdtype(arr.dtype, np.floating) else arr
                 uniq = np.unique(finite)
                 info += f" min={finite.min():.4g} max={finite.max():.4g}"
