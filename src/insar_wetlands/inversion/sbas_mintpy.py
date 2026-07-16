@@ -65,13 +65,19 @@ def write_config(work_dir: str | Path, data_dir: str | Path, first_pair: str,
     has_connected_component()). Passer 'no' pour desactiver.
     """
     if ref_lat is not None and ref_lon is not None:
-        reference_block = f"mintpy.reference.lalo        = {ref_lat},{ref_lon}"
-    else:
         reference_block = (
-            "# Reference auto : pixel de coherence spatiale max (dans le mask\n"
-            "# conn_comp) -> evite l'erreur 'reference point masked out'.\n"
-            "mintpy.reference.coherenceBased = yes\n"
-            f"mintpy.reference.minCoherence   = {reference_min_coherence}")
+            f"mintpy.reference.lalo        = {ref_lat},{ref_lon}\n"
+            "mintpy.reference.yx          = auto")
+    else:
+        # 'auto' doit etre EXPLICITE : MintPy fusionne ce template dans son
+        # smallbaselineApp.cfg persistant — une option omise garde sa vieille
+        # valeur (ex: un ancien lalo hors composante connexe). En auto,
+        # MintPy choisit un pixel avec coherence > minCoherence DANS le mask
+        # conn_comp -> plus jamais 'reference point masked out'.
+        reference_block = (
+            "mintpy.reference.lalo         = auto\n"
+            "mintpy.reference.yx           = auto\n"
+            f"mintpy.reference.minCoherence = {reference_min_coherence}")
 
     work_dir = Path(work_dir)
     work_dir.mkdir(parents=True, exist_ok=True)
