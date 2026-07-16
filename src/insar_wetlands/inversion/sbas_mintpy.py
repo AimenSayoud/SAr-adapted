@@ -28,15 +28,18 @@ mintpy.network.excludeIfgIndex = {exclude_ifg}
 mintpy.network.coherenceBased = yes
 mintpy.network.minCoherence   = {network_min_coherence}
 
-# Correction des erreurs de deroulement AVANT inversion. Les deux methodes
-# exigent le dataset connectComponent. 'bridging' impose que le pixel de
-# reference appartienne a la composante connexe de CHAQUE interferogramme
-# INDIVIDUELLEMENT (limitation documentee MintPy, discussion #819) -> avec
-# 346 paires reelles, aucun pixel ne satisfait cette contrainte stricte
-# partout ('input reference point is NOT included in the connectComponent').
-# 'phase_closure', par consensus sur des triplets/echantillons de la
-# composante commune, est le choix approprie pour un reseau tres redondant
-# comme le notre (346 paires) et n'a pas cette contrainte per-paire.
+# Correction des erreurs de deroulement : DESACTIVEE ('no'), et ce n'est
+# plus une supposition mais un resultat mesure. 'bridging' echoue car aucun
+# pixel n'appartient a la composante connexe de CHAQUE interferogramme
+# (discussion MintPy #819). 'phase_closure', pourtant concu pour les
+# reseaux redondants (346 paires ici), a lui-meme rapporte
+# "number of common regions: 0" -> AUCUNE region n'est commune a tous les
+# interferogrammes. C'est une mesure directe de la decorrelation du site
+# (tourbiere + champs agricoles a 12j) : il n'y a rien a corriger avec ces
+# methodes. Le SBAS reste donc epars mais non corrige des sauts de
+# deroulement residuels -> role de comparaison/reference uniquement ; la
+# mesure du fen est portee par l'ISBAS (Phase 9), qui n'a pas cette
+# contrainte de composante connexe partagee.
 mintpy.unwrapError.method    = {unwrap_error_method}
 
 mintpy.networkInversion.weightFunc    = var
@@ -56,7 +59,7 @@ def write_config(work_dir: str | Path, data_dir: str | Path, first_pair: str,
                  temp_base_max: int = 48, tropo: bool = False,
                  exclude_ifg: str = "no",
                  network_min_coherence: float = 0.30,
-                 unwrap_error_method: str = "phase_closure",
+                 unwrap_error_method: str = "no",
                  reference_min_coherence: float = 0.85,
                  ref_yx: tuple[int, int] | None = None) -> Path:
     """Ecrit la config MintPy.
