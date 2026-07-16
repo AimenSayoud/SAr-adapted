@@ -106,6 +106,29 @@ def write_config(work_dir: str | Path, data_dir: str | Path, first_pair: str,
     return path
 
 
+def reset_derived_products(work_dir: str | Path) -> list[str]:
+    """Supprime les produits derives perimes du dossier de travail MintPy,
+    en gardant inputs/ifgramStack.h5 (le stack deja charge depuis les 346
+    GeoTIFF, couteux a reconstruire ~5 min) et rzecin.cfg.
+
+    A utiliser quand un fichier intermediaire (maskConnComp.h5, etc.) est
+    reste perime malgre la mise a jour des donnees source, a cause du cache
+    incremental de MintPy ('output file already exists... skip').
+    """
+    work_dir = Path(work_dir)
+    removed = []
+    for pattern in ("*.h5", "*.png", "*.kmz", "*.txt", "*.cfg"):
+        for f in work_dir.glob(pattern):
+            # rzecin.cfg = notre template (source de verite, a garder) ;
+            # smallbaselineApp.cfg = merge persistant genere par MintPy
+            # (source du bug de valeurs perimees -> doit etre supprime).
+            if f.name == "rzecin.cfg":
+                continue
+            f.unlink()
+            removed.append(f.name)
+    return removed
+
+
 def inspect_h5(path: str | Path) -> None:
     """Diagnostic : structure REELLE d'un fichier HDF5 MintPy (cles, dtype,
     shape, min/max/nombre de valeurs distinctes). A utiliser au lieu de
