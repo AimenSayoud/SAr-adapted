@@ -1,0 +1,19 @@
+{
+  "phase": "phase08_sbas",
+  "generated_utc": "2026-07-16T13:41:57+00:00",
+  "parameters": {
+    "tropo": "no",
+    "reference": {
+      "y": 5845820.0,
+      "x": 588700.0,
+      "coherence": 0.6531861424446106,
+      "lat": 52.7549390116794,
+      "lon": 16.314304636748044
+    },
+    "temporal_coherence_threshold": 0.7
+  },
+  "products": {
+    "ts_nc": "/content/drive/MyDrive/insar_rzecin/ts_sbas_ref_only.nc",
+    "n_solved": 182
+  }
+}
