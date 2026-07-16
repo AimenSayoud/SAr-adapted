@@ -124,7 +124,11 @@ def phase_closure(unw: xr.DataArray, max_triplets: int = 500) -> xr.DataArray:
         valid = np.isfinite(closure)
         bad += (np.abs(closure) > np.pi).astype("float32") * valid
         tot += valid
-    frac = np.where(tot > 0, bad / tot, np.nan)
+    with np.errstate(invalid="ignore", divide="ignore"):
+        # tot==0 (pixel hors emprise) -> 0/0 ; np.where choisit nan ensuite,
+        # mais bad/tot est evalue AVANT le where -> avertissement inoffensif
+        # a silencer explicitement plutot que de laisser echapper.
+        frac = np.where(tot > 0, bad / tot, np.nan)
     return xr.DataArray(frac, coords={"y": unw.y, "x": unw.x},
                         name="closure_error_fraction",
                         attrs={"n_triplets": len(triplets)})
