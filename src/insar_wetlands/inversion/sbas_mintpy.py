@@ -106,6 +106,31 @@ def write_config(work_dir: str | Path, data_dir: str | Path, first_pair: str,
     return path
 
 
+def inspect_h5(path: str | Path) -> None:
+    """Diagnostic : structure REELLE d'un fichier HDF5 MintPy (cles, dtype,
+    shape, min/max/nombre de valeurs distinctes). A utiliser au lieu de
+    deviner le format d'un fichier (mask*, coherence...) avant de l'exploiter."""
+    import h5py
+    import numpy as np
+
+    with h5py.File(path) as f:
+        print(f"=== {path} ===")
+        for k in f.keys():
+            ds = f[k]
+            if not hasattr(ds, "shape"):
+                continue
+            arr = ds[()]
+            info = f"  {k}: dtype={arr.dtype} shape={arr.shape}"
+            if arr.size and np.issubdtype(arr.dtype, np.number):
+                finite = arr[np.isfinite(arr)] if np.issubdtype(arr.dtype, np.floating) else arr
+                uniq = np.unique(finite)
+                info += f" min={finite.min():.4g} max={finite.max():.4g}"
+                info += (f" n_unique={len(uniq)}"
+                        + (f" values={uniq[:10].tolist()}" if len(uniq) <= 10 else ""))
+            print(info)
+        print("  attrs:", {k: v for k, v in list(f.attrs.items())[:10]})
+
+
 def _first_dataset(h5file) -> str:
     """Nom du premier dataset 2D d'un fichier HDF5 MintPy."""
     for k in h5file.keys():
@@ -129,13 +154,31 @@ def best_reference_yx(work_dir: str | Path) -> dict:
     with h5py.File(work_dir / "avgSpatialCoh.h5") as f:
         coh = f[_first_dataset(f)][:]
     mask_path = work_dir / "maskConnComp.h5"
+    n_valid = coh.size
     if mask_path.exists():
         with h5py.File(mask_path) as f:
-            m = f[_first_dataset(f)][:].astype(bool)
-        coh = np.where(m, coh, -1.0)
+            raw = f[_first_dataset(f)][:]
+        # Convention MintPy : 0 = hors composante connexe commune, tout
+        # entier > 0 = ID de composante valide (jamais de valeurs negatives
+        # en usage normal -> pas d'ambiguite avec un cast bool naif).
+        m = raw > 0
+        n_valid = int(m.sum())
+        if n_valid == 0:
+            raise RuntimeError(
+                f"maskConnComp.h5 ({mask_path}) ne contient AUCUN pixel > 0 "
+                f"(dtype={raw.dtype}, min={raw.min()}, max={raw.max()}) -> "
+                "fichier probablement perime (genere avant l'ajout des "
+                "_conncomp.tif) ou format inattendu. Diagnostiquer avec "
+                "inspect_h5() avant de continuer ; eventuellement supprimer "
+                "ce fichier + avgSpatialCoh.h5 pour forcer leur regeneration."
+            )
+        coh = np.where(m, coh, -np.inf)
     iy, ix = np.unravel_index(np.nanargmax(coh), coh.shape)
-    return {"row": int(iy), "col": int(ix),
-            "avg_spatial_coherence": float(coh[iy, ix])}
+    best = float(coh[iy, ix])
+    if not np.isfinite(best):
+        raise RuntimeError("aucun pixel de coherence finie trouve dans le mask")
+    return {"row": int(iy), "col": int(ix), "avg_spatial_coherence": best,
+            "n_valid_pixels_in_mask": n_valid}
 
 
 def read_reference(work_dir: str | Path) -> dict:
