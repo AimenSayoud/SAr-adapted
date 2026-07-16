@@ -29,9 +29,14 @@ mintpy.network.coherenceBased = yes
 mintpy.network.minCoherence   = {network_min_coherence}
 
 # Correction des erreurs de deroulement AVANT inversion. Les deux methodes
-# exigent le dataset connectComponent (produit par SNAPHU, fichiers
-# _conncomp.tif du produit burst). bridging reconnecte les ilots coherents
-# isoles ; phase_closure corrige les sauts 2*pi par fermeture de triplets.
+# exigent le dataset connectComponent. 'bridging' impose que le pixel de
+# reference appartienne a la composante connexe de CHAQUE interferogramme
+# INDIVIDUELLEMENT (limitation documentee MintPy, discussion #819) -> avec
+# 346 paires reelles, aucun pixel ne satisfait cette contrainte stricte
+# partout ('input reference point is NOT included in the connectComponent').
+# 'phase_closure', par consensus sur des triplets/echantillons de la
+# composante commune, est le choix approprie pour un reseau tres redondant
+# comme le notre (346 paires) et n'a pas cette contrainte per-paire.
 mintpy.unwrapError.method    = {unwrap_error_method}
 
 mintpy.networkInversion.weightFunc    = var
@@ -51,7 +56,7 @@ def write_config(work_dir: str | Path, data_dir: str | Path, first_pair: str,
                  temp_base_max: int = 48, tropo: bool = False,
                  exclude_ifg: str = "no",
                  network_min_coherence: float = 0.30,
-                 unwrap_error_method: str = "bridging+phase_closure",
+                 unwrap_error_method: str = "phase_closure",
                  reference_min_coherence: float = 0.85,
                  ref_yx: tuple[int, int] | None = None) -> Path:
     """Ecrit la config MintPy.
