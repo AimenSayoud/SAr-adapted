@@ -52,28 +52,39 @@ def write_config(work_dir: str | Path, data_dir: str | Path, first_pair: str,
                  exclude_ifg: str = "no",
                  network_min_coherence: float = 0.30,
                  unwrap_error_method: str = "bridging+phase_closure",
-                 reference_min_coherence: float = 0.85) -> Path:
+                 reference_min_coherence: float = 0.85,
+                 ref_yx: tuple[int, int] | None = None) -> Path:
     """Ecrit la config MintPy.
 
-    reference : si ref_lat/ref_lon sont fournis, MintPy les impose (mais
-    echoue si le pixel n'est pas dans la composante connexe commune). Si None
-    (defaut recommande), MintPy auto-selectionne le pixel de coherence
-    spatiale maximale — garanti dans le mask conn_comp. On relit ensuite la
-    reference choisie avec read_reference() pour la partager avec l'ISBAS.
+    reference, par ordre de priorite :
+      1. ref_yx=(row, col) : DETERMINISTE, recommande — utiliser
+         best_reference_yx(work_dir) apres un premier run partiel ;
+      2. ref_lat/ref_lon : impose un point geographique (echoue s'il est
+         hors composante connexe) ;
+      3. rien : selection auto MintPy (coherence > reference_min_coherence).
+    On relit la reference effective avec read_reference() pour la partager
+    avec l'ISBAS.
 
     unwrap_error_method : necessite les fichiers _conncomp.tif (verifier avec
     has_connected_component()). Passer 'no' pour desactiver.
     """
-    if ref_lat is not None and ref_lon is not None:
+    # NB: chaque option doit etre EXPLICITE ('auto' compris) : MintPy
+    # fusionne ce template dans son smallbaselineApp.cfg persistant — une
+    # option omise garde sa vieille valeur d'un run precedent.
+    if ref_yx is not None:
+        # Reference deterministe (row,col) calculee par best_reference_yx()
+        # -> garantie dans maskConnComp, pas de seuil arbitraire.
+        reference_block = (
+            f"mintpy.reference.yx           = {ref_yx[0]},{ref_yx[1]}\n"
+            "mintpy.reference.lalo         = auto")
+    elif ref_lat is not None and ref_lon is not None:
         reference_block = (
             f"mintpy.reference.lalo        = {ref_lat},{ref_lon}\n"
             "mintpy.reference.yx          = auto")
     else:
-        # 'auto' doit etre EXPLICITE : MintPy fusionne ce template dans son
-        # smallbaselineApp.cfg persistant — une option omise garde sa vieille
-        # valeur (ex: un ancien lalo hors composante connexe). En auto,
-        # MintPy choisit un pixel avec coherence > minCoherence DANS le mask
-        # conn_comp -> plus jamais 'reference point masked out'.
+        # Selection auto MintPy : pixel avec coherence > minCoherence dans
+        # maskConnComp. ATTENTION: echoue si aucun pixel ne depasse le seuil
+        # (le defaut MintPy 0.85 est inatteignable sur tourbiere/champs).
         reference_block = (
             "mintpy.reference.lalo         = auto\n"
             "mintpy.reference.yx           = auto\n"
@@ -93,6 +104,38 @@ def write_config(work_dir: str | Path, data_dir: str | Path, first_pair: str,
     path = work_dir / "rzecin.cfg"
     path.write_text(cfg)
     return path
+
+
+def _first_dataset(h5file) -> str:
+    """Nom du premier dataset 2D d'un fichier HDF5 MintPy."""
+    for k in h5file.keys():
+        if getattr(h5file[k], "ndim", 0) == 2:
+            return k
+    raise KeyError(f"aucun dataset 2D dans {h5file.filename}")
+
+
+def best_reference_yx(work_dir: str | Path) -> dict:
+    """Reference DETERMINISTE : pixel de coherence spatiale moyenne maximale
+    a l'interieur de maskConnComp (donc garanti acceptable par MintPy).
+
+    Se calcule apres l'etape load+quick_overview (avgSpatialCoh.h5 existe).
+    Remplace la selection auto de MintPy dont le seuil par defaut (0.85) est
+    inatteignable sur tourbiere/champs (~max 0.6-0.7 ici).
+    """
+    import h5py
+    import numpy as np
+
+    work_dir = Path(work_dir)
+    with h5py.File(work_dir / "avgSpatialCoh.h5") as f:
+        coh = f[_first_dataset(f)][:]
+    mask_path = work_dir / "maskConnComp.h5"
+    if mask_path.exists():
+        with h5py.File(mask_path) as f:
+            m = f[_first_dataset(f)][:].astype(bool)
+        coh = np.where(m, coh, -1.0)
+    iy, ix = np.unravel_index(np.nanargmax(coh), coh.shape)
+    return {"row": int(iy), "col": int(ix),
+            "avg_spatial_coherence": float(coh[iy, ix])}
 
 
 def read_reference(work_dir: str | Path) -> dict:
