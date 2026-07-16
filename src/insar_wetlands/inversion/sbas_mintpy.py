@@ -20,7 +20,7 @@ mintpy.load.connCompFile     = {data_dir}/*/*_conncomp.tif
 mintpy.load.demFile          = {data_dir}/{first_pair}/*_dem.tif
 mintpy.load.incAngleFile     = {data_dir}/{first_pair}/*_lv_theta.tif
 
-mintpy.reference.lalo        = {ref_lat},{ref_lon}
+{reference_block}
 mintpy.network.tempBaseMax   = {temp_base_max}
 mintpy.network.excludeIfgIndex = {exclude_ifg}
 # Selection de reseau alignee sur la Phase 3 : rejette les paires dont la
@@ -46,23 +46,38 @@ mintpy.topographicResidual   = yes
 
 
 def write_config(work_dir: str | Path, data_dir: str | Path, first_pair: str,
-                 ref_lat: float, ref_lon: float, coh_threshold: float = 0.4,
+                 ref_lat: float | None = None, ref_lon: float | None = None,
+                 coh_threshold: float = 0.4,
                  temp_base_max: int = 48, tropo: bool = False,
                  exclude_ifg: str = "no",
                  network_min_coherence: float = 0.30,
-                 unwrap_error_method: str = "bridging+phase_closure") -> Path:
+                 unwrap_error_method: str = "bridging+phase_closure",
+                 reference_min_coherence: float = 0.85) -> Path:
     """Ecrit la config MintPy.
 
-    unwrap_error_method : necessite les fichiers _conncomp.tif dans les
-    produits croppes (verifier avec has_connected_component() ; si absent,
-    relancer download_and_crop qui re-telecharge les produits incomplets).
-    Passer 'no' pour desactiver.
+    reference : si ref_lat/ref_lon sont fournis, MintPy les impose (mais
+    echoue si le pixel n'est pas dans la composante connexe commune). Si None
+    (defaut recommande), MintPy auto-selectionne le pixel de coherence
+    spatiale maximale — garanti dans le mask conn_comp. On relit ensuite la
+    reference choisie avec read_reference() pour la partager avec l'ISBAS.
+
+    unwrap_error_method : necessite les fichiers _conncomp.tif (verifier avec
+    has_connected_component()). Passer 'no' pour desactiver.
     """
+    if ref_lat is not None and ref_lon is not None:
+        reference_block = f"mintpy.reference.lalo        = {ref_lat},{ref_lon}"
+    else:
+        reference_block = (
+            "# Reference auto : pixel de coherence spatiale max (dans le mask\n"
+            "# conn_comp) -> evite l'erreur 'reference point masked out'.\n"
+            "mintpy.reference.coherenceBased = yes\n"
+            f"mintpy.reference.minCoherence   = {reference_min_coherence}")
+
     work_dir = Path(work_dir)
     work_dir.mkdir(parents=True, exist_ok=True)
     cfg = MINTPY_CFG_TEMPLATE.format(
         data_dir=str(data_dir), first_pair=first_pair,
-        ref_lat=ref_lat, ref_lon=ref_lon,
+        reference_block=reference_block,
         temp_base_max=temp_base_max, coh_threshold=coh_threshold,
         tropo_method="pyaps" if tropo else "no",
         exclude_ifg=exclude_ifg,
@@ -72,6 +87,32 @@ def write_config(work_dir: str | Path, data_dir: str | Path, first_pair: str,
     path = work_dir / "rzecin.cfg"
     path.write_text(cfg)
     return path
+
+
+def read_reference(work_dir: str | Path) -> dict:
+    """Relit le point de reference reellement utilise par MintPy.
+
+    Lu depuis les attributs REF_* de timeseries.h5 -> a reutiliser tel quel
+    pour l'ISBAS (Phase 9) afin que SBAS et ISBAS partagent le meme zero.
+    """
+    import h5py
+
+    with h5py.File(Path(work_dir) / "timeseries.h5") as f:
+        a = dict(f.attrs)
+
+    def _get(k):
+        v = a.get(k)
+        return v.decode() if isinstance(v, bytes) else v
+
+    x0 = float(a.get("X_FIRST", 0)); dx = float(a.get("X_STEP", 1))
+    y0 = float(a.get("Y_FIRST", 0)); dy = float(a.get("Y_STEP", -1))
+    ry, rx = int(_get("REF_Y")), int(_get("REF_X"))
+    return {
+        "y": y0 + dy * ry, "x": x0 + dx * rx,
+        "row": ry, "col": rx,
+        "lat": float(_get("REF_LAT")) if _get("REF_LAT") is not None else None,
+        "lon": float(_get("REF_LON")) if _get("REF_LON") is not None else None,
+    }
 
 
 def has_connected_component(cropped_root: str | Path) -> bool:
