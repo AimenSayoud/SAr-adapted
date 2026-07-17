@@ -356,6 +356,42 @@ def deramp(field: xr.DataArray, fit_mask: xr.DataArray) -> xr.Dataset:
                              "ramp_offset": float(coef[2])})
 
 
+def surface_valid_mask(cls: xr.DataArray, corr: xr.DataArray | None = None,
+                       drop_classes: tuple[int, ...] = (5,),
+                       corr_min: float = 0.20) -> xr.DataArray:
+    """Masque des pixels ou la phase InSAR est physiquement interpretable.
+
+    Rzecin est un fen transitionnel FLOTTANT avec lac residuel et eau libre
+    par-dessus la vegetation (contrairement au Biebrza draine de l'article) :
+      - l'eau permanente (classe 5) et le lac n'ont AUCUNE phase coherente en
+        bande C -> bruit pur, a exclure (sinon des pixels d'eau affichent un
+        faux taux, ex. classe 5 ~ -5 mm/an alors que c'est impossible) ;
+      - les pixels sous le seuil de coherence sont exclus de la meme facon.
+    `drop_classes` : classes comportementales a retirer (5=eau permanente ;
+    ajouter 4 pour aussi retirer l'intermittent inonde selon les besoins).
+    """
+    keep = xr.ones_like(cls, dtype=bool)
+    for k in drop_classes:
+        keep = keep & (cls != k)
+    if corr is not None:
+        keep = keep & (corr >= corr_min)
+    return keep
+
+
+def near_aoi_ring(aoi: xr.DataArray, max_dist_px: int = 20) -> xr.DataArray:
+    """Anneau de pixels a <= max_dist_px de l'AOI (dilatation binaire).
+
+    Sert a restreindre l'ajustement du deramp au sol stable PROCHE de la
+    tourbiere : sur un crop large (2 km), un plan cale sur les coins
+    lointains modelise mal l'atmosphere turbulente pres du site et laisse
+    un residu courbe exactement sur l'AOI. Ajuster la rampe sur un anneau
+    proche est une bien meilleure approximation locale.
+    """
+    from scipy.ndimage import binary_dilation
+    dil = binary_dilation(aoi.values, iterations=int(max_dist_px))
+    return xr.DataArray(dil, coords=aoi.coords, dims=aoi.dims)
+
+
 def summarize_rates(rates: dict[str, dict], aoi: xr.DataArray,
                     cls: xr.DataArray | None = None) -> pd.DataFrame:
     """Statistiques (mediane, p10/p90) du taux annuel sur l'AOI, par paire

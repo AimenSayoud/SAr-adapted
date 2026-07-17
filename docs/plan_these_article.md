@@ -74,9 +74,24 @@ c'est le point bas du gradient hydrologique de Ghezelayagh et al., Fig. 6).
 
 ## 2. Site et données
 
-2.1. **Rzecin** (Pologne, 52.76°N 16.31°E) : fen quasi naturel de ~89.7 ha,
-     site éddy-covariance historique ; contexte hydrologique ; pourquoi ce
-     site est un « cas difficile idéal ».
+2.1. **Rzecin** (Pologne, 52.76°N 16.31°E) : fen **transitionnel/pauvre,
+     quasi naturel**, de ~89.7 ha, site eddy-covariance historique.
+     **Différence fondamentale avec Biebrza (l'article de référence)** —
+     à intégrer dès l'introduction et à réexploiter en discussion :
+     - Rzecin est un **fen gorgé d'eau avec tapis flottant
+       (*Schwingmoor* / quaking bog)** et un **lac résiduel** au centre ;
+       par endroits, l'eau libre recouvre la végétation.
+     - Biebrza est un fen **drainé** dont la subsidence est **irréversible**
+       (oxydation + retrait, perte de carbone) : signal fort, monotone.
+     - À Rzecin, le mouvement vertical de surface est **majoritairement
+       réversible** : le tapis flottant monte/descend avec la nappe
+       (poussée d'Archimède) → « respiration » saisonnière plutôt que
+       tassement net. Conséquence prédictive : **le taux net annuel doit
+       être proche de zéro**, ce que confirment nos résultats
+       (−4.5 ± IQR 18.9 mm/an, non distinguable de zéro).
+     - C'est ce qui fait de Rzecin un « cas difficile idéal » ET un
+       contre-point scientifique à Biebrza : l'InSAR y mesure la stabilité
+       hydrologique d'une tourbière préservée, pas sa dégradation.
 
 2.2. Données (tableau récapitulatif) :
      | Source | Période | Rôle |
@@ -145,9 +160,27 @@ c'est le point bas du gradient hydrologique de Ghezelayagh et al., Fig. 6).
      - *Hypothèses MintPy héritées des cibles cohérentes* : référence
        visible partout, composantes connexes stables, correction tropo en
        aval — toutes inadaptées à une zone humide petite et intermittente.
+     - *Eau libre au-dessus de la végétation + lac résiduel* : sur un fen
+       flottant, une part de la surface est de l'eau ou de la végétation
+       saturée → **phase radar totalement décorrélée (bruit pur)** en bande
+       C ; ces pixels (classe « eau permanente ») doivent être masqués, pas
+       interprétés — sinon ils affichent un faux taux physiquement
+       impossible.
      - Synthèse : **l'échec n'est pas un défaut d'implémentation mais une
        incompatibilité physique** entre bande C + cycle 12 j + fen végétalisé
-       et l'architecture SBAS dense. (Réponse complète à QR1.)
+       flottant et l'architecture SBAS dense. (Réponse complète à QR1.)
+
+4.4. **Traitement adapté à la nature flottante du site** (choix
+     méthodologiques, distincts de l'article) :
+     - masquage explicite de l'eau permanente (classe 5) et du lac résiduel
+       avant toute statistique ;
+     - **crop** : on conserve un contour de sol stable autour du polygone
+       (nécessaire au deramp et au référencement), mais l'ajustement de
+       rampe est **restreint à un anneau proche de l'AOI** (~800 m) — un
+       plan calé sur un crop de 2 km modélise mal l'atmosphère turbulente
+       près du site et injecterait un résidu courbe dans la tourbière ;
+     - toutes les statistiques finales sont rasterisées sur le **polygone
+       geojson** (AOI réelle, ~564 px), pas sur le rectangle de traitement.
 
 ## 5. Méthodes II — la voie qui marche : paires saisonnières-annuelles optimisées (QR2)
 
@@ -211,10 +244,20 @@ c'est le point bas du gradient hydrologique de Ghezelayagh et al., Fig. 6).
 
 ## 8. Discussion
 
-8.1. **Rzecin dans le gradient régional** : nos valeurs vs Biebrza
-     (−14.4 mm/an moyen, fens = classe la moins subsidente) ; un fen
-     protégé et hydraté ne s'affaisse pas → l'indicateur InSAR détecte
-     aussi la *stabilité*, ce qui compte pour le suivi de restauration.
+8.1. **Rzecin dans le gradient régional + nature flottante** : nos valeurs
+     (~0 mm/an net) vs Biebrza (−14.4 mm/an moyen, fens = classe la moins
+     subsidente). Interprétation centrale : à Rzecin, le mouvement vertical
+     est **réversible et piloté par la nappe** (tapis flottant), donc
+     l'InSAR mesure la **respiration hydrologique**, pas la subsidence
+     irréversible ; le taux net nul est le résultat *attendu* d'une
+     tourbière préservée et gorgée d'eau. Le **laser in situ le prouve
+     directement** (il enregistre le cycle de respiration au point). →
+     l'indicateur InSAR distingue donc tourbières préservées (stables) et
+     drainées (subsidentes) — utile au suivi de restauration.
+     Nuance de méthode : la décomposition d_vert = d_LOS/cos θ reste valide
+     (mouvement quasi purement vertical, encore plus vrai pour un flottement
+     buoyant), mais l'*interprétation* du signal (respiration vs perte de
+     carbone) diffère radicalement de l'article.
 
 8.2. **Guide méthodologique transférable** (la contribution générique) :
      arbre de décision « quelle stratégie InSAR pour quelle tourbière » :
