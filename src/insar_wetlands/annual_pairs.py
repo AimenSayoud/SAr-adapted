@@ -105,6 +105,38 @@ def compute_pair_rate(cropped_root, pair: str, ref_yx: tuple[float, float],
            "vert_mm": vert_mm, "corr": corr}
 
 
+def joint_annual_trend(cropped_root, annual_pairs: list[str],
+                       ref_yx: tuple[float, float], lv_theta: xr.DataArray,
+                       gamma_min: float = 0.15) -> xr.Dataset:
+    """Tendance UNIQUE ajustee conjointement sur toutes les paires
+    annuelles disponibles, au lieu de faire confiance a une seule paire.
+
+    Avec 2-3 dates seulement, une paire isolee porte tout son bruit
+    atmospherique et son risque de saut de deroulement sans rien pour se
+    corriger (contrairement a l'article source qui moyenne sur 7 paires et
+    ~96 000 ha). Reutilise l'inversion WLS de l'ISBAS (design_matrix +
+    moindres carres) sur ce tout petit reseau : min_pairs bas (les dates
+    manquent, pas les paires) mais la logique de ponderation par coherence
+    est identique. Retourne une vitesse (mm/an) + erreur standard, projetee
+    en vertical.
+    """
+    from .geometry import los_to_vertical
+    from .inversion.isbas import invert_stack
+    from .compare import fit_velocity
+    from .stack import load_layer
+
+    unw = load_layer(cropped_root, "unw_phase", annual_pairs)
+    corr = load_layer(cropped_root, "corr", annual_pairs)
+    dry = xr.ones_like(unw, dtype=bool)  # pas de masque d'eau ici (dates rares)
+
+    isbas = invert_stack(unw, corr, dry, ref_yx,
+                         min_pairs=1, gamma_min=gamma_min)
+    d_vert = los_to_vertical(isbas.los_displacement_mm, lv_theta)
+    vel = fit_velocity(d_vert)
+    vel["n_valid_pairs"] = isbas.n_valid_pairs
+    return vel
+
+
 def summarize_rates(rates: dict[str, dict], aoi: xr.DataArray,
                     cls: xr.DataArray | None = None) -> pd.DataFrame:
     """Statistiques (mediane, p10/p90) du taux annuel sur l'AOI, par paire
