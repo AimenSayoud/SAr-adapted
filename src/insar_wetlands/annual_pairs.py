@@ -159,6 +159,87 @@ def select_optimal_annual_pairs(scored_candidates: pd.DataFrame,
     return pd.DataFrame(rows)
 
 
+def select_topk_annual_pairs(scored_candidates: pd.DataFrame,
+                             max_gap_years: int = 2, k: int = 3) -> pd.DataFrame:
+    """Comme `select_optimal_annual_pairs`, mais retient les K meilleures
+    paires PAR TRANSITION au lieu d'une seule — notre amelioration de
+    redondance par rapport a l'article (qui n'a qu'UNE paire par transition,
+    Table 1) : la mediane d'ensemble sur k paires ecrase le bruit
+    atmospherique residuel et les sauts de deroulement isoles, la ou une
+    paire unique porte tout son bruit sans recours.
+    """
+    rows = []
+    years = sorted(scored_candidates["year"].unique())
+    for i, yi in enumerate(years):
+        for yj in years[i + 1:]:
+            if yj - yi > max_gap_years:
+                continue
+            pool_i = scored_candidates[scored_candidates.year == yi]
+            pool_j = scored_candidates[scored_candidates.year == yj]
+            combos = []
+            for _, ri in pool_i.iterrows():
+                for _, rj in pool_j.iterrows():
+                    d_tcwv = abs(ri["tcwv"] - rj["tcwv"])
+                    combined = d_tcwv + 0.5 * (ri["atmo_score"] + rj["atmo_score"])
+                    combos.append({"ref_date": ri["date"], "sec_date": rj["date"],
+                                  "d_tcwv": d_tcwv, "combined_score": combined})
+            combos.sort(key=lambda c: c["combined_score"])
+            seen_dates = set()
+            kept = 0
+            for c in combos:
+                if kept >= k:
+                    break
+                # diversite : eviter de reutiliser exactement le meme couple ;
+                # autoriser le partage d'UNE date mais pas des deux
+                key = (c["ref_date"], c["sec_date"])
+                if key in seen_dates:
+                    continue
+                seen_dates.add(key)
+                a, b = c["ref_date"], c["sec_date"]
+                rows.append({
+                    "transition": f"{yi}-{yj}", "rank": kept + 1,
+                    "ref_date": a, "sec_date": b, "dt_days": (b - a).days,
+                    "pair": f"{a:%Y%m%d}_{b:%Y%m%d}",
+                    "d_tcwv_kg_m2": round(c["d_tcwv"], 3),
+                    "combined_atmo_score": round(c["combined_score"], 3),
+                })
+                kept += 1
+    return pd.DataFrame(rows)
+
+
+def ensemble_rate(rates: dict[str, dict], transitions: pd.DataFrame,
+                  corr_min: float = 0.20) -> xr.Dataset:
+    """Taux vertical d'ensemble (mm/an) : mediane pixel a pixel sur toutes
+    les paires, ponderee implicitement par le masquage de coherence, avec
+    incertitude = ecart interquartile inter-paires — la ou l'article ne
+    fournit qu'un RMSE global contre le terrain (qu'on n'a pas ici).
+
+    `rates` : sortie de compute_pair_rate par paire ; `transitions` : le
+    DataFrame de select_topk_annual_pairs (colonnes pair, transition).
+    """
+    per_pair = []
+    for _, row in transitions.iterrows():
+        p = row["pair"]
+        if p not in rates:
+            continue
+        r = rates[p]
+        rate = r["rate_mm_yr"].where(r["corr"] >= corr_min)
+        per_pair.append(rate.assign_coords(pair=p))
+    if not per_pair:
+        raise ValueError("aucune paire disponible pour l'ensemble")
+    stack = xr.concat(per_pair, dim="pair")
+    med = stack.median("pair", skipna=True)
+    q75 = stack.quantile(0.75, dim="pair", skipna=True).drop_vars("quantile")
+    q25 = stack.quantile(0.25, dim="pair", skipna=True).drop_vars("quantile")
+    n = stack.notnull().sum("pair")
+    med.attrs = {"long_name": "Taux vertical median d'ensemble", "units": "mm/an",
+                 "n_pairs_total": int(stack.sizes["pair"]), "corr_min": corr_min}
+    iqr = (q75 - q25)
+    iqr.attrs = {"long_name": "Ecart interquartile inter-paires", "units": "mm/an"}
+    return xr.Dataset({"rate_mm_yr": med, "iqr_mm_yr": iqr,
+                       "n_pairs_used": n.astype("int16")})
+
+
 def build_annual_pair_list(seasonal_dates: pd.DataFrame,
                            max_gap_years: int = 2) -> pd.DataFrame:
     """Toutes les paires (annee_i, annee_j) avec 1 <= j-i <= max_gap_years.

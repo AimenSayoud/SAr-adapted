@@ -64,6 +64,7 @@ annual_pairs:
   target_day: 15
   max_gap_years: 2         # inclut aussi les paires a 2 ans (controle de coherence du taux)
   candidate_window_days: 15  # pool de candidats +/- 15j (cycle S1 6j -> ~5 dates), selection ERA5
+  pairs_per_transition: 3    # pipeline B : top-k paires/transition -> mediane d'ensemble robuste
   job_name: "rzecin_annual"
 
 isbas:
