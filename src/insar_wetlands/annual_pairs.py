@@ -47,6 +47,118 @@ def pick_seasonal_dates(inv: pd.DataFrame, target_month: int = 4,
     return pd.DataFrame(rows).sort_values("year").reset_index(drop=True)
 
 
+def gather_candidate_dates(inv: pd.DataFrame, target_month: int = 4,
+                           target_day: int = 15, window_days: int = 15) -> pd.DataFrame:
+    """TOUTES les dates S1 (pas seulement la plus proche) dans une fenetre de
+    +/- window_days autour du (target_month, target_day), pour chaque annee.
+
+    C'est le "pool" de ~5 candidats/mois de Ghezelayagh et al. 2024 (section
+    2.3.1, cycle de 6 j -> jusqu'a 25 paires candidates par transition) —
+    contrairement a `pick_seasonal_dates` qui ne retient que la date la plus
+    proche sans verification de sa qualite atmospherique.
+    """
+    inv = inv.copy()
+    inv["date"] = pd.to_datetime(inv["date"])
+    inv["year"] = inv["date"].dt.year
+    rows = []
+    for year, g in inv.groupby("year"):
+        target = pd.Timestamp(year=year, month=target_month, day=target_day)
+        g = g.assign(gap=(g["date"] - target).dt.days)
+        cand = g[g["gap"].abs() <= window_days]
+        for _, r in cand.iterrows():
+            rows.append({"year": year, "date": r["date"], "granule": r["granule"],
+                        "gap_days": int(r["gap"])})
+    return pd.DataFrame(rows).sort_values(["year", "date"]).reset_index(drop=True)
+
+
+def score_candidates_by_era5(candidates: pd.DataFrame, era5_path,
+                             lon: float, lat: float) -> pd.DataFrame:
+    """Score de 'bruit atmospherique' par date candidate, a partir d'ERA5 deja
+    telecharge (Phase 1) — remplace les releves manuels sur wunderground.com
+    de l'article par une mesure quantitative et reproductible :
+      - tcwv (vapeur d'eau colonne totale) a l'heure la plus proche de
+        l'acquisition S1 : le retard de phase InSAR est ~ proportionnel au
+        TCWV, donc c'est le proxy le plus direct du bruit qui nous interesse.
+      - tp (precipitation cumulee sur les 24h precedentes) : penalise les
+        episodes pluvieux, source de turbulence atmospherique a petite
+        echelle spatiale, mal corrigee meme par difference de paire.
+    Retourne `candidates` + colonnes tcwv, tp_24h, atmo_score (z-score
+    combine ; plus bas = conditions plus favorables).
+    """
+    import xarray as xr
+
+    with xr.open_dataset(era5_path) as ds:
+        ds = ds.load()
+    time_dim = "valid_time" if "valid_time" in ds.dims else "time"
+    ds = ds.sortby(time_dim)
+    pt = ds.sel(longitude=lon, latitude=lat, method="nearest")
+
+    out = candidates.copy()
+    tcwv_vals, tp_vals = [], []
+    for _, r in out.iterrows():
+        near = pt.sel({time_dim: r["date"]}, method="nearest")
+        tcwv_vals.append(float(near["tcwv"].values))
+        win = pt.sel({time_dim: slice(r["date"] - pd.Timedelta("1D"), r["date"])})
+        tp_vals.append(float(win["tp"].sum().values) if win.sizes[time_dim] else np.nan)
+    out["tcwv"] = tcwv_vals
+    out["tp_24h"] = tp_vals
+
+    def _z(s: pd.Series) -> pd.Series:
+        std = s.std()
+        return (s - s.mean()) / std if std > 0 else s * 0.0
+
+    out["atmo_score"] = (_z(out["tcwv"])
+                         + _z(out["tp_24h"].fillna(out["tp_24h"].median())))
+    return out
+
+
+def select_optimal_annual_pairs(scored_candidates: pd.DataFrame,
+                                max_gap_years: int = 2) -> pd.DataFrame:
+    """Pour chaque transition (annee_i, annee_j), choisit — parmi TOUS les
+    couples du pool ERA5-note — celui qui minimise le bruit atmospherique
+    combine des deux dates, au lieu de prendre la seule date la plus proche
+    du 15 avril sans verification (`pick_seasonal_dates`).
+
+    Score de paire = |Δtcwv| (retard differentiel, qui contamine
+    directement l'interferogramme puisque seule la DIFFERENCE de vapeur
+    d'eau entre les deux dates survit a la formation de l'interferogramme)
+    + 0.5*(atmo_score_ref + atmo_score_sec) (penalise en plus les episodes
+    individuellement pluvieux/turbulents). Pas de terme de baseline
+    perpendiculaire : structurellement < 150 m sur ces bursts S1 (orbite
+    tube, cf. hyp3/jobs.py), donc non discriminant ici — contrairement au
+    Sentinel-1 pleine-scene de l'article, qui doit encore l'optimiser.
+
+    C'est l'implementation quantitative de la section 2.3.1 de Ghezelayagh
+    et al. 2024 (pool de candidats + optimisation meteo explicite), que
+    `pick_seasonal_dates`/`build_annual_pair_list` ne faisaient pas.
+    """
+    rows = []
+    years = sorted(scored_candidates["year"].unique())
+    for i, yi in enumerate(years):
+        for yj in years[i + 1:]:
+            if yj - yi > max_gap_years:
+                continue
+            pool_i = scored_candidates[scored_candidates.year == yi]
+            pool_j = scored_candidates[scored_candidates.year == yj]
+            best = None
+            for _, ri in pool_i.iterrows():
+                for _, rj in pool_j.iterrows():
+                    d_tcwv = abs(ri["tcwv"] - rj["tcwv"])
+                    combined = d_tcwv + 0.5 * (ri["atmo_score"] + rj["atmo_score"])
+                    if best is None or combined < best["combined_score"]:
+                        best = {"ref_date": ri["date"], "sec_date": rj["date"],
+                               "d_tcwv": d_tcwv, "combined_score": combined}
+            if best is not None:
+                a, b = best["ref_date"], best["sec_date"]
+                rows.append({
+                    "ref_date": a, "sec_date": b, "dt_days": (b - a).days,
+                    "pair": f"{a:%Y%m%d}_{b:%Y%m%d}",
+                    "d_tcwv_kg_m2": round(best["d_tcwv"], 3),
+                    "combined_atmo_score": round(best["combined_score"], 3),
+                })
+    return pd.DataFrame(rows)
+
+
 def build_annual_pair_list(seasonal_dates: pd.DataFrame,
                            max_gap_years: int = 2) -> pd.DataFrame:
     """Toutes les paires (annee_i, annee_j) avec 1 <= j-i <= max_gap_years.

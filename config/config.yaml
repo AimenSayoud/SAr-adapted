@@ -63,6 +63,7 @@ annual_pairs:
   target_month: 4          # avril : vegetation minimale, peu de neige/gel
   target_day: 15
   max_gap_years: 2         # inclut aussi les paires a 2 ans (controle de coherence du taux)
+  candidate_window_days: 15  # pool de candidats +/- 15j (cycle S1 6j -> ~5 dates), selection ERA5
   job_name: "rzecin_annual"
 
 isbas:
