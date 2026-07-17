@@ -54,6 +54,17 @@ network:
   - 48
 quality_index:
   sbas_threshold: 0.5
+annual_pairs:
+  # Approche "seasonal-annual" (Ghezelayagh et al. 2024, Ecological Indicators) :
+  # comparer le MEME mois d'annees differentes plutot qu'un reseau dense
+  # multi-saisons. Signal accumule sur ~1 an >> bruit de phase ; pas de
+  # decorrelation saisonniere puisque les deux dates sont phenologiquement
+  # comparables. Pas de reseau/inversion MintPy necessaire.
+  target_month: 4          # avril : vegetation minimale, peu de neige/gel
+  target_day: 15
+  max_gap_years: 2         # inclut aussi les paires a 2 ans (controle de coherence du taux)
+  job_name: "rzecin_annual"
+
 isbas:
   min_coherent_pairs: 20
   gamma_min: 0.3
