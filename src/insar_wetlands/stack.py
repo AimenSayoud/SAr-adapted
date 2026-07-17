@@ -9,6 +9,35 @@ import pandas as pd
 import xarray as xr
 
 
+def align_grid(da: xr.DataArray | xr.Dataset,
+              template: xr.DataArray) -> xr.DataArray | xr.Dataset:
+    """Reassigne les coordonnees y/x de `da` sur celles de `template`.
+
+    Necessaire quand deux produits representant EXACTEMENT le meme crop
+    (meme shape) ont des coordonnees legerement differentes en valeur
+    (ex: grille MintPy reconstruite depuis X_FIRST/Y_STEP du HDF5, vs
+    grille rioxarray lue directement du GeoTIFF) : xarray aligne par
+    egalite EXACTE de coordonnees, pas par position -> toute comparaison
+    booleenne/where entre les deux donne une intersection vide en
+    silence (aucune erreur), symptome typique : des comptages a 0 alors
+    que les deux cartes ont clairement des donnees.
+    """
+    y_dim = "y" if "y" in da.dims else None
+    x_dim = "x" if "x" in da.dims else None
+    if y_dim and da.sizes["y"] != template.sizes["y"]:
+        raise ValueError(f"tailles y incompatibles: {da.sizes['y']} vs "
+                         f"{template.sizes['y']} -> pas le meme crop")
+    if x_dim and da.sizes["x"] != template.sizes["x"]:
+        raise ValueError(f"tailles x incompatibles: {da.sizes['x']} vs "
+                         f"{template.sizes['x']} -> pas le meme crop")
+    coords = {}
+    if y_dim:
+        coords["y"] = template.y.values
+    if x_dim:
+        coords["x"] = template.x.values
+    return da.assign_coords(coords)
+
+
 def list_pairs(cropped_root: str | Path) -> list[str]:
     root = Path(cropped_root)
     return sorted(d.name for d in root.iterdir()
