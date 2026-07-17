@@ -1,0 +1,20 @@
+{
+  "phase": "phase10_comparison",
+  "generated_utc": "2026-07-17T15:24:48+00:00",
+  "parameters": {},
+  "products": {
+    "agreement": {
+      "n_common": 182,
+      "bias_mm_yr": -12.734490945981621,
+      "rmse_mm_yr": 18.108159101266438,
+      "pearson_r": 0.2649090153542949
+    },
+    "continuity": {
+      "sbas": 8.807510307678427,
+      "isbas": 10.329121954332969
+    },
+    "n_saved": 13861,
+    "closure_saved": 0.37514007091522217,
+    "closure_sbas_pixels": 0.3163433372974396
+  }
+}
