@@ -137,6 +137,32 @@ def joint_annual_trend(cropped_root, annual_pairs: list[str],
     return vel
 
 
+def deramp(field: xr.DataArray, fit_mask: xr.DataArray) -> xr.Dataset:
+    """Retire une rampe planaire (a*x + b*y + c) ajustee par moindres
+    carres sur les pixels de `fit_mask` (typiquement classes A/B, loin de
+    la zone d'interet -> pas de vraie deformation attendue la-bas).
+
+    Une rampe orbitale/atmospherique residuelle non corrigee produit un
+    degrade lisse et symetrique sur toute l'image, sans rapport avec la
+    geometrie du site (contrairement a un vrai signal de subsidence,
+    concentre autour de la zone humide) -> reconnaissable a l'oeil et
+    corrigeable par un simple plan ajuste hors de la zone d'interet.
+    """
+    yy, xx = np.meshgrid(field.y.values, field.x.values, indexing="ij")
+    valid = fit_mask.values & np.isfinite(field.values)
+    if valid.sum() < 10:
+        raise ValueError("pas assez de pixels de reference pour ajuster une rampe")
+    A = np.column_stack([xx[valid], yy[valid], np.ones(valid.sum())])
+    coef, *_ = np.linalg.lstsq(A, field.values[valid], rcond=None)
+    ramp = coef[0] * xx + coef[1] * yy + coef[2]
+    corrected = field - xr.DataArray(ramp, coords=field.coords, dims=field.dims)
+    return xr.Dataset({"corrected": corrected,
+                       "ramp": xr.DataArray(ramp, coords=field.coords, dims=field.dims)},
+                      attrs={"ramp_coef_x_per_m": float(coef[0]),
+                             "ramp_coef_y_per_m": float(coef[1]),
+                             "ramp_offset": float(coef[2])})
+
+
 def summarize_rates(rates: dict[str, dict], aoi: xr.DataArray,
                     cls: xr.DataArray | None = None) -> pd.DataFrame:
     """Statistiques (mediane, p10/p90) du taux annuel sur l'AOI, par paire
