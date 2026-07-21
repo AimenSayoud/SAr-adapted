@@ -83,9 +83,19 @@ def load_gacos_ztd(gacos_dir, date: str, template: xr.DataArray) -> xr.DataArray
     import rioxarray  # noqa: F401
 
     gacos_dir = Path(gacos_dir)
+    # GACOS GeoTIFF (format demande ici) : deja geo-reference -> reproject_match
+    # aligne CRS + grille sur le crop en une passe (robuste).
+    tif = next(gacos_dir.glob(f"*{date}*.tif"), None)
+    if tif is not None:
+        da = rioxarray.open_rasterio(tif, masked=True).squeeze("band", drop=True)
+        if da.rio.crs is None:
+            da = da.rio.write_crs("EPSG:4326")
+        return da.rio.reproject_match(template)
+    # Fallback binaire .ztd + .rsc (format historique GACOS)
     ztd = next(gacos_dir.glob(f"*{date}*.ztd"), None)
     if ztd is None:
-        raise FileNotFoundError(f"GACOS .ztd absent pour {date} dans {gacos_dir}")
+        raise FileNotFoundError(f"GACOS absent pour {date} dans {gacos_dir} "
+                                "(.tif ou .ztd)")
     rsc = Path(str(ztd) + ".rsc")
     meta = {}
     for line in rsc.read_text().splitlines():
@@ -98,11 +108,9 @@ def load_gacos_ztd(gacos_dir, date: str, template: xr.DataArray) -> xr.DataArray
     arr = np.fromfile(ztd, dtype="float32").reshape(h, w)
     lons = x0 + dx * np.arange(w)
     lats = y0 + dy * np.arange(h)
-    da = xr.DataArray(arr, coords={"lat": lats, "lon": lons}, dims=("lat", "lon"),
-                      name="ztd_m")
-    da = da.rio.write_crs("EPSG:4326")
-    tmpl = template.rio.reproject("EPSG:4326") if template.rio.crs != "EPSG:4326" else template
-    return da.interp(lat=tmpl.y, lon=tmpl.x, method="linear")
+    da = xr.DataArray(arr, coords={"y": lats, "x": lons}, dims=("y", "x"),
+                      name="ztd_m").rio.write_crs("EPSG:4326")
+    return da.rio.reproject_match(template)
 
 
 def apply_gacos_tropo(unw: xr.DataArray, gacos_dir, template: xr.DataArray,
