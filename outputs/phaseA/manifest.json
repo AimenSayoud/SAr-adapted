@@ -1,0 +1,28 @@
+{
+  "phase": "phaseA_hybrid_test",
+  "generated_utc": "2026-07-21T19:00:48+00:00",
+  "parameters": {
+    "short_max_days": 48,
+    "reference": {
+      "y": 5845820.0,
+      "x": 588700.0,
+      "coherence": 0.6531861424446106,
+      "lat": 52.7549390116794,
+      "lon": 16.314304636748044
+    },
+    "tropo": "era5_scalar"
+  },
+  "products": {
+    "n_solved_hybrid": 14238,
+    "n_solved_sbas_short": 182,
+    "network": {
+      "n_dates": 90,
+      "n_pairs_total": 349,
+      "n_short": 346,
+      "n_annual": 3,
+      "dt_days_min": 12,
+      "dt_days_max": 732,
+      "span_days": 1080
+    }
+  }
+}
