@@ -69,6 +69,13 @@ annual_pairs:
   pairs_per_transition: 3    # pipeline B : top-k paires/transition -> mediane d'ensemble robuste
   job_name: "rzecin_annual"
 
+hybrid:
+  # Phase A — reseau hybride court+annuel (facon Hrysiewicz et al. 2024, RSE) :
+  # teste si l'echec SBAS venait du reseau court seul (methode) ou du site.
+  job_name: "rzecin_hybrid"
+  tropo: "era5_scalar"   # "era5_scalar" (baseline) | "gacos" (si fichiers .ztd dispo)
+  min_pairs: 3
+  gamma_min: 0.20
 isbas:
   min_coherent_pairs: 20
   gamma_min: 0.3

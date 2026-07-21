@@ -59,6 +59,74 @@ def apply_isbas_tropo(unw: xr.DataArray, dzwd_mm: pd.Series,
     return unw - corr_rad
 
 
+def load_gacos_ztd(gacos_dir, date: str, template: xr.DataArray) -> xr.DataArray:
+    """Charge un delai troposphérique GACOS (.ztd + .ztd.rsc) pour une date et
+    le reechantillonne sur la grille du crop.
+
+    GACOS (http://www.gacos.net) fournit un delai zenithal total SPATIALEMENT
+    VARIABLE (~0.125 deg, composante stratifiee + turbulente), contrairement
+    au TCWV ERA5 scalaire qui, uniforme sur une petite AOI, est annule par la
+    calibration au point de reference. GACOS est donc la seule correction
+    susceptible d'ameliorer un petit site plat — a condition que l'utilisateur
+    ait telecharge les fichiers (requete manuelle sur gacos.net).
+
+    Le .ztd est un binaire float32 (row-major), geo-reference par le .rsc
+    (WIDTH, FILE_LENGTH, X_FIRST, Y_FIRST, X_STEP, Y_STEP). Delai en metres.
+    """
+    from pathlib import Path
+    import rioxarray  # noqa: F401
+
+    gacos_dir = Path(gacos_dir)
+    ztd = next(gacos_dir.glob(f"*{date}*.ztd"), None)
+    if ztd is None:
+        raise FileNotFoundError(f"GACOS .ztd absent pour {date} dans {gacos_dir}")
+    rsc = Path(str(ztd) + ".rsc")
+    meta = {}
+    for line in rsc.read_text().splitlines():
+        parts = line.split()
+        if len(parts) >= 2:
+            meta[parts[0]] = parts[1]
+    w, h = int(meta["WIDTH"]), int(meta["FILE_LENGTH"])
+    x0, y0 = float(meta["X_FIRST"]), float(meta["Y_FIRST"])
+    dx, dy = float(meta["X_STEP"]), float(meta["Y_STEP"])
+    arr = np.fromfile(ztd, dtype="float32").reshape(h, w)
+    lons = x0 + dx * np.arange(w)
+    lats = y0 + dy * np.arange(h)
+    da = xr.DataArray(arr, coords={"lat": lats, "lon": lons}, dims=("lat", "lon"),
+                      name="ztd_m")
+    da = da.rio.write_crs("EPSG:4326")
+    tmpl = template.rio.reproject("EPSG:4326") if template.rio.crs != "EPSG:4326" else template
+    return da.interp(lat=tmpl.y, lon=tmpl.x, method="linear")
+
+
+def apply_gacos_tropo(unw: xr.DataArray, gacos_dir, template: xr.DataArray,
+                      inc: xr.DataArray) -> xr.DataArray:
+    """Retire le delai GACOS differentiel (SPATIALEMENT VARIABLE) par paire.
+
+    Pour chaque paire ref_sec : delta_ztd = ztd(sec) - ztd(ref) [m] -> mm ->
+    LOS (/cos inc) -> radians. Contrairement a apply_isbas_tropo (scalaire),
+    ceci n'est PAS annule par la reference et corrige la structure spatiale.
+    """
+    from .inversion.isbas import PHASE_TO_MM
+
+    cache: dict[str, xr.DataArray] = {}
+
+    def ztd(date):
+        if date not in cache:
+            cache[date] = load_gacos_ztd(gacos_dir, date, template)
+        return cache[date]
+
+    inc_grid = inc.interp(y=unw.y, x=unw.x, method="nearest") \
+        if inc.sizes.get("y") != unw.sizes.get("y") else inc
+    out = []
+    for p in unw.pair.values:
+        ref, sec = p.split("_")
+        d_ztd_mm = (ztd(sec) - ztd(ref)) * 1000.0
+        d_los_rad = (d_ztd_mm / np.cos(inc_grid)) / PHASE_TO_MM
+        out.append(unw.sel(pair=p) - d_los_rad)
+    return xr.concat(out, dim="pair").assign_coords(pair=unw.pair)
+
+
 def residual_noise_report(ts_by_pipeline: dict[str, xr.DataArray],
                           aoi: xr.DataArray) -> pd.DataFrame:
     """Ecart-type temporel du signal detendance, par pipeline (test aveugle).
