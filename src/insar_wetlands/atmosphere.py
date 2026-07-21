@@ -28,8 +28,14 @@ def zenith_wet_delay_mm(era5: xr.Dataset, lon: float, lat: float) -> xr.DataArra
 
 
 def pair_delays_mm(zwd: xr.DataArray, pairs: list[str],
-                   acq_time_utc: str = "05:00") -> pd.Series:
-    """Delai differentiel LOS-zenithal par paire (interpole a l'heure S1)."""
+                   acq_time_utc: str = "17:00") -> pd.Series:
+    """Delai differentiel LOS-zenithal par paire (interpole a l'heure S1).
+
+    NB : la trace S1 de Rzecin (orbite 175 ascendante) passe a ~16:36 UTC
+    (cf. noms de granules T1636xx) ; l'heure ERA5 la plus proche est 17:00.
+    L'ancien defaut 05:00 echantillonnait l'atmosphere du MATIN (biais).
+    Pour une requete GACOS, utiliser aussi 16:36 UTC comme heure d'acquisition.
+    """
     zt = zwd.to_series()
     zt.index = pd.to_datetime(zt.index)
 

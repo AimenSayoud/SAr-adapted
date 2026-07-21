@@ -89,6 +89,53 @@ def annual_chain_closure(rates_mm_yr: dict[str, float]) -> dict:
             "max_abs_closure": float(df["closure_mm_yr"].abs().max()) if len(df) else np.nan}
 
 
+def quality_filter(ds: xr.Dataset, aoi: xr.DataArray,
+                   rms_max_rad: float = 1.0, min_pairs: int = 10) -> dict:
+    """Distingue les pixels VRAIMENT resolus des pixels 'resolus par du bruit'.
+
+    Un pixel avec seulement min_pairs=3 paires satisfait le critere ISBAS mais
+    peut n'etre que du bruit. Ce filtre exige un residu WLS faible (rms) ET
+    assez de paires. Retourne les comptes brut vs filtre, sur l'AOI et hors.
+    """
+    solved = np.isfinite(ds["rms_residual_rad"].values)
+    good = solved & (ds["rms_residual_rad"].values <= rms_max_rad) \
+        & (ds["n_valid_pairs"].values >= min_pairs)
+    aoi_v = aoi.values
+    return {
+        "n_solved_total": int(solved.sum()),
+        "n_good_total": int(good.sum()),
+        "n_solved_aoi": int((solved & aoi_v).sum()),
+        "n_good_aoi": int((good & aoi_v).sum()),
+        "frac_good_of_solved": float(good.sum() / max(1, solved.sum())),
+        "good_mask": xr.DataArray(good, coords=aoi.coords, dims=aoi.dims),
+    }
+
+
+def clip_to_polygon(da: xr.DataArray, cfg: dict | None = None) -> xr.DataArray:
+    """Decoupe une carte au polygone EXACT de la tourbiere (geojson), en
+    mettant NaN hors-polygone — pour l'affichage et les stats finales sur la
+    tourbiere seule (le traitement, lui, garde le contour pour la reference)."""
+    from .stack import aoi_mask
+    aoi = aoi_mask(da if da.ndim == 2 else da.isel({d: 0 for d in da.dims if d not in ("y", "x")}), cfg)
+    return da.where(aoi)
+
+
+def coherence_vs_water(coh_mean: xr.DataArray, flooded_frac: xr.DataArray,
+                       aoi: xr.DataArray) -> dict:
+    """Validation S2 (sans laser) : la cohérence InSAR chute-t-elle la ou S2
+    voit de l'eau ? Correle la cohérence moyenne au 'flooded_fraction' (Phase
+    5-6) sur l'AOI. Correlation NEGATIVE forte = interpretation physique
+    confirmee (l'eau decorrele) par un capteur independant."""
+    a = coh_mean.where(aoi).values.ravel()
+    b = flooded_frac.reindex_like(coh_mean, method="nearest").where(aoi).values.ravel()
+    ok = np.isfinite(a) & np.isfinite(b)
+    if ok.sum() < 10:
+        return {"n": int(ok.sum()), "r": np.nan}
+    r = float(np.corrcoef(a[ok], b[ok])[0, 1])
+    return {"n": int(ok.sum()), "r": r,
+            "note": "r negatif attendu : plus d'eau -> moins de coherence"}
+
+
 def hydrology_proxy(era5: xr.Dataset, lon: float, lat: float,
                     tau_days: int = 30) -> pd.Series:
     """Proxy de niveau de nappe à partir d'ERA5 : anomalie de précipitation
