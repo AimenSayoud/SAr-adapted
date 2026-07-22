@@ -180,6 +180,54 @@ def coherence_by_zone_perpair(corr: xr.DataArray, zones: dict) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+def coherence_by_zone_stream(cropped_root, pairs, zones: dict,
+                             template: xr.DataArray) -> tuple[pd.DataFrame, xr.DataArray]:
+    """Version ÉCONOME EN MÉMOIRE de coherence_by_zone_perpair.
+
+    Charge la cohérence UNE PAIRE À LA FOIS depuis le disque (jamais les ~349
+    couches en RAM simultanément — ce qui faisait sauter Colab), accumule les
+    stats par zone et la carte de cohérence moyenne (somme/compteur courants),
+    puis libère chaque couche. Retourne (df_long, coh_mean).
+    """
+    from .stack import load_layer
+
+    season_by_month = {12: "hiver", 1: "hiver", 2: "hiver", 3: "printemps",
+                       4: "printemps", 5: "printemps", 6: "été", 7: "été",
+                       8: "été", 9: "automne", 10: "automne", 11: "automne"}
+    zmasks = {k: zones[k].values for k in ("A", "B", "C", "D")}
+    tshape = template.shape
+    rows = []
+    ssum = np.zeros(tshape, dtype="float64")
+    scnt = np.zeros(tshape, dtype="int32")
+    for p in pairs:
+        try:
+            da = load_layer(cropped_root, "corr", [p]).isel(pair=0)
+        except Exception:
+            continue
+        if da.shape != tshape:                      # grilles legerement differentes
+            da = da.rio.reproject_match(template)
+        c = da.values.astype("float32")
+        del da
+        finite = np.isfinite(c)
+        ssum[finite] += c[finite]
+        scnt[finite] += 1
+        ref, sec = str(p).split("_")
+        dt = (pd.Timestamp(sec) - pd.Timestamp(ref)).days
+        season = season_by_month[pd.Timestamp(ref).month]
+        for z, m in zmasks.items():
+            vals = c[m & finite]
+            if vals.size:
+                rows.append({"zone": z, "pair": str(p), "dt_days": dt,
+                             "season": season, "mean_coh": float(vals.mean()),
+                             "n_px": int(vals.size)})
+        del c, finite
+    with np.errstate(invalid="ignore"):
+        coh_mean = np.where(scnt > 0, ssum / np.maximum(scnt, 1), np.nan).astype("float32")
+    coh_mean_da = xr.DataArray(coh_mean, coords=template.coords, dims=template.dims,
+                               name="coh_mean")
+    return pd.DataFrame(rows), coh_mean_da
+
+
 def _decay(dt, g0, ginf, tau):
     return ginf + (g0 - ginf) * np.exp(-dt / tau)
 
