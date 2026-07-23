@@ -296,26 +296,66 @@ def fit_decay(dt_days, coh) -> dict:
 
 def paired_zone_diff(df: pd.DataFrame, a: str = "A", b: str = "C",
                      n_boot: int = 2000, seed: int = 0) -> dict:
-    """Comparaison APPARIÉE par interférogramme : pour chaque paire présente
-    dans A ET C, delta = coh_a - coh_b. Bootstrap sur les paires (gère
-    l'autocorrélation temporelle mieux qu'un N brut). Retourne le delta médian,
-    son IC95, la fraction de paires où a<b, et un test de signe.
+    """Comparaison APPARIÉE par interférogramme (delta = coh_a - coh_b par
+    paire), avec la rigueur exigée en review :
+
+    - `wilcoxon_p` : test de Wilcoxon signé sur les differences appariees (le
+      VRAI test ; `frac_a_lower` n'est que la fraction de meme signe, pas un
+      test) ;
+    - `ci95_pairs` : bootstrap NAÏF sur les paires — OPTIMISTE car les ~356
+      paires ne sont pas independantes (elles partagent ~90 dates) ;
+    - `date_jackknife` : on retire CHAQUE date (et toutes ses paires) tour a
+      tour et on recalcule le delta moyen. Repond directement a « une
+      acquisition anormale porte-t-elle le resultat ? » : si le delta reste du
+      meme signe pour TOUTE date retiree, il est robuste. C'est le controle qui
+      compte face a la non-independance.
     """
+    from scipy.stats import wilcoxon
+
     pa = df[df.zone == a].set_index("pair")["mean_coh"]
     pb = df[df.zone == b].set_index("pair")["mean_coh"]
-    common = pa.index.intersection(pb.index)
+    common = list(pa.index.intersection(pb.index))
     if len(common) < 5:
         return {"n_pairs": len(common), "note": "trop peu de paires communes"}
-    delta = (pa.loc[common] - pb.loc[common]).values
+    delta = pd.Series((pa.loc[common] - pb.loc[common]).values, index=common)
+
+    # bootstrap naif sur les paires (optimiste)
     rng = np.random.RandomState(seed)
-    boots = [rng.choice(delta, len(delta), replace=True).mean() for _ in range(n_boot)]
+    dv = delta.values
+    boots = [rng.choice(dv, len(dv), replace=True).mean() for _ in range(n_boot)]
+
+    # test de Wilcoxon signe (differences appariees)
+    try:
+        wstat, wp = wilcoxon(dv)
+    except Exception:
+        wstat, wp = np.nan, np.nan
+
+    # jackknife par DATE : retirer une date -> toutes ses paires
+    dates_of = {p: str(p).split("_") for p in common}
+    all_dates = sorted({d for p in common for d in dates_of[p]})
+    jack = []
+    for dd in all_dates:
+        keep = [p for p in common if dd not in dates_of[p]]
+        if len(keep) >= 5:
+            jack.append(float(delta.loc[keep].mean()))
+    jack = np.array(jack)
+
     return {
         "n_pairs": int(len(common)),
-        "delta_median_mm": float(np.median(delta)),   # coh units, name kept generic
+        "n_dates": int(len(all_dates)),
         "delta_mean": float(delta.mean()),
-        "ci95": [float(np.percentile(boots, 2.5)), float(np.percentile(boots, 97.5))],
-        "frac_a_lower": float((delta < 0).mean()),
-        "significant": bool(np.percentile(boots, 2.5) > 0 or np.percentile(boots, 97.5) < 0),
+        "delta_median": float(np.median(dv)),
+        "frac_a_lower": float((dv < 0).mean()),          # descriptif, PAS un test
+        "wilcoxon_stat": float(wstat), "wilcoxon_p": float(wp),
+        "ci95_pairs": [float(np.percentile(boots, 2.5)),
+                       float(np.percentile(boots, 97.5))],  # optimiste
+        "date_jackknife_min": float(jack.min()) if jack.size else np.nan,
+        "date_jackknife_max": float(jack.max()) if jack.size else np.nan,
+        "date_jackknife_se": float(jack.std(ddof=1) * np.sqrt(len(jack) - 1)) if jack.size > 1 else np.nan,
+        "robust_same_sign": bool(jack.size and (np.all(jack < 0) or np.all(jack > 0))),
+        # 'significant' conservateur : Wilcoxon ET robustesse au jackknife
+        "significant": bool(np.isfinite(wp) and wp < 0.05 and jack.size
+                            and (np.all(jack < 0) or np.all(jack > 0))),
     }
 
 

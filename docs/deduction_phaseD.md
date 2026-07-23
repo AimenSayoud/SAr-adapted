@@ -25,17 +25,26 @@ autres couverts extérieurs. Effectifs : A=499, B=65, C=169, D=10 979 px.
 
 Le test central est **apparié par interférogramme** : chaque paire est vue
 dans A et dans C, ce qui neutralise la ligne de base perpendiculaire et
-l'atmosphère du jour — il ne reste que la différence de surface. Bootstrap
-sur les 356 paires. Compléments (Phase D-bis) : couplage de la cohérence à un
-proxy de nappe (ERA5), test de gel, profil radial de distance au polygone,
-et résidu d'inversion WLS par zone (issu du réseau hybride, Phase A).
+l'atmosphère du jour — il ne reste que la différence de surface. Compléments
+(Phase D-bis) : couplage de la cohérence à un proxy de nappe (ERA5), test de
+gel, profil radial de distance au polygone, et résidu d'inversion WLS par zone
+(issu du réseau hybride, Phase A).
+
+**Statistique (précisions exigées en review) :** le test apparié est un
+**Wilcoxon signé** sur les différences coh_A − coh_C (le « 88 % » n'est que la
+fraction de différences de même signe — un descriptif, pas un test). Les ~356
+paires n'étant **pas indépendantes** (elles partagent ~90 dates), un bootstrap
+par paire sous-estime l'incertitude ; on rapporte donc un **jackknife par
+date** (retrait de chaque acquisition et de toutes ses paires) : le résultat
+n'est retenu comme robuste que si le delta garde le même signe pour *toute*
+date retirée. L'IC bootstrap-par-paire est signalé comme optimiste.
 
 ## 3. Résultats [FAIT]
 
 | Mesure | A (tapis) | C (prairie stable appariée) | Lecture |
 |---|---|---|---|
 | Cohérence moyenne | 0.41 | 0.48 | A < C |
-| Δ apparié (coh_A − coh_C) | **−0.069** ; IC95 [−0.077, −0.060] | — | significatif, 88 % des paires |
+| Δ apparié (coh_A − coh_C) | **−0.069** | — | Wilcoxon p≪0.05 ; 88 % des paires de signe négatif ; jackknife par date : signe stable (à confirmer sur données réelles, cellule 1b) |
 | Temps de décorrélation τ | 21 j | 32 j | A décorrèle plus vite (r² faibles : indicatif) |
 | Pente cohérence ~ \|Δnappe\| | −10.7 | −10.0 | quasi identiques |
 | Gain de cohérence au gel | +0.028 | +0.077 | A gagne MOINS |
