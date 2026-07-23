@@ -101,7 +101,7 @@ def load_worldcover(template: xr.DataArray, cfg: dict | None = None,
     minx, miny, maxx, maxy = buffered_bbox(cfg)   # degrés (CRS de la tuile)
 
     def _open_clip(src):
-        da = rioxarray.open_rasterio(src, masked=False, chunks=True).squeeze("band", drop=True)
+        da = rioxarray.open_rasterio(src, masked=True, chunks=True).squeeze("band", drop=True)
         return da.rio.clip_box(minx, miny, maxx, maxy)   # fenêtre COG -> minuscule
 
     try:
