@@ -35,7 +35,8 @@ def s2_landcover_features(s2: xr.Dataset) -> xr.Dataset:
       forêt permanente ~ faible amp, herbe/culture ~ forte amp)
     - wetness_mean   : NDMI moyen = (nir-swir16)/(nir+swir16) (humidité couvert)
     """
-    g, n, s = s2["green"], s2["nir"], s2["swir16"]
+    g = s2["green"].astype("float32"); n = s2["nir"].astype("float32")
+    s = s2["swir16"].astype("float32")
     gndvi = (n - g) / (n + g)
     ndmi = (n - s) / (n + s)
     q90 = gndvi.quantile(0.9, "time").drop_vars("quantile")
@@ -61,25 +62,43 @@ def worldcover_tile_name(lat: float, lon: float, year: int = 2021) -> str:
 
 def load_worldcover(template: xr.DataArray, cfg: dict | None = None,
                     year: int = 2021, cache_dir="/content/worldcover") -> xr.DataArray:
-    """Charge ESA WorldCover 10 m (label de couvert indépendant) et le
-    reprojette sur la grille du crop. Tuile COG publique sur S3 (pas d'install
-    lourde, ~1 fichier)."""
+    """Charge ESA WorldCover 10 m (label de couvert indépendant) sur la grille
+    du crop.
+
+    ATTENTION MÉMOIRE : une tuile WorldCover fait 3°x3° = ~33000x33000 px
+    (~1 Go). Il ne faut JAMAIS la reprojeter entière (satur RAM). On DÉCOUPE
+    d'abord à la bbox du site (lecture fenêtrée COG -> ~500x500 px) puis on
+    reprojette ce petit extrait. Lecture directe via /vsicurl (pas de
+    téléchargement du Go entier) ; repli sur téléchargement si /vsicurl échoue.
+    """
     from pathlib import Path
     import rioxarray  # noqa: F401
     from .config import load_config
+    from .aoi import buffered_bbox
 
     cfg = cfg or load_config()
     lon, lat = cfg["site"]["centroid"]
     tile = worldcover_tile_name(lat, lon, year)
-    url = (f"https://esa-worldcover.s3.eu-central-1.amazonaws.com/"
-           f"v200/{year}/map/{tile}")
-    cache = Path(cache_dir); cache.mkdir(parents=True, exist_ok=True)
-    local = cache / tile
-    if not local.exists():
-        import urllib.request
-        urllib.request.urlretrieve(url, local)
-    wc = rioxarray.open_rasterio(local, masked=True).squeeze("band", drop=True)
-    return wc.rio.reproject_match(template).rename("worldcover")
+    base = (f"https://esa-worldcover.s3.eu-central-1.amazonaws.com/"
+            f"v200/{year}/map/{tile}")
+    minx, miny, maxx, maxy = buffered_bbox(cfg)   # degrés (CRS de la tuile)
+
+    def _open_clip(src):
+        da = rioxarray.open_rasterio(src, masked=False, chunks=True).squeeze("band", drop=True)
+        return da.rio.clip_box(minx, miny, maxx, maxy)   # fenêtre COG -> minuscule
+
+    try:
+        wc_small = _open_clip("/vsicurl/" + base)
+    except Exception:
+        cache = Path(cache_dir); cache.mkdir(parents=True, exist_ok=True)
+        local = cache / tile
+        if not local.exists():
+            import urllib.request
+            urllib.request.urlretrieve(base, local)
+        wc_small = _open_clip(local)
+
+    wc_small = wc_small.load()                    # petit extrait : OK en RAM
+    return wc_small.rio.reproject_match(template).rename("worldcover")
 
 
 def dominant_class(worldcover: xr.DataArray, mask: xr.DataArray) -> int:
