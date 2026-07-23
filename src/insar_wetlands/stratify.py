@@ -28,23 +28,40 @@ WC_BUILT, WC_BARE, WC_WATER, WC_WETLAND, WC_MOSS = 50, 60, 80, 90, 100
 
 
 def s2_landcover_features(s2: xr.Dataset) -> xr.Dataset:
-    """Features de couvert par pixel depuis le stack S2 (green, nir, swir16).
+    """Features de couvert par pixel, robustes au contenu réel du stack S2.
 
-    - greenness_mean : GNDVI moyen = (nir-green)/(nir+green) (biomasse/verdure)
-    - greenness_amp  : amplitude saisonnière (p90-p10) de GNDVI (phénologie :
-      forêt permanente ~ faible amp, herbe/culture ~ forte amp)
-    - wetness_mean   : NDMI moyen = (nir-swir16)/(nir+swir16) (humidité couvert)
+    Deux formats gérés :
+      - bandes brutes (green, nir, swir16) -> GNDVI et NDMI directs ;
+      - indices déjà calculés (ndwi, mndwi) : notre s2_stack.nc ne stocke que
+        ceux-là. Or GNDVI = (nir-green)/(nir+green) = -NDWI, donc la verdure se
+        reconstruit exactement depuis -NDWI ; l'humidité depuis MNDWI (swir).
+
+    - greenness_mean : verdure moyenne (GNDVI ≈ -NDWI ; végétation -> positif)
+    - greenness_amp  : amplitude saisonnière (p90-p10) -> phénologie
+    - wetness_mean   : humidité moyenne (MNDWI, ou NDMI si bandes dispo)
     """
-    g = s2["green"].astype("float32"); n = s2["nir"].astype("float32")
-    s = s2["swir16"].astype("float32")
-    gndvi = (n - g) / (n + g)
-    ndmi = (n - s) / (n + s)
+    if "green" in s2 and "nir" in s2:
+        g = s2["green"].astype("float32"); n = s2["nir"].astype("float32")
+        gndvi = (n - g) / (n + g)
+    elif "ndwi" in s2:
+        gndvi = -s2["ndwi"].astype("float32")          # GNDVI = -NDWI
+    else:
+        raise KeyError(f"stack S2 sans green/nir ni ndwi ; variables: {list(s2.data_vars)}")
+
+    if "swir16" in s2 and "nir" in s2:
+        n2 = s2["nir"].astype("float32"); sw = s2["swir16"].astype("float32")
+        wet = (n2 - sw) / (n2 + sw)                    # NDMI
+    elif "mndwi" in s2:
+        wet = s2["mndwi"].astype("float32")
+    else:
+        wet = -gndvi                                   # repli : NDWI comme proxy humidité
+
     q90 = gndvi.quantile(0.9, "time").drop_vars("quantile")
     q10 = gndvi.quantile(0.1, "time").drop_vars("quantile")
     feat = xr.Dataset({
         "greenness_mean": gndvi.mean("time", skipna=True),
         "greenness_amp": q90 - q10,
-        "wetness_mean": ndmi.mean("time", skipna=True),
+        "wetness_mean": wet.mean("time", skipna=True),
     })
     for v in feat.data_vars:
         feat[v].attrs = {}
