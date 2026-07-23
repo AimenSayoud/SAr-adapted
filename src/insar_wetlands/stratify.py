@@ -317,3 +317,116 @@ def paired_zone_diff(df: pd.DataFrame, a: str = "A", b: str = "C",
         "frac_a_lower": float((delta < 0).mean()),
         "significant": bool(np.percentile(boots, 2.5) > 0 or np.percentile(boots, 97.5) < 0),
     }
+
+
+# ============================================================================
+# Phase D-bis : mécanisme (mécanique/flottaison vs diélectrique) + spatial
+# ============================================================================
+
+def pair_hydro_change(pairs: list[str], era5: xr.Dataset, lon: float, lat: float,
+                      tau_days: int = 30) -> pd.DataFrame:
+    """Par paire : variation absolue du proxy de nappe (|Δ pluie cumulée
+    tau_days|) et température minimale des deux dates (K). Base des tests
+    couplage-nappe et gel."""
+    from .validation import hydrology_proxy
+
+    proxy = hydrology_proxy(era5, lon, lat, tau_days)
+    proxy.index = pd.to_datetime(proxy.index)
+    t2 = era5["t2m"].sel(latitude=lat, longitude=lon, method="nearest")
+    tc = "valid_time" if "valid_time" in t2.coords else "time"
+    ts = t2.to_series(); ts.index = pd.to_datetime(t2[tc].values)
+    tdaily = ts.resample("1D").mean()
+
+    def at(series, d):
+        try:
+            return float(series.asof(pd.Timestamp(d)))
+        except Exception:
+            return np.nan
+
+    rows = []
+    for p in pairs:
+        r, s = str(p).split("_")
+        wr, ws = at(proxy, r), at(proxy, s)
+        rows.append({"pair": str(p), "dwtd": abs(ws - wr),
+                     "tmin": min(at(tdaily, r), at(tdaily, s))})
+    return pd.DataFrame(rows).set_index("pair")
+
+
+def coherence_vs_hydro(df_perpair: pd.DataFrame, pair_hydro: pd.DataFrame) -> pd.DataFrame:
+    """Par zone : régression cohérence ~ |Δ nappe|. Une pente PLUS négative
+    pour A que pour C = la cohérence du tapis est plus sensible à la variation
+    de nappe -> mécanisme de flottaison (mécanique/hydrologique) propre au tapis."""
+    out = []
+    for z, g in df_perpair.groupby("zone"):
+        m = g.merge(pair_hydro, left_on="pair", right_index=True)
+        m = m[np.isfinite(m["dwtd"]) & np.isfinite(m["mean_coh"])]
+        if len(m) < 5 or m["dwtd"].std() == 0:
+            continue
+        slope, _ = np.polyfit(m["dwtd"], m["mean_coh"], 1)
+        r = float(np.corrcoef(m["dwtd"], m["mean_coh"])[0, 1])
+        out.append({"zone": z, "slope_coh_per_wtd": float(slope), "r": r, "n": int(len(m))})
+    return pd.DataFrame(out)
+
+
+def freeze_coherence_gain(df_perpair: pd.DataFrame, pair_hydro: pd.DataFrame,
+                          t_freeze_k: float = 273.15) -> pd.DataFrame:
+    """Par zone : cohérence des paires 'froides' (tmin<=0°C, surface figée) vs
+    'chaudes'. Si A gagne PLUS que C au gel -> le tapis se stabilise en gelant
+    = signature mécanique (flottaison stoppée par le gel)."""
+    out = []
+    for z, g in df_perpair.groupby("zone"):
+        m = g.merge(pair_hydro, left_on="pair", right_index=True)
+        cold = m[m["tmin"] <= t_freeze_k]["mean_coh"]
+        warm = m[m["tmin"] > t_freeze_k]["mean_coh"]
+        if len(cold) >= 3 and len(warm) >= 3:
+            out.append({"zone": z, "coh_cold": float(cold.mean()),
+                        "coh_warm": float(warm.mean()),
+                        "freeze_gain": float(cold.mean() - warm.mean()),
+                        "n_cold": int(len(cold)), "n_warm": int(len(warm))})
+    return pd.DataFrame(out)
+
+
+def signed_distance_to_aoi(template: xr.DataArray, cfg: dict) -> xr.DataArray:
+    """Distance signée (m) au bord du polygone : négative DEDANS, positive
+    DEHORS. Base du profil radial tapis-centre -> bord -> extérieur."""
+    from scipy.ndimage import distance_transform_edt
+    from .stack import aoi_mask
+
+    aoi = aoi_mask(template, cfg).values
+    px = abs(float(template.x[1] - template.x[0]))
+    d_out = distance_transform_edt(~aoi) * px
+    d_in = distance_transform_edt(aoi) * px
+    signed = d_out - d_in
+    return xr.DataArray(signed, coords=template.coords, dims=template.dims,
+                        name="signed_dist_m")
+
+
+def radial_profile(field: xr.DataArray, signed_dist: xr.DataArray,
+                   edges: np.ndarray) -> pd.DataFrame:
+    """Moyenne/médiane de `field` par tranche de distance signée (`edges` en m).
+    Montre le gradient centre-tapis -> bord -> extérieur en une courbe."""
+    d = signed_dist.values.ravel(); f = field.values.ravel()
+    ok = np.isfinite(d) & np.isfinite(f)
+    d, f = d[ok], f[ok]
+    idx = np.digitize(d, edges)
+    rows = []
+    for b in range(1, len(edges)):
+        m = idx == b
+        if m.sum() > 3:
+            rows.append({"dist_center_m": 0.5 * (edges[b - 1] + edges[b]),
+                         "mean": float(f[m].mean()), "median": float(np.median(f[m])),
+                         "n": int(m.sum())})
+    return pd.DataFrame(rows)
+
+
+def zone_field_stats(field: xr.DataArray, zones: dict) -> pd.DataFrame:
+    """Stats (médiane, p10/p90, n) d'un champ quelconque par zone — réutilisable
+    pour le résidu d'inversion, la variabilité de rétrodiffusion, etc."""
+    rows = []
+    for z in ("A", "B", "C", "D"):
+        v = field.values[zones[z].values & np.isfinite(field.values)]
+        if v.size:
+            rows.append({"zone": z, "median": float(np.median(v)),
+                         "p10": float(np.percentile(v, 10)),
+                         "p90": float(np.percentile(v, 90)), "n": int(v.size)})
+    return pd.DataFrame(rows)
