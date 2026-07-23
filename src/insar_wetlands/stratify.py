@@ -470,3 +470,102 @@ def zone_field_stats(field: xr.DataArray, zones: dict) -> pd.DataFrame:
                          "p10": float(np.percentile(v, 10)),
                          "p90": float(np.percentile(v, 90)), "n": int(v.size)})
     return pd.DataFrame(rows)
+
+
+# ============================================================================
+# Phase D-ter : mécanisme de diffusion & faisabilité DS-InSAR
+# ============================================================================
+
+def amplitude_dispersion_stream(cropped_root, pairs: list[str], template: xr.DataArray):
+    """Indice de dispersion d'amplitude D_A = std/mean sur le stack d'amplitude
+    (streaming, RAM maîtrisée). D_A BAS = diffuseur stable (candidat PS) ;
+    D_A HAUT = pas de cible persistante.
+
+    Répond à H1 (le DS-InSAR/PSI aurait-il la moindre cible ici ?) SANS ISCE :
+    si le tapis est uniformément à D_A élevé, aucun PSI ne trouvera de point.
+    Retourne la carte D_A (xr.DataArray)."""
+    from .stack import load_layer
+
+    tshape = template.shape
+    ssum = np.zeros(tshape, "float64"); ssq = np.zeros(tshape, "float64")
+    scnt = np.zeros(tshape, "int32")
+    for p in pairs:
+        try:
+            a = load_layer(cropped_root, "amp", [p]).isel(pair=0)
+        except Exception:
+            continue
+        if a.shape != tshape:
+            a = a.rio.reproject_match(template)
+        v = a.values.astype("float32")
+        ok = np.isfinite(v) & (v > 0)
+        ssum[ok] += v[ok]; ssq[ok] += v[ok] ** 2; scnt[ok] += 1
+        del a, v, ok
+    with np.errstate(invalid="ignore", divide="ignore"):
+        mean = np.where(scnt > 0, ssum / np.maximum(scnt, 1), np.nan)
+        var = np.where(scnt > 1, ssq / np.maximum(scnt, 1) - mean ** 2, np.nan)
+        da = np.sqrt(np.maximum(var, 0)) / mean
+    return xr.DataArray(da.astype("float32"), coords=template.coords,
+                        dims=template.dims, name="amplitude_dispersion")
+
+
+def backscatter_by_zone(rtc: xr.Dataset, zones: dict) -> pd.DataFrame:
+    """Par zone : σ0 VV moyen, sa variabilité temporelle (std), et — si VH
+    présent — le ratio VH/VV moyen (discriminant volume vs double-bounce)."""
+    rows = []
+    vv = rtc["gamma0_vv_db"]
+    vv_mean = vv.mean("time", skipna=True); vv_std = vv.std("time", skipna=True)
+    ratio = rtc["ratio_vh_vv_db"].mean("time", skipna=True) if "ratio_vh_vv_db" in rtc else None
+    for z in ("A", "B", "C", "D"):
+        m = zones[z].values
+        def stat(field):
+            v = field.values[m & np.isfinite(field.values)]
+            return float(np.median(v)) if v.size else np.nan
+        row = {"zone": z, "sigma0_vv_db": stat(vv_mean),
+               "sigma0_vv_temporal_std": stat(vv_std)}
+        if ratio is not None:
+            row["ratio_vh_vv_db"] = stat(ratio)
+        rows.append(row)
+    return pd.DataFrame(rows)
+
+
+def clean_lake_mask(template: xr.DataArray, cfg: dict,
+                    worldcover: xr.DataArray | None = None,
+                    s2: xr.Dataset | None = None, ndwi_persist: float = 0.2,
+                    persist_frac: float = 0.6) -> xr.DataArray:
+    """Lac propre = eau PERSISTANTE dans le polygone : WorldCover=eau OU NDWI>seuil
+    une fraction persist_frac du temps. Contrôle négatif « vraie eau libre »
+    (γ≈0, σ0 spéculaire très bas) — plus propre que flooded_fraction>0.3."""
+    from .stack import aoi_mask
+    inside = aoi_mask(template, cfg)
+    lake = xr.zeros_like(template, dtype=bool)
+    if worldcover is not None:
+        lake = lake | (worldcover == WC_WATER)
+    if s2 is not None and "ndwi" in s2:
+        wet_frac = (s2["ndwi"] > ndwi_persist).mean("time")
+        lake = lake | (wet_frac.reindex_like(template, method="nearest") > persist_frac
+                       if wet_frac.shape != template.shape else wet_frac > persist_frac)
+    return (lake & inside).rename("clean_lake")
+
+
+def s2_phenology_by_zone(s2: xr.Dataset, zones: dict) -> pd.DataFrame:
+    """Cycle saisonnier moyen (verdure = -NDWI, humidité = MNDWI ou NDWI) par
+    zone et par mois — caractérise l'écologie (fen vs prairie vs lac) et la
+    'respiration' (dynamique d'humidité)."""
+    green = -s2["ndwi"] if "ndwi" in s2 else None
+    wet = s2["mndwi"] if "mndwi" in s2 else s2.get("ndwi")
+    tc = "time"
+    months = pd.to_datetime(s2[tc].values).month
+    rows = []
+    for z in ("A", "B", "C", "D"):
+        m = zones[z].values
+        for var, name in [(green, "greenness"), (wet, "wetness")]:
+            if var is None:
+                continue
+            series = var.where(xr.DataArray(m, coords=zones[z].coords, dims=zones[z].dims)).mean(("y", "x"))
+            for mth in range(1, 13):
+                sel = series.values[months == mth]
+                sel = sel[np.isfinite(sel)]
+                if sel.size:
+                    rows.append({"zone": z, "var": name, "month": mth,
+                                 "value": float(sel.mean())})
+    return pd.DataFrame(rows)
