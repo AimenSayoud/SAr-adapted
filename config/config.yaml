@@ -1,0 +1,96 @@
+site:
+  name: Rzecin peatland
+  country: Poland
+  aoi_geojson: data/aoi/Rzecin_corrected.geojson
+  centroid:
+  - 16.3098
+  - 52.7632
+  buffer_m: 500
+time:
+  # Choix utilisateur : 3 ans 2022-2024 (periode S1A seul, cadence 12 j).
+  # NB: les paires 6 j n'existent qu'en 2021 (S1B) et ~2025+ (S1C) ;
+  # pour les recuperer, elargir a 2021-01-01 / 2026-06-30 et relancer Phase 1-2.
+  start: '2022-01-01'
+  end: '2024-12-31'
+sentinel1:
+  flight_direction: ASCENDING
+  relative_orbit: 175
+  burst_id: 175_374052_IW1
+  polarization: VV
+sentinel2:
+  collection: sentinel-2-l2a
+  stac_url: https://earth-search.aws.element84.com/v1
+  max_cloud_cover: 20
+  bands:
+  - green
+  - nir
+  - swir16
+  - scl
+  max_gap_days: 12
+era5:
+  dataset: reanalysis-era5-single-levels
+  variables:
+  - total_precipitation
+  - 2m_temperature
+  - total_column_water_vapour
+  area:
+  - 53.3
+  - 15.8
+  - 52.3
+  - 16.8
+hyp3:
+  job_type: INSAR_ISCE_BURST
+  looks: 10x2
+  job_name_prefix: rzecin
+  max_temporal_baseline_days: 48
+  max_spatial_baseline_m: 150
+  max_pairs_per_date: 4
+  test_batch_size: 12
+  crop_buffer_m: 2000
+network:
+  min_mean_coherence_pair: 0.3
+  bridge_pairs_days:
+  - 36
+  - 48
+quality_index:
+  sbas_threshold: 0.5
+annual_pairs:
+  # Approche "seasonal-annual" (Ghezelayagh et al. 2024, Ecological Indicators) :
+  # comparer le MEME mois d'annees differentes plutot qu'un reseau dense
+  # multi-saisons. Signal accumule sur ~1 an >> bruit de phase ; pas de
+  # decorrelation saisonniere puisque les deux dates sont phenologiquement
+  # comparables. Pas de reseau/inversion MintPy necessaire.
+  target_month: 4          # avril : vegetation minimale, peu de neige/gel
+  target_day: 15
+  max_gap_years: 2         # inclut aussi les paires a 2 ans (controle de coherence du taux)
+  candidate_window_days: 19  # pool +/- 19j (cycle S1A=12j ; 15j laissait 2023 a 2 candidats
+                              # seulement -- le decalage de cycle cette annee-la place la 3e
+                              # date la plus proche a +/-18j, juste hors de l'ancienne fenetre)
+  pairs_per_transition: 3    # pipeline B : top-k paires/transition -> mediane d'ensemble robuste
+  job_name: "rzecin_annual"
+
+hybrid:
+  # Phase A — reseau hybride court+annuel (facon Hrysiewicz et al. 2024, RSE) :
+  # teste si l'echec SBAS venait du reseau court seul (methode) ou du site.
+  job_name: "rzecin_hybrid"
+  tropo: "era5_scalar"   # "era5_scalar" (baseline) | "gacos" (si fichiers .ztd dispo)
+  min_pairs: 3
+  gamma_min: 0.20
+isbas:
+  min_coherent_pairs: 20
+  gamma_min: 0.3
+masking:
+  ndwi_water_threshold: 0.2
+  mndwi_water_threshold: 0.0
+  sigma0_vv_water_db: -17.0
+  double_bounce_delta_db: 4.0
+classification:
+  permanent_water_frac: 0.8
+  intermittent_frac: 0.15
+  stable_coherence: 0.45
+products:
+  subsidence_threshold_mm_yr: -2.0
+  breathing_threshold_mm: 10.0
+paths:
+  outputs: outputs
+  drive_data_root: /content/drive/MyDrive/insar_rzecin

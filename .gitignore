@@ -1,0 +1,14 @@
+# Produits de phase : pousses vers les branches outputs/phaseXX (git add -f),
+# jamais versionnes sur la branche de code.
+outputs/
+
+# Donnees lourdes (restent sur Google Drive)
+*.nc
+*.tif
+*.tiff
+*.h5
+*.zip
+
+__pycache__/
+*.egg-info/
+.ipynb_checkpoints/

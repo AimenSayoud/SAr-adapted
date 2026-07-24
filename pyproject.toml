@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "insar-wetlands"
+version = "0.1.0"
+description = "Pipeline InSAR (SBAS/ISBAS) pour la tourbiere de Rzecin"
+requires-python = ">=3.10"
+dependencies = [
+    "numpy",
+    "pandas",
+    "pyyaml",
+    "shapely",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
