@@ -348,15 +348,26 @@ par pixel donne −13.7 mm/an (36 % de pixels utilisables) là où l'agrégat do
   saisonnière A−C = **3.29 mm** contre 0.57 mm pour le nul (×5.8) ;
   r²_saisonnier 0.30 vs 0.055 ; maximum vers le **jour 104** (mi-avril), ce qui
   est physiquement cohérent avec un pic de gonflement printanier a nappe haute.
-- **[LIMITE — décisive] Ce ×5.8 n'est pas encore un test.** Deux défauts :
-  (1) le contrôle nul n'était **pas apparié en taille** (2166/2229 px contre
-  A=499 et C=398) — or le bruit d'un agrégat décroît en 1/√N, donc un nul 4×
-  plus grand a ~2× moins de bruit et **sous-estime le plancher** ; une part du
-  facteur 5.8 peut n'être que cela. (2) **n=1 réalisation nulle n'est pas un
-  test** : il faut une *distribution* du plancher pour une p-value. D'où
-  `matched_null_zones` + `null_distribution` + `empirical_pvalue` (G2-ter), qui
-  tirent N nuls **de tailles exactement égales a n_A et n_C**. **C'est la
-  p-value empirique qui décide, pas le rapport au nul unique.**
+- **[FAIT] G2-ter — LA DÉTECTION EST CONFIRMÉE, p = 0.021.** Contre 46 nuls
+  **appariés en taille** (n_A=499, n_C=398 exactement) : nul médian 0.82 mm,
+  p95 1.93 mm, **observé 3.29 mm** — aucun nul n'atteint l'observé.
+  *Réserve technique* : p=0.0213 = 1/(1+46) est le **plancher** atteignable avec
+  46 tirages ; passer a 100-200 tirages resserrerait (p ≥ 0.0099 a n=100). La
+  détection est réelle, sa p-value est bornée par le nombre de tirages.
+- **[LIMITE — LA PLUS IMPORTANTE] Signal saisonnier ≠ MOUVEMENT saisonnier.**
+  3.3 mm ne valent que **0.75 rad** en bande C : un **cycle annuel d'humidité**
+  (profondeur de pénétration variable) produit exactement ce signal de phase
+  **sans aucun déplacement de surface**. Et le pic mi-avril est compatible avec
+  les **deux** hypothèses — gonflement de la tourbe *et* humidité maximale
+  suivent tous deux la nappe — donc **le timing ne discrimine rien**. Ce qui est
+  établi est un **signal de phase différentiel saisonnier**, pas une respiration
+  mécanique.
+- **[TEST PROPOSÉ — discriminant] Le lac.** La zone B **ne peut pas respirer
+  mécaniquement**. `seasonal_zone_scan` teste A, B et D contre C, chacune avec
+  son **propre** nul apparié en taille (le plancher dépend de N ; B n'a que
+  65 px). Si B oscille autant que A → signal **diélectrique**. Si B est plat
+  alors que A oscille → le **mouvement** redevient l'explication la plus simple
+  (sans être prouvé).
 - **[FAIT] G3 — biais de phase de fermeture : PRÉDICTION FALSIFIÉE.** Nous
   attendions qu'en passant de 304 a ~3000 triplets le biais de A devienne
   significatif (~5 σ). Or le réseau ne contient que **518 triplets fermés**, et
@@ -393,15 +404,30 @@ variabilité **interne** de A, pas A vs C.
   Prédicteur dominant : **σ0_VV** (ρ = −0.379, 1ʳᵉ importance en forêt
   aléatoire).
 - **[INT] Pouvoir prédictif RÉEL mais MODESTE** : ~24 % de la variance
-  intra-tapis (34 % en non linéaire). Image physique cohérente : la cohérence
-  est meilleure la ou c'est plus **vert** (+0.320), plus **sombre** en σ0
-  (−0.379), plus **sec** (−0.223), moins **dynamique** phénologiquement
-  (−0.196) et plus **haut** (−0.168) — soit les **buttes** (hummocks) fermes et
-  végétalisées qui tiennent, contre les **dépressions** (hollows) humides et
-  brillantes qui décrochent : la microtopographie classique d'un fen.
-  Formulation défendable : *« S1 échoue davantage sur les parties du tapis les
-  plus humides, les plus brillantes et les plus dynamiques »* — mais les
-  trois-quarts de la variance restent inexpliqués.
+  intra-tapis (33 % en non linéaire) ; **les trois-quarts restent inexpliqués**.
+  Image physique (coefficients **nettoyés**) : la cohérence se dégrade la ou
+  c'est plus **brillant** (σ0 −0.275), plus **diffusant en volume**
+  (RVI −0.251), plus **humide** (−0.240) et plus **dynamique** phénologiquement
+  (−0.107) ; `dist_edge_m` +0.101 indique une cohérence **meilleure près du
+  bord** et se dégradant vers le **centre** du tapis — cohérent avec le profil
+  radial de la Phase D-bis. Formulation défendable : *« S1 échoue davantage sur
+  les parties du tapis les plus humides, les plus brillantes et les plus
+  dynamiques »*.
+- **[CORRECTION] L'altitude va dans le sens INVERSE de ce qui avait été écrit** :
+  ρ = −0.168 et coefficient −0.131, donc plus haut = **moins** cohérent (et non
+  l'inverse). Réserve : sur un tapis flottant quasi plat, le relief du MNT
+  (Copernicus 30 m) est de l'ordre du bruit — cette variable est probablement un
+  **proxy de position**, a ne pas interpréter physiquement.
+- **[INT] La verdure moyenne est un PROXY, pas un moteur** : Spearman +0.320
+  (2ᵉ rang) mais coefficient partiel **+0.029** (dernier rang) — elle ne prédit
+  rien une fois σ0 et l'humidité pris en compte. Illustration directe du piège
+  du Spearman marginal.
+- **[INT] RVI : interprétable mais fragile.** Coefficient nettoyé **−0.251**
+  (plus de volume → moins de cohérence), ce qui soutient l'hypothèse volumique ;
+  *mais* son importance en forêt aléatoire est ~0.001, donc il n'apporte presque
+  rien au-dela de σ0. À présenter comme **cohérent avec**, pas comme un
+  prédicteur indépendant. Le seul prédicteur robuste dans les deux modèles est
+  **σ0_VV**.
 - **[FAIT — le plus frappant] Les moteurs S'INVERSENT entre tapis et prairie.**
   σ0_VV : ρ=**−0.379** dans A contre −0.008 dans C (écart −0.371) ; verdure
   moyenne : **+0.320** contre −0.009 (écart +0.329) ; altitude : −0.168 contre
@@ -443,15 +469,21 @@ variabilité **interne** de A, pas A vs C.
   biais systématique** : la signature est une non-stationnarité **aléatoire**,
   compatible avec les deux. Seuls un laser in situ ou une diversité de longueur
   d'onde (bande L) départageraient (a) de (b).
-- **Signal saisonnier agrégé (Phase G2-bis) — PISTE OUVERTE, la plus prometteuse
-  du projet :** l'agrégation spatiale des 499 px du tapis, référencée au sol
-  stable, donne une **amplitude saisonnière de 3.3 mm** (max mi-avril, cohérent
-  avec un gonflement printanier), contre 0.57 mm pour un contrôle nul. **Mais ce
-  rapport n'est pas encore un test** : le nul n'était pas apparié en taille et
-  n'avait qu'une réalisation. La **p-value empirique** de G2-ter (nuls appariés
-  en taille, N tirages) décidera s'il s'agit d'une détection ou d'un artefact.
-  En vitesse linéaire, en revanche, le signal est indiscernable du nul — mais
-  c'était la mauvaise observable.
+- **Signal saisonnier agrégé (Phase G2-bis/ter) — LE RÉSULTAT POSITIF DU
+  PROJET :** l'agrégation spatiale des 499 px du tapis, référencée au sol stable
+  adjacent, détecte une **amplitude saisonnière de 3.3 mm**, maximum vers le
+  **jour 104** (mi-avril), **p = 0.021** contre 46 nuls appariés en taille
+  (nul médian 0.82 mm, p95 1.93 mm). C'est la **première mesure positive** de
+  toute l'étude, obtenue la ou six inversions par pixel échouaient — parce que
+  l'observable a changé (un nombre pour le tapis entier, pas une carte) et que
+  la quantité testée est devenue la bonne (amplitude **saisonnière**, pas
+  vitesse linéaire : régresser une vitesse sur un signal périodique donne ~0 par
+  construction).
+  **Deux réserves a ne jamais omettre** : (i) p=0.021 est le **plancher**
+  atteignable avec 46 tirages ; (ii) surtout, **un signal de phase saisonnier
+  n'est pas une respiration mécanique** — 3.3 mm = 0.75 rad en bande C, ce qu'un
+  cycle annuel d'humidité produit sans aucun déplacement. Le test du **lac**
+  (zone B, qui ne peut pas respirer mécaniquement) est le discriminant proposé.
 - **Pouvoir prédictif partiel (Phase H) :** ~24 % (R² validé croisé) a 34 %
   (non linéaire) de la variance intra-tapis s'explique par la rétrodiffusion
   σ0_VV, l'humidité, la verdure et la dynamique phénologique — réel mais

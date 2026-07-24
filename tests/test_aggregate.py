@@ -154,7 +154,48 @@ def test_matched_null_respects_sizes_and_pvalue():
     assert empirical_pvalue(0.0, nulls)["p_value"] > 0.9      # observe <= tout
 
 
+def test_seasonal_zone_scan_separates_breathing_zone():
+    """Une zone qui 'respire' est detectee ; une zone plate ne l'est pas.
+    C'est le design du test lac(B)-vs-tapis(A) : le lac ne peut pas respirer
+    mecaniquement, donc s'il oscille aussi, le signal est dielectrique."""
+    from insar_wetlands.aggregate import seasonal_zone_scan
+
+    ny = nx = 26
+    dates = pd.date_range("2022-01-01", periods=40, freq="12D")
+    pairs = [f"{a:%Y%m%d}_{b:%Y%m%d}"
+             for i, a in enumerate(dates) for b in dates[i + 1:]
+             if 0 < (b - a).days <= 36]
+    coords = {"pair": pairs, "y": np.arange(ny) * 40.0, "x": np.arange(nx) * 40.0}
+    tmpl = xr.DataArray(np.zeros((ny, nx)), dims=("y", "x"),
+                        coords={"y": coords["y"], "x": coords["x"]})
+    mk = lambda m: xr.DataArray(m, coords=tmpl.coords, dims=tmpl.dims)
+    A = np.zeros((ny, nx), bool); A[2:8, 2:8] = True        # respire
+    B = np.zeros((ny, nx), bool); B[2:8, 9:15] = True       # plate
+    C = np.zeros((ny, nx), bool); C[2:8, 16:22] = True      # reference
+    D = np.zeros((ny, nx), bool); D[10:25, 1:25] = True     # reservoir de nuls
+    zones = {"A": mk(A), "B": mk(B), "C": mk(C), "D": mk(D)}
+
+    di = {d: i for i, d in enumerate(dates)}
+    t = (dates - dates[0]).days.values / 365.25
+    breath = 30.0 * np.cos(2 * np.pi * t)                   # respiration connue
+    rng = np.random.default_rng(5)
+    ph = rng.normal(0, 0.8, (len(pairs), ny, nx))
+    for k, p in enumerate(pairs):
+        a, b = pd.Timestamp(p[:8]), pd.Timestamp(p[9:])
+        ph[k][A] += (breath[di[b]] - breath[di[a]]) / PHASE_TO_MM
+    unw = xr.DataArray(ph, dims=("pair", "y", "x"), coords=coords)
+    corr = xr.full_like(unw, 0.5)
+
+    scan = seasonal_zone_scan(unw, corr, zones, tmpl, reference="C",
+                              targets=("A", "B"), n_trials=30).set_index("zone")
+    assert scan.loc["A", "amplitude_mm"] > 20, scan     # respiration retrouvee
+    assert scan.loc["A", "p_value"] < 0.10, scan
+    assert scan.loc["B", "amplitude_mm"] < 10, scan     # zone plate : rien
+    assert scan.loc["B", "p_value"] > scan.loc["A", "p_value"], scan
+
+
 if __name__ == "__main__":
+    test_seasonal_zone_scan_separates_breathing_zone()
     test_matched_null_respects_sizes_and_pvalue()
     test_phasor_separates_random_from_common()
     test_aggregation_recovers_buried_signal()
