@@ -44,7 +44,10 @@ date retirée. L'IC bootstrap-par-paire est signalé comme optimiste.
 | Mesure | A (tapis) | C (prairie stable appariée) | Lecture |
 |---|---|---|---|
 | Cohérence moyenne | 0.41 | 0.48 | A < C |
-| Δ apparié (coh_A − coh_C) | **−0.069** | — | Wilcoxon p≪0.05 ; 88 % des paires de signe négatif ; jackknife par date : signe stable (à confirmer sur données réelles, cellule 1b) |
+| Δ apparié (coh_A − coh_C) | **−0.069** | — | Wilcoxon signé **p = 2.2×10⁻⁴⁹** ; 88 % des paires de signe négatif ; **jackknife par date : delta ∈ [−0.0705, −0.0652], même signe pour TOUTE date retirée** (SE robuste 0.0115) → non porté par une acquisition anormale |
+| σ0 VV médian (RTC) | −10.2 dB | −11.5 dB | A **plus brillant** que la prairie (~+1.3 dB) → double-bounce/humidité de surface probable |
+| σ0 VV — lac (B) | −15.3 dB | — | le plus bas → **confirme l'eau libre spéculaire** |
+| Phénologie S2 (verdure ET humidité) | ≈ identique à C | — | A et C sont des **jumeaux phénologiques** → l'appariement de couvert est excellent, le Δcohérence n'est PAS un artefact de couvert |
 | Temps de décorrélation τ | 21 j | 32 j | A décorrèle plus vite (r² faibles : indicatif) |
 | Pente cohérence ~ \|Δnappe\| | −10.7 | −10.0 | quasi identiques |
 | Gain de cohérence au gel | +0.028 | +0.077 | A gagne MOINS |
@@ -73,7 +76,13 @@ l'échec d'inversion documenté en Phases 8–A.
 
 **Conclusion 1 :** ce n'est pas « la végétation en bande C » en général ;
 l'état de surface propre au fen flottant ajoute une décorrélation mesurable
-et spatialement structurée.
+et spatialement structurée. **La phénologie S2 (verdure ET humidité optique)
+du tapis A est quasi identique à celle de la prairie appariée C** — ce sont
+des jumeaux phénologiques — ce qui écarte définitivement l'hypothèse d'un
+biais de couvert : la différence de cohérence est réelle et vient d'une
+propriété de surface non optique (échelle radar). Robustesse statistique :
+Wilcoxon p = 2.2×10⁻⁴⁹, et le jackknife par date confirme que le résultat ne
+dépend d'aucune acquisition particulière (delta stable ∈ [−0.070, −0.065]).
 
 ### 4.2 [INT — robuste] Le mécanisme n'est PAS le cycle hydrologique saisonnier
 
@@ -132,6 +141,26 @@ démontrée » serait une surinterprétation contestable en évaluation.
 > saturée non gelable — ne peut être tranchée par ces seules observations
 > radar et demande une mesure in situ (laser) ou une diversité de longueur
 > d'onde/polarisation.
+
+## 5-bis. Compléments Phase D-ter (mécanisme de diffusion & lac)
+
+- [FAIT] **σ0 VV** : le tapis (A, −10.2 dB) est **plus brillant** que la prairie
+  appariée (C, −11.5 dB) d'environ 1.3 dB, avec une variabilité temporelle
+  comparable (~2.1). [INT] Un excès de rétrodiffusion sur une végétation
+  optiquement identique évoque un **double-bounce / une humidité de surface**
+  (eau sous la végétation émergente) — indice *en faveur* d'une composante
+  diélectrique, mais non décisif seul (le ratio VH/VV, non encore calculé,
+  trancherait).
+- [FAIT] **Lac (B)** : σ0 VV = −15.3 dB (le plus bas, spéculaire → eau libre
+  confirmée), MAIS sa cohérence reste **~0.39** même défini comme eau
+  persistante (83 px). [INT] Le « lac résiduel » n'est donc **pas de l'eau
+  libre ouverte** mais un plan d'eau **peu profond et végétalisé** (cohérent
+  avec une terrestrialisation en cours) — une information écologique en soi.
+- [EN ATTENTE] **Dispersion d'amplitude D_A** (depuis RTC σ0) et **ratio VH/VV**
+  (dual-pol) : le premier dit si un PSI/DS-InSAR aurait la moindre cible sur le
+  tapis (test de H1 sans ISCE) ; le second sépare volume (végétation) de
+  double-bounce (eau/humidité) et est le meilleur espoir de trancher
+  mécanique vs diélectrique.
 
 ## 6. Portée et limites
 

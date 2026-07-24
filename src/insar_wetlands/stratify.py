@@ -569,3 +569,22 @@ def s2_phenology_by_zone(s2: xr.Dataset, zones: dict) -> pd.DataFrame:
                     rows.append({"zone": z, "var": name, "month": mth,
                                  "value": float(sel.mean())})
     return pd.DataFrame(rows)
+
+
+def amplitude_dispersion_from_rtc(rtc: xr.Dataset, pol: str = "vv") -> xr.DataArray:
+    """Indice de dispersion d'amplitude D_A calcule depuis la serie RTC σ0 PAR
+    DATE (meilleure source que l'amplitude par interferogramme, absente des
+    crops) : σ0[dB] -> puissance lineaire -> amplitude = sqrt -> D_A = std/mean
+    sur le temps.
+
+    NB : le RTC est multi-vu (~80 m), donc D_A est structurellement plus BAS
+    qu'en pleine resolution SLC — le seuil PS 0.25 est indicatif ; c'est la
+    comparaison RELATIVE entre zones qui compte (A a-t-il plus de diffuseurs
+    stables que le lac ? moins que le sol nu ?)."""
+    db = rtc[f"gamma0_{pol}_db"]
+    amp = np.sqrt(10.0 ** (db / 10.0))
+    mean = amp.mean("time", skipna=True)
+    std = amp.std("time", skipna=True)
+    with np.errstate(invalid="ignore", divide="ignore"):
+        da = (std / mean)
+    return da.rename("amplitude_dispersion")
