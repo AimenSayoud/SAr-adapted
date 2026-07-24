@@ -345,8 +345,36 @@ donne tcoh ≈ 0.55. Donc :
    s'il bouge à l'échelle du cycle S1, le mécanique est confirmé.
 2. **Vraie série de nappe (WTD)** : refaire le test 1 avec la nappe mesurée
    plutôt que le proxy pluie.
-3. **Polarimétrie / bande L (NISAR)** : séparer double-bounce (eau/humidité)
-   de diffusion de volume, et pénétrer le couvert.
+3. **Bande L — NISAR (l'expérience décisive, désormais faisable) :** [FAIT,
+   mise à jour 2026] les données L-band de **NISAR** (NASA-ISRO, λ = **24 cm**,
+   couverture **globale** dont la Pologne, cycle 12 j) sont **publiques depuis
+   le 20 juillet 2026** via ASF DAAC / Earthdata (record complet attendu fin
+   2026 ; observations à partir de juin 2026 — donc test **prospectif**, non
+   rétroactif sur 2022-2024). La bande L à 24 cm **pénètre la canopée** et voit
+   la surface du tapis, là où le C-band (5.5 cm) décorrèle par diffusion de
+   volume. **C'est le test qui départage (a) diélectrique de (b) micro-mouvement
+   non rigide** : si le L-band récupère une cohérence exploitable sur la zone A
+   (là où le C-band est au plancher), le facteur limitant est la **longueur
+   d'onde/pénétration**, et un signal de déplacement du tapis devient mesurable.
+   Alternative historique 2015-2024 : **ALOS-2 / PALSAR-2** (JAXA, L-band 24 cm)
+   — même longueur d'onde mais **accès restreint/payant** (pas gratuit comme
+   ASF). *NB : Sentinel-1C/1D sont **C-band** comme tout Sentinel-1 — ils
+   rétablissent le cycle 6 j (moindre décorrélation temporelle) mais n'apportent
+   PAS de bande L ; le 6 j n'adresse pas la décorrélation volumétrique/
+   diélectrique, qui dépend de λ, pas de Δt.*
+
+### 7-bis. Positionnement méthodologique (état de l'art opérationnel)
+
+Notre phase-linking EVD (Phase E2) n'est pas une bricole isolée : le produit
+opérationnel **OPERA DISP-S1** (NASA/JPL, via ASF) réalise exactement
+« *phase linking on the sample coherence matrix* » dans une approche hybride
+**PS + DS** — le même cœur algorithmique que notre EVD, mais en chaîne
+opérationnelle. DISP-S1 valide donc la **direction** de la Phase E2. Il n'est
+toutefois **pas utilisable sur Rzecin** : (i) couverture **Amérique du Nord
+uniquement** (USA, territoires ≤ 200 km de la frontière, Canada→Panama) ;
+(ii) **C-band** — il donnerait le même plancher de bruit sur le tapis. À citer
+comme **référence méthodologique** confirmant que l'approche testée est celle de
+l'état de l'art, pas comme une solution au site.
 
 ---
 
