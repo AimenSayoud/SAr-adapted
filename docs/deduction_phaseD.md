@@ -344,6 +344,19 @@ par pixel donne −13.7 mm/an (36 % de pixels utilisables) là où l'agrégat do
   donne ~0 *par construction* et n'a donc **aucune puissance** sur la physique
   recherchée. D'où `seasonal_amplitude` (G2-bis), qui ajuste un cycle annuel et
   compare son amplitude a celle du nul.
+- **[FAIT] G2-bis — détection apparente, NON encore confirmée.** Amplitude
+  saisonnière A−C = **3.29 mm** contre 0.57 mm pour le nul (×5.8) ;
+  r²_saisonnier 0.30 vs 0.055 ; maximum vers le **jour 104** (mi-avril), ce qui
+  est physiquement cohérent avec un pic de gonflement printanier a nappe haute.
+- **[LIMITE — décisive] Ce ×5.8 n'est pas encore un test.** Deux défauts :
+  (1) le contrôle nul n'était **pas apparié en taille** (2166/2229 px contre
+  A=499 et C=398) — or le bruit d'un agrégat décroît en 1/√N, donc un nul 4×
+  plus grand a ~2× moins de bruit et **sous-estime le plancher** ; une part du
+  facteur 5.8 peut n'être que cela. (2) **n=1 réalisation nulle n'est pas un
+  test** : il faut une *distribution* du plancher pour une p-value. D'où
+  `matched_null_zones` + `null_distribution` + `empirical_pvalue` (G2-ter), qui
+  tirent N nuls **de tailles exactement égales a n_A et n_C**. **C'est la
+  p-value empirique qui décide, pas le rapport au nul unique.**
 - **[FAIT] G3 — biais de phase de fermeture : PRÉDICTION FALSIFIÉE.** Nous
   attendions qu'en passant de 304 a ~3000 triplets le biais de A devienne
   significatif (~5 σ). Or le réseau ne contient que **518 triplets fermés**, et
@@ -374,31 +387,40 @@ variabilité **interne** de A, pas A vs C.
   creuse vers 0.65-0.75 (A 0.236→0.006, C 0.794→0.446). Le « 5.4 % vs 64.7 % »
   de E2 n'est qu'**un point** d'une courbe qui sépare surtout dans la **queue
   haute**.
-- **[FAIT] Modèle intra-tapis** (n=499) : **R² validé croisé = 0.127 ± 0.048**
-  (forêt aléatoire : R² test 0.230). Prédicteurs dominants (coefficients
-  standardisés) : amplitude saisonnière de verdure S2 **−0.254**, altitude
-  −0.238, humidité S2 moyenne −0.234, fraction inondée +0.174.
-- **[INT] Un pouvoir prédictif RÉEL mais MODESTE** : ~13 % de la variance
-  intra-tapis (23 % en non linéaire). Le sens physique est cohérent : la
-  cohérence baisse la ou le couvert **change le plus au fil des saisons**, ou
-  c'est **plus humide**, et ou c'est **plus bas**. Formulation défendable :
-  *« S1 échoue davantage sur les parties du tapis les plus humides, les plus
-  basses et les plus dynamiques phénologiquement »* — mais l'essentiel de la
-  variance reste inexpliqué.
-- **[FAIT — le plus frappant] Les moteurs DIFFÈRENT entre tapis et prairie.**
-  Verdure moyenne : ρ=**+0.320** dans A contre −0.009 dans C (écart 0.329) ;
-  altitude : ρ=−0.168 dans A contre **+0.430** dans C (écart **−0.598**).
-  [INT] Les mêmes covariables agissent **en sens opposé** selon la zone : le
-  tapis a bien une **physique propre**, il ne se comporte pas comme de la
-  végétation ordinaire. C'est un argument INDÉPENDANT en faveur de la
-  Conclusion 1 (§4.1).
-- **[LIMITE]** Le stack RTC dual-pol n'était pas chargé lors de ce run
-  (`rtc_dualpol_stack.nc`) : **aucun prédicteur polarimétrique** (RVI, σ0,
-  VH/VV, D_A) n'a pu entrer dans le modèle — or ce sont les plus liés au
-  mécanisme. Les R² rapportés sont donc un **plancher**, a re-estimer avec la
-  polarimétrie. Ajout méthodologique : **RVI dual-pol** = 4·VH/(VV+VH) en
-  puissance, préférable au ratio VH/VV brut de la Phase D-ter car normalisé par
-  la puissance totale (insensible a un biais de calibration commun).
+- **[FAIT] Modèle intra-tapis** (n=499, 12 covariables dont la polarimétrie) :
+  **R² validé croisé = 0.238 ± 0.029** (forêt aléatoire : 0.337), contre 0.127
+  sans les covariables radar — le gain vient donc bien de la polarimétrie.
+  Prédicteur dominant : **σ0_VV** (ρ = −0.379, 1ʳᵉ importance en forêt
+  aléatoire).
+- **[INT] Pouvoir prédictif RÉEL mais MODESTE** : ~24 % de la variance
+  intra-tapis (34 % en non linéaire). Image physique cohérente : la cohérence
+  est meilleure la ou c'est plus **vert** (+0.320), plus **sombre** en σ0
+  (−0.379), plus **sec** (−0.223), moins **dynamique** phénologiquement
+  (−0.196) et plus **haut** (−0.168) — soit les **buttes** (hummocks) fermes et
+  végétalisées qui tiennent, contre les **dépressions** (hollows) humides et
+  brillantes qui décrochent : la microtopographie classique d'un fen.
+  Formulation défendable : *« S1 échoue davantage sur les parties du tapis les
+  plus humides, les plus brillantes et les plus dynamiques »* — mais les
+  trois-quarts de la variance restent inexpliqués.
+- **[FAIT — le plus frappant] Les moteurs S'INVERSENT entre tapis et prairie.**
+  σ0_VV : ρ=**−0.379** dans A contre −0.008 dans C (écart −0.371) ; verdure
+  moyenne : **+0.320** contre −0.009 (écart +0.329) ; altitude : −0.168 contre
+  **+0.430** (écart **−0.598**). [INT] Les mêmes covariables agissent **en sens
+  opposé** selon la zone : le tapis a une **physique propre**, il ne se comporte
+  pas comme de la végétation ordinaire. Argument INDÉPENDANT en faveur de la
+  Conclusion 1 (§4.1), par une voie que ni D, ni E2, ni G n'empruntaient.
+- **[CORRIGÉ — piège de colinéarité]** Au 1er run, `rvi` et `vh_vv_db` avaient
+  un Spearman **identique** (−0.1848) : ce sont deux transformations
+  **monotones** du même rapport r = VH/VV (RVI = 4r/(1+r) ;
+  vh_vv_db = 10·log₁₀ r), donc de rangs identiques et quasi parfaitement
+  colinéaires. En régression, cela produisait deux coefficients **énormes et de
+  signes opposés** (−1.21 et +0.95) qui n'ajustaient que le bruit entre deux
+  variables identiques — **non publiables**. Ajout d'un diagnostic **VIF**
+  (`collinearity_report`) et d'un retrait itératif (`drop_redundant`) ; seuls
+  les coefficients du modèle **nettoyé** doivent être lus.
+- **[MÉTHODE] RVI dual-pol** = 4·VH/(VV+VH) en puissance : préférable au ratio
+  VH/VV brut de la Phase D-ter car **normalisé par la puissance totale**, donc
+  insensible a un biais de calibration commun aux deux polarisations.
 
 ## 6. Portée et limites
 
@@ -421,14 +443,19 @@ variabilité **interne** de A, pas A vs C.
   biais systématique** : la signature est une non-stationnarité **aléatoire**,
   compatible avec les deux. Seuls un laser in situ ou une diversité de longueur
   d'onde (bande L) départageraient (a) de (b).
-- **Borne supérieure sur le mouvement (Phase G2) :** l'agrégation spatiale sur
-  les 499 px du tapis, référencée au sol stable adjacent, ne détecte **aucun
-  mouvement différentiel au-dessus du plancher de la méthode** (signal
-  indiscernable du contrôle nul). C'est une borne, pas une absence de mouvement.
-- **Pouvoir prédictif partiel (Phase H) :** ~13 % (R² validé croisé) a 23 %
-  (non linéaire) de la variance intra-tapis s'explique par l'humidité,
-  l'altitude et la dynamique phénologique — réel mais modeste, et obtenu **sans
-  les prédicteurs polarimétriques** (a re-estimer).
+- **Signal saisonnier agrégé (Phase G2-bis) — PISTE OUVERTE, la plus prometteuse
+  du projet :** l'agrégation spatiale des 499 px du tapis, référencée au sol
+  stable, donne une **amplitude saisonnière de 3.3 mm** (max mi-avril, cohérent
+  avec un gonflement printanier), contre 0.57 mm pour un contrôle nul. **Mais ce
+  rapport n'est pas encore un test** : le nul n'était pas apparié en taille et
+  n'avait qu'une réalisation. La **p-value empirique** de G2-ter (nuls appariés
+  en taille, N tirages) décidera s'il s'agit d'une détection ou d'un artefact.
+  En vitesse linéaire, en revanche, le signal est indiscernable du nul — mais
+  c'était la mauvaise observable.
+- **Pouvoir prédictif partiel (Phase H) :** ~24 % (R² validé croisé) a 34 %
+  (non linéaire) de la variance intra-tapis s'explique par la rétrodiffusion
+  σ0_VV, l'humidité, la verdure et la dynamique phénologique — réel mais
+  modeste ; les trois-quarts restent inexpliqués.
 - **Limites méthodologiques :** proxy de nappe grossier (pluie cumulée ERA5, à
   remplacer par la WTD in situ) ; n_froid = 31 (test de gel indicatif) ;
   appariement C limité par la rareté de végétation humide sur sol stable

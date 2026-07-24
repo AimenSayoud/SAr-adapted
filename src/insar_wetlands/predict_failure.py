@@ -72,6 +72,56 @@ def rank_covariates(df: pd.DataFrame, target_col: str = "target") -> pd.DataFram
             .drop(columns="abs_rho").reset_index(drop=True))
 
 
+def collinearity_report(df: pd.DataFrame, target_col: str = "target",
+                        vif_max: float = 10.0) -> pd.DataFrame:
+    """VIF (facteur d'inflation de la variance) de chaque covariable.
+
+    VIF_j = 1/(1-R²_j), R²_j étant obtenu en régressant la covariable j sur
+    TOUTES les autres. VIF > 10 = redondance sévère : le coefficient de la
+    variable n'est plus interprétable, il ajuste le bruit dans l'écart entre
+    variables quasi identiques (symptôme typique : deux gros coefficients de
+    signes opposés sur un couple corrélé).
+
+    Cas réel rencontré ici : `rvi` = 4r/(1+r) et `vh_vv_db` = 10log10(r) sont
+    deux transformations MONOTONES du même rapport r = VH/VV — donc rang
+    identique, Spearman identique, et colinéarité quasi parfaite."""
+    cols = [c for c in df.columns if c != target_col]
+    X = df[cols].values.astype(float)
+    rows = []
+    for j, c in enumerate(cols):
+        y = X[:, j]
+        others = np.delete(X, j, axis=1)
+        A = np.column_stack([np.ones(len(others)), others])
+        b, *_ = np.linalg.lstsq(A, y, rcond=None)
+        ss_res = float(((y - A @ b) ** 2).sum())
+        ss_tot = float(((y - y.mean()) ** 2).sum())
+        r2 = 1.0 - ss_res / ss_tot if ss_tot > 0 else 0.0
+        vif = np.inf if r2 >= 1 - 1e-12 else 1.0 / (1.0 - r2)
+        rows.append({"covariate": c, "vif": round(float(vif), 2),
+                     "redundant": bool(vif > vif_max)})
+    return (pd.DataFrame(rows).sort_values("vif", ascending=False)
+            .reset_index(drop=True))
+
+
+def drop_redundant(df: pd.DataFrame, target_col: str = "target",
+                   vif_max: float = 10.0, keep: tuple = ()) -> tuple:
+    """Retire itérativement la covariable de VIF le plus élevé jusqu'a VIF<=max.
+
+    Itératif et non en une passe : retirer une variable change les VIF des
+    autres. `keep` protège les variables a conserver de préférence (on préfère
+    garder RVI, normalisé, plutôt que le ratio VH/VV brut).
+    Retourne (df_réduit, liste_des_variables_retirées)."""
+    out, dropped = df.copy(), []
+    while True:
+        rep = collinearity_report(out, target_col, vif_max)
+        bad = rep[rep.redundant & ~rep.covariate.isin(keep)]
+        if bad.empty or len([c for c in out.columns if c != target_col]) <= 2:
+            return out, dropped
+        worst = bad.iloc[0]["covariate"]
+        out = out.drop(columns=[worst])
+        dropped.append(worst)
+
+
 def fit_failure_model(df: pd.DataFrame, target_col: str = "target",
                       n_folds: int = 5, seed: int = 0) -> dict:
     """Régression multiple STANDARDISÉE + R² validé croisé (k-fold).

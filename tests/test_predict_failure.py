@@ -85,7 +85,34 @@ def test_dual_pol_rvi_surface_vs_volume():
     assert abs(float(dual_pol_rvi(volume).mean()) - 2.0) < 1e-6
 
 
+def test_collinearity_detects_monotone_duplicate():
+    """Cas REEL : rvi=4r/(1+r) et vh_vv_db=10log10(r) sont deux transformations
+    monotones du meme rapport -> VIF enorme, coefficients ininterpretables."""
+    from insar_wetlands.predict_failure import collinearity_report, drop_redundant
+
+    rng = np.random.default_rng(4)
+    r = rng.uniform(0.05, 0.9, 400)                 # rapport VH/VV
+    df = pd.DataFrame({
+        "target": 0.8 - 0.3 * r + rng.normal(0, 0.05, 400),
+        "rvi": 4 * r / (1 + r),
+        "vh_vv_db": 10 * np.log10(r),
+        "independent": rng.normal(0, 1, 400),
+    })
+    rep = collinearity_report(df).set_index("covariate")
+    assert rep.loc["rvi", "vif"] > 10 and rep.loc["vh_vv_db", "vif"] > 10, rep
+    assert not rep.loc["independent", "redundant"], rep
+    # les coefficients bruts sont aberrants (gros, signes opposes)
+    raw = fit_failure_model(df)["coefficients"].set_index("covariate")["std_coef"]
+    assert abs(raw["rvi"]) > 1.0 and raw["rvi"] * raw["vh_vv_db"] < 0, raw
+    # apres nettoyage : une seule des deux survit, RVI protegee
+    red, dropped = drop_redundant(df, keep=("rvi",))
+    assert "vh_vv_db" in dropped and "rvi" in red.columns, (dropped, red.columns)
+    clean = fit_failure_model(red)["coefficients"].set_index("covariate")["std_coef"]
+    assert abs(clean["rvi"]) < 1.0, clean          # coefficient redevenu sain
+
+
 if __name__ == "__main__":
+    test_collinearity_detects_monotone_duplicate()
     test_ranking_finds_real_driver()
     test_model_predicts_out_of_sample()
     test_model_r2_near_zero_when_no_relation()
