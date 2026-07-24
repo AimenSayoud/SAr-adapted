@@ -545,23 +545,59 @@ plus haut → **soulèvement apparent** (r positif). (Le signe seul ne discrimin
 pas, un gonflement mécanique donnerait le même ; c'est la magnitude et le lac
 qui excluent le mécanique.)
 
-### [INT] Formulation pour l'article
+### ⚠️ [LIMITE — DÉCISIVE] La détection est MARGINALE et le test de robustesse ÉCHOUE
 
-> Au-dessus d'une tourbière flottante, la phase interférométrique **agrégée**
-> Sentinel-1 en bande C ne mesure **pas** le mouvement de surface (< 2 mm), mais
-> répond aux **anomalies d'humidité de surface** avec un décalage quasi nul
-> (r = 0.45, p ≤ 0.011 contre nuls appariés en taille), de façon cohérente avec
-> un mécanisme de **profondeur de pénétration**. La température, corrélée au
-> premier ordre, est éliminée par la désaisonnalisation.
+Deux faits imposent la prudence, et interdisent pour l'instant de revendiquer un
+capteur d'humidité :
 
-### [LIMITE]
+1. **La détection est marginale.** Observé r = 0.450 contre un **nul p95 =
+   0.404** : seulement **11 % au-dessus de la queue** de la distribution nulle.
+   Le p = 0.0108 est de plus le **plancher** 1/(1+92) — avec davantage de
+   tirages, des nuls pourraient dépasser l'observé.
+2. **Le forçage différentiel échoue et le signe s'inverse.**
+   `s2_wetness_diff` = NDWI(A) − NDWI(C) donne r = **−0.316**, p = **0.15**. Or
+   la série InSAR est elle-même différentielle : si le lien était « le contraste
+   d'humidité A−C pilote le contraste de phase A−C », ce forçage devrait
+   **renforcer** la corrélation, pas la détruire.
 
-- p = 0.0108 = 1/(1+92) reste le **plancher** atteignable avec 92 tirages.
-- Le forçage `s2_wetness` porte sur la zone A **seule**, alors que la série
-  InSAR est **différentielle** (A−C) : `s2_wetness_diff` = NDWI(A) − NDWI(C)
-  apparie les deux structures et teste la robustesse au choix du forçage.
+**Modèle proposé pour l'expliquer — a posteriori, donc a tester et non a
+croire.** Une humidité **régionale** commune M(t) piloterait φ(A) avec une
+sensibilité k_A et φ(C) avec k_C, k_A > k_C (tourbe saturée vs prairie
+minérale) ; alors φ(A)−φ(C) = (k_A−k_C)·M(t) : la phase **différentielle**
+suivrait l'humidité **absolue**, via un contraste de *sensibilité* et non un
+contraste d'humidité — et NDWI(A)−NDWI(C) ≈ 0 + bruit, les deux surfaces
+répondant optiquement de façon similaire.
+
+**Prédiction falsifiable** (Phase I, cellule 3.5) : si ce modèle est correct, le
+NDWI de **C** et celui de **D** — proxys du même M(t) — doivent aussi corréler
+**positivement**, avec un r du même ordre. Si **seul** le NDWI de A corrèle, le
+modèle est **réfuté** et la corrélation est propre a la zone A, voire fortuite.
+
+### [INT] Formulation prudente (en l'état actuel)
+
+> Sur les anomalies (cycle annuel retiré), la phase agrégée co-varie avec
+> l'humidité optique de surface (r = 0.45) a décalage quasi nul (12 j), alors
+> que la température ne survit pas a la désaisonnalisation (0.51 → 0.22,
+> p = 0.58). **Ce résultat est toutefois marginal** (nul p95 = 0.404) et **n'est
+> pas confirmé par un forçage différentiel** ; il constitue un **indice**
+> d'une sensibilité a l'humidité, cohérent avec le mécanisme diélectrique
+> établi en Phase G, mais **pas une capacité de mesure démontrée**.
+
+### [ACQUIS ROBUSTE de la Phase I] — indépendant du point précédent
+
+L'élimination de la **température** est solide : sa corrélation apparente
+(r = −0.509) disparaît a la désaisonnalisation (0.224, p = 0.58). Cela **écarte
+un artefact thermique** et vaut en soi. De même, le **décalage quasi nul**
+(12 j = un cycle de revisite) reste cohérent avec une réponse **diélectrique
+instantanée** plutôt qu'un tassement mécanique retardé.
+
+### [LIMITE] Autres réserves
+
 - La **vraie nappe (WTD) in situ** reste supérieure au NDWI comme mesure de
-  l'état hydrique, et sa structure temporelle diffère de celle de la température.
+  l'état hydrique, et sa structure temporelle diffère de celle de la
+  température — c'est elle qui trancherait proprement.
+- Augmenter le nombre de tirages nuls (200-500) pour sortir du plancher de
+  p-value.
 
 ## 5-sexies. SYNTHÈSE GLOBALE — où nous en sommes après D→H
 
@@ -598,13 +634,15 @@ oscille identiquement** (2.63 mm, même phase) alors qu'il ne peut pas respirer,
 et **A−B s'annule** (0.90 mm, p = 0.45). Trois arguments indépendants (contrôle
 du lac, annulation A−B, ordre de grandeur 3-60× trop petit) convergent.
 
-**4. Ce signal est un CAPTEUR D'HUMIDITÉ (Phase I).** Sur les **anomalies**
-(cycle annuel retiré des deux séries), l'humidité optique S2 survit
-(**r = +0.450, p ≤ 0.011**, lag **12 j** = un cycle de revisite = instantané)
-tandis que la **température s'effondre** (0.509 → 0.224, p = 0.58) : le
-confondant température/humidité est levé, et le lag quasi nul **confirme le
-mécanisme diélectrique par une voie indépendante du test du lac**. La corrélation
-provient d'un **capteur optique totalement indépendant du radar**.
+**4. Un INDICE de sensibilité a l'humidité (Phase I) — non démontré.** Sur les
+**anomalies**, l'humidité optique S2 co-varie avec la phase agrégée
+(r = +0.450, lag **12 j** = un cycle de revisite = instantané), tandis que la
+**température s'effondre** (0.509 → 0.224, p = 0.58) — ce dernier point est
+**robuste** et écarte un artefact thermique. **Mais la détection d'humidité est
+marginale** (nul p95 = 0.404 pour 0.450 observé) et **n'est pas confirmée par un
+forçage différentiel** (r = −0.316, p = 0.15, signe inversé). À présenter comme
+un **indice cohérent** avec le mécanisme diélectrique de la Phase G, **pas**
+comme une capacité de mesure établie.
 
 **5. Borne supérieure quantitative : le mouvement propre du tapis est
 < 2 mm**, contre 10-40 mm publiés sur tourbières hautes. Résultat falsifiable,
@@ -631,7 +669,8 @@ comparatif, et bien plus fort qu'une absence de détection.
 | colinéarité `rvi`/`vh_vv_db` (VIF ≈ 240) | coefficients ininterprétables (−1.21 / +0.95) |
 | prédiction « biais de fermeture a 5 σ » | **falsifiée** par les données (1.6 σ) |
 | corrélation naïve sur deux cycles annuels (lag 54 j) | fausse attribution a l'eau — levée par désaisonnalisation |
-| prédiction « aucun forçage ne survivra » | **falsifiée** : l'humidité survit (r=0.45, p≤0.011) |
+| prédiction « aucun forçage ne survivra » | partiellement falsifiée : l'humidité survit, mais **marginalement** |
+| forçage différentiel présenté comme « plus propre » | **échoue** (r=−0.316, p=0.15) → conclusion Phase I revue a la baisse |
 
 ### Ce qui reste ouvert
 
