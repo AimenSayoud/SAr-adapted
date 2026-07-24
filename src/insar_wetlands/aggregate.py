@@ -381,6 +381,48 @@ def empirical_pvalue(observed: float, null_values, tail: str = "greater") -> dic
             "observed": round(float(observed), 4)}
 
 
+def seasonal_zone_scan(unw: xr.DataArray, corr: xr.DataArray, zones: dict,
+                       template: xr.DataArray, reference: str = "C",
+                       targets=("A", "B", "D"), n_trials: int = 100,
+                       max_dt_days: int | None = None) -> pd.DataFrame:
+    """Amplitude saisonnière de CHAQUE zone vs la référence, + p-value appariée.
+
+    **Le test qui discriminerait mouvement vs humidité.** Une amplitude
+    saisonnière n'est pas une preuve de MOUVEMENT : un cycle annuel d'humidité
+    (profondeur de pénétration variable) produit le même signal de phase sans
+    aucun déplacement de surface — 3 mm ne valent que 0.75 rad en bande C.
+
+    Or le **lac (B) ne peut pas respirer mécaniquement**. S'il présente lui
+    aussi une amplitude saisonnière comparable a celle du tapis, le signal est
+    d'origine **diélectrique**. S'il est plat alors que le tapis oscille, le
+    mouvement redevient l'explication la plus simple.
+
+    Chaque zone est testée contre son PROPRE nul apparié en taille (le plancher
+    dépend de N : comparer B, qui a peu de pixels, au nul de A serait trompeur).
+    """
+    rows = []
+    for z in targets:
+        if z not in zones or int(zones[z].sum()) < 20:
+            continue
+        n_t, n_r = int(zones[z].sum()), int(zones[reference].sum())
+        try:
+            dd = aggregate_unwrapped(unw, corr, zones, target=z, reference=reference)
+            if max_dt_days is not None:
+                dd = filter_pairs(dd, max_dt_days=max_dt_days)
+            s = seasonal_amplitude(invert_aggregate(dd))
+            nulls = null_distribution(unw, corr, zones, template, n_t, n_r,
+                                      n_trials=n_trials, max_dt_days=max_dt_days)
+            pv = empirical_pvalue(s["amplitude_mm"], nulls["amplitude_mm"])
+        except Exception as e:
+            print(f"  ! zone {z}: {e}")
+            continue
+        rows.append({"zone": z, "n_px": n_t, "amplitude_mm": s["amplitude_mm"],
+                     "phase_doy": s["phase_doy"], "r2_seasonal": s["r2_seasonal"],
+                     "null_median": pv["null_median"], "null_p95": pv["null_p95"],
+                     "p_value": pv["p_value"], "n_null": pv["n_null"]})
+    return pd.DataFrame(rows)
+
+
 def closure_bias_by_zone(wrapped: xr.DataArray, zones: dict,
                          max_triplets: int = 3000,
                          zone_names=("A", "B", "C", "D")) -> pd.DataFrame:
