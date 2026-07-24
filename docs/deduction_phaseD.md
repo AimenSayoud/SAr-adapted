@@ -245,24 +245,36 @@ donne tcoh ≈ 0.55. Donc :
 
 **Déductions.**
 
-- [INT — robuste] **H1 est FERMÉE.** Le « 0 pixel fiable » de la Phase A
-  n'était **pas** une faiblesse du WLS : l'estimateur du maximum de
-  vraisemblance échoue aussi sur le tapis. L'échec d'inversion est une
-  **propriété physique de la cible**, pas de l'algorithme.
+- [INT — robuste] **H1 est fermée pour le réseau HyP3 disponible actuel.** Le
+  « 0 pixel fiable » de la Phase A n'était **pas** une faiblesse du WLS :
+  l'estimateur du maximum de vraisemblance échoue aussi sur le tapis, sur le
+  **même réseau de 356 paires**. L'échec d'inversion est une **propriété
+  physique de la cible**, pas de l'algorithme. (Portée exacte : un travail futur
+  avec **toutes les SLC** — au-delà des 356 paires HyP3 — pourrait modifier les
+  *valeurs absolues* de tcoh ; mais l'**écart relatif A vs C**, mesuré à réseau
+  égal, devrait persister — voir garde-fou 1.)
 - [INT — robuste] **Ce n'est pas « la végétation en bande C » en général.** C
   est phénologiquement/couvert-apparié à A et se récupère à 65 % **sur le même
   réseau** → la sparsité du réseau est *contrôlée* (elle handicape A et C de la
   même façon) et n'explique pas l'écart. La cause est **propre au tapis**.
   Réponse Phase D (A ≪ C) confirmée par une **seconde méthode indépendante**.
-- [INT] **Convergence totale de l'enquête** : Phase D (Δcoh −0.069,
-  p=2×10⁻⁴⁹) + D-bis (ni hydro-saisonnier ni gelable) + D-ter (diffusion de
-  volume VH/VV, σ0 +1.3 dB, pas de double-bounce) + **E2 (phase-linking échoue
-  sur A, réussit sur C)** : quatre angles, une seule conclusion — **décorrélation
-  volumétrique/diélectrique irréductible d'un couvert humide sur substrat saturé
-  et mobile**, et **non** un mouvement de tapis rigide qu'un meilleur estimateur
-  suivrait. La carte de tcoh le confirme visuellement : le polygone tourbière
-  est une unité uniformément basse, les taches à tcoh élevée sont les structures
-  stables/champs — pas d'artefact visuel.
+- [INT] **Convergence des quatre angles** : Phase D (Δcoh −0.069, p=2×10⁻⁴⁹) +
+  D-bis (ni hydro-saisonnier ni gelable) + D-ter (diffusion de volume VH/VV,
+  σ0 +1.3 dB, pas de double-bounce) + **E2 (phase-linking échoue sur A, réussit
+  sur C)**. Ce que ces quatre angles établissent **solidement**, c'est le rejet
+  d'un **mouvement de tapis en corps rigide couplé à la nappe** (aucun indice
+  positif : ni couplage hydrologique, ni stabilisation au gel, ni double-bounce).
+  Ce qui **reste** est **cohérent avec une décorrélation volumétrique/
+  diélectrique** d'un couvert humide sur substrat saturé — c'est l'hypothèse la
+  mieux étayée. [HYP — non exclue] **Mais éliminer le corps rigide ne prouve pas
+  le diélectrique** : une **troisième famille** demeure possible, un
+  **micro-mouvement NON rigide** (flexion locale, tassement différentiel
+  infra-pixel — ni déplacement en bloc, ni pur effet diélectrique), qui
+  produirait aussi une décorrélation de phase sans signature mécanique de
+  corps rigide. Seul un laser in situ la départagerait du diélectrique. La carte
+  de tcoh confirme visuellement l'unité distincte : le polygone tourbière est
+  uniformément bas, les taches à tcoh élevée sont les structures stables/champs
+  — pas d'artefact visuel.
 
 **Garde-fous d'honnêteté (à écrire tels quels).**
 
@@ -293,10 +305,15 @@ donne tcoh ≈ 0.55. Donc :
 > pas d'historique de phase cohérent sur le tapis (5 % de pixels à
 > temporal_coherence ≥ 0.7, contre 65 % pour une végétation
 > phénologiquement appariée sur sol stable, et un plancher de bruit à ~0.55
-> atteint par le lac résiduel) ; (iii) la décorrélation est volumétrique/
-> diélectrique (ratio de polarisation croisée, rétrodiffusion), ni
-> saisonnière-hydrologique ni gelable. Le tapis flottant se comporte en bande C
-> comme un **diffuseur de volume à phase quasi aléatoire**.
+> atteint par le lac résiduel) ; (iii) la signature radar (ratio de
+> polarisation croisée, rétrodiffusion) est cohérente avec une décorrélation
+> **volumétrique/diélectrique** et exclut un mouvement de tapis en corps rigide
+> (ni saisonnière-hydrologique, ni gelable, ni double-bounce). Le tapis flottant
+> se comporte en bande C comme un **diffuseur de volume à phase quasi
+> aléatoire**. La nature exacte de l'instabilité résiduelle — état diélectrique
+> de la tourbe saturée vs micro-mouvement non rigide (flexion/tassement
+> infra-pixel) — ne peut être tranchée par ces seules observations radar et
+> demande une mesure in situ (laser) ou une diversité de longueur d'onde.
 
 ## 6. Portée et limites
 
@@ -305,13 +322,17 @@ donne tcoh ≈ 0.55. Donc :
   quantifié, spatialement structuré et relié à l'échec d'inversion, **confirmé
   par trois estimateurs (WLS, ISBAS, phase-linking EVD)**. C'est la
   contribution positive du projet, indépendante des échecs de traitement.
-- **H1 (DS-InSAR/phase-linking) est désormais FERMÉE** (§5-quater) : le
-  phase-linking ne récupère pas le tapis, à réseau contrôlé. L'échec est
-  physique, pas algorithmique.
-- **Ce que ça ne tranche pas :** le mécanisme physique fin (micro-mouvement
-  mécanique constant vs variabilité diélectrique de la tourbe saturée) ; H4
-  (mouvement réversible). Seuls un laser in situ ou une diversité de longueur
-  d'onde (bande L) les départageraient.
+- **H1 (DS-InSAR/phase-linking) est fermée pour le réseau HyP3 actuel**
+  (§5-quater) : le phase-linking ne récupère pas le tapis, à réseau contrôlé.
+  L'échec est physique, pas algorithmique. (Un phase-linking full-SLC pourrait
+  changer les valeurs absolues, pas l'écart relatif A vs C.)
+- **Ce que ça ne tranche pas :** le mécanisme physique fin — **trois** familles
+  restent en jeu, pas deux : (a) variabilité **diélectrique** de la tourbe
+  saturée, (b) **micro-mouvement non rigide** (flexion locale, tassement
+  différentiel infra-pixel), (c) — désormais **écartée** — mouvement de **corps
+  rigide** couplé à la nappe. (a) et (b) restent toutes deux compatibles avec
+  les observations ; ainsi que H4 (mouvement réversible). Seuls un laser in situ
+  ou une diversité de longueur d'onde (bande L) départageraient (a) de (b).
 - **Limites méthodologiques :** proxy de nappe grossier (pluie cumulée ERA5, à
   remplacer par la WTD in situ) ; n_froid = 31 (test de gel indicatif) ;
   appariement C limité par la rareté de végétation humide sur sol stable
