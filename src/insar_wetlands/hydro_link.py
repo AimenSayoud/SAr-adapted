@@ -51,6 +51,7 @@ def build_drivers(era5: xr.Dataset, lon: float, lat: float,
                   s2: xr.Dataset | None = None,
                   zone_mask: xr.DataArray | None = None,
                   ref_mask: xr.DataArray | None = None,
+                  extra_masks: dict | None = None,
                   api_k: float = 0.9) -> pd.DataFrame:
     """Table des forçages hydrologiques journaliers.
 
@@ -84,6 +85,14 @@ def build_drivers(era5: xr.Dataset, lon: float, lat: float,
         if ref_mask is not None:
             df = df.join((wz - _mean(ref_mask)).rename("s2_wetness_diff"),
                          how="outer")
+        # NDWI d'autres zones : TEST FALSIFIABLE du modèle « humidité régionale
+        # commune × contraste de sensibilité ». Si la phase A−C suit M(t)
+        # régionale (et non le contraste d'humidité A−C), alors le NDWI de
+        # N'IMPORTE QUELLE zone, proxy du même M(t), doit corréler avec le MÊME
+        # SIGNE. Si seul le NDWI de A corrèle, le modèle est faux et la
+        # corrélation est propre a la zone A.
+        for nm, m in (extra_masks or {}).items():
+            df = df.join(_mean(m).rename(f"s2_wetness_{nm}"), how="outer")
     return df.sort_index()
 
 
