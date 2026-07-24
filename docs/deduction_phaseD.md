@@ -1,4 +1,4 @@
-# Le fen flottant est-il « spécial » ? Déductions des Phases D et D-bis
+# Le fen flottant est-il « spécial » ? Déductions des Phases D, D-bis, D-ter et E2
 
 **Statut :** résultat expérimental interne, indépendant de tous les échecs
 InSAR antérieurs (SBAS/MintPy, ISBAS, Pipeline B, hybride). Étiquetage :
@@ -194,15 +194,124 @@ mécanique restant non prouvée — mais les tailles d'effet polarimétriques so
 **modestes** (VH/VV : 0.3 dB) et **seul le laser** exclurait définitivement un
 micro-mouvement.
 
+## 5-quater. Phase E2 — verdict DS-InSAR par phase-linking EVD (sans ISCE)
+
+**Motivation.** Toutes les phases précédentes reposaient sur une inversion
+**paire par paire** (WLS/ISBAS), qui pouvait sous-exploiter la redondance. La
+question H1 restait ouverte : un **phase-linking** (DS-InSAR), qui pondère la
+cohérence de *toutes* les paires simultanément — le maximum de vraisemblance
+sous modèle gaussien circulaire — récupérerait-il un signal là où le WLS
+échoue ? ISCE/MiaplPy ne s'installant pas sur Colab (packaging conda #642), on
+a implémenté le phase-linking **en pur numpy** : le phase-linking opère sur la
+**matrice de cohérence complexe N×N par pixel**, dont l'entrée (i,j) est
+`cohérence × exp(i·φ_ij)` ; **nos interférogrammes HyP3 SONT ces entrées**
+(paires déjà corégistrées). On récupère l'historique de phase comme phase du
+**vecteur propre dominant** (EVD), et la qualité par la **temporal_coherence**
+(ajustement de l'historique estimé aux interférogrammes observés — l'analogue
+de `MiaplPy.temporalCoherence`).
+
+**Protocole.** EVD sur les mêmes zones A/B/C/D que la Phase D (WorldCover +
+appariement S2 + contrôle de pente), sur les 356 paires, phase déroulée
+**ré-enroulée** (le phase-linking opère sur l'observation enroulée). Effectifs
+de ce run : A=499, B=65, **C=374**, D=8368 px (le C plus grand qu'en §2 —
+variation d'appariement run-à-run — **renforce** le contrôle). Le module est
+couvert par un test synthétique (`tests/test_synthetic_phaselinking.py`) :
+l'EVD récupère un historique de phase connu sur réseau sparse, et la
+temporal_coherence sépare un pixel cohérent (~0.97) d'un pixel décorrélé.
+
+**Résultats [FAIT] :**
+
+| Zone | tcoh médiane | tcoh p25–p75 | % pixels ≥ 0.7 | lecture |
+|---|---|---|---|---|
+| **C** prairie sol stable (appariée) | **0.734** | 0.671–0.803 | **64.7 %** | récupérable → DS-InSAR fonctionne |
+| **D** autres couverts | 0.639 | 0.597–0.693 | 23.1 % | mélange (contexte) |
+| **A** tapis flottant | **0.604** | 0.566–0.647 | **5.4 %** | quasi non récupérable |
+| **B** lac résiduel | 0.584 | 0.542–0.630 | 1.5 % | plancher de bruit |
+
+**Le point décisif — le plancher de bruit.** Le test synthétique établit qu'à
+cette redondance (356 paires / ~90 dates ≈ 4), un pixel **purement décorrélé**
+donne tcoh ≈ 0.55. Donc :
+
+- **B (lac) = 0.584** tombe **exactement sur le plancher** → **validation
+  interne majeure** : on *sait* que l'eau végétalisée est décorrélée, et la
+  méthode la classe correctement au plancher. La méthode se comporte donc
+  correctement sur la cible-témoin connue.
+- **A (tapis) = 0.604** n'est qu'à **~0.05 au-dessus du plancher**, juste à
+  côté du lac → le phase-linking n'y trouve **presque aucun historique de phase
+  réel**. A n'est pas « un peu moins bon » que C : **A ≈ bruit, C ≈ signal**.
+- **C = 0.734** est franchement au-dessus du plancher (65 % de pixels
+  DS-qualité) → la végétation appariée sur sol stable est, elle, parfaitement
+  récupérable par DS-InSAR **avec le même réseau de 356 paires**.
+
+**Déductions.**
+
+- [INT — robuste] **H1 est FERMÉE.** Le « 0 pixel fiable » de la Phase A
+  n'était **pas** une faiblesse du WLS : l'estimateur du maximum de
+  vraisemblance échoue aussi sur le tapis. L'échec d'inversion est une
+  **propriété physique de la cible**, pas de l'algorithme.
+- [INT — robuste] **Ce n'est pas « la végétation en bande C » en général.** C
+  est phénologiquement/couvert-apparié à A et se récupère à 65 % **sur le même
+  réseau** → la sparsité du réseau est *contrôlée* (elle handicape A et C de la
+  même façon) et n'explique pas l'écart. La cause est **propre au tapis**.
+  Réponse Phase D (A ≪ C) confirmée par une **seconde méthode indépendante**.
+- [INT] **Convergence totale de l'enquête** : Phase D (Δcoh −0.069,
+  p=2×10⁻⁴⁹) + D-bis (ni hydro-saisonnier ni gelable) + D-ter (diffusion de
+  volume VH/VV, σ0 +1.3 dB, pas de double-bounce) + **E2 (phase-linking échoue
+  sur A, réussit sur C)** : quatre angles, une seule conclusion — **décorrélation
+  volumétrique/diélectrique irréductible d'un couvert humide sur substrat saturé
+  et mobile**, et **non** un mouvement de tapis rigide qu'un meilleur estimateur
+  suivrait. La carte de tcoh le confirme visuellement : le polygone tourbière
+  est une unité uniformément basse, les taches à tcoh élevée sont les structures
+  stables/champs — pas d'artefact visuel.
+
+**Garde-fous d'honnêteté (à écrire tels quels).**
+
+1. **Phase-linking « léger » (sparse).** On n'exploite que les 356 paires HyP3,
+   pas toutes les paires SLC possibles. Mais la comparaison A vs C est menée
+   sur **le même réseau** : C réussit, A échoue à sparsité égale. Un
+   phase-linking full-SLC améliorerait A *et* C ; l'écart demeurerait. La
+   conclusion tient. (Le module reste une **contribution méthodologique** : un
+   test de faisabilité DS-InSAR reproductible et léger, directement sur produits
+   HyP3, sans ISCE.)
+2. **Bande C uniquement.** Ce n'est pas « impossible partout » : Hrysiewicz
+   et al. 2024 (RSE 291) mesurent la respiration de **tourbières hautes** en
+   bande C (Sphagnum plus sec, diffuseurs de surface plus stables). Rzecin est
+   un **fen de transition** à tapis flottant *plus humide* sur eau
+   quasi-affleurante → beaucoup plus de diffusion de volume. Le contraste est
+   lui-même défendable. **La voie ouverte reste la bande L (ALOS-2 / NISAR)**,
+   qui pénètre le couvert et atteint la surface du tapis.
+
+**Formulation pour la thèse / l'article :**
+
+> Le déplacement vertical du tapis flottant de Rzecin n'est pas mesurable par
+> InSAR Sentinel-1 (bande C), et ceci n'est **pas** une limite de l'algorithme
+> d'inversion mais une **propriété physique de la cible**. Nous le démontrons
+> par trois estimateurs indépendants : (i) l'inversion WLS/ISBAS paire-à-paire
+> ne fournit aucun pixel fiable sur le tapis ; (ii) le **phase-linking** au
+> maximum de vraisemblance (l'estimateur qui sous-tend le DS-InSAR),
+> implémenté sans ISCE directement sur les interférogrammes HyP3, ne récupère
+> pas d'historique de phase cohérent sur le tapis (5 % de pixels à
+> temporal_coherence ≥ 0.7, contre 65 % pour une végétation
+> phénologiquement appariée sur sol stable, et un plancher de bruit à ~0.55
+> atteint par le lac résiduel) ; (iii) la décorrélation est volumétrique/
+> diélectrique (ratio de polarisation croisée, rétrodiffusion), ni
+> saisonnière-hydrologique ni gelable. Le tapis flottant se comporte en bande C
+> comme un **diffuseur de volume à phase quasi aléatoire**.
+
 ## 6. Portée et limites
 
 - **Ce que ça établit :** le fen flottant est intrinsèquement moins observable
   en InSAR C-band que la végétation comparable sur sol stable — un résultat
-  quantifié, spatialement structuré et relié à l'échec d'inversion. C'est la
+  quantifié, spatialement structuré et relié à l'échec d'inversion, **confirmé
+  par trois estimateurs (WLS, ISBAS, phase-linking EVD)**. C'est la
   contribution positive du projet, indépendante des échecs de traitement.
-- **Ce que ça ne tranche pas :** le mécanisme physique fin (mécanique vs
-  diélectrique) ; l'hypothèse H1 (le DS-InSAR/phase-linking non testé pourrait
-  encore récupérer du signal) ; H4 (mouvement réversible).
+- **H1 (DS-InSAR/phase-linking) est désormais FERMÉE** (§5-quater) : le
+  phase-linking ne récupère pas le tapis, à réseau contrôlé. L'échec est
+  physique, pas algorithmique.
+- **Ce que ça ne tranche pas :** le mécanisme physique fin (micro-mouvement
+  mécanique constant vs variabilité diélectrique de la tourbe saturée) ; H4
+  (mouvement réversible). Seuls un laser in situ ou une diversité de longueur
+  d'onde (bande L) les départageraient.
 - **Limites méthodologiques :** proxy de nappe grossier (pluie cumulée ERA5, à
   remplacer par la WTD in situ) ; n_froid = 31 (test de gel indicatif) ;
   appariement C limité par la rareté de végétation humide sur sol stable
@@ -222,5 +331,9 @@ micro-mouvement.
 
 *Figures associées : outputs/phaseD/{zones, coherence_by_zone, decay_curves,
 greenness_vs_coh}.png ; outputs/phaseDbis/{coh_vs_hydro, freeze_test,
-radial_profile, residual_by_zone}.png. Code : src/insar_wetlands/stratify.py ;
-notebooks phaseD_inside_vs_outside.ipynb et phaseDbis_mechanism_spatial.ipynb.*
+radial_profile, residual_by_zone}.png ; sortie Phase E2 : phaseE2_evd.nc +
+histogramme/carte tcoh par zone. Code : src/insar_wetlands/stratify.py,
+src/insar_wetlands/inversion/phaselinking.py (EVD, sans ISCE) ;
+tests/test_synthetic_phaselinking.py ; notebooks phaseD_inside_vs_outside.ipynb,
+phaseDbis_mechanism_spatial.ipynb, phaseDter_scattering_scatterers.ipynb et
+phaseE2_evd_phaselinking.ipynb.*
