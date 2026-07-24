@@ -50,15 +50,21 @@ def _detrend(y: np.ndarray, t: np.ndarray, deseasonalize: bool = False
 def build_drivers(era5: xr.Dataset, lon: float, lat: float,
                   s2: xr.Dataset | None = None,
                   zone_mask: xr.DataArray | None = None,
+                  ref_mask: xr.DataArray | None = None,
                   api_k: float = 0.9) -> pd.DataFrame:
     """Table des forçages hydrologiques journaliers.
 
     - `api_mm` : indice de précipitations antécédentes (mémoire hydrologique du
       sol) — le proxy de nappe le plus pertinent en l'absence de WTD in situ.
     - `precip_mm`, `t2m_c` : ERA5 brut.
-    - `s2_wetness` : NDWI moyen sur la zone (si S2 et masque fournis) — mesure
-      **optique directe** de l'humidité de surface, indépendante du radar.
-      C'est le forçage le plus probant : deux capteurs indépendants.
+    - `s2_wetness` : NDWI moyen sur `zone_mask` — mesure **optique directe** de
+      l'humidité de surface, **indépendante du radar** : deux capteurs
+      indépendants qui concordent, c'est l'argument le plus fort.
+    - `s2_wetness_diff` : si `ref_mask` est fourni, NDWI(zone) − NDWI(référence).
+      **Méthodologiquement plus propre** : la série InSAR testée est elle-même
+      DIFFÉRENTIELLE (A−C), le forçage doit donc l'être aussi — sinon on
+      confronte une différence a une valeur absolue. Cela retire en outre les
+      effets communs (illumination, atmosphère optique, phénologie régionale).
     """
     from .hydro import antecedent_precipitation_index, daily_era5_point
 
@@ -67,9 +73,17 @@ def build_drivers(era5: xr.Dataset, lon: float, lat: float,
         df["api_mm"] = antecedent_precipitation_index(df["precip_mm"], k=api_k)
     if s2 is not None and zone_mask is not None:
         var = "ndwi" if "ndwi" in s2 else list(s2.data_vars)[0]
-        w = s2[var].where(zone_mask).mean(("y", "x")).to_series()
-        w.index = pd.to_datetime(w.index).normalize()
-        df = df.join(w.rename("s2_wetness").groupby(level=0).mean(), how="outer")
+
+        def _mean(mask):
+            w = s2[var].where(mask).mean(("y", "x")).to_series()
+            w.index = pd.to_datetime(w.index).normalize()
+            return w.groupby(level=0).mean()
+
+        wz = _mean(zone_mask)
+        df = df.join(wz.rename("s2_wetness"), how="outer")
+        if ref_mask is not None:
+            df = df.join((wz - _mean(ref_mask)).rename("s2_wetness_diff"),
+                         how="outer")
     return df.sort_index()
 
 

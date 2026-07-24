@@ -486,6 +486,83 @@ variabilité **interne** de A, pas A vs C.
   VH/VV brut de la Phase D-ter car **normalisé par la puissance totale**, donc
   insensible a un biais de calibration commun aux deux polarisations.
 
+## 5-septies. Phase I — le signal diélectrique EST un capteur d'humidité
+
+**Question :** le signal saisonnier de la Phase G suit-il l'hydrologie ?
+
+### Validation préalable des zones (six vues, dont deux objectives)
+
+- **[FAIT] Contrôle de surface** : A+B = **90.24 ha** contre **89.7 ha**
+  documentés → **+0.6 %**. Vérification **numérique** du géoréférencement du
+  masque, qu'aucune inspection visuelle ne peut fournir.
+- **[FAIT]** Le polygone ressort dans **cinq capteurs indépendants** (cohérence,
+  σ0, RVI, humidité S2, temporal_coherence), avec une **marche nette** au bord
+  dans les trois profils radiaux, et des **distributions par zone disjointes**.
+- **[FAIT]** Humidité S2 : **A = −0.513, C = −0.522** (jumeaux phénologiques
+  confirmés) contre **B = +0.185** et σ0 = **−15.4 dB** (eau libre sans
+  ambiguïté). Médianes par zone : σ0 A −10.09 / B −15.41 / C −11.22 / D −9.28 ;
+  RVI A 0.914 / B 0.993 / C 0.881 / D 1.045.
+
+### Le piège saisonnier, et sa résolution
+
+Le balayage brut donnait `s2_wetness` r = +0.576 (lag 54 j) **et** `t2m_c`
+r = −0.509 (lag 72 j), tous deux « significatifs ». [INT] Inexploitable en
+l'état : température et humidité sont fortement anti-corrélées saisonnièrement,
+`api_mm` (le proxy hydrologique le plus **direct**) échouait, et deux signaux a
+cycle annuel corrèlent **toujours** a un certain décalage — le balayage ne fait
+qu'aligner les phases (54 j = 53° de phase annuelle, pas un délai physique).
+
+**Test décisif** : retirer l'harmonique annuelle des **deux** séries et ne
+corréler que les **anomalies**. Validé en synthétique : sur deux cycles annuels
+*indépendants*, |r| passe de 0.84 a 0.24 ; un couplage réel sur anomalies, lui,
+survit (> 0.7).
+
+### [FAIT] Résultat sur les anomalies
+
+| forçage | r saisonnier | p | **r ANOMALIES** | **p** | lag |
+|---|---|---|---|---|---|
+| **s2_wetness** | 0.576 | 0.021 | **+0.450** | **0.011** | **12 j** |
+| t2m_c | −0.509 | 0.021 | 0.224 | 0.581 | 78 j |
+| api_mm | 0.230 | 0.426 | 0.293 | 0.172 | 6 j |
+| precip_mm | 0.191 | 0.681 | −0.225 | 0.312 | 66 j |
+
+### [INT] Trois faits convergents
+
+1. **La température s'effondre** (0.509 → 0.224 ; p 0.021 → 0.581) : sa
+   corrélation n'était **que** le cycle annuel partagé. Le confondant
+   température/humidité est **levé** — on peut désormais attribuer le signal a
+   **l'eau**.
+2. **L'humidité survit** (r = +0.450, p ≤ 0.011 contre 92 nuls appariés en
+   taille), et provient d'un **capteur optique totalement indépendant** du radar.
+3. **Le décalage chute de 54 j a 12 j** — soit **un cycle de revisite**, donc
+   *instantané* a notre résolution d'échantillonnage. C'était le critère posé
+   d'avance : réponse **diélectrique** quasi instantanée vs tassement
+   **mécanique** retardé de plusieurs semaines. **Le lag confirme le
+   diélectrique par une voie indépendante du test du lac (Phase G).**
+
+Le **signe** est cohérent : plus humide → pénétration moindre → centre de phase
+plus haut → **soulèvement apparent** (r positif). (Le signe seul ne discrimine
+pas, un gonflement mécanique donnerait le même ; c'est la magnitude et le lac
+qui excluent le mécanique.)
+
+### [INT] Formulation pour l'article
+
+> Au-dessus d'une tourbière flottante, la phase interférométrique **agrégée**
+> Sentinel-1 en bande C ne mesure **pas** le mouvement de surface (< 2 mm), mais
+> répond aux **anomalies d'humidité de surface** avec un décalage quasi nul
+> (r = 0.45, p ≤ 0.011 contre nuls appariés en taille), de façon cohérente avec
+> un mécanisme de **profondeur de pénétration**. La température, corrélée au
+> premier ordre, est éliminée par la désaisonnalisation.
+
+### [LIMITE]
+
+- p = 0.0108 = 1/(1+92) reste le **plancher** atteignable avec 92 tirages.
+- Le forçage `s2_wetness` porte sur la zone A **seule**, alors que la série
+  InSAR est **différentielle** (A−C) : `s2_wetness_diff` = NDWI(A) − NDWI(C)
+  apparie les deux structures et teste la robustesse au choix du forçage.
+- La **vraie nappe (WTD) in situ** reste supérieure au NDWI comme mesure de
+  l'état hydrique, et sa structure temporelle diffère de celle de la température.
+
 ## 5-sexies. SYNTHÈSE GLOBALE — où nous en sommes après D→H
 
 ### La question a changé, et c'est ce qui a débloqué le travail
@@ -515,14 +592,21 @@ prédicteurs s'inversent** entre tapis et prairie (σ0 : −0.379 vs −0.008 ;
 altitude : −0.168 vs +0.430) — le tapis ne se comporte pas comme de la
 végétation ordinaire.
 
-**3. Ce que Sentinel-1 mesure ici est un signal DIÉLECTRIQUE saisonnier, pas un
+**3. Ce que Sentinel-1 mesure ici est un signal DIÉLECTRIQUE, pas un
 mouvement.** Amplitude 3.3 mm (p = 0.011), maximum mi-avril — mais le **lac
 oscille identiquement** (2.63 mm, même phase) alors qu'il ne peut pas respirer,
 et **A−B s'annule** (0.90 mm, p = 0.45). Trois arguments indépendants (contrôle
-du lac, annulation A−B, ordre de grandeur 3-60× trop petit) convergent : c'est
-le **contraste d'humidité saisonnier** entre surfaces saturées et prairie sèche.
+du lac, annulation A−B, ordre de grandeur 3-60× trop petit) convergent.
 
-**4. Borne supérieure quantitative : le mouvement propre du tapis est
+**4. Ce signal est un CAPTEUR D'HUMIDITÉ (Phase I).** Sur les **anomalies**
+(cycle annuel retiré des deux séries), l'humidité optique S2 survit
+(**r = +0.450, p ≤ 0.011**, lag **12 j** = un cycle de revisite = instantané)
+tandis que la **température s'effondre** (0.509 → 0.224, p = 0.58) : le
+confondant température/humidité est levé, et le lag quasi nul **confirme le
+mécanisme diélectrique par une voie indépendante du test du lac**. La corrélation
+provient d'un **capteur optique totalement indépendant du radar**.
+
+**5. Borne supérieure quantitative : le mouvement propre du tapis est
 < 2 mm**, contre 10-40 mm publiés sur tourbières hautes. Résultat falsifiable,
 comparatif, et bien plus fort qu'une absence de détection.
 
@@ -546,6 +630,8 @@ comparatif, et bien plus fort qu'une absence de détection.
 | test de **vitesse** sur un signal **périodique** | puissance nulle sur la physique cherchée |
 | colinéarité `rvi`/`vh_vv_db` (VIF ≈ 240) | coefficients ininterprétables (−1.21 / +0.95) |
 | prédiction « biais de fermeture a 5 σ » | **falsifiée** par les données (1.6 σ) |
+| corrélation naïve sur deux cycles annuels (lag 54 j) | fausse attribution a l'eau — levée par désaisonnalisation |
+| prédiction « aucun forçage ne survivra » | **falsifiée** : l'humidité survit (r=0.45, p≤0.011) |
 
 ### Ce qui reste ouvert
 
