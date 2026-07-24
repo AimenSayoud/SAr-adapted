@@ -20,7 +20,7 @@ from insar_wetlands.nisar import (build_gunw_stack, find_gunw_layers,
 BASE = "science/LSAR/GUNW/grids/frequencyA/unwrappedInterferogram"
 
 
-def _fake_gunw(path, ny=5, nx=7, seed=0):
+def _fake_gunw(path, ny=5, nx=7, seed=0, with_cc=True):
     import h5py
 
     rng = np.random.default_rng(seed)
@@ -28,6 +28,10 @@ def _fake_gunw(path, ny=5, nx=7, seed=0):
         g = f.create_group(f"{BASE}/HH")
         g.create_dataset("unwrappedPhase", data=rng.normal(0, 1, (ny, nx)).astype("f4"))
         g.create_dataset("coherenceMagnitude", data=rng.uniform(0, 1, (ny, nx)).astype("f4"))
+        if with_cc:
+            cc = np.ones((ny, nx), "i2")
+            cc[0, 0] = 0                     # un pixel non fiable (îlot déroulement)
+            g.create_dataset("connectedComponents", data=cc)
         f.create_dataset(f"{BASE}/xCoordinates", data=np.arange(nx) * 80.0 + 5e5)
         f.create_dataset(f"{BASE}/yCoordinates", data=np.arange(ny) * -80.0 + 6e6)
 
@@ -49,12 +53,16 @@ def test_find_and_load(tmp_path=None):
     lyr = find_gunw_layers(fp)
     assert lyr["unw"].endswith("unwrappedPhase")
     assert "coherence" in lyr["coh"].lower()
+    assert lyr["cc"].endswith("connectedComponents")
     assert lyr["pol"] == "HH"
     assert lyr["epsg"] is None            # pas de projection -> branche rio sautée
     ds = load_gunw(fp)
     assert set(ds.data_vars) == {"unw_phase", "corr"}
     assert ds["unw_phase"].shape == (5, 7)
     assert float(ds["corr"].min()) >= 0 and float(ds["corr"].max()) <= 1
+    # cc==0 -> pixel (0,0) masqué en NaN ; les autres restent finis
+    assert np.isnan(ds["unw_phase"].values[0, 0])
+    assert np.isfinite(ds["unw_phase"].values[1, 1])
 
 
 def test_build_stack():

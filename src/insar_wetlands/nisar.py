@@ -21,6 +21,13 @@ longueur d'onde, et un déplacement du tapis redevient mesurable.
 NB disponibilité : données NISAR publiques depuis 2026-07-20, observations à
 partir de ~juin 2026 (record complet fin 2026). Test **prospectif**, pas
 rétroactif sur 2022-2024.
+
+Références : NISAR Data User Guide (GUNW), ASF asf_search (recherche par
+shortName + dataset NISAR), JPL Data Product Specifications. Alternative de
+lecture : la librairie `nisarhdf` (github.com/fastice/nisarhdf) expose
+directement `myGUNW.unwrappedPhase` et le masquage des connectedComponents ;
+on préfère ici un lecteur h5py autonome (zéro dépendance en plus) et robuste au
+format beta.
 """
 
 from __future__ import annotations
@@ -36,25 +43,34 @@ _TS = re.compile(r"(\d{8})T\d{6}Z")
 
 
 def search_gunw(aoi_wkt: str, start: str, end: str,
-                processing_level: str = "GUNW", **kwargs) -> list:
+                short_name: str = "NISAR_L2_GUNW_BETA_V1", **kwargs) -> list:
     """Cherche les GUNW NISAR intersectant l'AOI (asf_search).
 
-    `processing_level`/kwargs sont passés tels quels à asf_search pour rester
-    robuste au nommage beta (ex. collections=['NISAR_L2_GUNW_BETA_V1']). Retourne
-    la liste brute des résultats asf_search. Peut être vide si l'archive ne
-    couvre pas encore la Pologne — c'est normal en 2026, re-exécuter plus tard.
+    Suit la best practice ASF : recherche par `shortName` (+ dataset NISAR).
+    Le `short_name` par défaut cible la collection **beta V1** — le mettre à jour
+    quand le produit sort de beta (voir NISAR Data User Guide / ASF Vertex).
+    kwargs sont passés tels quels à asf_search. Retourne la liste brute des
+    résultats ; peut être vide si l'archive ne couvre pas encore la Pologne —
+    normal en 2026, ré-exécuter plus tard.
     """
     import asf_search as asf
 
-    params = dict(dataset=["NISAR"], processingLevel=[processing_level],
-                  intersectsWith=aoi_wkt, start=start, end=end)
+    params = dict(intersectsWith=aoi_wkt, start=start, end=end)
+    # dataset NISAR (constante enum si dispo) + collection shortName
+    try:
+        params["dataset"] = [asf.DATASET.NISAR]
+    except AttributeError:
+        params["dataset"] = ["NISAR"]
+    if short_name:
+        params["shortName"] = short_name
     params.update(kwargs)
     try:
         results = list(asf.search(**params))
     except Exception as e:  # nommage beta pas encore stable dans asf_search
-        print(f"  ! asf.search(dataset='NISAR', ...) a échoué ({e}).")
-        print("    Essayez collections=['NISAR_L2_GUNW_BETA_V1'] ou vérifiez le "
-              "nom de la collection dans ASF Vertex / le NISAR Data User Guide.")
+        print(f"  ! asf.search(shortName='{short_name}', dataset=NISAR) a "
+              f"échoué ({e}).")
+        print("    Vérifiez le nom de collection exact dans ASF Vertex / le "
+              "NISAR Data User Guide (il change à la sortie de beta).")
         return []
     print(f"  {len(results)} GUNW trouvés sur {start}..{end}")
     return results
@@ -116,6 +132,7 @@ def find_gunw_layers(path: str | Path, freq: str = "frequencyA",
 
         unw = pick(lambda p: "unwrapp" in p and "phase" in p)
         coh = pick(lambda p: "coherence" in p)
+        cc = pick(lambda p: "connectedcomponent" in p)
         x = pick(lambda p: p.endswith("xcoordinates") or p.endswith("/xcoordinate"))
         y = pick(lambda p: p.endswith("ycoordinates") or p.endswith("/ycoordinate"))
         proj = pick(lambda p: "projection" in p or p.endswith("epsg"))
@@ -128,7 +145,7 @@ def find_gunw_layers(path: str | Path, freq: str = "frequencyA",
         if unw:
             m = re.search(r"/(HH|HV|VH|VV|RH|RV)/", unw + "/", re.I)
             pol_found = m.group(1).upper() if m else pol
-    layers = {"unw": unw, "coh": coh, "x": x, "y": y, "epsg": epsg,
+    layers = {"unw": unw, "coh": coh, "cc": cc, "x": x, "y": y, "epsg": epsg,
               "pol": pol_found}
     missing = [k for k in ("unw", "coh", "x", "y") if not layers[k]]
     if missing:
@@ -138,11 +155,15 @@ def find_gunw_layers(path: str | Path, freq: str = "frequencyA",
 
 
 def load_gunw(path: str | Path, freq: str = "frequencyA",
-              pol: str | None = None) -> xr.Dataset:
+              pol: str | None = None, mask_disconnected: bool = True) -> xr.Dataset:
     """Charge un GUNW en Dataset rioxarray {unw_phase, corr} géoréférencé.
 
     Mêmes noms de variables que nos crops HyP3 (unw_phase, corr) → compatible
-    avec load_layer/define_zones/evd_phase_linking en aval."""
+    avec load_layer/define_zones/evd_phase_linking en aval. Si `mask_disconnected`
+    et que la couche connectedComponents existe, les pixels à cc==0 (îlots de
+    déroulement non fiables) sont mis à NaN — recommandation du NISAR Data User
+    Guide. (Note : notre phase-linking ré-enroule la phase et n'utilise pas le
+    déroulement absolu, mais masquer cc==0 retire aussi les pixels bruités.)"""
     import h5py
 
     lyr = find_gunw_layers(path, freq, pol)
@@ -151,6 +172,10 @@ def load_gunw(path: str | Path, freq: str = "frequencyA",
         coh = np.asarray(f[lyr["coh"]][()], "float32")
         x = np.asarray(f[lyr["x"]][()], "float64")
         y = np.asarray(f[lyr["y"]][()], "float64")
+        if mask_disconnected and lyr.get("cc"):
+            cc = np.asarray(f[lyr["cc"]][()])
+            if cc.shape == unw.shape:
+                unw = np.where(cc == 0, np.nan, unw)
     # cohérence et phase peuvent avoir des postings différents (20 vs 80 m) :
     # on aligne la cohérence sur la grille de la phase si les tailles diffèrent.
     ds = xr.Dataset(
