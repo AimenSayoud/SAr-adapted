@@ -362,12 +362,32 @@ par pixel donne −13.7 mm/an (36 % de pixels utilisables) là où l'agrégat do
   suivent tous deux la nappe — donc **le timing ne discrimine rien**. Ce qui est
   établi est un **signal de phase différentiel saisonnier**, pas une respiration
   mécanique.
-- **[TEST PROPOSÉ — discriminant] Le lac.** La zone B **ne peut pas respirer
-  mécaniquement**. `seasonal_zone_scan` teste A, B et D contre C, chacune avec
-  son **propre** nul apparié en taille (le plancher dépend de N ; B n'a que
-  65 px). Si B oscille autant que A → signal **diélectrique**. Si B est plat
-  alors que A oscille → le **mouvement** redevient l'explication la plus simple
-  (sans être prouvé).
+- **[FAIT — DÉCISIF] Le test du lac tranche : le signal est DIÉLECTRIQUE.** La
+  zone B **ne peut pas respirer mécaniquement**. Or elle oscille : **2.63 mm,
+  p = 0.036**, phase jour 94.7 — soit **80 % de l'amplitude du tapis (3.29 mm,
+  p = 0.011, jour 104.2), a 10 jours près**. Tapis et lac partagent donc un
+  **cycle saisonnier commun** qui n'est pas mécanique : un cycle annuel
+  d'humidité / de profondeur de pénétration propre aux surfaces **saturées**,
+  par contraste avec la prairie minérale sèche (C).
+- **[FAIT — argument indépendant] L'ordre de grandeur exclut la mécanique.**
+
+  | | amplitude attendue |
+  |---|---|
+  | tapis flottant libre suivant une nappe ±10 cm | ~100 mm |
+  | respiration publiée (tourbières hautes, Hrysiewicz 2024) | 10-40 mm |
+  | **mesuré ici** | **3.3 mm** |
+
+  Le signal est **3 a 60× trop petit** pour une flottaison ou une respiration
+  mécanique. Deux arguments indépendants (lac + magnitude) convergent.
+- **[INT] Ce que ça établit, et ce que ça n'établit pas.** Nous mesurons le
+  **contraste diélectrique saisonnier** entre une tourbière saturée et une
+  prairie sèche — un résultat en soi, et la première mesure positive de
+  l'étude. Mais **ce n'est pas la respiration du tapis** et ne doit pas être
+  présenté comme telle. Conséquence : la **borne supérieure sur la respiration
+  mécanique devient plus contraignante que 3.3 mm**.
+  ⚠️ *Distinction a maintenir* : ceci établit que le **signal saisonnier** est
+  diélectrique ; cela ne dit **rien** sur la nature du mécanisme de
+  **décorrélation**, qui reste (a) ou (b). Deux questions différentes.
 - **[FAIT] G3 — biais de phase de fermeture : PRÉDICTION FALSIFIÉE.** Nous
   attendions qu'en passant de 304 a ~3000 triplets le biais de A devienne
   significatif (~5 σ). Or le réseau ne contient que **518 triplets fermés**, et
@@ -469,21 +489,21 @@ variabilité **interne** de A, pas A vs C.
   biais systématique** : la signature est une non-stationnarité **aléatoire**,
   compatible avec les deux. Seuls un laser in situ ou une diversité de longueur
   d'onde (bande L) départageraient (a) de (b).
-- **Signal saisonnier agrégé (Phase G2-bis/ter) — LE RÉSULTAT POSITIF DU
-  PROJET :** l'agrégation spatiale des 499 px du tapis, référencée au sol stable
-  adjacent, détecte une **amplitude saisonnière de 3.3 mm**, maximum vers le
-  **jour 104** (mi-avril), **p = 0.021** contre 46 nuls appariés en taille
-  (nul médian 0.82 mm, p95 1.93 mm). C'est la **première mesure positive** de
-  toute l'étude, obtenue la ou six inversions par pixel échouaient — parce que
-  l'observable a changé (un nombre pour le tapis entier, pas une carte) et que
-  la quantité testée est devenue la bonne (amplitude **saisonnière**, pas
-  vitesse linéaire : régresser une vitesse sur un signal périodique donne ~0 par
-  construction).
-  **Deux réserves a ne jamais omettre** : (i) p=0.021 est le **plancher**
-  atteignable avec 46 tirages ; (ii) surtout, **un signal de phase saisonnier
-  n'est pas une respiration mécanique** — 3.3 mm = 0.75 rad en bande C, ce qu'un
-  cycle annuel d'humidité produit sans aucun déplacement. Le test du **lac**
-  (zone B, qui ne peut pas respirer mécaniquement) est le discriminant proposé.
+- **Signal saisonnier agrégé (Phase G) — LE RÉSULTAT POSITIF DU PROJET, mais
+  DIÉLECTRIQUE :** l'agrégation spatiale des 499 px du tapis, référencée au sol
+  stable adjacent, détecte une **amplitude saisonnière de 3.3 mm** (max
+  mi-avril, **p = 0.011** contre 92 nuls appariés en taille). C'est la
+  **première mesure positive** de l'étude, obtenue la ou six inversions par
+  pixel échouaient — parce que l'observable a changé (un nombre pour le tapis
+  entier, pas une carte) et que la quantité testée est devenue la bonne
+  (amplitude **saisonnière**, pas vitesse : régresser une vitesse sur un signal
+  périodique donne ~0 par construction).
+  **Mais ce n'est PAS une respiration mécanique** : le **lac oscille aussi**
+  (2.63 mm, 80 % de l'amplitude du tapis, même phase) alors qu'il ne peut pas
+  respirer, et 3.3 mm est **3 a 60× trop petit** pour une flottaison. Il s'agit
+  du **contraste diélectrique saisonnier** entre tourbière saturée et prairie
+  sèche. La **borne supérieure sur la respiration mécanique du tapis est donc
+  plus contraignante que 3.3 mm**.
 - **Pouvoir prédictif partiel (Phase H) :** ~24 % (R² validé croisé) a 34 %
   (non linéaire) de la variance intra-tapis s'explique par la rétrodiffusion
   σ0_VV, l'humidité, la verdure et la dynamique phénologique — réel mais
