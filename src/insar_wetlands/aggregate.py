@@ -292,6 +292,95 @@ def seasonal_amplitude(series: pd.DataFrame, date_col: str = "date",
             "n": int(t.size)}
 
 
+def _compact_blob(cand_yx: np.ndarray, seed_i: int, n: int) -> np.ndarray:
+    """Les `n` pixels candidats les plus proches d'une graine -> tache COMPACTE."""
+    d = np.hypot(cand_yx[:, 0] - cand_yx[seed_i, 0],
+                 cand_yx[:, 1] - cand_yx[seed_i, 1])
+    return np.argsort(d)[:n]
+
+
+def matched_null_zones(zones: dict, template: xr.DataArray, n_target: int,
+                       n_reference: int, ref: str = "D",
+                       seed: int = 0) -> dict | None:
+    """Contrôle nul APPARIÉ EN TAILLE : deux taches compactes adjacentes de `ref`,
+    de **mêmes effectifs** que les zones réelles.
+
+    Pourquoi c'est indispensable : le bruit d'un agrégat décroît en 1/sqrt(N).
+    Un nul construit sur 2200 px alors que A n'en a que 499 a ~2x moins de bruit
+    et **sous-estime donc le plancher** — ce qui fabrique de fausses détections.
+    Le nul doit avoir exactement la taille des zones qu'il imite.
+    """
+    m = zones[ref].values
+    yx = np.argwhere(m)
+    need = n_target + n_reference
+    if len(yx) < need:
+        return None
+    rng = np.random.default_rng(seed)
+    seed_i = int(rng.integers(len(yx)))
+    both = _compact_blob(yx, seed_i, need)          # tache compacte de taille need
+    sub = yx[both]
+    # coupe la tache en deux selon une direction ALÉATOIRE -> deux moitiés adjacentes
+    th = rng.uniform(0, np.pi)
+    proj = sub[:, 0] * np.cos(th) + sub[:, 1] * np.sin(th)
+    order = np.argsort(proj)
+    t_idx, r_idx = order[:n_target], order[n_target:n_target + n_reference]
+    out = {}
+    for name, idx in (("A", t_idx), ("C", r_idx)):
+        a = np.zeros_like(m)
+        a[sub[idx, 0], sub[idx, 1]] = True
+        out[name] = xr.DataArray(a, coords=template.coords, dims=template.dims)
+    return out
+
+
+def null_distribution(unw: xr.DataArray, corr: xr.DataArray, zones: dict,
+                      template: xr.DataArray, n_target: int, n_reference: int,
+                      n_trials: int = 50, ref: str = "D",
+                      max_dt_days: int | None = None) -> pd.DataFrame:
+    """Distribution NULLE de l'amplitude saisonnière (et de la vitesse).
+
+    Répète `n_trials` fois : deux taches compactes adjacentes de sol stable, de
+    tailles identiques a celles des zones réelles -> inversion agrégée ->
+    amplitude saisonnière. On obtient ainsi une **distribution** du plancher, et
+    donc une **p-value empirique**, au lieu d'une comparaison a une seule
+    réalisation (qui n'est pas un test).
+    """
+    rows = []
+    for t in range(n_trials):
+        zn = matched_null_zones(zones, template, n_target, n_reference,
+                                ref=ref, seed=t)
+        if zn is None:
+            break
+        try:
+            dd = aggregate_unwrapped(unw, corr, zn, "A", "C")
+            if max_dt_days is not None:
+                dd = filter_pairs(dd, max_dt_days=max_dt_days)
+            if len(dd) < 10:
+                continue
+            r = invert_aggregate(dd)
+            s = seasonal_amplitude(r)
+            rows.append({"trial": t, "amplitude_mm": s["amplitude_mm"],
+                         "r2_seasonal": s["r2_seasonal"],
+                         "velocity_mm_yr": r.attrs["velocity_mm_yr"]})
+        except Exception:
+            continue
+    return pd.DataFrame(rows)
+
+
+def empirical_pvalue(observed: float, null_values, tail: str = "greater") -> dict:
+    """p-value empirique de `observed` contre une distribution nulle.
+
+    p = (1 + #{nul >= observé}) / (1 + n) — l'ajout de 1 évite p=0, qui n'est
+    jamais justifiable avec un nombre fini de tirages."""
+    v = np.asarray([x for x in np.asarray(null_values, float) if np.isfinite(x)])
+    if v.size == 0 or not np.isfinite(observed):
+        return {"p_value": np.nan, "n_null": 0}
+    k = int((v >= observed).sum()) if tail == "greater" else int((v <= observed).sum())
+    return {"p_value": round((1 + k) / (1 + v.size), 4), "n_null": int(v.size),
+            "null_median": round(float(np.median(v)), 4),
+            "null_p95": round(float(np.percentile(v, 95)), 4),
+            "observed": round(float(observed), 4)}
+
+
 def closure_bias_by_zone(wrapped: xr.DataArray, zones: dict,
                          max_triplets: int = 3000,
                          zone_names=("A", "B", "C", "D")) -> pd.DataFrame:

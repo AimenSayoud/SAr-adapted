@@ -131,7 +131,31 @@ def test_seasonal_amplitude_recovers_breathing():
     assert n["amplitude_mm"] < 2.0, n
 
 
+def test_matched_null_respects_sizes_and_pvalue():
+    """Le nul doit avoir la MEME taille que les zones reelles (le bruit d'un
+    agregat decroit en 1/sqrt(N) : un nul 4x plus grand sous-estime le plancher
+    et fabrique de fausses detections)."""
+    from insar_wetlands.aggregate import (empirical_pvalue, matched_null_zones)
+
+    D = np.zeros((NY, NX), bool); D[1:19, 1:19] = True
+    zones = {"D": xr.DataArray(D, dims=("y", "x"),
+                               coords={"y": np.arange(NY) * 40.0,
+                                       "x": np.arange(NX) * 40.0})}
+    tmpl = xr.DataArray(np.zeros((NY, NX)), dims=("y", "x"), coords=zones["D"].coords)
+    zn = matched_null_zones(zones, tmpl, n_target=100, n_reference=60, seed=0)
+    assert int(zn["A"].sum()) == 100 and int(zn["C"].sum()) == 60
+    assert int((zn["A"] & zn["C"]).sum()) == 0
+    # deux graines differentes -> deux tirages differents
+    zn2 = matched_null_zones(zones, tmpl, 100, 60, seed=7)
+    assert not np.array_equal(zn["A"].values, zn2["A"].values)
+    # p-value empirique : jamais 0, et correcte aux deux extremes
+    nulls = np.linspace(0, 1, 50)
+    assert empirical_pvalue(2.0, nulls)["p_value"] < 0.05     # observe >> nul
+    assert empirical_pvalue(0.0, nulls)["p_value"] > 0.9      # observe <= tout
+
+
 if __name__ == "__main__":
+    test_matched_null_respects_sizes_and_pvalue()
     test_phasor_separates_random_from_common()
     test_aggregation_recovers_buried_signal()
     test_closure_bias_zero_for_motion_nonzero_for_dielectric()
