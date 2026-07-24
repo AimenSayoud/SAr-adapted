@@ -22,6 +22,8 @@ un signal la ou le WLS échoue ?
 
 from __future__ import annotations
 
+import warnings
+
 import numpy as np
 import pandas as pd
 import xarray as xr
@@ -153,12 +155,16 @@ def evd_phase_linking(wrapped: xr.DataArray, corr: xr.DataArray,
         if np.all(np.isfinite(ref_hist)):
             disp = disp - ref_hist[:, None, None]
 
-    # vitesse (régression linéaire de l'historique)
+    # vitesse (régression linéaire de l'historique). Les pixels hors `aoi`
+    # sont tout-NaN sur l'axe temps -> nanmean déclenche un RuntimeWarning
+    # inoffensif (ils sont masqués juste après) : on le tait.
     t_years = np.array([(d - dates[0]).days / 365.25 for d in dates])
     tc_mean = t_years - t_years.mean()
     denom = float((tc_mean ** 2).sum())
-    vel = np.tensordot(tc_mean, np.nan_to_num(disp - np.nanmean(disp, axis=0)),
-                       axes=(0, 0)) / denom
+    with np.errstate(invalid="ignore"), warnings.catch_warnings():
+        warnings.simplefilter("ignore", RuntimeWarning)
+        disp_c = disp - np.nanmean(disp, axis=0)
+    vel = np.tensordot(tc_mean, np.nan_to_num(disp_c), axes=(0, 0)) / denom
     vel[np.isnan(tcoh)] = np.nan
 
     return xr.Dataset(
