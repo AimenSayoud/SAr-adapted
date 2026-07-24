@@ -379,12 +379,30 @@ par pixel donne −13.7 mm/an (36 % de pixels utilisables) là où l'agrégat do
 
   Le signal est **3 a 60× trop petit** pour une flottaison ou une respiration
   mécanique. Deux arguments indépendants (lac + magnitude) convergent.
+- **[FAIT — la triangulation se referme] Tapis moins lac : le signal
+  S'ANNULE.** En référençant le tapis **au lac** (au lieu de la prairie), le
+  cycle commun disparaît :
+
+  | comparaison | amplitude | phase (jour) | r²_sais | p |
+  |---|---|---|---|---|
+  | A − C (tapis vs prairie) | 3.29 mm | **104** | 0.30 | 0.011 |
+  | B − C (lac vs prairie) | 2.63 mm | **95** | 0.11 | 0.036 |
+  | **A − B (tapis vs lac)** | **0.90 mm** | 146 *(aléatoire)* | **0.05** | **0.448** |
+
+  Les deux premières s'accordent en phase (mi-avril) ; la troisième tombe **au
+  niveau du nul** (médiane 0.83 mm). [INT] Tapis et lac sont saisonnièrement
+  **indiscernables** : si le tapis respirait mécaniquement et pas le lac, A−B
+  révélerait cette respiration. Il ne révèle rien.
+- **[FAIT — LE CHIFFRE À PUBLIER] Borne supérieure sur le mouvement propre du
+  tapis : < 2 mm** (p95 du nul apparié pour A−B = 2.0 mm ; observé 0.90 mm).
+  À comparer aux **10-40 mm** rapportés sur tourbières hautes (Hrysiewicz 2024).
+  C'est une contrainte quantitative et falsifiable, bien plus forte qu'un
+  « nous n'avons rien détecté ».
 - **[INT] Ce que ça établit, et ce que ça n'établit pas.** Nous mesurons le
   **contraste diélectrique saisonnier** entre une tourbière saturée et une
   prairie sèche — un résultat en soi, et la première mesure positive de
   l'étude. Mais **ce n'est pas la respiration du tapis** et ne doit pas être
-  présenté comme telle. Conséquence : la **borne supérieure sur la respiration
-  mécanique devient plus contraignante que 3.3 mm**.
+  présenté comme telle.
   ⚠️ *Distinction a maintenir* : ceci établit que le **signal saisonnier** est
   diélectrique ; cela ne dit **rien** sur la nature du mécanisme de
   **décorrélation**, qui reste (a) ou (b). Deux questions différentes.
@@ -467,6 +485,79 @@ variabilité **interne** de A, pas A vs C.
 - **[MÉTHODE] RVI dual-pol** = 4·VH/(VV+VH) en puissance : préférable au ratio
   VH/VV brut de la Phase D-ter car **normalisé par la puissance totale**, donc
   insensible a un biais de calibration commun aux deux polarisations.
+
+## 5-sexies. SYNTHÈSE GLOBALE — où nous en sommes après D→H
+
+### La question a changé, et c'est ce qui a débloqué le travail
+
+Question initiale : *« Sentinel-1 peut-il mesurer le déplacement vertical du
+tapis flottant de Rzecin ? »* — question fermée, dont la réponse est non.
+
+Question effective : ***« Que mesure réellement Sentinel-1 au-dessus d'une
+tourbière flottante, et pourquoi ? »*** — question de recherche, dont nous avons
+maintenant une réponse en quatre points.
+
+### Les quatre acquis
+
+**1. L'échec n'est pas algorithmique — c'est une propriété de la cible.**
+Six estimateurs aux hypothèses mathématiques différentes (SBAS, ISBAS, paires
+annuelles, réseau hybride, phase-linking EVD, WLS) échouent de la même façon.
+Le phase-linking, estimateur du maximum de vraisemblance, ne récupère que 5.4 %
+des pixels du tapis a tcoh ≥ 0.7 contre 64.7 % pour une végétation
+**appariée** sur sol stable, **avec le même réseau**. `H1 fermée pour le réseau
+HyP3 actuel.`
+
+**2. Le tapis est une unité radar distincte, avec une physique PROPRE.**
+Δcohérence = −0.069 a couvert apparié (Wilcoxon p = 2×10⁻⁴⁹, jackknife par date
+stable) ; frontière nette au bord du polygone ; dispersion de fermeture ×3.2 ;
+|R| agrégé le plus bas de toutes les zones. Et surtout, en Phase H, **les
+prédicteurs s'inversent** entre tapis et prairie (σ0 : −0.379 vs −0.008 ;
+altitude : −0.168 vs +0.430) — le tapis ne se comporte pas comme de la
+végétation ordinaire.
+
+**3. Ce que Sentinel-1 mesure ici est un signal DIÉLECTRIQUE saisonnier, pas un
+mouvement.** Amplitude 3.3 mm (p = 0.011), maximum mi-avril — mais le **lac
+oscille identiquement** (2.63 mm, même phase) alors qu'il ne peut pas respirer,
+et **A−B s'annule** (0.90 mm, p = 0.45). Trois arguments indépendants (contrôle
+du lac, annulation A−B, ordre de grandeur 3-60× trop petit) convergent : c'est
+le **contraste d'humidité saisonnier** entre surfaces saturées et prairie sèche.
+
+**4. Borne supérieure quantitative : le mouvement propre du tapis est
+< 2 mm**, contre 10-40 mm publiés sur tourbières hautes. Résultat falsifiable,
+comparatif, et bien plus fort qu'une absence de détection.
+
+### Les deux contributions méthodologiques
+
+- **Changement d'observable** : un nombre pour tout le tapis plutôt qu'une carte.
+  Le bruit de phase décroît en 1/√N_eff ; le signal n'était pas sous le plancher
+  de bruit, il était sous le plancher **par pixel**. Validé en synthétique
+  (par pixel −13.7 mm/an, agrégat −19.8 pour une vérité de −20).
+- **Protocole de test de signal faible** : nul **apparié en taille** (le
+  plancher dépend de N) + N tirages → **p-value empirique**. Sans lui, deux
+  fausses conclusions auraient été publiées (un nul 4× trop grand, puis un test
+  de vitesse sur un signal périodique).
+
+### Les erreurs corrigées en cours de route (a documenter comme telles)
+
+| erreur | conséquence évitée |
+|---|---|
+| `ratio_to_floor` comparé entre zones de N_eff différents | classement faux des zones |
+| nul non apparié en taille (2200 px vs 499) | fausse détection saisonnière |
+| test de **vitesse** sur un signal **périodique** | puissance nulle sur la physique cherchée |
+| colinéarité `rvi`/`vh_vv_db` (VIF ≈ 240) | coefficients ininterprétables (−1.21 / +0.95) |
+| prédiction « biais de fermeture a 5 σ » | **falsifiée** par les données (1.6 σ) |
+
+### Ce qui reste ouvert
+
+- **Le mécanisme de la DÉCORRÉLATION** — (a) diélectrique vs (b) micro-mouvement
+  non rigide. Le biais de fermeture ne tranche pas (dispersion sans biais de
+  signe = reconfiguration aléatoire, que les deux produisent). *Distinct de la
+  nature du signal saisonnier, qui, elle, est établie comme diélectrique.*
+- **Validation in situ** : le laser reste la seule mesure directe capable de
+  confirmer la borne < 2 mm et de trancher (a) vs (b).
+- **La bande L** (NISAR, Phase F prête) : teste si la longueur d'onde débloque
+  la cible.
+- **Transposabilité** du modèle prédictif (R²cv 0.24) a d'autres tourbières.
 
 ## 6. Portée et limites
 
