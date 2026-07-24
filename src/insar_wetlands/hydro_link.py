@@ -28,10 +28,21 @@ from .aggregate import (aggregate_unwrapped, filter_pairs, invert_aggregate,
                         matched_null_zones)
 
 
-def _detrend(y: np.ndarray, t: np.ndarray) -> np.ndarray:
-    """Retire constante + tendance (une dérive commune créerait une corrélation
-    fallacieuse avec tout forçage lui-même tendanciel)."""
-    M = np.column_stack([np.ones_like(t), t])
+def _detrend(y: np.ndarray, t: np.ndarray, deseasonalize: bool = False
+             ) -> np.ndarray:
+    """Retire constante + tendance, et OPTIONNELLEMENT le cycle annuel.
+
+    `deseasonalize=True` est le test **décisif** de causalité hydrologique.
+    Deux signaux a cycle annuel corrèlent toujours fortement a *un* décalage —
+    le balayage ne fait alors qu'aligner leurs phases, sans rien prouver
+    (54 jours = 53° de phase annuelle, pas un délai physique). En retirant
+    l'harmonique annuelle des DEUX séries, il ne reste que les **anomalies
+    inter-annuelles et événementielles** : si les résidus corrèlent encore, le
+    couplage est réel ; sinon, on n'observait qu'un cycle saisonnier partagé."""
+    cols = [np.ones_like(t), t]
+    if deseasonalize:
+        cols += [np.cos(2 * np.pi * t), np.sin(2 * np.pi * t)]
+    M = np.column_stack(cols)
     b, *_ = np.linalg.lstsq(M, y, rcond=None)
     return y - M @ b
 
@@ -65,20 +76,21 @@ def build_drivers(era5: xr.Dataset, lon: float, lat: float,
 def lag_scan(series: pd.DataFrame, drivers: pd.DataFrame,
              date_col: str = "date", value_col: str = "disp_mm",
              max_lag_days: int = 90, step: int = 6,
-             detrend: bool = True) -> pd.DataFrame:
+             detrend: bool = True, deseasonalize: bool = False) -> pd.DataFrame:
     """Corrélation série agrégée ↔ chaque forçage, balayée en DÉCALAGE.
 
-    Le décalage est physiquement informatif : une réponse diélectrique a
-    l'humidité est quasi **instantanée** (lag ~0), alors qu'un tassement
-    mécanique de la tourbe suivrait la nappe avec un **retard** de plusieurs
-    semaines. Retourne, par forçage, le meilleur |r| et le décalage associé.
+    ⚠️ **A lire avec `deseasonalize=True` avant toute conclusion causale.** Avec
+    `deseasonalize=False` (défaut), deux signaux a cycle annuel corrèlent
+    fortement a *un* décalage : le balayage aligne les phases, et le « décalage »
+    obtenu n'est PAS un délai physique (54 j = 53° de phase annuelle). Seule la
+    version désaisonnalisée teste un couplage réel, sur les anomalies.
     """
     s = series[[date_col, value_col]].dropna().copy()
     s[date_col] = pd.to_datetime(s[date_col])
     t = (s[date_col] - s[date_col].iloc[0]).dt.days.values / 365.25
     y = s[value_col].values.astype(float)
     if detrend:
-        y = _detrend(y, t)
+        y = _detrend(y, t, deseasonalize)
     rows = []
     for name in drivers.columns:
         d = drivers[name].dropna()
@@ -93,7 +105,7 @@ def lag_scan(series: pd.DataFrame, drivers: pd.DataFrame,
             ok = np.isfinite(al) & np.isfinite(y)
             if ok.sum() < 10:
                 continue
-            x = _detrend(al[ok], t[ok]) if detrend else al[ok]
+            x = _detrend(al[ok], t[ok], deseasonalize) if detrend else al[ok]
             if x.std() == 0:
                 continue
             r = float(np.corrcoef(x, y[ok])[0, 1])
@@ -109,7 +121,8 @@ def null_lag_scan(unw: xr.DataArray, corr: xr.DataArray, zones: dict,
                   template: xr.DataArray, drivers: pd.DataFrame,
                   n_target: int, n_reference: int, n_trials: int = 50,
                   max_lag_days: int = 90, step: int = 6,
-                  max_dt_days: int | None = None) -> pd.DataFrame:
+                  max_dt_days: int | None = None,
+                  deseasonalize: bool = False) -> pd.DataFrame:
     """Distribution NULLE du |r| maximal, forçage par forçage.
 
     Chaque tirage rejoue toute la chaîne (deux taches de sol stable appariées en
@@ -129,7 +142,8 @@ def null_lag_scan(unw: xr.DataArray, corr: xr.DataArray, zones: dict,
             if len(dd) < 10:
                 continue
             sc = lag_scan(invert_aggregate(dd), drivers,
-                          max_lag_days=max_lag_days, step=step)
+                          max_lag_days=max_lag_days, step=step,
+                          deseasonalize=deseasonalize)
             for _, r in sc.iterrows():
                 rows.append({"trial": t, "driver": r["driver"], "r": r["r"]})
         except Exception:

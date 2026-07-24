@@ -76,6 +76,49 @@ def test_detrend_kills_spurious_trend_correlation():
     assert abs(with_dt.iloc[0]["r"]) < 0.5, with_dt           # neutralise
 
 
+def test_deseasonalize_kills_shared_annual_cycle():
+    """Le piege REEL rencontre en Phase I : deux signaux a cycle annuel
+    INDEPENDANTS correlent fortement a un certain decalage (le balayage aligne
+    les phases). Seule la desaisonnalisation le revele."""
+    dates = pd.date_range("2022-01-01", periods=90, freq="12D")
+    days = pd.date_range("2021-10-01", "2026-01-01", freq="1D")
+    rng = np.random.default_rng(3)
+    td = (days - days[0]).days.values / 365.25
+    ts = (dates - dates[0]).days.values / 365.25
+    # forcage saisonnier pur + bruit PROPRE
+    drivers = pd.DataFrame({"seasonal": pd.Series(
+        np.cos(2 * np.pi * td) + rng.normal(0, .1, len(days)), index=days)})
+    # serie saisonniere avec un bruit INDEPENDANT : aucun lien causal
+    series = pd.DataFrame({"date": dates,
+                           "disp_mm": np.cos(2 * np.pi * (ts - 0.15))
+                           + rng.normal(0, .1, len(dates))})
+    naive = lag_scan(series, drivers, max_lag_days=90, step=6)
+    deseas = lag_scan(series, drivers, max_lag_days=90, step=6,
+                      deseasonalize=True)
+    # mesure : |r| passe de 0.84 (illusoire) a 0.24 -> l'illusion s'effondre
+    assert abs(naive.iloc[0]["r"]) > 0.80, naive
+    assert abs(deseas.iloc[0]["r"]) < 0.40, deseas
+    assert abs(deseas.iloc[0]["r"]) < 0.5 * abs(naive.iloc[0]["r"]), (naive, deseas)
+
+
+def test_deseasonalize_keeps_real_anomaly_coupling():
+    """A l'inverse, un couplage REEL sur les ANOMALIES doit survivre."""
+    dates = pd.date_range("2022-01-01", periods=90, freq="12D")
+    days = pd.date_range("2021-10-01", "2026-01-01", freq="1D")
+    rng = np.random.default_rng(4)
+    td = (days - days[0]).days.values / 365.25
+    anom = pd.Series(rng.normal(0, 1, len(days)), index=days).rolling(
+        30, min_periods=1).mean()
+    drv = pd.Series(np.cos(2 * np.pi * td), index=days) + anom
+    drivers = pd.DataFrame({"driver": drv})
+    obs = drv.reindex(dates, method="nearest").values
+    series = pd.DataFrame({"date": dates,
+                           "disp_mm": obs + rng.normal(0, .05, len(dates))})
+    deseas = lag_scan(series, drivers, max_lag_days=30, step=6,
+                      deseasonalize=True)
+    assert abs(deseas.iloc[0]["r"]) > 0.7, deseas      # le vrai lien survit
+
+
 def test_driver_pvalues_extremes():
     obs = pd.DataFrame([{"driver": "d", "r": 0.9, "lag_days": 0}])
     weak = pd.DataFrame({"trial": range(40), "driver": "d",
@@ -125,6 +168,8 @@ def test_plots_run():
 if __name__ == "__main__":
     test_lag_scan_finds_driver_and_lag()
     test_detrend_kills_spurious_trend_correlation()
+    test_deseasonalize_kills_shared_annual_cycle()
+    test_deseasonalize_keeps_real_anomaly_coupling()
     test_driver_pvalues_extremes()
     test_zone_areas_and_site_check()
     test_label_array_and_field_table()
