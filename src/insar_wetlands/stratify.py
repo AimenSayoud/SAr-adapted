@@ -578,6 +578,26 @@ def s2_phenology_by_zone(s2: xr.Dataset, zones: dict) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+def dual_pol_rvi(rtc: xr.Dataset, reduce: str = "median") -> xr.DataArray:
+    """Radar Vegetation Index dual-pol : RVI = 4*VH / (VV + VH), en PUISSANCE.
+
+    Quantifie la diffusion de VOLUME de façon NORMALISÉE : ~0 pour une surface
+    lisse (VH << VV, réflexion spéculaire / double-bounce), ~1+ pour un volume
+    dépolarisant dense (canopée). Plus rigoureux que le simple ratio VH/VV
+    utilisé en Phase D-ter : le RVI est insensible a un biais de calibration
+    commun aux deux polarisations, car il normalise par la puissance totale.
+
+    C'est le descripteur direct de notre hypothèse dominante (« volume diffusant
+    humide »), et un prédicteur de premier plan pour la Phase H.
+    """
+    vv = 10 ** (rtc["gamma0_vv_db"] / 10.0)      # dB -> puissance linéaire
+    vh = 10 ** (rtc["gamma0_vh_db"] / 10.0)
+    rvi = (4.0 * vh / (vv + vh)).rename("rvi")
+    if reduce and "time" in rvi.dims:
+        rvi = getattr(rvi, reduce)("time")
+    return rvi
+
+
 def amplitude_dispersion_from_rtc(rtc: xr.Dataset, pol: str = "vv") -> xr.DataArray:
     """Indice de dispersion d'amplitude D_A calcule depuis la serie RTC σ0 PAR
     DATE (meilleure source que l'amplitude par interferogramme, absente des

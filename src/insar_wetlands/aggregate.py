@@ -179,6 +179,22 @@ def aggregate_unwrapped(unw: xr.DataArray, corr: xr.DataArray, zones: dict,
     return pd.DataFrame(rows)
 
 
+def filter_pairs(dd: pd.DataFrame, max_dt_days: int | None = 60,
+                 min_weight: float | None = None) -> pd.DataFrame:
+    """Retire les paires à longue baseline temporelle (et/ou de faible poids).
+
+    Les paires annuelles (~370 j) et bi-annuelles (~740 j) de la Phase 15 sont
+    quasi certainement mal DÉROULÉES sur le tapis (±25 mm de dispersion
+    observée) : elles injectent des sauts de 2*pi dans l'inversion agrégée.
+    Les exclure teste la robustesse du résultat au déroulement."""
+    out = dd
+    if max_dt_days is not None:
+        out = out[out["dt_days"] <= max_dt_days]
+    if min_weight is not None:
+        out = out[out["weight"] >= min_weight]
+    return out.reset_index(drop=True)
+
+
 def invert_aggregate(dd: pd.DataFrame) -> pd.DataFrame:
     """SBAS sur le super-pixel : série temporelle depuis les doubles différences.
 
@@ -207,8 +223,34 @@ def invert_aggregate(dd: pd.DataFrame) -> pd.DataFrame:
     return out
 
 
+def adjacent_null_zones(zones: xr.DataArray | dict, template: xr.DataArray,
+                        ref: str = "D") -> dict:
+    """Contrôle nul APPARIÉ SPATIALEMENT : deux moitiés ADJACENTES de `ref`.
+
+    Un `argwhere` naïf coupe la zone en haut/bas de l'image — deux régions
+    ÉLOIGNÉES, dont l'atmosphère ne s'annule PAS, alors que A et C sont
+    voisines. Le nul était donc trop sévère (il mesurait le gradient
+    atmosphérique, pas le bruit de la méthode).
+
+    Ici on coupe par la MÉDIANE DE X (bande gauche / bande droite), et on ne
+    garde qu'une bande centrale de part et d'autre de la coupure -> deux
+    demi-zones **contiguës**, à la même échelle spatiale que A vs C.
+    """
+    m = (zones[ref] if isinstance(zones, dict) else zones).values
+    yy, xx = np.where(m)
+    xmid = np.median(xx)
+    # largeur de bande = celle qui donne ~autant de px que la plus petite zone
+    span = np.percentile(np.abs(xx - xmid), 40)
+    left = m & (template.x.values[None, :] <= template.x.values[int(xmid)])
+    right = m & (template.x.values[None, :] > template.x.values[int(xmid)])
+    near = np.abs(np.arange(m.shape[1])[None, :] - xmid) <= max(2.0, span)
+    mk = lambda a: xr.DataArray(a & near, coords=template.coords,
+                                dims=template.dims)
+    return {"A": mk(left), "C": mk(right)}
+
+
 def closure_bias_by_zone(wrapped: xr.DataArray, zones: dict,
-                         max_triplets: int = 300,
+                         max_triplets: int = 3000,
                          zone_names=("A", "B", "C", "D")) -> pd.DataFrame:
     """Biais de phase de FERMETURE par zone — discriminateur du mécanisme.
 
@@ -228,6 +270,10 @@ def closure_bias_by_zone(wrapped: xr.DataArray, zones: dict,
     pairs = [str(p) for p in wrapped.pair.values]
     pset = {p: i for i, p in enumerate(pairs)}
     dates = dates_from_pairs(pairs)
+    # On énumère TOUS les triplets fermés puis on sous-échantillonne AU HASARD
+    # si besoin. (Un `break` sur le compteur ne garderait que les premières
+    # dates -> biais temporel.) Plus de triplets = SE plus petit = plus de
+    # puissance pour détecter le biais : c'est le paramètre critique du test.
     triplets = []
     for i, d1 in enumerate(dates):
         for d2 in dates[i + 1:]:
@@ -239,10 +285,12 @@ def closure_bias_by_zone(wrapped: xr.DataArray, zones: dict,
                 p13 = f"{d1:%Y%m%d}_{d3:%Y%m%d}"
                 if p12 in pset and p23 in pset and p13 in pset:
                     triplets.append((pset[p12], pset[p23], pset[p13]))
-        if len(triplets) >= max_triplets:
-            break
     if not triplets:
         raise ValueError("aucun triplet ferme dans le reseau")
+    if len(triplets) > max_triplets:
+        idx = np.random.default_rng(0).choice(len(triplets), max_triplets,
+                                              replace=False)
+        triplets = [triplets[i] for i in idx]
 
     ph = wrapped.values
     rows = []
