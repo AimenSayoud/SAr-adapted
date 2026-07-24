@@ -111,8 +111,29 @@ def test_closure_bias_zero_for_motion_nonzero_for_dielectric():
     assert bool(cb.loc["C", "bias_significant"]) is False
 
 
+def test_seasonal_amplitude_recovers_breathing():
+    """Une respiration saisonnière connue est retrouvée — et la VITESSE est ~0,
+    ce qui montre qu'un test de vitesse n'a AUCUNE puissance sur ce signal."""
+    from insar_wetlands.aggregate import seasonal_amplitude
+
+    d = pd.date_range("2022-01-01", periods=90, freq="12D")
+    t = (d - d[0]).days.values / 365.25
+    rng = np.random.default_rng(3)
+    y = 25.0 * np.cos(2 * np.pi * (t - 0.4)) + rng.normal(0, 2.0, t.size)
+    s = seasonal_amplitude(pd.DataFrame({"date": d, "disp_mm": y}))
+    assert abs(s["amplitude_mm"] - 25.0) < 2.0, s
+    assert s["r2_seasonal"] > 0.9, s
+    # la tendance linéaire est ~nulle : tester une vitesse aurait tout raté
+    assert abs(s["trend_mm_yr"]) < 3.0, s
+    # bruit pur -> amplitude faible
+    n = seasonal_amplitude(pd.DataFrame({"date": d,
+                                         "disp_mm": rng.normal(0, 2.0, t.size)}))
+    assert n["amplitude_mm"] < 2.0, n
+
+
 if __name__ == "__main__":
     test_phasor_separates_random_from_common()
     test_aggregation_recovers_buried_signal()
     test_closure_bias_zero_for_motion_nonzero_for_dielectric()
+    test_seasonal_amplitude_recovers_breathing()
     print("ALL AGGREGATE TESTS PASSED")

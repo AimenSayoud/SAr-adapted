@@ -315,6 +315,91 @@ donne tcoh ≈ 0.55. Donc :
 > infra-pixel) — ne peut être tranchée par ces seules observations radar et
 > demande une mesure in situ (laser) ou une diversité de longueur d'onde.
 
+## 5-quinquies. Phases G et H — agrégation spatiale et prédiction de l'échec
+
+### G — Changement d'OBSERVABLE (pas une 7e inversion)
+
+Toutes les phases précédentes cherchaient une carte **pixel par pixel**. G
+mesure **un seul nombre pour tout le tapis** : la moyenne complexe sur N pixels
+divise le bruit de phase par √N_eff (~1.5 rad par pixel → ~1 mm sur 499 px),
+donc *le signal n'est pas sous le plancher de bruit, il est sous le plancher de
+bruit PAR PIXEL*. Validé en synthétique : sur des données identiques, l'inversion
+par pixel donne −13.7 mm/an (36 % de pixels utilisables) là où l'agrégat donne
+−19.8 mm/an pour une vérité de −20.
+
+- **[FAIT] G1** — phase commune agrégée |R| : C=0.569, D=0.426, B=0.395,
+  **A=0.234**. Le tapis est le plus bas de toutes les zones. [INT] Cohérent avec
+  D→E2. *Réserve* : |R| contient l'atmosphère (commune à tous les pixels), donc
+  seul le **classement relatif** est informatif.
+- **[FAIT] G2** — double différence agrégée A−C vs **contrôle nul** (deux bandes
+  adjacentes de sol stable) : réseau complet −1.53 vs nul **−1.50** mm/an ;
+  baselines ≤60 j −3.87 vs nul **−4.88** mm/an. **Signal indiscernable du nul.**
+  [INT] Aucun mouvement différentiel détectable ; le résultat publiable est une
+  **borne supérieure**, pas une mesure. Que signal et nul coïncident à
+  ~−1.5 mm/an indique un **résidu systématique commun** (rampe résiduelle), donc
+  bien un plancher méthodologique.
+- **[INT — correction de méthode] G2 testait la mauvaise observable.** La
+  respiration d'une tourbière est **saisonnière** (10-40 mm, Hrysiewicz 2024),
+  pas une dérive linéaire : une régression de vitesse sur un signal périodique
+  donne ~0 *par construction* et n'a donc **aucune puissance** sur la physique
+  recherchée. D'où `seasonal_amplitude` (G2-bis), qui ajuste un cycle annuel et
+  compare son amplitude a celle du nul.
+- **[FAIT] G3 — biais de phase de fermeture : PRÉDICTION FALSIFIÉE.** Nous
+  attendions qu'en passant de 304 a ~3000 triplets le biais de A devienne
+  significatif (~5 σ). Or le réseau ne contient que **518 triplets fermés**, et
+  a 518 le biais a *diminué* : −0.090 rad a **1.6 σ** (contre −0.136 a 1.77 σ
+  sur 304). Une estimation qui régresse vers zéro quand n augmente est le
+  comportement d'une **fluctuation**. **Aucun biais diélectrique systématique
+  n'est détecté.**
+- **[FAIT] G3 — la dispersion, elle, est robuste** : |fermeture| médiane
+  A=0.683 et B=0.777 contre C=0.212 et D=0.210 (**×3.2**, stable entre les deux
+  runs ; π/2≈1.57 = triplets purement aléatoires, donc A est *partiellement*
+  cohérent, pas du bruit pur).
+- **[INT — important] G3 ne tranche PAS (a) vs (b).** Une forte dispersion
+  **sans biais de signe** = reconfiguration **aléatoire** du diffuseur, et non
+  une dérive diélectrique monotone. Or des fluctuations d'humidité **comme** un
+  micro-mouvement non rigide produisent exactement cette signature. G3 mesure
+  donc le **degré** de non-stationnarité, pas sa **nature** : la question du
+  mécanisme reste ouverte (laser ou bande L).
+
+### H — Prédire OÙ Sentinel-1 échoue (analyse INTRA-tapis)
+
+Passage de « le tapis décorrèle » a « la décorrélation survient sous telles
+conditions ». Cible = temporal_coherence E2 en **continu** (le seuil 0.7 est une
+convention arbitraire qui réduit 499 pixels a un seul nombre) ; analyse de la
+variabilité **interne** de A, pas A vs C.
+
+- **[FAIT] Courbe multi-seuils** : A et C ne diffèrent pas par un simple
+  décalage — a 0.50 elles sont quasi identiques (0.974 vs 0.995), l'écart se
+  creuse vers 0.65-0.75 (A 0.236→0.006, C 0.794→0.446). Le « 5.4 % vs 64.7 % »
+  de E2 n'est qu'**un point** d'une courbe qui sépare surtout dans la **queue
+  haute**.
+- **[FAIT] Modèle intra-tapis** (n=499) : **R² validé croisé = 0.127 ± 0.048**
+  (forêt aléatoire : R² test 0.230). Prédicteurs dominants (coefficients
+  standardisés) : amplitude saisonnière de verdure S2 **−0.254**, altitude
+  −0.238, humidité S2 moyenne −0.234, fraction inondée +0.174.
+- **[INT] Un pouvoir prédictif RÉEL mais MODESTE** : ~13 % de la variance
+  intra-tapis (23 % en non linéaire). Le sens physique est cohérent : la
+  cohérence baisse la ou le couvert **change le plus au fil des saisons**, ou
+  c'est **plus humide**, et ou c'est **plus bas**. Formulation défendable :
+  *« S1 échoue davantage sur les parties du tapis les plus humides, les plus
+  basses et les plus dynamiques phénologiquement »* — mais l'essentiel de la
+  variance reste inexpliqué.
+- **[FAIT — le plus frappant] Les moteurs DIFFÈRENT entre tapis et prairie.**
+  Verdure moyenne : ρ=**+0.320** dans A contre −0.009 dans C (écart 0.329) ;
+  altitude : ρ=−0.168 dans A contre **+0.430** dans C (écart **−0.598**).
+  [INT] Les mêmes covariables agissent **en sens opposé** selon la zone : le
+  tapis a bien une **physique propre**, il ne se comporte pas comme de la
+  végétation ordinaire. C'est un argument INDÉPENDANT en faveur de la
+  Conclusion 1 (§4.1).
+- **[LIMITE]** Le stack RTC dual-pol n'était pas chargé lors de ce run
+  (`rtc_dualpol_stack.nc`) : **aucun prédicteur polarimétrique** (RVI, σ0,
+  VH/VV, D_A) n'a pu entrer dans le modèle — or ce sont les plus liés au
+  mécanisme. Les R² rapportés sont donc un **plancher**, a re-estimer avec la
+  polarimétrie. Ajout méthodologique : **RVI dual-pol** = 4·VH/(VV+VH) en
+  puissance, préférable au ratio VH/VV brut de la Phase D-ter car normalisé par
+  la puissance totale (insensible a un biais de calibration commun).
+
 ## 6. Portée et limites
 
 - **Ce que ça établit :** le fen flottant est intrinsèquement moins observable
@@ -331,8 +416,19 @@ donne tcoh ≈ 0.55. Donc :
   saturée, (b) **micro-mouvement non rigide** (flexion locale, tassement
   différentiel infra-pixel), (c) — désormais **écartée** — mouvement de **corps
   rigide** couplé à la nappe. (a) et (b) restent toutes deux compatibles avec
-  les observations ; ainsi que H4 (mouvement réversible). Seuls un laser in situ
-  ou une diversité de longueur d'onde (bande L) départageraient (a) de (b).
+  les observations ; ainsi que H4 (mouvement réversible). Le test de **biais de
+  fermeture** (Phase G3), qui devait départager (a) de (b), **ne détecte aucun
+  biais systématique** : la signature est une non-stationnarité **aléatoire**,
+  compatible avec les deux. Seuls un laser in situ ou une diversité de longueur
+  d'onde (bande L) départageraient (a) de (b).
+- **Borne supérieure sur le mouvement (Phase G2) :** l'agrégation spatiale sur
+  les 499 px du tapis, référencée au sol stable adjacent, ne détecte **aucun
+  mouvement différentiel au-dessus du plancher de la méthode** (signal
+  indiscernable du contrôle nul). C'est une borne, pas une absence de mouvement.
+- **Pouvoir prédictif partiel (Phase H) :** ~13 % (R² validé croisé) a 23 %
+  (non linéaire) de la variance intra-tapis s'explique par l'humidité,
+  l'altitude et la dynamique phénologique — réel mais modeste, et obtenu **sans
+  les prédicteurs polarimétriques** (a re-estimer).
 - **Limites méthodologiques :** proxy de nappe grossier (pluie cumulée ERA5, à
   remplacer par la WTD in situ) ; n_froid = 31 (test de gel indicatif) ;
   appariement C limité par la rareté de végétation humide sur sol stable
