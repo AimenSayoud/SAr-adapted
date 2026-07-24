@@ -156,11 +156,43 @@ démontrée » serait une surinterprétation contestable en évaluation.
   persistante (83 px). [INT] Le « lac résiduel » n'est donc **pas de l'eau
   libre ouverte** mais un plan d'eau **peu profond et végétalisé** (cohérent
   avec une terrestrialisation en cours) — une information écologique en soi.
-- [EN ATTENTE] **Dispersion d'amplitude D_A** (depuis RTC σ0) et **ratio VH/VV**
-  (dual-pol) : le premier dit si un PSI/DS-InSAR aurait la moindre cible sur le
-  tapis (test de H1 sans ISCE) ; le second sépare volume (végétation) de
-  double-bounce (eau/humidité) et est le meilleur espoir de trancher
-  mécanique vs diélectrique.
+- [FAIT] **Dispersion d'amplitude D_A** (85 dates RTC) : A médiane 0.243
+  (59 % de pixels < 0.25) ; C 0.238 (69 %) ; D 0.215 (87 %) ; **lac B 0.310
+  (3 %)**. [INT] Le tapis **n'est PAS radar-sombre** : il rétrodiffuse et a une
+  stabilité d'amplitude à peine inférieure à la prairie. **Donc son problème
+  n'est pas « aucune cible » mais une PHASE instable d'une cible distribuée
+  présente → cela N'EXCLUT PAS le DS-InSAR/phase-linking** (conçu exactement
+  pour ce régime) : **H1 reste ouverte**, D_A ne la ferme pas. Seul le lac est
+  vraiment sans cible stable (3 %).
+- [FAIT] **Ratio VH/VV (dual-pol, 85 dates)** : A −5.27 dB, C −5.57 dB, D
+  (forêt/nu) −4.51, B (lac végétalisé) −4.87. [INT] Le tapis a un VH/VV
+  **plus élevé** (plus dépolarisant) que la prairie, **pas plus bas** — donc
+  **plus de diffusion de VOLUME**, PAS un double-bounce de type eau libre. Avec
+  le σ0 +1.3 dB, le tapis se comporte en C-band comme un **volume diffusant
+  plus dense et plus humide** que la prairie sèche, malgré une phénologie
+  optique identique.
+- [FAIT] **Amplitude de « respiration » optique (humidité S2)** : A 0.512, **C
+  0.852**, B 0.263. [INT] Contre-intuitif mais cohérent avec la littérature :
+  c'est la PRAIRIE qui varie le plus en humidité saisonnière ; **le tapis reste
+  humide et stable** toute l'année (stabilité hydrologique du fen, Juszczak
+  et al. 2013), et le lac reste le plus humide.
+
+### 5-ter. Synthèse mécanistique révisée (Phases D-bis + D-ter)
+
+[INT] La convergence des indices **déplace le poids de la preuve** : le tapis
+est un **jumeau phénologique optique** de la prairie mais, en radar, il est
+**plus brillant (+1.3 dB), plus dépolarisant (VH/VV), optiquement humide et
+stable**, à **résidu d'inversion élevé** et **cohérence chroniquement basse
+non récupérée par le gel**. Ce faisceau pointe vers une **décorrélation
+volumétrique + diélectrique d'un couvert bas humide sur tourbe saturée** (un
+« volume diffusant humide » dont le centre de phase est instable en C-band à
+12 j) — et **NON** vers un mouvement mécanique de corps rigide du tapis
+flottant, pour lequel **aucun indice positif** n'a été trouvé (ni couplage
+nappe, ni stabilisation au gel, ni signature double-bounce). [HYP] Le mécanisme
+dominant est donc probablement **volumétrique/diélectrique**, la composante
+mécanique restant non prouvée — mais les tailles d'effet polarimétriques sont
+**modestes** (VH/VV : 0.3 dB) et **seul le laser** exclurait définitivement un
+micro-mouvement.
 
 ## 6. Portée et limites
 
