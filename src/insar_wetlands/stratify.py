@@ -98,7 +98,14 @@ def load_worldcover(template: xr.DataArray, cfg: dict | None = None,
     tile = worldcover_tile_name(lat, lon, year)
     base = (f"https://esa-worldcover.s3.eu-central-1.amazonaws.com/"
             f"v200/{year}/map/{tile}")
-    minx, miny, maxx, maxy = buffered_bbox(cfg)   # degrés (CRS de la tuile)
+    # Découper sur l'emprise COMPLÈTE du crop (pas seulement le buffer 500 m) :
+    # sinon WorldCover ne couvre qu'un petit carré central et la zone C
+    # (prairie extérieure appariée) est confinée à ~500 m + du nodata 'classe 0'
+    # partout ailleurs. On prend les bornes du template en degrés.
+    try:
+        minx, miny, maxx, maxy = template.rio.transform_bounds("EPSG:4326")
+    except Exception:
+        minx, miny, maxx, maxy = buffered_bbox(cfg)   # repli
 
     def _open_clip(src):
         da = rioxarray.open_rasterio(src, masked=True, chunks=True).squeeze("band", drop=True)
