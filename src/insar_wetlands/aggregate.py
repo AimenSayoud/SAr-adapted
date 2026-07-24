@@ -363,7 +363,11 @@ def null_distribution(unw: xr.DataArray, corr: xr.DataArray, zones: dict,
                          "velocity_mm_yr": r.attrs["velocity_mm_yr"]})
         except Exception:
             continue
-    return pd.DataFrame(rows)
+    # colonnes garanties même si AUCUN tirage n'a abouti (ex. zone trop grande :
+    # matched_null_zones exige n_target+n_reference pixels dans `ref`, ce que D
+    # ne peut pas fournir pour elle-même) -> évite un KeyError en aval.
+    return pd.DataFrame(rows, columns=["trial", "amplitude_mm", "r2_seasonal",
+                                       "velocity_mm_yr"])
 
 
 def empirical_pvalue(observed: float, null_values, tail: str = "greater") -> dict:
@@ -405,6 +409,12 @@ def seasonal_zone_scan(unw: xr.DataArray, corr: xr.DataArray, zones: dict,
         if z not in zones or int(zones[z].sum()) < 20:
             continue
         n_t, n_r = int(zones[z].sum()), int(zones[reference].sum())
+        # le réservoir de nuls doit contenir n_t + n_r pixels : une zone aussi
+        # grande que le réservoir lui-même (cas de D vs D) est intestable.
+        if int(zones.get("D", zones[reference]).sum()) < n_t + n_r:
+            print(f"  ! zone {z}: réservoir de nuls trop petit "
+                  f"({n_t}+{n_r} px requis) -> non testable")
+            continue
         try:
             dd = aggregate_unwrapped(unw, corr, zones, target=z, reference=reference)
             if max_dt_days is not None:
