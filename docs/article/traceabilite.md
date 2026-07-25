@@ -23,6 +23,7 @@ figurer dans le texte sans une ligne correspondante.
 | `phaseI_hydro_sensor` | validation des zones + lien hydrologique | §2, §7 (H4) |
 | `phaseF_nisar_lband` | chaîne bande L (prospectif) | §8 |
 | `phaseB_egms_check`, `phaseC1_licsbas` | contrôles externes | §8 |
+| **`phaseJ_falsification`** | **N_eff mesuré, incidence, neige/gel, plancher p** | **§10** |
 
 ---
 
