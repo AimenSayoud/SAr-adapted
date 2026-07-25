@@ -27,6 +27,75 @@ entre deux passages, ce qui décorrèle en 12 j à λ = 5.5 cm.
 se transpose **pas** automatiquement aux tourbières flottantes, qui sont
 pourtant celles où le signal attendu est le plus fort.
 
+## 8.1-bis Comparaison avec les tourbières drainées : deux grandeurs différentes
+
+Patil et al. (2026, *RSASE* 41) mesurent en InSAR Sentinel-1 (2015-2025) la
+subsidence du **Great Fen** (Cambridgeshire, RU), tourbière basse **drainée**
+en cours de restauration : **0.48 à 1.40 cm/an**. Il est tentant de confronter
+ces valeurs à notre « < 2 mm ». **Ce serait une erreur de grandeur** : les deux
+chiffres ne mesurent pas la même chose.
+
+| | Patil et al. 2026 | Cette étude |
+|---|---|---|
+| Grandeur | **vitesse** de subsidence | **amplitude** d'un cycle annuel |
+| Unité | mm **par an** | mm (crête à moyenne) |
+| Valeur | 4.8 à 14.0 mm/an | < 2 mm |
+| Projection | verticale (déclarée) | **LOS** (voir ci-dessous) |
+| Durée | 10 ans | 3 ans |
+
+### Deux précisions indispensables
+
+**(a) Nous rapportons la ligne de visée (LOS), pas la verticale.** À un angle
+d'incidence Sentinel-1 IW typique (~39°), la conversion sous hypothèse de
+mouvement purement vertical est d_vert = d_LOS / cos(θ) ≈ **1.29 × d_LOS**.
+Notre borne devient donc **< 2.6 mm en vertical**. Nous conservons le LOS dans
+le texte parce que l'hypothèse de verticalité pure n'est pas vérifiable ici.
+
+**(b) La comparaison pertinente porte sur la VITESSE, que nous avons aussi
+mesurée.** Notre vitesse différentielle A−C est de **−1.53 mm/an** — mais le
+contrôle nul donne **−1.50 mm/an** : le signal est **indiscernable du bruit**.
+Notre plancher de détection en vitesse est donc de l'ordre de **1.5 à 5 mm/an**
+selon le réseau.
+
+### Ce que la comparaison enseigne réellement
+
+| Site | État hydrologique | Subsidence |
+|---|---|---|
+| Fermes restaurées tardivement (Great Fen) | drainé, en restauration | 14.0 mm/an |
+| Fermes restaurées tôt (Great Fen) | drainé, en restauration | 11.7 mm/an |
+| Réserves naturelles (Holme/Woodwalton) | **conservé, plus humide** | **4.8 mm/an** |
+| **Rzecin (cette étude)** | **naturel, saturé, non drainé** | **non détecté** (< plancher) |
+
+[INT] Le gradient est cohérent et **hydrologiquement interprétable** : plus le
+site est drainé, plus il s'affaisse. Rzecin, tourbière naturelle à nappe
+affleurante et jamais drainée, se situe **en-dessous du site le moins affaissé**
+de leur série — ce qui est exactement l'attendu écologique, et non un échec de
+mesure. Notre non-détection est donc **cohérente avec la littérature**, pas en
+contradiction avec elle.
+
+[INT] Cette comparaison délimite aussi le **domaine d'application** de la
+méthode : l'InSAR bande C mesure la subsidence des tourbières **drainées**
+(surfaces agricoles, cohérence élevée, signal de plusieurs cm/an) et échoue sur
+les tourbières **saturées à tapis flottant** (couvert humide, faible cohérence,
+signal millimétrique).
+
+### Une mise en garde méthodologique que nos résultats suggèrent
+
+Patil et al. rapportent que les fluctuations saisonnières s'alignent sur les
+anomalies d'humidité du sol et de précipitations, et y voient un « fort contrôle
+hydrologique du mouvement de surface de la tourbe ».
+
+[INT] Nos résultats invitent à la prudence sur ce type d'inférence : **une
+oscillation saisonnière corrélée à l'humidité n'est pas automatiquement un
+mouvement**. Sur notre site, un signal de 3.3 mm parfaitement corrélé à
+l'humidité s'est révélé **diélectrique** — le lac résiduel, qui ne peut pas
+respirer, oscillait de la même amplitude et à la même phase. Un **contrôle sur
+une surface en eau** (ou toute cible dont le mouvement est physiquement exclu)
+est peu coûteux et permet de séparer le déplacement réel de l'effet de
+profondeur de pénétration. Nous suggérons de l'intégrer systématiquement aux
+études de mouvement de surface en tourbière, en particulier lorsque le signal
+rapporté est de l'ordre du millimètre à la dizaine de millimètres.
+
 ## 8.2 Deux apports méthodologiques transposables
 
 ### (a) Changement d'observable

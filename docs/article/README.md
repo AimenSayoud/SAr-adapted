@@ -44,6 +44,10 @@ explications ont été testées et lesquelles ont survécu.
 - **Les résultats négatifs et les prédictions falsifiées sont conservés**
   (§ « erreurs corrigées » de la discussion). C'est un atout en évaluation, pas
   une faiblesse.
+- **Toujours distinguer AMPLITUDE (mm) et VITESSE (mm/an)**, et préciser
+  **LOS vs vertical**. Notre borne de 2 mm est une *amplitude saisonnière en
+  LOS* ; la littérature sur tourbières drainées rapporte des *vitesses en
+  vertical* (cm/an). Confondre les deux est l'erreur la plus facile a commettre.
 - Les p-values empiriques ont un **plancher** 1/(1+n_tirages) : toujours écrire
   « p ≤ x » quand la valeur est au plancher.
 
