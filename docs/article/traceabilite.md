@@ -78,7 +78,10 @@ figurer dans le texte sans une ligne correspondante.
 | Nul apparié | médiane 0.82, p95 1.93 mm | `phaseG` G2-ter |
 | **Amplitude B−C (lac)** | **2.63 mm**, jour 95, p = 0.036 | `phaseG` G2-quater |
 | **Amplitude A−B** | **0.90 mm**, p = 0.448 | `phaseG` G2-quinquies |
-| **Borne mouvement** | **< 2 mm** (p95 nul A−B) | `phaseG` |
+| **Borne mouvement (LOS)** | **< 2 mm** (p95 nul A−B) | `phaseG` |
+| Borne convertie en vertical | < 2.6 mm (÷cos 39°, ×1.29) | `geometry.los_to_vertical` |
+| Vitesse A−C vs nul | −1.53 vs −1.50 mm/an → **non significatif** | `phaseG` G2 |
+| Plancher de détection en vitesse | ~1.5-5 mm/an selon réseau | `phaseG` G2 |
 | Biais de fermeture A | −0.090 rad, 1.6 σ, n = 518 | `phaseG` G3 |
 
 ### H4 — hydrologie (§7)
@@ -100,6 +103,7 @@ figurer dans le texte sans une ligne correspondante.
 | Référence | Usage |
 |---|---|
 | Hrysiewicz et al. 2024, *RSE* 291 | respiration 10-40 mm, C-band sur tourbières hautes — comparaison §8.1 |
+| **Patil et al. 2026, *RSASE* 41, 101919** | subsidence 0.48-1.40 cm/an, Great Fen (RU) **drainé** — comparaison §8.1-bis |
 | Juszczak et al. 2013 | hydrologie du site de Rzecin |
 | De Zan et al. 2015 ; Ansari et al. 2021 | biais de phase de fermeture / humidité |
 | Fornaro et al. | estimateurs de phase-linking (EMI/EVD) |
