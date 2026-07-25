@@ -75,13 +75,16 @@ figurer dans le texte sans une ligne correspondante.
 | Validation synthétique | pixel −13.7 vs agrégat −19.8 (vérité −20) | `tests/test_aggregate.py` |
 | \|R\| A / B / C / D | 0.234 / 0.395 / 0.569 / 0.426 | `phaseG` G1 |
 | Vitesse A−C vs nul | −1.53 vs −1.50 mm/an | `phaseG` G2 |
-| **Amplitude A−C** | **3.29 mm**, jour 104, p ≤ 0.011 (92 nuls) | `phaseG` G2-ter |
+| **Amplitude A−C** | **3.29 mm**, jour 104, **p = 0.014** (280 nuls, plancher 0.0036) | `phaseJ` J4 |
+| Amplitude A−C **sans hiver** | **3.282 mm** (−0.1 %), r² 0.309, p = 0.022 | `phaseJ` J3 |
+| Incidence A / C | 32.263° / 32.305° → **Δ 0.042°** | `phaseJ` J2 |
+| Facteur LOS→vertical | **1.183** (cos 32.3°) — *et non 1.29* | `phaseJ` J2 |
+| L_corr / N_eff mesurés | A 160 m / 31 · C 360 m / 5 · D 280 m / 219 | `phaseJ` J1 |
 | Nul apparié | médiane 0.82, p95 1.93 mm | `phaseG` G2-ter |
 | **Amplitude B−C (lac)** | **2.63 mm**, jour 95, p = 0.036 | `phaseG` G2-quater |
 | **Amplitude A−B** | **0.90 mm**, p = 0.448 | `phaseG` G2-quinquies |
-| **Plafond ROBUSTE (niveau 1)** | **≤ 4.2 mm vertical** (3.29 LOS ÷ cos39°, tout attribué au mouvement, SANS hypothèse sur le lac) | §6.8 |
-| Borne affinée (niveau 2) | < 2 mm LOS / 2.6 mm vertical — **suppose le lac stable** | §6.8 |
-| Borne convertie en vertical | < 2.6 mm (÷cos 39°, ×1.29) | `geometry.los_to_vertical` |
+| **Plafond ROBUSTE (niveau 1)** | **≤ 3.9 mm vertical** (3.29 LOS ÷ cos 32.3°, tout attribué au mouvement, SANS hypothèse sur le lac) | §6.8 |
+| Borne affinée (niveau 2) | < 2 mm LOS / **2.4 mm** vertical — **suppose le lac stable** | §6.8 |
 | Vitesse A−C vs nul | −1.53 vs −1.50 mm/an → **non significatif** | `phaseG` G2 |
 | Plancher de détection en vitesse | ~1.5-5 mm/an selon réseau | `phaseG` G2 |
 | Biais de fermeture A | −0.090 rad, 1.6 σ, n = 518 | `phaseG` G3 |
@@ -118,11 +121,11 @@ figurer dans le texte sans une ligne correspondante.
 
 ## Vérifications à refaire avant soumission
 
-- [ ] Augmenter les tirages nuls à 200-500 (sortir des planchers de p-value)
+- [x] Augmenter les tirages nuls à 200-500 (sortir des planchers de p-value)  ✅ *(Phase J)*
 - [ ] Exporter toutes les figures en 300 dpi (voir `figures.md`)
 - [ ] Vérifier que chaque nombre du texte figure dans ce fichier
 - [ ] Obtenir la série **WTD in situ** si disponible → renforce §7
 - [ ] Relire les étiquettes [FAIT]/[INT]/[HYP] et les retirer de la version finale
-- [ ] **Exécuter le test neige/gel** : `filter_pairs(..., exclude_months=(12,1,2))`
-- [ ] **Mesurer N_eff empiriquement** : `effective_looks(mask, field=coh_mean)`
-- [ ] **Quantifier Δincidence A vs C** depuis la couche `lv_theta`
+- [x] **Exécuter le test neige/gel** : `filter_pairs(..., exclude_months=(12,1,2))`  ✅ *(Phase J)*
+- [x] **Mesurer N_eff empiriquement** : `effective_looks(mask, field=coh_mean)`  ✅ *(Phase J)*
+- [x] **Quantifier Δincidence A vs C** depuis la couche `lv_theta`  ✅ *(Phase J)*
