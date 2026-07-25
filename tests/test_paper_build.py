@@ -257,24 +257,73 @@ def test_line_numbers_are_off_unless_asked_for():
         assert "<w:pgSz" in doc, "page geometry must still be set"
 
 
+def _tbl(tblw_attrs, with_header_row_marked=False):
+    trpr = '<w:trPr><w:tblHeader w:val="true"/></w:trPr>' if with_header_row_marked else ''
+    return (f'<w:tbl><w:tblPr><w:tblStyle w:val="Table"/>{tblw_attrs}</w:tblPr>'
+            '<w:tblGrid><w:gridCol w:w="3960"/></w:tblGrid>'
+            f'<w:tr>{trpr}<w:tc><w:p><w:r><w:t>A</w:t></w:r></w:p></w:tc></w:tr>'
+            '<w:tr><w:tc><w:p><w:r><w:t>1</w:t></w:r></w:p></w:tc></w:tr></w:tbl>')
+
+
 def test_polish_tables_forces_a_consistent_width():
     """pandoc sizes each table to its content, so neighbouring tables come out
-    different widths and none lines up with the text column."""
+    different widths and none lines up with the text column.
+
+    Matched structurally rather than by one literal string: pandoc's docx table
+    markup is not stable across major versions, and this project's local pandoc
+    (3.1.3) is not guaranteed to match whatever a CI or Colab session installs
+    via apt. Attribute order and self-closing spacing are both varied here on
+    purpose, plus a table missing tblW outright."""
     with tempfile.TemporaryDirectory() as d:
-        body = ('<w:tbl><w:tblPr><w:tblW w:type="auto" w:w="0" /></w:tblPr></w:tbl>'
-                '<w:tbl><w:tblPr><w:tblW w:type="auto" w:w="0"/></w:tblPr></w:tbl>')
+        body = (_tbl('<w:tblW w:type="auto" w:w="0" />')
+               + _tbl('<w:tblW w:w="0" w:type="auto"/>')   # swapped attribute order
+               + _tbl(''))                                  # tblW absent entirely
         p = _fake_docx(Path(d) / "a.docx", body)
-        assert polish_tables(p) == 2
+        rep = polish_tables(p)
+        assert rep["n_tables"] == 3, rep
+        assert rep["widths_fixed"] == 3, rep
         doc = zipfile.ZipFile(p).read("word/document.xml").decode()
-        assert doc.count('w:type="pct" w:w="5000"') == 2, doc
+        assert doc.count('w:type="pct" w:w="5000"') == 3, doc
         assert 'w:type="auto"' not in doc
-        # both spellings pandoc emits must be handled, not just the spaced one
+
+
+def test_polish_tables_forces_header_row_repeat_when_pandoc_did_not():
+    """The header-repeat claim must be backed by code, not by assuming pandoc
+    already marks the first row — some pandoc versions do not."""
+    with tempfile.TemporaryDirectory() as d:
+        p = _fake_docx(Path(d) / "a.docx", _tbl('<w:tblW w:type="auto" w:w="0"/>'))
+        rep = polish_tables(p)
+        assert rep["headers_fixed"] == 1, rep
+        doc = zipfile.ZipFile(p).read("word/document.xml").decode()
+        assert doc.count("<w:tblHeader") == 1
+        # only the first row is marked, not the data row
+        assert doc.index("<w:tblHeader") < doc.index(">A<")
+        assert not (doc.index(">1<") < doc.rindex("<w:tblHeader"))
+
+
+def test_polish_tables_leaves_an_already_marked_header_alone():
+    with tempfile.TemporaryDirectory() as d:
+        p = _fake_docx(Path(d) / "a.docx",
+                       _tbl('<w:tblW w:type="auto" w:w="0"/>', with_header_row_marked=True))
+        rep = polish_tables(p)
+        assert rep["headers_fixed"] == 0, rep
+        doc = zipfile.ZipFile(p).read("word/document.xml").decode()
+        assert doc.count("<w:tblHeader") == 1, "must not duplicate an existing marker"
+
+
+def test_polish_tables_is_idempotent():
+    with tempfile.TemporaryDirectory() as d:
+        p = _fake_docx(Path(d) / "a.docx", _tbl('<w:tblW w:type="auto" w:w="0"/>'))
+        polish_tables(p)
+        rep2 = polish_tables(p)
+        assert rep2["headers_fixed"] == 0, "second pass must not re-fix or duplicate"
 
 
 def test_polish_tables_is_a_noop_without_tables():
     with tempfile.TemporaryDirectory() as d:
         p = _fake_docx(Path(d) / "a.docx", "<w:p/>")
-        assert polish_tables(p) == 0
+        rep = polish_tables(p)
+        assert rep == {"n_tables": 0, "widths_fixed": 0, "headers_fixed": 0}
 
 
 if __name__ == "__main__":
@@ -294,6 +343,9 @@ if __name__ == "__main__":
     test_add_page_setup_can_be_declined()
     test_line_numbers_are_off_unless_asked_for()
     test_polish_tables_forces_a_consistent_width()
+    test_polish_tables_forces_header_row_repeat_when_pandoc_did_not()
+    test_polish_tables_leaves_an_already_marked_header_alone()
+    test_polish_tables_is_idempotent()
     test_polish_tables_is_a_noop_without_tables()
     test_real_paper_tree_assembles()
     print("ALL PAPER-BUILD TESTS PASSED")
