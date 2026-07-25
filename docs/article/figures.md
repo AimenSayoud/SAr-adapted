@@ -25,55 +25,60 @@ elles sont trop longues pour un export de routine.
 
 ## Figures principales (article)
 
-| # | Titre | Notebook source | Statut |
+| # | Titre | Section | Statut |
 |---|---|---|---|
-| **F1** | Localisation du site + emprise du burst S1 | `phase01_acquisition` | à produire |
-| **F2** | Zones A/B/C/D — carte catégorielle **et** contours sur la cohérence | **`phaseZ`** | ✅ automatisé |
-| **F3** | Profils radiaux (cohérence, σ0, RVI) autour du bord | **`phaseZ`** | ✅ automatisé |
-| **F4** | Schéma du protocole : observable par pixel vs agrégée + nul apparié | **`phaseZ`** | ✅ **dessiné** |
-| **F5** | Cohérence temporelle par zone — histogrammes + courbe multi-seuils | **`phaseZ`** | ✅ automatisé |
-| **F6** | Carte de cohérence temporelle (phase-linking EVD) | **`phaseZ`** | ✅ automatisé |
-| **F7** | Distributions par zone des 5 champs | **`phaseZ`** | ✅ automatisé |
-| **F8** | Prédicteurs intra-tapis : coefficients + inversion A vs C | `phaseH` §4 | cellule prête |
-| **F9** | Série agrégée A−C, A−B, B−C **et contrôle nul** | **`phaseZ`** | ✅ automatisé |
-| **F10** | Test de significativité : amplitude saisonnière vs distribution nulle | `phaseG` (G2-ter) | cellule prête |
-| **F11** | Fermeture de phase : biais et dispersion par zone | `phaseG` (G3) | cellule prête |
-| **F12** | Phase agrégée vs humidité S2 (série temporelle) | **`phaseZ`** | ✅ automatisé |
-| **F13** | Corrélation saisonnière **vs** anomalies, par forçage | `phaseI` §3.3 | **à composer** |
+| **F01** | Réseau interférométrique + distribution des baselines | §2 | ✅ `phaseZ` |
+| **F02** | Zones A/B/C/D — carte + contours sur la cohérence | §2 | ✅ `phaseZ` |
+| **F03** | Profils radiaux (cohérence, σ0, RVI) au bord | §5 | ✅ `phaseZ` |
+| **F04** | Schéma du protocole (observable + nul apparié) | §3 | ✅ `phaseZ` *(dessiné)* |
+| **F05** | Cohérence temporelle par zone + multi-seuils | §4 | ✅ `phaseZ` |
+| **F06** | Carte de cohérence temporelle (EVD) | §4 | ✅ `phaseZ` |
+| **F07** | Distributions par zone — 5 capteurs | §5 | ✅ `phaseZ` |
+| **F08** | Prédicteurs intra-tapis + **inversion A vs C** | §5 | ✅ `phaseZ` |
+| **F09** | Séries agrégées A−C, B−C, A−B + nul | §6 | ✅ `phaseZ` |
+| **F10** | Significativité + robustesse hiver | §6 | ✅ `phaseZ` *[LONG]* |
+| **F11** | Fermeture de phase : biais et dispersion | §6 | ✅ `phaseZ` *[LONG]* |
+| **F12** | Phase agrégée vs humidité S2 | §7 | ✅ `phaseZ` |
+| **F13** | Saisonnier **vs** anomalies par forçage | §7 | ✅ `phaseZ` |
 
-## Figures supplémentaires (matériel additionnel)
+## Figures supplémentaires
 
-| # | Titre | Source |
-|---|---|---|
-| S1 | Composite RVB (σ0 / cohérence / humidité) + zoom | **`phaseZ`** ✅ |
-| S2 | Réseau d'interférogrammes + distribution des baselines | **`phaseZ`** ✅ |
-| S3 | Validation synthétique : par pixel vs agrégé | `tests/test_aggregate.py` |
-| S4 | Dispersion d'amplitude D_A par zone | `phaseDter` |
+| # | Titre | Section | Statut |
+|---|---|---|---|
+| **S01** | Composite RVB + zoom tourbière | §2 | ✅ `phaseZ` |
+| **S02** | Fraction inondée (masque eau) | §2 | ✅ `phaseZ` |
+| **S03** | Validation synthétique : par pixel vs agrégé | §3 | ✅ `phaseZ` |
+| **S04** | Dispersion d'amplitude D_A (carte + zones) | §5 | ✅ `phaseZ` |
+| **S05** | Décroissance de cohérence + distributions | §4/5 | ✅ `phaseZ` *[LONG]* |
+| **S06** | **Test apparié A−C** (histogramme + nuage) | §5 | ✅ `phaseZ` |
+| **S07** | Couplage hydrologique et test de gel | §5 | ✅ `phaseZ` |
+
+## Tableaux exportés (CSV, à côté des figures)
+
+| # | Contenu |
+|---|---|
+| **T1** | Zones : effectifs, surfaces, écart aux 89.7 ha |
+| **T2** | Courbe multi-seuils de cohérence temporelle |
+| **T3** | Signature multi-capteurs par zone (médianes) |
+| **T4** | Test apparié A−C (Wilcoxon, jackknife) |
+| **T5** | Couplage hydrologique / gel par zone |
+| **T6** | Prédicteurs A vs C (inversion des moteurs) |
+| **T7** | Amplitudes saisonnières des quatre séries |
+| **T8** | Fermeture de phase par zone |
+| **T9** | Forçages : saisonnier vs anomalies |
 
 ---
 
-## Tableaux principaux
+## Reste hors `phaseZ`
 
-| # | Titre | Section |
+| # | Figure | Pourquoi |
 |---|---|---|
-| **T1** | Jeux de données et zones (effectifs, surfaces, validation +0.6 %) | §2 |
-| **T2** | Cohérence temporelle et % ≥ 0.7 par zone (H1) | §4 |
-| **T3** | Signature multi-capteurs par zone (cohérence, σ0, RVI, humidité) | §2 / §5 |
-| **T4** | Amplitudes saisonnières A−C, B−C, A−B + nuls (H3) | §6 |
-| **T5** | Corrélations saisonnier vs anomalies par forçage (H4) | §7 |
-| **T6** | Erreurs corrigées et prédictions falsifiées | §8 |
+| — | Carte de localisation du site | nécessite un fond cartographique externe |
 
----
+Tout le reste est automatisé. Les cellules `[LONG]` (cohérence par paire ~5 min,
+nuls ~15 min, triplets ~3 min) sont **mises en cache** dans `figures_cache/` :
+la seconde exécution est immédiate.
 
-## Reste à produire hors de `phaseZ`
-
-| # | Figure | Pourquoi hors export |
-|---|---|---|
-| F1 | Localisation du site | nécessite un fond cartographique externe |
-| F8 | Prédicteurs Phase H | relancer `phaseH` puis exporter |
-| F10 | Significativité (nuls) | distribution nulle longue → `phaseG`/`phaseJ` |
-| F11 | Fermeture de phase | énumération des triplets → `phaseG` |
-| F13 | Saisonnier vs anomalies | balayage de décalage → `phaseI` |
-
-La police et les marges sont déjà homogénéisées via `mpl.rcParams` en tête de
-`phaseZ` (9 pt, 300 dpi, fond blanc).
+La police, le dpi et les couleurs de zone sont fixés une seule fois en tête de
+`phaseZ` (`mpl.rcParams` + `ZONE_COLORS`), donc toutes les figures sont
+homogènes.
