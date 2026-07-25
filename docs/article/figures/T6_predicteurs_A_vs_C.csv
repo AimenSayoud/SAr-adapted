@@ -1,0 +1,9 @@
+covariate,A_tapis,C_prairie
+sigma0_vv,-0.379,-0.008
+s2_greenness_mean,0.32,-0.009
+s2_wetness_mean,-0.223,0.026
+s2_greenness_amp,-0.196,-0.406
+rvi,-0.185,-0.252
+elevation,-0.168,0.43
+dist_edge_m,0.153,0.188
+sigma0_std,0.122,0.132
