@@ -72,7 +72,7 @@ mechanism, dielectric variability from non-rigid micro-movement.
 
 ## Data and code availability
 
-Processing code, notebooks and unit tests: [repository DOI]. Sentinel-1
+Processing code and unit tests: [repository DOI]. Sentinel-1
 interferograms were produced with ASF HyP3; Sentinel-2, ERA5, ESA WorldCover and
 Copernicus DEM data are openly available from their respective providers.
 

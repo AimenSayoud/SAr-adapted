@@ -98,5 +98,5 @@ Three independent checks, none of them visual:
 | D (other) | 0.438 | −9.28 | 1.045 | −0.440 | 0.639 |
 
 The polygon is expressed in **five independent sensors**, with disjoint per-zone
-distributions (Fig. 7) and a **sharp step** at the boundary in all radial
+distributions (Fig. 8) and a **sharp step** at the boundary in all radial
 profiles (Fig. 3).
