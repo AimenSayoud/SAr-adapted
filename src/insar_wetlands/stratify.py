@@ -412,7 +412,9 @@ def coherence_vs_hydro(df_perpair: pd.DataFrame, pair_hydro: pd.DataFrame) -> pd
         slope, _ = np.polyfit(m["dwtd"], m["mean_coh"], 1)
         r = float(np.corrcoef(m["dwtd"], m["mean_coh"])[0, 1])
         out.append({"zone": z, "slope_coh_per_wtd": float(slope), "r": r, "n": int(len(m))})
-    return pd.DataFrame(out)
+    # Guaranteed columns even when no zone qualifies: a column-less DataFrame
+    # turns a legitimate "no result" into a KeyError several frames away.
+    return pd.DataFrame(out, columns=["zone", "slope_coh_per_wtd", "r", "n"])
 
 
 def freeze_coherence_gain(df_perpair: pd.DataFrame, pair_hydro: pd.DataFrame,
@@ -430,7 +432,8 @@ def freeze_coherence_gain(df_perpair: pd.DataFrame, pair_hydro: pd.DataFrame,
                         "coh_warm": float(warm.mean()),
                         "freeze_gain": float(cold.mean() - warm.mean()),
                         "n_cold": int(len(cold)), "n_warm": int(len(warm))})
-    return pd.DataFrame(out)
+    return pd.DataFrame(out, columns=["zone", "coh_cold", "coh_warm",
+                                      "freeze_gain", "n_cold", "n_warm"])
 
 
 def signed_distance_to_aoi(template: xr.DataArray, cfg: dict) -> xr.DataArray:

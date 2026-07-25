@@ -185,6 +185,38 @@ def test_plots_run():
     plot_zone_distributions(fld, zones)
 
 
+def test_hydro_tables_keep_their_columns_when_no_zone_qualifies():
+    """A column-less DataFrame turns a legitimate "no result" into a KeyError
+    several frames away — which is exactly how S06 was lost silently."""
+    import pandas as pd
+    from insar_wetlands.stratify import coherence_vs_hydro, freeze_coherence_gain
+    empty = pd.DataFrame(columns=["zone", "pair", "mean_coh"])
+    hydro = pd.DataFrame(columns=["dwtd", "tmin"]); hydro.index.name = "pair"
+    for got, need in [(coherence_vs_hydro(empty, hydro),
+                       ["zone", "slope_coh_per_wtd", "r", "n"]),
+                      (freeze_coherence_gain(empty, hydro),
+                       ["zone", "coh_cold", "coh_warm", "freeze_gain"])]:
+        assert list(got.columns)[:len(need)] == need, list(got.columns)
+        got.set_index("zone")          # must not raise
+    print("  hydro/freeze tables keep their columns when empty")
+
+
+def test_pair_hydro_index_survives_a_csv_round_trip():
+    """pair_hydro_change is keyed by `pair` and merged on that key downstream.
+    Writing the cache with index=False drops the key, and the merge then matches
+    nothing — silently."""
+    import tempfile, pathlib
+    import pandas as pd
+    df = pd.DataFrame([{"pair": "20220101_20220113", "dwtd": 1.2, "tmin": 270.0}]
+                      ).set_index("pair")
+    f = pathlib.Path(tempfile.mkdtemp()) / "p.csv"
+    df.to_csv(f, index=False)
+    assert pd.read_csv(f).index.name is None, "sanity: index=False loses the key"
+    df.to_csv(f, index=True)
+    assert pd.read_csv(f, index_col="pair").index.name == "pair"
+    print("  pair index round-trips only when written with index=True")
+
+
 if __name__ == "__main__":
     test_lag_scan_finds_driver_and_lag()
     test_detrend_kills_spurious_trend_correlation()
@@ -195,4 +227,6 @@ if __name__ == "__main__":
     test_label_array_and_field_table()
     test_save_figure_writes_png()
     test_plots_run()
+    test_hydro_tables_keep_their_columns_when_no_zone_qualifies()
+    test_pair_hydro_index_survives_a_csv_round_trip()
     print("ALL PHASE-I TESTS PASSED")
