@@ -131,6 +131,49 @@ def test_seasonal_amplitude_recovers_breathing():
     assert n["amplitude_mm"] < 2.0, n
 
 
+def test_correlation_length_and_neff():
+    """N_eff doit etre MESURE, pas suppose : un champ lisse a une longueur de
+    correlation plus grande qu'un champ de bruit blanc, donc moins de pixels
+    independants."""
+    from insar_wetlands.aggregate import correlation_length, effective_looks
+
+    rng = np.random.default_rng(11)
+    ny = nx = 40
+    coords = {"y": np.arange(ny) * 40.0, "x": np.arange(nx) * 40.0}
+    mask = xr.DataArray(np.ones((ny, nx), bool), dims=("y", "x"), coords=coords)
+    white = xr.DataArray(rng.normal(0, 1, (ny, nx)), dims=("y", "x"), coords=coords)
+    # champ lisse : bruit blanc convolue par une moyenne glissante 5x5
+    k = 5
+    sm = np.copy(white.values)
+    for _ in range(3):
+        sm = np.pad(sm, k // 2, mode="edge")
+        sm = np.array([[sm[i:i + k, j:j + k].mean() for j in range(nx)]
+                       for i in range(ny)])
+    smooth = xr.DataArray(sm, dims=("y", "x"), coords=coords)
+
+    l_white = correlation_length(white, mask)
+    l_smooth = correlation_length(smooth, mask)
+    assert l_smooth > l_white, (l_white, l_smooth)
+    # plus la correlation est longue, moins il y a d'echantillons independants
+    assert (effective_looks(mask, field=smooth)
+            < effective_looks(mask, field=white)), "N_eff doit chuter"
+
+
+def test_exclude_winter_months():
+    """Test de falsification : on doit pouvoir retirer les paires hivernales
+    (neige/gel = explication alternative du signal saisonnier)."""
+    from insar_wetlands.aggregate import filter_pairs
+
+    dd = pd.DataFrame({
+        "pair": ["20220115_20220127",   # janvier -> exclu
+                 "20220601_20220613",   # ete     -> garde
+                 "20221201_20221213",   # decembre-> exclu
+                 "20220701_20220713"],  # ete     -> garde
+        "dt_days": [12, 12, 12, 12], "weight": [1.0] * 4})
+    kept = filter_pairs(dd, max_dt_days=None, exclude_months=(12, 1, 2))
+    assert list(kept["pair"]) == ["20220601_20220613", "20220701_20220713"], kept
+
+
 def test_matched_null_respects_sizes_and_pvalue():
     """Le nul doit avoir la MEME taille que les zones reelles (le bruit d'un
     agregat decroit en 1/sqrt(N) : un nul 4x plus grand sous-estime le plancher
@@ -196,6 +239,8 @@ def test_seasonal_zone_scan_separates_breathing_zone():
 
 if __name__ == "__main__":
     test_seasonal_zone_scan_separates_breathing_zone()
+    test_correlation_length_and_neff()
+    test_exclude_winter_months()
     test_matched_null_respects_sizes_and_pvalue()
     test_phasor_separates_random_from_common()
     test_aggregation_recovers_buried_signal()

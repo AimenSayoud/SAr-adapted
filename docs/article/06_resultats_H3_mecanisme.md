@@ -141,10 +141,57 @@ degré de non-stationnarité, pas sa nature.**
 > 3 à 60× trop faible pour une flottaison. Nous mesurons un **contraste
 > d'humidité saisonnier** entre surfaces saturées et prairie sèche.
 
-> **[FAIT] Borne supérieure : le mouvement propre du tapis est < 2 mm**
-> (p95 du nul apparié pour A − B), contre 10-40 mm publiés sur tourbières
-> hautes. Résultat falsifiable et comparatif, bien plus fort qu'une absence de
-> détection.
+## 6.8 Borne supérieure sur le mouvement — dérivation explicite
+
+La borne doit être énoncée **avec ses hypothèses**, et à deux niveaux de
+robustesse décroissante.
+
+### Niveau 1 — plafond ROBUSTE (aucune hypothèse sur le lac)
+
+L'amplitude saisonnière totale **A − C** vaut **3.29 mm en LOS**. En attribuant
+**la totalité** de ce signal à un mouvement — donc en ignorant délibérément tout
+ce que §6.5 établit sur son origine diélectrique :
+
+> d_vert ≤ 3.29 / cos(39°) ≈ **4.2 mm** d'amplitude saisonnière verticale.
+
+**Hypothèses** : (i) mouvement purement vertical ; (ii) pas de repliement de
+phase — vérifié, car un mouvement de plusieurs centimètres produirait une
+phase agrégée incohérente, non un cycle annuel propre à r² = 0.30.
+
+C'est le chiffre à citer par défaut : il ne dépend d'**aucune** hypothèse sur le
+lac, et reste **~25× inférieur** à la flottaison libre attendue (~100 mm pour
+une nappe de ±10 cm).
+
+### Niveau 2 — borne AFFINÉE (sous hypothèse de stabilité du lac)
+
+En référençant le tapis au lac, le cycle commun aux surfaces saturées s'annule
+et il reste **0.90 mm**, sous le plancher du nul apparié (**p95 = 2.0 mm**) :
+
+> mouvement propre du tapis **< 2 mm en LOS** (≈ 2.6 mm en vertical).
+
+⚠️ **Hypothèse critique à déclarer.** Ce test suppose que **la surface
+diffusante du lac est mécaniquement stable**. Or lac et tapis flottent sur la
+**même nappe** : si les deux montaient et descendaient ensemble, A − B
+s'annulerait *même en présence d'un mouvement important*. L'annulation observée
+est donc compatible avec deux lectures — absence de mouvement, ou mouvement
+commun — que nos seules données radar ne séparent pas.
+
+**Ce qui rend la première lecture plus plausible** : le plafond robuste du
+niveau 1 (≤ 4.2 mm) exclut déjà tout mouvement de l'ordre de la flottaison
+libre, indépendamment du lac. Le lac ne fait qu'affiner une borne déjà
+contraignante.
+
+### Formulation recommandée
+
+> Toute oscillation verticale saisonnière cohérente du tapis est **au plus de
+> l'ordre de 4 mm**, soit environ un ordre de grandeur en-dessous de la
+> respiration rapportée sur tourbières hautes (10-40 mm) et ~25× moins qu'une
+> flottaison libre suivant la nappe observée. Sous l'hypothèse supplémentaire
+> d'un lac mécaniquement stable, la borne se resserre à ~2 mm.
+
+*(La validation par **laser** in situ lèvera l'ambiguïté : elle mesurera
+directement si le tapis bouge, et donc si l'annulation A − B traduit une absence
+de mouvement ou un mouvement commun.)*
 
 ⚠️ **Distinction à maintenir.** Ceci établit que le **signal saisonnier** est
 diélectrique. Cela ne dit rien sur la nature du mécanisme de **décorrélation**,

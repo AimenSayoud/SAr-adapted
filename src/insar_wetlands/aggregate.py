@@ -50,14 +50,55 @@ def _wrap(x):
     return np.angle(np.exp(1j * np.asarray(x)))
 
 
-def effective_looks(mask: xr.DataArray, corr_len_px: float = 2.0) -> float:
-    """N_eff = N / (facteur de corrélation spatiale).
+def correlation_length(field: xr.DataArray, mask: xr.DataArray,
+                       max_lag_px: int = 12) -> float:
+    """Longueur de corrélation spatiale EMPIRIQUE (en pixels), par autocorrélation.
 
-    Les pixels voisins ne sont PAS indépendants (multilooking + corrélation
-    naturelle). On divise par l'aire d'un patch de corrélation (corr_len_px^2),
-    estimation CONSERVATRICE : sous-estimer N_eff sur-estime le plancher de
-    bruit, donc rend le test plus sévère (jamais optimiste)."""
+    Estime la portée réelle de la corrélation spatiale au lieu de la supposer.
+    On calcule l'autocorrélation du champ (démoyenné sur le masque) en fonction
+    du décalage, et on retient le décalage ou elle passe sous 1/e ≈ 0.368.
+
+    Motivation : le facteur 1/sqrt(N) suppose des pixels INDÉPENDANTS. Les
+    pixels voisins ne le sont pas (multilooking, corrélation naturelle du
+    couvert). Sans mesure, N_eff est une hypothèse — c'est le point le plus
+    attaquable de l'argument d'agrégation."""
+    v = np.where(mask.values, field.values, np.nan).astype(float)
+    v = v - np.nanmean(v)
+    ok = np.isfinite(v)
+    v0 = np.where(ok, v, 0.0)
+    denom = float((v0[ok] ** 2).sum())
+    if denom <= 0:
+        return 1.0
+    for lag in range(1, max_lag_px + 1):
+        # moyenne des autocorrélations selon x et y a ce décalage
+        acs = []
+        for a, b, m1, m2 in ((v0[:, lag:], v0[:, :-lag], ok[:, lag:], ok[:, :-lag]),
+                             (v0[lag:, :], v0[:-lag, :], ok[lag:, :], ok[:-lag, :])):
+            both = m1 & m2
+            if both.sum() > 10:
+                acs.append(float((a[both] * b[both]).sum())
+                           / max(denom * both.sum() / max(ok.sum(), 1), 1e-12))
+        if acs and np.mean(acs) < np.exp(-1.0):
+            return float(lag)
+    return float(max_lag_px)
+
+
+def effective_looks(mask: xr.DataArray, corr_len_px: float = 2.0,
+                    field: xr.DataArray | None = None) -> float:
+    """N_eff = N / (aire d'un patch de corrélation).
+
+    Si `field` est fourni, la longueur de corrélation est **mesurée** sur les
+    données (`correlation_length`) au lieu d'être supposée. Sinon on retombe sur
+    `corr_len_px` (défaut 2.0), hypothèse CONSERVATRICE : sous-estimer N_eff
+    sur-estime le plancher de bruit, donc durcit le test.
+
+    ⚠️ Cette quantité n'intervient QUE dans le plancher indicatif de |R|. Les
+    tests de significativité (amplitude saisonnière, corrélations) reposent sur
+    des **nuls empiriques appariés en taille**, qui intègrent la corrélation
+    spatiale réelle **sans aucune hypothèse sur N_eff**."""
     n = float(mask.sum())
+    if field is not None:
+        corr_len_px = correlation_length(field, mask)
     return max(1.0, n / max(1.0, corr_len_px ** 2))
 
 
@@ -180,18 +221,31 @@ def aggregate_unwrapped(unw: xr.DataArray, corr: xr.DataArray, zones: dict,
 
 
 def filter_pairs(dd: pd.DataFrame, max_dt_days: int | None = 60,
-                 min_weight: float | None = None) -> pd.DataFrame:
-    """Retire les paires à longue baseline temporelle (et/ou de faible poids).
+                 min_weight: float | None = None,
+                 exclude_months: tuple | None = None) -> pd.DataFrame:
+    """Retire les paires selon la baseline, le poids, ou la SAISON.
 
-    Les paires annuelles (~370 j) et bi-annuelles (~740 j) de la Phase 15 sont
-    quasi certainement mal DÉROULÉES sur le tapis (±25 mm de dispersion
-    observée) : elles injectent des sauts de 2*pi dans l'inversion agrégée.
-    Les exclure teste la robustesse du résultat au déroulement."""
+    - `max_dt_days` : les paires annuelles (~370 j) et bi-annuelles (~740 j)
+      sont quasi certainement mal DÉROULÉES sur le tapis (±25 mm de dispersion
+      observée) et injectent des sauts de 2*pi dans l'inversion agrégée.
+    - `exclude_months` : **test de falsification**. Un manteau NEIGEUX ou le GEL
+      affectent différemment tourbière et prairie et possèdent un cycle annuel :
+      ils constituent donc une explication alternative du signal saisonnier.
+      Retirer les paires dont l'une des dates tombe en hiver
+      (ex. `exclude_months=(12, 1, 2)`) permet de vérifier que le signal ne
+      provient PAS de l'hiver. S'il survit, neige et gel sont écartés.
+    """
     out = dd
     if max_dt_days is not None:
         out = out[out["dt_days"] <= max_dt_days]
     if min_weight is not None:
         out = out[out["weight"] >= min_weight]
+    if exclude_months:
+        def _keep(p):
+            a, b = str(p).split("_")
+            return (int(a[4:6]) not in exclude_months
+                    and int(b[4:6]) not in exclude_months)
+        out = out[out["pair"].map(_keep)]
     return out.reset_index(drop=True)
 
 

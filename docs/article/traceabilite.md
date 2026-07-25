@@ -78,7 +78,8 @@ figurer dans le texte sans une ligne correspondante.
 | Nul apparié | médiane 0.82, p95 1.93 mm | `phaseG` G2-ter |
 | **Amplitude B−C (lac)** | **2.63 mm**, jour 95, p = 0.036 | `phaseG` G2-quater |
 | **Amplitude A−B** | **0.90 mm**, p = 0.448 | `phaseG` G2-quinquies |
-| **Borne mouvement (LOS)** | **< 2 mm** (p95 nul A−B) | `phaseG` |
+| **Plafond ROBUSTE (niveau 1)** | **≤ 4.2 mm vertical** (3.29 LOS ÷ cos39°, tout attribué au mouvement, SANS hypothèse sur le lac) | §6.8 |
+| Borne affinée (niveau 2) | < 2 mm LOS / 2.6 mm vertical — **suppose le lac stable** | §6.8 |
 | Borne convertie en vertical | < 2.6 mm (÷cos 39°, ×1.29) | `geometry.los_to_vertical` |
 | Vitesse A−C vs nul | −1.53 vs −1.50 mm/an → **non significatif** | `phaseG` G2 |
 | Plancher de détection en vitesse | ~1.5-5 mm/an selon réseau | `phaseG` G2 |
@@ -121,3 +122,6 @@ figurer dans le texte sans une ligne correspondante.
 - [ ] Vérifier que chaque nombre du texte figure dans ce fichier
 - [ ] Obtenir la série **WTD in situ** si disponible → renforce §7
 - [ ] Relire les étiquettes [FAIT]/[INT]/[HYP] et les retirer de la version finale
+- [ ] **Exécuter le test neige/gel** : `filter_pairs(..., exclude_months=(12,1,2))`
+- [ ] **Mesurer N_eff empiriquement** : `effective_looks(mask, field=coh_mean)`
+- [ ] **Quantifier Δincidence A vs C** depuis la couche `lv_theta`

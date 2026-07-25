@@ -30,6 +30,7 @@ explications ont été testées et lesquelles ont survécu.
 | [`07_resultats_H4_hydrologie.md`](07_resultats_H4_hydrologie.md) | H4 — que mesure-t-on alors ? | rédigé |
 | [`08_discussion.md`](08_discussion.md) | Comparaison littérature, portée, limites | rédigé |
 | [`09_conclusion.md`](09_conclusion.md) | Conclusion + perspectives | rédigé |
+| [`10_falsification.md`](10_falsification.md) | **Chaîne causale, explications alternatives, rôle laser/drone** | rédigé |
 | [`figures.md`](figures.md) | Inventaire des figures (source, légende, statut) | à produire |
 | [`traceabilite.md`](traceabilite.md) | Phase → résultat → section → figure | rédigé |
 
@@ -48,6 +49,11 @@ explications ont été testées et lesquelles ont survécu.
   **LOS vs vertical**. Notre borne de 2 mm est une *amplitude saisonnière en
   LOS* ; la littérature sur tourbières drainées rapporte des *vitesses en
   vertical* (cm/an). Confondre les deux est l'erreur la plus facile a commettre.
+- **Toute borne doit être énoncée avec ses hypothèses.** Voir §6.8 : plafond
+  robuste (≤ 4 mm, sans hypothèse sur le lac) et borne affinée (< 2 mm, sous
+  hypothèse de stabilité du lac). Ne jamais citer la seconde sans la première.
+- **Pour chaque conclusion : quelle observation la réfuterait ?** Si la réponse
+  n'existe pas, la conclusion est trop forte (voir [`10_falsification.md`]).
 - Les p-values empiriques ont un **plancher** 1/(1+n_tirages) : toujours écrire
   « p ≤ x » quand la valeur est au plancher.
 
