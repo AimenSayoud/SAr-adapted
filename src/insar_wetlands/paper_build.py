@@ -247,37 +247,96 @@ _TABLE_STYLE = '''<w:style w:default="1" w:styleId="Table" w:type="table">
 </w:style>'''
 
 
-def polish_tables(docx_path: str | Path, full_width: bool = True) -> int:
+_TBL_RE = re.compile(r"<w:tbl>.*?</w:tbl>", re.S)
+
+
+def _ensure_header_row(tbl_xml: str) -> str:
+    """Mark the first row of a table XML block as a repeating header row.
+
+    Does not assume pandoc already did this — versions differ. Idempotent: a
+    row that already carries ``<w:tblHeader>`` is left untouched."""
+    m = re.search(r"<w:tr\b[^>]*>", tbl_xml)
+    if not m:
+        return tbl_xml
+    next_row = re.search(r"<w:tr\b", tbl_xml[m.end():])
+    row_end = m.end() + next_row.start() if next_row else len(tbl_xml)
+    row = tbl_xml[m.start():row_end]
+    if "<w:tblHeader" in row:
+        return tbl_xml
+    trpr = re.search(r"<w:trPr\s*>", row)
+    if trpr:
+        new_row = row[:trpr.end()] + '<w:tblHeader w:val="true"/>' + row[trpr.end():]
+    else:
+        open_tag = re.match(r"<w:tr\b[^>]*>", row)
+        new_row = (row[:open_tag.end()] + '<w:trPr><w:tblHeader w:val="true"/></w:trPr>'
+                  + row[open_tag.end():])
+    return tbl_xml[:m.start()] + new_row + tbl_xml[row_end:]
+
+
+def polish_tables(docx_path: str | Path, full_width: bool = True,
+                  force_header: bool = True) -> dict:
     """Make the tables in a built .docx read as tables.
 
     The border and padding work lives in the reference document's ``Table``
     style, but two things can only be fixed on the output, because pandoc writes
-    them into each table's own ``tblPr`` where they override the style:
+    them into each table's own ``tblPr``/``trPr`` where they override the style:
 
-    - **width**: pandoc emits ``tblW type="auto"``, so each table is sized to its
-      content and neighbouring tables end up different widths. Setting 100 %
-      makes them line up with the text column and with each other.
-    - **header repeat**: a table split across a page break must repeat its header
-      row, otherwise the continuation is a block of unlabelled numbers.
+    - **width**: pandoc sizes each table to its content, so neighbouring tables
+      end up different widths. Setting 100 % makes them line up with the text
+      column and with each other.
+    - **header repeat**: a table split across a page break must repeat its
+      header row, otherwise the continuation is a block of unlabelled numbers.
 
-    Returns the number of tables adjusted."""
+    Both are located by structural regex (any attribute order or spacing,
+    self-closing or not) rather than by matching one pandoc version's exact
+    formatting byte for byte. **pandoc's docx table markup is not stable across
+    major versions** — this project builds locally with 3.1.3 but a Colab
+    session installing pandoc via ``apt`` can get a different major version
+    with different attribute order or without header-row marking at all, and a
+    literal-string match then replaces nothing while still reporting success.
+
+    Returns a dict with ``n_tables`` (tables found) and ``widths_fixed`` /
+    ``headers_fixed`` (tables actually changed) — the two can legitimately
+    differ from ``n_tables`` if a table already had the property, but a
+    genuine 0 must be visible rather than folded into a table count that
+    stays positive regardless of whether anything happened."""
     docx_path = Path(docx_path)
     with zipfile.ZipFile(docx_path) as zin:
         items = {n: zin.read(n) for n in zin.namelist()}
     doc = items.get("word/document.xml", b"").decode("utf-8")
-    n = doc.count("<w:tbl>")
-    if not n:
-        return 0
-    if full_width:
-        doc = doc.replace('<w:tblW w:type="auto" w:w="0" />',
-                          '<w:tblW w:type="pct" w:w="5000"/>')
-        doc = doc.replace('<w:tblW w:type="auto" w:w="0"/>',
-                          '<w:tblW w:type="pct" w:w="5000"/>')
+    tables = _TBL_RE.findall(doc)
+    if not tables:
+        return {"n_tables": 0, "widths_fixed": 0, "headers_fixed": 0}
+
+    counts = {"widths_fixed": 0, "headers_fixed": 0}
+
+    def _fix(m: re.Match) -> str:
+        block = m.group(0)
+        if full_width:
+            new_block, k = re.subn(r'<w:tblW\b[^>]*/>',
+                                   '<w:tblW w:type="pct" w:w="5000"/>',
+                                   block, count=1)
+            if k == 0:
+                # some pandoc versions omit tblW when width is left implicit
+                new_block, k = re.subn(r'(<w:tblPr\b[^>]*>)',
+                                       r'\1<w:tblW w:type="pct" w:w="5000"/>',
+                                       block, count=1)
+            if k:
+                counts["widths_fixed"] += 1
+                block = new_block
+        if force_header:
+            fixed = _ensure_header_row(block)
+            if fixed != block:
+                counts["headers_fixed"] += 1
+                block = fixed
+        return block
+
+    doc = _TBL_RE.sub(_fix, doc)
     items["word/document.xml"] = doc.encode("utf-8")
     with zipfile.ZipFile(docx_path, "w", zipfile.ZIP_DEFLATED) as zout:
         for name, b in items.items():
             zout.writestr(name, b)
-    return n
+    return {"n_tables": len(tables), **counts}
 
 
 def add_page_setup(docx_path: str | Path, line_numbers: bool = False,
