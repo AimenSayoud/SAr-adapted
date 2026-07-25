@@ -57,7 +57,7 @@ TABLE_TITLES = {
     "T04_zone_signature": "Multi-sensor signature of the zones",
     "T05_paired_test": "Paired mat-versus-grassland coherence test",
     "T06_predictors": "Failure predictors, with and without collinear terms",
-    "T07_seasonal_amplitude": "Seasonal amplitudes and empirical p-values",
+    "T07_seasonal_amplitudes": "Seasonal amplitudes and empirical p-values",
     "T08_closure_phase": "Closure-phase bias and dispersion by zone",
     "T09_forcings": "Hydro-climatic forcings, raw and deseasonalised",
     "T10_hydrology_freeze": "Coherence response to freezing",

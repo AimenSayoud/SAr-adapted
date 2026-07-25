@@ -1,11 +1,17 @@
 # Traceability — number → source
 
+> **Internal record. Not part of the manuscript.** This file is deliberately
+> excluded from `SECTION_ORDER`, so it is never assembled into the article or
+> the `.docx`. It exists to map every published number back to the code that
+> produced it — which is why processing-stage names appear here, and nowhere in
+> the manuscript itself.
+
 Every number in the manuscript must be findable here. No figure appears in the
 text without a corresponding row.
 
-## Phases → manuscript sections
+## Processing stages → manuscript sections
 
-| Notebook | Contribution | Section |
+| Source | Contribution | Section |
 |---|---|---|
 | `phase01`–`phase07` | acquisition, network, masks, S2 fusion | §2 |
 | `phase08_sbas_mintpy` | SBAS — failure | §4.1 |

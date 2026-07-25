@@ -67,11 +67,8 @@ We therefore do not ask
 
 ### 1.5 Design
 
-The analysis is organised around four falsifiable, competing hypotheses
-
-![**Figure 1.** Study design. Four competing hypotheses, the test applied to each, and the verdict reached.](figures/F01_hypotheses.png)
-
-(Fig. 1):
+The analysis is organised around four falsifiable, competing hypotheses (Fig. 1),
+each paired with the test that could refute it:
 
 | | Hypothesis | Principal test | Section |
 |---|---|---|---|
@@ -79,6 +76,9 @@ The analysis is organised around four falsifiable, competing hypotheses
 | **H2** | The **mat** is a distinct radar target | matched-cover comparison + multi-sensor validation | §4.2 |
 | **H3** | The residual signal is surface **motion** | spatial aggregation + lake, null and magnitude controls | §4.3 |
 | **H4** | The measured signal reflects **hydrological state** | correlation on deseasonalised anomalies | §4.4 |
+
+
+![**Figure 1.** Study design. Four competing hypotheses, the test applied to each, and the verdict reached.](figures/F01_hypotheses.png)
 
 ### 1.6 Contributions
 

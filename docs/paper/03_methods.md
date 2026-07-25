@@ -20,11 +20,13 @@ Six approaches resting on **mathematically distinct** assumptions:
 | 6 | **Phase linking (EVD)** | **maximum likelihood** over the full coherence matrix |
 
 The sixth is the most powerful: it exploits **all pairs simultaneously** through
-the per-pixel N × N complex coherence matrix, whose dominant eigenvector phase
-is the estimated phase history. We implement it in NumPy directly on the HyP3
-interferograms — which *are* the entries of that matrix — without ISCE or SLC
-access. Quality is the **temporal coherence**, the agreement between the
-estimated history and the observed interferograms.
+the per-pixel N × N complex coherence matrix, whose dominant eigenvector phase is
+the estimated phase history. We evaluate it **directly on the delivered
+interferograms**, which *are* the entries of that matrix, so no SLC archive or
+coregistration step is required — a point of practical importance, since it makes
+phase linking available wherever burst interferograms are, without the processing
+infrastructure it normally presupposes. Quality is the **temporal coherence**,
+the agreement between the estimated history and the observed interferograms.
 
 **Noise floor.** At the redundancy of our network (356 pairs over 89 date
 increments, ratio ≈ 4), a *fully decorrelated* pixel returns a temporal
@@ -144,4 +146,4 @@ is covered by synthetic unit tests that verify recovery of a known ground truth,
 including: EVD phase linking on a sparse network; aggregation recovering a
 displacement buried under per-pixel noise; the collapse of a spurious correlation
 between two independent annual cycles; and the size-matched null construction.
-Code and notebooks are available at [repository DOI].
+The complete analysis code is available at [repository DOI].

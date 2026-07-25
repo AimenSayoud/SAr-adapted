@@ -61,7 +61,7 @@ penetration-depth effect. We suggest incorporating one systematically in peatlan
 motion studies reporting millimetre-scale signals.
 
 
-![**Figure 17.** Our bound in context: raised-bog breathing, drained-fen subsidence, expected free flotation, and the value measured here.](figures/F17_literature_context.png)
+![**Figure 16.** Our bound in context: raised-bog breathing, drained-fen subsidence, expected free flotation, and the value measured here.](figures/F16_literature_context.png)
 
 ### 5.3 Two transferable methodological contributions
 

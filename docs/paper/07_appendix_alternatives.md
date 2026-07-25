@@ -20,23 +20,24 @@ Every observation points to a single mechanism. The remainder of this appendix
 tests whether another mechanism could produce the same observations.
 
 
-![**Figure A1.** Proposed mechanism as a causal chain, from water table to the measured dielectric signal.](figures/F16_causal_chain.png)
+![**Figure A1.** Proposed mechanism as a causal chain, from water table to the measured dielectric signal.](figures/FA1_causal_chain.png)
 
 ### A.2 Summary
 
-| # | Alternative | Status | Evidence |
-|---|---|---|---|
-| 1 | **Snow / frost** | ✅ **excluded** | winter removed: 3.282 vs 3.286 mm (**0.1 %**), *p* = 0.022 |
-| 2 | **Atmosphere** | ✅ largely excluded | double difference + size-matched null |
-| 3 | **Geometry / incidence** | ✅ **excluded** | Δ = **0.042°** between A and C → 0.06 % on the conversion |
-| 4 | **Phenology alone** | ✅ excluded | A and C are phenological twins |
-| 5 | **Unwrapping errors** | ✅ excluded | \|R\| on wrapped phase; baseline filter |
-| 6 | **Spatial correlation (N_eff)** | ⚠️ **measured — weakens G1** | L_corr = 160 m over A → N_eff 31, not 125 |
-| 7 | **Mis-assigned land cover** | ✅ excluded | WorldCover + S2 matching + area within 0.6 % |
-| 8 | **Mat and lake moving together** | ❌ **NOT excluded** | requires in-situ laser |
+| # | Alternative | Status | Evidence | Section |
+|---|---|---|---|---|
+| 1 | **Snow / frost** | **Excluded** | winter removed: 3.282 vs 3.286 mm (**0.1 %**), *p* = 0.022 | A.3 |
+| 2 | **Atmosphere** | Largely excluded | double difference + size-matched null | A.4 |
+| 3 | **Geometry / incidence** | **Excluded** | Δ = **0.042°** between A and C → 0.06 % on the conversion | A.5 |
+| 4 | **Phenology alone** | Excluded | A and C are phenological twins | A.6 |
+| 5 | **Unwrapping errors** | Excluded | \|R\| on wrapped phase; baseline filter | A.7 |
+| 6 | **Spatial correlation (N_eff)** | **Measured — reduces the scope of §4.3.2** | L_corr = 160 m over A → N_eff 31, not 125 | A.8 |
+| 7 | **Mis-assigned land cover** | Excluded | WorldCover + S2 matching + area within 0.6 % | A.9 |
+| 8 | **Mat and lake moving together** | **Not excluded** | requires in-situ laser | A.10 |
 
 **Six of eight alternatives are excluded**; one is measured and requires the
-scope of test G1 to be reduced; one resists and requires the laser.
+scope of the |R| comparison (§4.3.2) to be reduced; one resists and requires the
+laser.
 
 ### A.3 Snow and frost — excluded
 
@@ -76,9 +77,12 @@ A and C lie in the **same burst**, ≈ 1 km apart in range. Measured incidence:
 A = 32.263°, C = 32.305° → **Δ = 0.042°**, i.e. **0.06 %** effect on the
 LOS-to-vertical conversion.
 
-*Induced correction*: the true incidence is **32.3°**, not the ≈ 39° assumed in
-an early draft; the LOS-to-vertical factor is **1.183**, not 1.29. The bounds of
-§4.3.7 are corrected accordingly (ceiling 3.9 mm, refined bound 2.4 mm).
+*A correction worth flagging*: the incidence angle here is **32.3°**, appreciably
+below the ≈ 39° that a nominal mid-swath value would suggest. The LOS-to-vertical
+factor is therefore **1.183**, not 1.29 — a 9 % difference that propagates
+directly into any displacement bound. The bounds of §4.3.7 use the measured
+value (ceiling 3.9 mm, refined bound 2.4 mm). Reading the incidence from the
+product metadata rather than assuming it is worth the effort.
 
 ### A.6 Phenology alone — excluded
 
@@ -96,7 +100,7 @@ therefore insensitive to 2π jumps. Filtering baselines > 60 days (annual pairs,
 ±25 mm scatter) tests the sensitivity of the aggregated inversion: the seasonal
 result does not depend on it qualitatively.
 
-### A.8 Spatial correlation and N_eff — measured, and it weakens our own test
+### A.8 Spatial correlation and N_eff — measured, with a consequence for §4.3.2
 
 **The criticism is well founded**: the 1/√N argument assumes independent pixels,
 which they are not.
@@ -118,7 +122,8 @@ the picture:
 
 **Accepted consequence:** at ×1.3 above the floor, A and C do **not** constitute
 a detection. The **ranking** of zones — the only claim made — is unchanged, since
-it uses raw |R|. Test G1 is demoted to **motivation and ordering**, not proof.
+it uses raw |R|. That comparison is demoted to **motivation and ordering**, not
+proof.
 
 *Estimator caveat*: zone C is fragmented (398 scattered pixels), so the
 autocorrelation mixes within- and between-patch correlation; its N_eff of 5 is
@@ -130,7 +135,7 @@ Three convergent checks: ESA WorldCover class, matching on Sentinel-2 features,
 and above all the **area control** (A + B = 90.24 ha against 89.7 ha documented,
 **+0.6 %**), which validates geolocation numerically.
 
-### A.10 Mat and lake moving together — NOT excluded
+### A.10 Mat and lake moving together — not excluded
 
 This is the principal weakness of the refined bound (§4.3.7, level 2). Lake and
 mat float on the same water table: a **common** motion would produce the same
