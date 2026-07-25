@@ -15,6 +15,7 @@ import zipfile
 from pathlib import Path
 
 from insar_wetlands.paper_build import (SECTION_ORDER, add_page_setup,
+                                        polish_tables,
                                         assemble_markdown, build_data_appendix,
                                         collect_sections, csv_to_markdown,
                                         find_missing_images,
@@ -201,20 +202,20 @@ def test_add_page_setup_replaces_the_empty_pandoc_section():
     with lnNumType in its schema-mandated position (after pgMar, before cols)."""
     with tempfile.TemporaryDirectory() as d:
         p = _fake_docx(Path(d) / "a.docx", "<w:p/><w:sectPr />")
-        assert add_page_setup(p) is True
+        assert add_page_setup(p, line_numbers=True) is True
         doc = zipfile.ZipFile(p).read("word/document.xml").decode()
         assert "<w:sectPr />" not in doc
         assert doc.index("<w:pgMar") < doc.index("<w:lnNumType") \
             < doc.index("<w:cols")
         # sectPr must remain the last child of body
         assert doc.index("</w:sectPr>") < doc.index("</w:body>")
-        assert add_page_setup(p) is False  # idempotent
+        assert add_page_setup(p, line_numbers=True) is False  # idempotent
 
 
 def test_add_page_setup_appends_when_no_section_exists():
     with tempfile.TemporaryDirectory() as d:
         p = _fake_docx(Path(d) / "a.docx", "<w:p/>")
-        assert add_page_setup(p) is True
+        assert add_page_setup(p, line_numbers=True) is True
         doc = zipfile.ZipFile(p).read("word/document.xml").decode()
         assert doc.index("<w:sectPr>") > doc.index("<w:p/>")
         assert "<w:lnNumType" in doc
@@ -226,7 +227,7 @@ def test_add_page_setup_keeps_a_populated_section():
         p = _fake_docx(Path(d) / "a.docx",
                        '<w:sectPr><w:pgSz w:w="99" w:h="88"/>'
                        '<w:cols w:space="720"/></w:sectPr>')
-        assert add_page_setup(p) is True
+        assert add_page_setup(p, line_numbers=True) is True
         doc = zipfile.ZipFile(p).read("word/document.xml").decode()
         assert 'w:w="99"' in doc, "existing page size must be preserved"
         assert doc.index("<w:lnNumType") < doc.index("<w:cols")
@@ -239,6 +240,41 @@ def test_add_page_setup_can_be_declined():
         assert add_page_setup(p, line_numbers=False) is False
         assert "<w:lnNumType" not in \
             zipfile.ZipFile(p).read("word/document.xml").decode()
+
+
+def test_line_numbers_are_off_unless_asked_for():
+    """Continuous numbering is what a journal wants at submission, but it
+    clutters a document being read. It must be opt-in."""
+    import inspect
+    from insar_wetlands.paper_build import build_manuscript
+    for fn in (build_manuscript, add_page_setup):
+        assert inspect.signature(fn).parameters["line_numbers"].default is False, fn
+    with tempfile.TemporaryDirectory() as d:
+        p = _fake_docx(Path(d) / "a.docx", "<w:p/><w:sectPr />")
+        add_page_setup(p)                      # default: no numbering
+        doc = zipfile.ZipFile(p).read("word/document.xml").decode()
+        assert "<w:lnNumType" not in doc
+        assert "<w:pgSz" in doc, "page geometry must still be set"
+
+
+def test_polish_tables_forces_a_consistent_width():
+    """pandoc sizes each table to its content, so neighbouring tables come out
+    different widths and none lines up with the text column."""
+    with tempfile.TemporaryDirectory() as d:
+        body = ('<w:tbl><w:tblPr><w:tblW w:type="auto" w:w="0" /></w:tblPr></w:tbl>'
+                '<w:tbl><w:tblPr><w:tblW w:type="auto" w:w="0"/></w:tblPr></w:tbl>')
+        p = _fake_docx(Path(d) / "a.docx", body)
+        assert polish_tables(p) == 2
+        doc = zipfile.ZipFile(p).read("word/document.xml").decode()
+        assert doc.count('w:type="pct" w:w="5000"') == 2, doc
+        assert 'w:type="auto"' not in doc
+        # both spellings pandoc emits must be handled, not just the spaced one
+
+
+def test_polish_tables_is_a_noop_without_tables():
+    with tempfile.TemporaryDirectory() as d:
+        p = _fake_docx(Path(d) / "a.docx", "<w:p/>")
+        assert polish_tables(p) == 0
 
 
 if __name__ == "__main__":
@@ -256,5 +292,8 @@ if __name__ == "__main__":
     test_add_page_setup_appends_when_no_section_exists()
     test_add_page_setup_keeps_a_populated_section()
     test_add_page_setup_can_be_declined()
+    test_line_numbers_are_off_unless_asked_for()
+    test_polish_tables_forces_a_consistent_width()
+    test_polish_tables_is_a_noop_without_tables()
     test_real_paper_tree_assembles()
     print("ALL PAPER-BUILD TESTS PASSED")

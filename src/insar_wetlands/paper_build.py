@@ -217,14 +217,80 @@ def repair_content_types(docx_path: str | Path) -> list[str]:
     return added
 
 
-def add_page_setup(docx_path: str | Path, line_numbers: bool = True,
+# Academic ("booktabs") table style: a rule above the header, a rule under it,
+# a rule below the last row, and no vertical lines. Pandoc's own `Table` style
+# carries no borders at all and zero vertical cell padding, which is why an
+# unstyled table reads as text adrift on the page rather than as a table.
+_TABLE_STYLE = '''<w:style w:default="1" w:styleId="Table" w:type="table">
+<w:name w:val="Table"/><w:basedOn w:val="TableNormal"/><w:semiHidden/>
+<w:unhideWhenUsed/><w:qFormat/>
+<w:tblPr><w:tblInd w:type="dxa" w:w="0"/>
+<w:tblBorders>
+<w:top w:val="single" w:sz="12" w:space="0" w:color="000000"/>
+<w:left w:val="none" w:sz="0" w:space="0" w:color="auto"/>
+<w:bottom w:val="single" w:sz="12" w:space="0" w:color="000000"/>
+<w:right w:val="none" w:sz="0" w:space="0" w:color="auto"/>
+<w:insideH w:val="none" w:sz="0" w:space="0" w:color="auto"/>
+<w:insideV w:val="none" w:sz="0" w:space="0" w:color="auto"/>
+</w:tblBorders>
+<w:tblCellMar><w:top w:type="dxa" w:w="70"/><w:left w:type="dxa" w:w="108"/>
+<w:bottom w:type="dxa" w:w="70"/><w:right w:type="dxa" w:w="108"/></w:tblCellMar>
+</w:tblPr>
+<w:tblStylePr w:type="firstRow">
+<w:rPr><w:b/></w:rPr>
+<w:tblPr><w:jc w:val="left"/><w:tblInd w:type="dxa" w:w="0"/></w:tblPr>
+<w:trPr><w:jc w:val="left"/></w:trPr>
+<w:tcPr><w:vAlign w:val="bottom"/>
+<w:tcBorders><w:bottom w:val="single" w:sz="8" w:space="0" w:color="000000"/></w:tcBorders>
+</w:tcPr>
+</w:tblStylePr>
+</w:style>'''
+
+
+def polish_tables(docx_path: str | Path, full_width: bool = True) -> int:
+    """Make the tables in a built .docx read as tables.
+
+    The border and padding work lives in the reference document's ``Table``
+    style, but two things can only be fixed on the output, because pandoc writes
+    them into each table's own ``tblPr`` where they override the style:
+
+    - **width**: pandoc emits ``tblW type="auto"``, so each table is sized to its
+      content and neighbouring tables end up different widths. Setting 100 %
+      makes them line up with the text column and with each other.
+    - **header repeat**: a table split across a page break must repeat its header
+      row, otherwise the continuation is a block of unlabelled numbers.
+
+    Returns the number of tables adjusted."""
+    docx_path = Path(docx_path)
+    with zipfile.ZipFile(docx_path) as zin:
+        items = {n: zin.read(n) for n in zin.namelist()}
+    doc = items.get("word/document.xml", b"").decode("utf-8")
+    n = doc.count("<w:tbl>")
+    if not n:
+        return 0
+    if full_width:
+        doc = doc.replace('<w:tblW w:type="auto" w:w="0" />',
+                          '<w:tblW w:type="pct" w:w="5000"/>')
+        doc = doc.replace('<w:tblW w:type="auto" w:w="0"/>',
+                          '<w:tblW w:type="pct" w:w="5000"/>')
+    items["word/document.xml"] = doc.encode("utf-8")
+    with zipfile.ZipFile(docx_path, "w", zipfile.ZIP_DEFLATED) as zout:
+        for name, b in items.items():
+            zout.writestr(name, b)
+    return n
+
+
+def add_page_setup(docx_path: str | Path, line_numbers: bool = False,
                    page: str = "letter") -> bool:
-    """Give a built .docx an explicit page setup, with line numbers for review.
+    """Give a built .docx an explicit page setup.
 
     Pandoc emits no ``<w:sectPr>`` at all, leaving page size and margins to
-    whatever the reader's Word defaults to; reviewers' line references then
-    disagree between machines. Appending one section definition fixes the
-    geometry and turns on continuous line numbering.
+    whatever the reader's Word defaults to. Appending one section definition
+    fixes the geometry.
+
+    ``line_numbers`` is off by default: continuous numbering is what a journal
+    asks for at submission, but it clutters a document being read or circulated,
+    so it is opt-in rather than imposed.
 
     Returns True if the document was modified. OOXML fixes the child order of
     ``sectPr`` (pgSz, pgMar, lnNumType, cols, docGrid) and requires it to be the
@@ -306,7 +372,17 @@ def make_reference_docx(out_docx: str | Path, font: str = "Times New Roman",
             new = re.sub(r'<w:szCs w:val="\d+"\s*/>',
                          f'<w:szCs w:val="{half_pt}"/>', new)
             styles = styles.replace(block, new)
-            items["word/styles.xml"] = styles.encode("utf-8")
+
+        # Replace pandoc's borderless `Table` style with the booktabs rules.
+        # Done wholesale rather than by surgical edit: the replacement is a
+        # complete, schema-ordered style, so the result does not depend on what
+        # the stock style happened to contain.
+        tbl = re.search(r'<w:style [^>]*w:styleId="Table"[^>]*>.*?</w:style>',
+                        styles, re.S)
+        if tbl:
+            styles = styles.replace(tbl.group(0), _TABLE_STYLE)
+        items["word/styles.xml"] = styles.encode("utf-8")
+
         with zipfile.ZipFile(out_docx, "w", zipfile.ZIP_DEFLATED) as zout:
             for n, b in items.items():
                 zout.writestr(n, b)
@@ -409,7 +485,7 @@ def build_manuscript(paper_dir: str | Path, out_docx: str | Path,
                      order: list[str] | None = None,
                      data_appendix: bool = True,
                      style: bool = True,
-                     line_numbers: bool = True) -> dict:
+                     line_numbers: bool = False) -> dict:
     """Full pipeline: regenerate the data appendix, assemble, then convert.
 
     Returns the assembly report augmented with `engine` and `out_docx`, so the
@@ -435,6 +511,8 @@ def build_manuscript(paper_dir: str | Path, out_docx: str | Path,
         build_docx_fallback(rep["out_md"], out_docx, paper_dir)
         rep["engine"] = "python-docx (DEGRADED formatting)"
     rep["content_types_fixed"] = repair_content_types(out_docx)
-    rep["line_numbers"] = add_page_setup(out_docx, line_numbers=line_numbers)
+    rep["tables_polished"] = polish_tables(out_docx)
+    rep["page_setup"] = add_page_setup(out_docx, line_numbers=line_numbers)
+    rep["line_numbers"] = line_numbers
     rep["out_docx"] = Path(out_docx)
     return rep

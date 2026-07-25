@@ -36,15 +36,27 @@ concatenates the sections in `SECTION_ORDER`, and converts to Word through
 hand-edited: that is what keeps the tables in the document from drifting away
 from the numbers the notebooks actually computed.
 
-Two defects in the toolchain are repaired automatically after conversion, in
+Three defects in the toolchain are repaired automatically after conversion, in
 `paper_build.py`:
 
 - pandoc 3.1.x writes images into `word/media/` **without declaring their
   extension** in `[Content_Types].xml`, which makes the OPC package invalid;
   `repair_content_types` adds the declaration.
 - pandoc emits an **empty `<w:sectPr/>`**, leaving page size and margins to the
-  reader's defaults, so line references disagree between machines;
-  `add_page_setup` fixes the geometry and turns on continuous line numbering.
+  reader's defaults; `add_page_setup` fixes the geometry.
+- pandoc sizes **every table to its own content**, so neighbouring tables come
+  out different widths and none lines up with the text column; `polish_tables`
+  sets them all to 100 % and repeats header rows across page breaks.
+
+**Table appearance** comes from the reference document. Pandoc's stock `Table`
+style has *no borders at all* and zero vertical cell padding, which is why an
+unstyled table reads as text adrift on the page. It is replaced with an academic
+*booktabs* style: rule above the header, rule under it, rule below the last row,
+no vertical lines, bold header.
+
+**Line numbers are off by default.** They are what a journal asks for at
+submission but they clutter a reading copy, so they are opt-in:
+`build_manuscript(..., line_numbers=True)`.
 
 ## Writing conventions
 
