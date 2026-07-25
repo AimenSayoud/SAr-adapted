@@ -1,0 +1,2 @@
+n_pairs,n_dates,delta_mean,delta_median,frac_a_lower,wilcoxon_stat,wilcoxon_p,ci95_pairs,date_jackknife_min,date_jackknife_max,date_jackknife_se,robust_same_sign,significant
+356,90,-0.08085797333650374,-0.05030900239944458,0.8932584269662921,4094.0,4.838844154316786e-46,"[-0.09113269959356678, -0.07052732004752656]",-0.08418832078229549,-0.07741065939952588,0.014535361854110865,True,True
