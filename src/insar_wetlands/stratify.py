@@ -399,10 +399,33 @@ def pair_hydro_change(pairs: list[str], era5: xr.Dataset, lon: float, lat: float
     return pd.DataFrame(rows).set_index("pair")
 
 
+def _pair_indexed(pair_hydro: pd.DataFrame) -> pd.DataFrame:
+    """Return `pair_hydro` keyed by `pair`, wherever the key currently lives.
+
+    The key survives a CSV round trip either as the index (written with
+    index=True) or as an ordinary column (written after reset_index), and the
+    caller cannot always know which. Accepting both is what stops a caching
+    detail from silently breaking the merge: without this, a frame whose key
+    was dropped merges a date string against a RangeIndex, matches nothing, and
+    surfaces much later as an obscure dtype error or an empty result.
+
+    Raises if the key is genuinely absent — that is unrecoverable, and saying so
+    plainly beats returning an empty table that looks like a real no-result."""
+    if pair_hydro.index.name == "pair":
+        return pair_hydro
+    if "pair" in pair_hydro.columns:
+        return pair_hydro.set_index("pair")
+    raise ValueError(
+        "pair_hydro must be keyed by `pair`, as index or column; got index "
+        f"name {pair_hydro.index.name!r} and columns {list(pair_hydro.columns)}. "
+        "A cache written with index=False drops the key — delete it and re-run.")
+
+
 def coherence_vs_hydro(df_perpair: pd.DataFrame, pair_hydro: pd.DataFrame) -> pd.DataFrame:
     """Par zone : régression cohérence ~ |Δ nappe|. Une pente PLUS négative
     pour A que pour C = la cohérence du tapis est plus sensible à la variation
     de nappe -> mécanisme de flottaison (mécanique/hydrologique) propre au tapis."""
+    pair_hydro = _pair_indexed(pair_hydro)
     out = []
     for z, g in df_perpair.groupby("zone"):
         m = g.merge(pair_hydro, left_on="pair", right_index=True)
@@ -422,6 +445,7 @@ def freeze_coherence_gain(df_perpair: pd.DataFrame, pair_hydro: pd.DataFrame,
     """Par zone : cohérence des paires 'froides' (tmin<=0°C, surface figée) vs
     'chaudes'. Si A gagne PLUS que C au gel -> le tapis se stabilise en gelant
     = signature mécanique (flottaison stoppée par le gel)."""
+    pair_hydro = _pair_indexed(pair_hydro)
     out = []
     for z, g in df_perpair.groupby("zone"):
         m = g.merge(pair_hydro, left_on="pair", right_index=True)

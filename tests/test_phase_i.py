@@ -217,6 +217,36 @@ def test_pair_hydro_index_survives_a_csv_round_trip():
     print("  pair index round-trips only when written with index=True")
 
 
+def test_hydro_accepts_the_pair_key_as_index_or_column():
+    """The key survives a CSV round trip as either the index or a plain column,
+    and the caller cannot always know which. Both must work; only a genuinely
+    lost key may fail, and it must fail with a message that names the cause."""
+    import numpy as np
+    import pandas as pd
+    from insar_wetlands.stratify import coherence_vs_hydro, freeze_coherence_gain
+    pairs = [f"2022{(i % 12) + 1:02d}01_2022{(i % 12) + 1:02d}13" for i in range(40)]
+    rng = np.random.default_rng(0)
+    dfz = pd.DataFrame([{"zone": z, "pair": p, "mean_coh": 0.4 + 0.1 * rng.random()}
+                        for z in "ABCD" for p in pairs])
+    keyed = pd.DataFrame([{"pair": p, "dwtd": abs(rng.normal()),
+                           "tmin": 273.15 + rng.normal() * 8} for p in pairs]
+                         ).set_index("pair")
+
+    for label, phy in [("index", keyed), ("column", keyed.reset_index())]:
+        assert len(coherence_vs_hydro(dfz, phy)) == 4, label
+        assert len(freeze_coherence_gain(dfz, phy)) == 4, label
+
+    lost = keyed.reset_index(drop=True)          # what index=False produced
+    for fn in (coherence_vs_hydro, freeze_coherence_gain):
+        try:
+            fn(dfz, lost)
+        except ValueError as e:
+            assert "keyed by `pair`" in str(e), str(e)
+        else:
+            raise AssertionError(f"{fn.__name__} must reject a frame with no pair key")
+    print("  hydro functions accept pair as index or column, reject a lost key")
+
+
 if __name__ == "__main__":
     test_lag_scan_finds_driver_and_lag()
     test_detrend_kills_spurious_trend_correlation()
@@ -229,4 +259,5 @@ if __name__ == "__main__":
     test_plots_run()
     test_hydro_tables_keep_their_columns_when_no_zone_qualifies()
     test_pair_hydro_index_survives_a_csv_round_trip()
+    test_hydro_accepts_the_pair_key_as_index_or_column()
     print("ALL PHASE-I TESTS PASSED")
