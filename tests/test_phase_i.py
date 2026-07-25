@@ -150,6 +150,26 @@ def test_label_array_and_field_table():
     assert len(zone_field_table(fld, zones)) == 4
 
 
+def test_save_figure_writes_png():
+    """L'export doit ecrire un PNG non vide, au nom exact demande."""
+    if not HAS_MPL:
+        print("  (matplotlib absent -> test d'export saute)")
+        return
+    import tempfile
+    from pathlib import Path
+
+    import matplotlib.pyplot as plt
+
+    from insar_wetlands.zone_viz import save_figure
+
+    d = Path(tempfile.mkdtemp()) / "figs"       # dossier inexistant : doit etre cree
+    fig, ax = plt.subplots()
+    ax.plot([0, 1], [0, 1])
+    paths = save_figure(fig, "F99_test", d, dpi=72)
+    assert len(paths) == 1 and paths[0].name == "F99_test.png", paths
+    assert paths[0].stat().st_size > 1000, "PNG suspicieusement petit"
+
+
 def test_plots_run():
     """Fumee : les traces s'executent sans erreur (saute si matplotlib absent)."""
     if not HAS_MPL:
@@ -173,5 +193,6 @@ if __name__ == "__main__":
     test_driver_pvalues_extremes()
     test_zone_areas_and_site_check()
     test_label_array_and_field_table()
+    test_save_figure_writes_png()
     test_plots_run()
     print("ALL PHASE-I TESTS PASSED")

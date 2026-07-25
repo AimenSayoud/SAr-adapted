@@ -23,6 +23,32 @@ ZONE_LABELS = {"A": "A — tapis flottant", "B": "B — lac résiduel",
                "C": "C — prairie stable appariée", "D": "D — autres couverts"}
 
 
+def save_figure(fig, name: str, outdir, dpi: int = 300,
+                formats=("png",), close: bool = True) -> list:
+    """Enregistre une figure d'article avec un nommage et un dpi CONSTANTS.
+
+    Convention : `FXX_slug.png` dans `docs/article/figures/`, 300 dpi, marges
+    resserrées. Les figures vivent a côté du texte qui les cite (et non dans
+    `outputs/`, ignoré par git) : elles sont ainsi versionnées avec le
+    manuscrit, ce qui garantit qu'une figure et le chiffre qu'elle illustre ne
+    peuvent pas diverger.
+
+    Retourne la liste des chemins écrits."""
+    from pathlib import Path
+
+    outdir = Path(outdir)
+    outdir.mkdir(parents=True, exist_ok=True)
+    paths = []
+    for ext in formats:
+        p = outdir / f"{name}.{ext}"
+        fig.savefig(p, dpi=dpi, bbox_inches="tight", facecolor="white")
+        paths.append(p)
+    if close:
+        import matplotlib.pyplot as plt
+        plt.close(fig)
+    return paths
+
+
 def zone_label_array(zones: dict, template: xr.DataArray) -> xr.DataArray:
     """Carte catégorielle : 1=A, 2=B, 3=C, 4=D, NaN ailleurs."""
     lab = np.full(template.shape, np.nan, "float32")
