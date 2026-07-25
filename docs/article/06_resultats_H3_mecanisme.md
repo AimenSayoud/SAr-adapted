@@ -32,13 +32,42 @@ plancher de bruit **par pixel**.
 | **A — tapis** | **0.234** |
 
 **[INT]** Le tapis a la phase commune **la plus faible de toutes les zones**,
-cohérent avec H2.
+cohérent avec H2. **C'est le seul énoncé que ce test soutient.**
 
-⚠️ **Deux précautions.** (i) |R| contient l'**atmosphère**, commune à tous les
-pixels : dépasser le plancher n'est donc pas une preuve de signal de sol — seul
-le **classement relatif** est informatif. (ii) Le rapport au plancher
-1/√N_eff **n'est pas comparable entre zones**, car N_eff varie de ~16 (B) à
-~2 700 (D).
+⚠️ **Ce test est le plus faible de l'étude — trois raisons.**
+
+**(i) |R| contient l'atmosphère**, commune à tous les pixels : dépasser le
+plancher n'est pas une preuve de signal de sol.
+
+**(ii) Le rapport au plancher n'est pas comparable entre zones**, car N_eff
+varie de ~16 (B) à ~2 700 (D).
+
+**(iii) [FAIT] Avec un N_eff MESURÉ, le test perd l'essentiel de sa puissance.**
+La longueur de corrélation spatiale, estimée par autocorrélation empirique
+(seuil 1/e) au lieu d'être supposée à 2 px :
+
+| Zone | L_corr | N_eff **mesuré** | N_eff *supposé* | \|R\| / plancher mesuré |
+|---|---|---|---|---|
+| A | 160 m | 31 | *125* | **×1.3** |
+| B | 80 m | 16 | *16* | ×1.6 |
+| C | 360 m | 5 | *100* | **×1.3** |
+| D | 280 m | 219 | *2 688* | ×6.3 |
+
+Seule la zone D dépasse nettement son plancher ; **A et C sont à ×1.3, ce qui
+n'est pas une détection**. Le **classement** des zones (le seul énoncé revendiqué)
+reste inchangé, puisqu'il porte sur les |R| bruts.
+
+⚠️ *Réserve sur l'estimateur* : la zone C est **fragmentée** (398 px en taches
+dispersées), et notre longueur de corrélation mélange alors corrélations
+intra- et inter-taches — d'où un N_eff de 5 probablement sous-estimé, donc un
+plancher surestimé. À raffiner par un estimateur tenant compte de la
+connectivité.
+
+**Portée réelle de G1** : ce test motive l'agrégation et ordonne les zones. Il
+**ne prouve rien à lui seul**. Les conclusions de la Phase G reposent sur §6.4
+et §6.5, dont la significativité provient de **nuls empiriques appariés en
+taille** — lesquels intègrent la corrélation spatiale réelle et **n'utilisent
+aucune valeur de N_eff**.
 
 ## 6.3 La vitesse était la mauvaise observable
 
@@ -58,19 +87,37 @@ contrôle nul a permis d'identifier.
 ## 6.4 Amplitude saisonnière : détection
 
 **[FAIT]** Ajustement d'un cycle annuel sur la série agrégée A − C, testé contre
-**92 nuls appariés en taille** :
+**280 nuls appariés en taille** :
 
-| | amplitude | phase (jour) | r² saisonnier | p |
+| | amplitude | phase (jour) | r² saisonnier | **p** |
 |---|---|---|---|---|
-| **A − C** | **3.29 mm** | **104** (mi-avril) | 0.30 | **≤ 0.011** |
+| **A − C** | **3.29 mm** | **104** (mi-avril) | 0.30 | **0.014** |
 
-Nul : médiane 0.82 mm, p95 1.93 mm. Aucun des 92 nuls n'atteint l'observé.
+Nul : médiane 0.86 mm, p95 1.87 mm ; 3 nuls sur 280 dépassent l'observé.
 
 **[INT]** Détection réelle, obtenue là où six inversions par pixel ne voyaient
 rien. Le maximum de mi-avril est cohérent avec un gonflement printanier à nappe
 haute.
 
-⚠️ p = 0.0108 = 1/(1+92) est le **plancher** atteignable avec 92 tirages.
+**p = 0.014 est une valeur RÉELLE**, non un plancher : avec 280 tirages, le
+minimum atteignable serait 0.0036. *(Un premier passage à 92 tirages donnait
+p = 0.0108, exactement 1/93 — au plancher, donc à écrire « p ≤ ».)*
+
+### Robustesse à la saison froide — neige et gel écartés
+
+**[FAIT]** Le signal recalculé **en excluant les paires de décembre-février**
+(30 % du réseau retiré), avec la **même exclusion rejouée sur chaque nul** :
+
+| jeu | n paires | amplitude | phase (jour) | r² sais. | p |
+|---|---|---|---|---|---|
+| complet | 356 | **3.286 mm** | 104.2 | 0.299 | 0.014 |
+| **sans hiver** | 248 | **3.282 mm** | 112.6 | 0.309 | 0.022 |
+
+**[INT]** L'amplitude varie de **0.1 %** après retrait de 30 % des paires, et le
+r² saisonnier **augmente** légèrement. **Neige et gel sont éliminés** : le signal
+est intégralement porté par la saison végétative. C'était l'explication
+alternative la plus complète (cycle annuel propre, effet différentiel
+tourbière/prairie) — elle est réfutée.
 
 ## 6.5 Trois arguments indépendants excluent le mouvement
 
@@ -152,7 +199,12 @@ L'amplitude saisonnière totale **A − C** vaut **3.29 mm en LOS**. En attribua
 **la totalité** de ce signal à un mouvement — donc en ignorant délibérément tout
 ce que §6.5 établit sur son origine diélectrique :
 
-> d_vert ≤ 3.29 / cos(39°) ≈ **4.2 mm** d'amplitude saisonnière verticale.
+> d_vert ≤ 3.29 / cos(32.3°) ≈ **3.9 mm** d'amplitude saisonnière verticale.
+
+**[FAIT] L'angle d'incidence est mesuré, pas supposé** : 32.26° sur la zone A
+(couche `lv_theta`), d'où un facteur LOS→vertical de **1.183**. *(Une première
+version supposait ~39°, soit un facteur 1.29 — surestimation de 9 %, corrigée
+par la mesure.)*
 
 **Hypothèses** : (i) mouvement purement vertical ; (ii) pas de repliement de
 phase — vérifié, car un mouvement de plusieurs centimètres produirait une
@@ -167,7 +219,7 @@ une nappe de ±10 cm).
 En référençant le tapis au lac, le cycle commun aux surfaces saturées s'annule
 et il reste **0.90 mm**, sous le plancher du nul apparié (**p95 = 2.0 mm**) :
 
-> mouvement propre du tapis **< 2 mm en LOS** (≈ 2.6 mm en vertical).
+> mouvement propre du tapis **< 2 mm en LOS** (≈ **2.4 mm** en vertical).
 
 ⚠️ **Hypothèse critique à déclarer.** Ce test suppose que **la surface
 diffusante du lac est mécaniquement stable**. Or lac et tapis flottent sur la

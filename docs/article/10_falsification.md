@@ -1,6 +1,6 @@
 # 10. Falsification — explications alternatives et tests
 
-**Statut :** rédigé (tests 1-3 et 6 à exécuter) · **Sources :** transverses
+**Statut :** tests J1-J4 **exécutés** (Phase J) · **Sources :** `phaseJ_falsification`
 
 > *« Pour chaque conclusion majeure : quelle observation prouverait que j'ai
 > tort ? »* Chaque hypothèse alternative éliminée renforce l'explication
@@ -56,16 +56,19 @@ teste si un autre mécanisme pourrait produire les mêmes observations.
 
 | # | Hypothèse alternative | Statut | Test |
 |---|---|---|---|
-| 1 | **Neige / gel** | ⏳ à exécuter | exclure les paires hivernales |
+| 1 | **Neige / gel** | ✅ **ÉCARTÉE** | sans hiver : 3.282 mm vs 3.286 (**0.1 %**), p = 0.022 |
 | 2 | **Atmosphère** | ✅ largement écartée | double différence + nul apparié |
-| 3 | **Géométrie / incidence** | ⏳ à quantifier | Δincidence entre A et C |
+| 3 | **Géométrie / incidence** | ✅ **ÉCARTÉE** | Δ = **0.042°** entre A et C → 0.06 % sur la conversion |
 | 4 | **Phénologie seule** | ✅ écartée | A et C jumeaux phénologiques |
-| 5 | **Erreurs de déroulement** | ✅ écartée | |R| sur phase enroulée ; filtre baseline |
-| 6 | **Corrélation spatiale (N_eff)** | ⏳ à mesurer | longueur de corrélation empirique |
+| 5 | **Erreurs de déroulement** | ✅ écartée | \|R\| sur phase enroulée ; filtre baseline |
+| 6 | **Corrélation spatiale (N_eff)** | ⚠️ **mesurée — affaiblit G1** | L_corr = 160 m sur A → N_eff 31 (et non 125) |
 | 7 | **Couvert / classe erronée** | ✅ écartée | WorldCover + appariement S2 + surface +0.6 % |
-| 8 | **Le tapis ET le lac bougent ensemble** | ❌ **non écartée** | nécessite le laser |
+| 8 | **Le tapis ET le lac bougent ensemble** | ❌ **NON écartée** | nécessite le laser |
 
-### 1. Neige et gel — *test prêt, à exécuter*
+**Bilan : six des huit alternatives sont écartées**, une est mesurée et impose
+de revoir la portée de G1 à la baisse, une seule résiste et exige le laser.
+
+### 1. Neige et gel — ✅ **ÉCARTÉE** (Phase J3)
 
 **Pourquoi c'est sérieux.** Un manteau neigeux modifie fortement la
 rétrodiffusion et la cohérence, affecte différemment une tourbière saturée et
@@ -75,10 +78,13 @@ alternative complète du signal saisonnier de 3.3 mm.
 **Test.** Recalculer l'amplitude saisonnière en **excluant les paires dont une
 date tombe en décembre-février** (`filter_pairs(..., exclude_months=(12,1,2))`).
 
-- Signal **survit** → neige et gel écartés ; le signal est porté par la saison
-  végétative.
-- Signal **disparaît** → il était hivernal ; l'interprétation diélectrique
-  estivale tombe.
+**[FAIT] Résultat.** En retirant 30 % des paires (108 sur 356) :
+amplitude **3.282 mm** contre **3.286 mm** — une variation de **0.1 %** — avec un
+r² saisonnier qui *augmente* (0.299 → 0.309) et p = 0.022 contre son propre nul.
+
+**[INT] Neige et gel sont réfutés.** Le signal est intégralement porté par la
+saison végétative. C'était l'explication alternative la plus complète ; sa
+réfutation renforce nettement l'interprétation diélectrique.
 
 *Indice existant* : le test de gel (Phase D-bis) montrait que le tapis gagne
 **moins** de cohérence au gel (+0.028) que la prairie (+0.077) — le tapis ne
@@ -97,14 +103,19 @@ absorbée par la p-value empirique.
 s'annulerait pas parfaitement. Le relief étant très faible ici (< quelques m),
 l'effet attendu est négligeable — mais non mesuré.
 
-### 3. Géométrie et angle d'incidence — *à quantifier*
+### 3. Géométrie et angle d'incidence — ✅ **ÉCARTÉE** (Phase J2)
 
 A et C appartiennent au **même burst**, distants de ~1 km en portée : la
 variation d'incidence sur cette distance est de l'ordre de **0.05-0.1°** sur une
 fauchée de 250 km. Un tel écart ne peut pas produire un signal saisonnier.
 
-**Test.** Extraire l'incidence médiane de A et de C depuis la couche `lv_theta`
-et rapporter l'écart. Une ligne suffit à clore la question.
+**[FAIT] Mesuré** : A = 32.263°, C = 32.305° → **Δ = 0.042°**, soit **0.06 %**
+d'effet sur la conversion LOS→vertical. Écarté.
+
+**[FAIT — correction induite]** L'incidence réelle est de **32.3°**, non ~39°
+comme supposé initialement : le facteur LOS→vertical vaut **1.183** et non 1.29.
+Les bornes de §6.8 sont corrigées en conséquence (plafond 3.9 mm, borne affinée
+2.4 mm).
 
 ### 4. Phénologie seule — *écartée*
 
@@ -123,7 +134,7 @@ insensibles aux sauts de 2π. Le filtrage des baselines > 60 j (paires annuelles
 ±25 mm de dispersion) teste la sensibilité de l'inversion agrégée : le résultat
 saisonnier n'en dépend pas qualitativement.
 
-### 6. Corrélation spatiale et N_eff — *à mesurer*
+### 6. Corrélation spatiale et N_eff — ⚠️ **MESURÉE, et elle affaiblit G1** (Phase J1)
 
 **La critique est fondée.** L'argument « le bruit décroît en 1/√N » suppose des
 pixels indépendants. Ils ne le sont pas.
@@ -136,10 +147,25 @@ appariés en taille** — construits sur des zones réelles, avec la corrélatio
 spatiale réelle. Aucune valeur de N_eff n'entre dans ces p-values. Le facteur
 1/√N n'est qu'une **motivation** de la démarche, pas une étape du calcul.
 
-**(b) Là où N_eff intervient (plancher indicatif de |R|), il doit être mesuré.**
-`correlation_length()` estime la portée par autocorrélation empirique (seuil
-1/e) et `effective_looks(..., field=...)` en déduit N_eff sur les données au
-lieu de le supposer. À exécuter et à reporter.
+**(b) [FAIT] Là où N_eff intervient (plancher de |R|), la mesure change tout.**
+
+| Zone | L_corr | N_eff mesuré | N_eff supposé | \|R\| / plancher |
+|---|---|---|---|---|
+| A | 160 m | 31 | *125* | **×1.3** |
+| B | 80 m | 16 | *16* | ×1.6 |
+| C | 360 m | 5 | *100* | **×1.3** |
+| D | 280 m | 219 | *2 688* | ×6.3 |
+
+**[INT] Conséquence assumée : G1 perd l'essentiel de sa puissance.** À ×1.3
+au-dessus du plancher, A et C ne constituent **pas** une détection. Le
+**classement** des zones — seul énoncé revendiqué — est en revanche inchangé,
+car il porte sur les |R| bruts. G1 est donc rétrogradé au rang de **motivation
+et de mise en ordre**, non de preuve.
+
+⚠️ *Réserve sur l'estimateur* : la zone C est fragmentée (398 px dispersés) et
+notre autocorrélation mélange alors corrélations intra- et inter-taches — N_eff
+de 5 est vraisemblablement sous-estimé. À raffiner par un estimateur tenant
+compte de la connectivité.
 
 ### 7. Couvert mal attribué — *écartée*
 
