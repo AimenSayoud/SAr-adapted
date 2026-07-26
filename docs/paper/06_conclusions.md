@@ -13,7 +13,7 @@ vegetation on stable ground. The burden of proof shifts: there is no case for
 seeking a seventh algorithm.
 
 **2. The mat is a distinct radar target.** At matched cover and phenology its
-coherence is significantly lower (Δ = −0.069, *p* = 2.2 × 10⁻⁴⁹, date-jackknife
+coherence is significantly lower (mean Δ = −0.081, lower in 89 % of pairs, date-jackknife
 sign-stable), its boundary is sharp, its scattering is volumetric, its
 closure-phase dispersion is **3.2×** larger — and the drivers of its coherence
 **reverse sign** relative to the adjacent grassland.

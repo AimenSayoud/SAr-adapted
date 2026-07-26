@@ -31,8 +31,9 @@ identically. Phase linking, the maximum-likelihood estimator, recovers only
 land-cover-matched vegetation on stable ground **using the same network**.
 
 **(H2) The mat is a distinct radar target.** At matched land cover and
-phenology, its coherence is significantly lower (Δ = **−0.069**, Wilcoxon
-*p* = 2.2 × 10⁻⁴⁹, date-jackknife sign-stable), its boundary is sharp, its
+phenology, its coherence is significantly lower (mean Δ = **−0.081**, lower in
+89 % of pairs, date-jackknife [−0.0842, −0.0774] sign-stable), its boundary is
+sharp, its
 closure-phase dispersion is 3.2× larger, and — obtained by an independent
 statistical route — the predictors of coherence **reverse sign** between mat and
 grassland.

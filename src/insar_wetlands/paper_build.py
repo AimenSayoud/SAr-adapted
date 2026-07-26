@@ -544,7 +544,8 @@ def build_manuscript(paper_dir: str | Path, out_docx: str | Path,
                      order: list[str] | None = None,
                      data_appendix: bool = True,
                      style: bool = True,
-                     line_numbers: bool = False) -> dict:
+                     line_numbers: bool = False,
+                     strict: bool = False) -> dict:
     """Full pipeline: regenerate the data appendix, assemble, then convert.
 
     Returns the assembly report augmented with `engine` and `out_docx`, so the
@@ -562,6 +563,17 @@ def build_manuscript(paper_dir: str | Path, out_docx: str | Path,
         rep["n_tables"] = rep_tables["n_tables"]
         rep["tables"] = rep_tables["tables"]
     rep["reference_docx"] = str(reference_docx) if reference_docx else None
+
+    # Transcription check: every registered number must match the exported CSVs.
+    # Reported, not raised — a stale number should be visible at build time
+    # without blocking a draft, and `strict=True` turns it into a hard gate for
+    # the submission build.
+    from .paper_numbers import check_manuscript_numbers, format_report
+    stale = check_manuscript_numbers(paper_dir)   # hand-written sections only
+    rep["stale_numbers"] = stale
+    rep["numbers_report"] = format_report(stale)
+    if stale and strict:
+        raise ValueError(rep["numbers_report"])
     try:
         build_docx_pandoc(rep["out_md"], out_docx, paper_dir, reference_docx)
         rep["engine"] = "pandoc"

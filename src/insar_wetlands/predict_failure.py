@@ -199,6 +199,32 @@ def random_forest_importance(df: pd.DataFrame, target_col: str = "target",
             .reset_index(drop=True))
 
 
+def zone_values(field: xr.DataArray, zones: dict, zone: str) -> np.ndarray:
+    """Finite pixel values of `field` inside `zone`.
+
+    The single place invalid pixels are dropped, so every per-zone statistic
+    shares one denominator. Written out because the obvious inline alternative
+    is silently wrong::
+
+        np.nanmean(field.values[mask] >= 0.7)   # WRONG
+
+    ``NaN >= 0.7`` evaluates to ``False``, not ``NaN``, so the boolean array
+    holds no NaN for ``nanmean`` to skip: invalid pixels are counted as
+    failures and the fraction is diluted by whatever share of the zone is
+    masked. Zones without invalid pixels agree with the correct value, so the
+    error hides until a fragmented or edge-clipped zone is compared against
+    one that is fully covered."""
+    v = field.values[zones[zone].values]
+    return v[np.isfinite(v)]
+
+
+def zone_fraction_above(field: xr.DataArray, zones: dict, zone: str,
+                        threshold: float = 0.7) -> float:
+    """Fraction of VALID pixels in `zone` at or above `threshold`."""
+    v = zone_values(field, zones, zone)
+    return float((v >= threshold).mean()) if v.size else float("nan")
+
+
 def threshold_sweep(field: xr.DataArray, zones: dict,
                     thresholds=np.arange(0.4, 0.96, 0.05),
                     zone_names=("A", "B", "C", "D")) -> pd.DataFrame:
@@ -209,12 +235,10 @@ def threshold_sweep(field: xr.DataArray, zones: dict,
     distribution — information perdue par un seuil unique. Le croisement des
     courbes (s'il existe) identifie le régime ou les zones se ressemblent."""
     rows = []
-    vals = field.values
     for z in zone_names:
         if z not in zones:
             continue
-        v = vals[zones[z].values]
-        v = v[np.isfinite(v)]
+        v = zone_values(field, zones, z)
         if not v.size:
             continue
         for t in thresholds:

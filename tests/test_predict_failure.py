@@ -111,6 +111,44 @@ def test_collinearity_detects_monotone_duplicate():
     assert abs(clean["rvi"]) < 1.0, clean          # coefficient redevenu sain
 
 
+def test_zone_fraction_excludes_invalid_pixels():
+    """The bug this guards against produced a wrong number in the manuscript.
+
+    `np.nanmean(values >= 0.7)` looks like it skips invalid pixels. It does not:
+    `NaN >= 0.7` is False, not NaN, so the boolean array has nothing for nanmean
+    to skip and masked pixels are counted as failures. Zones with full coverage
+    still agree with the correct value, so the error stays hidden until a
+    fragmented zone is compared against a complete one."""
+    import numpy as np
+    import xarray as xr
+    from insar_wetlands.predict_failure import (zone_fraction_above,
+                                                zone_values, threshold_sweep)
+    vals = np.array([[0.9, 0.9, 0.9, 0.5],
+                     [np.nan, np.nan, np.nan, np.nan]])
+    field = xr.DataArray(vals, dims=("y", "x"))
+    full = xr.DataArray(np.array([[True] * 4, [False] * 4]), dims=("y", "x"))
+    holed = xr.DataArray(np.array([[True] * 4, [True] * 4]), dims=("y", "x"))
+    zones = {"full": full, "holed": holed}
+
+    # 3 of 4 valid pixels are >= 0.7 in both zones: the answer must not depend
+    # on how many masked pixels the zone happens to contain.
+    assert zone_fraction_above(field, zones, "full", 0.7) == 0.75
+    assert zone_fraction_above(field, zones, "holed", 0.7) == 0.75
+    assert len(zone_values(field, zones, "holed")) == 4
+
+    # the buggy formulation, kept as a witness to what it would have returned
+    naive = float(np.nanmean(field.values[holed.values] >= 0.7))
+    assert naive == 0.375, naive
+    assert naive != zone_fraction_above(field, zones, "holed", 0.7)
+
+    # the sweep must agree with the single-threshold helper at that threshold
+    sw = threshold_sweep(field, zones, thresholds=[0.7], zone_names=("full", "holed"))
+    for z in ("full", "holed"):
+        assert float(sw[sw.zone == z].frac_above.iloc[0]) == \
+            zone_fraction_above(field, zones, z, 0.7), z
+    print("  zone fractions ignore masked pixels; sweep and helper agree")
+
+
 if __name__ == "__main__":
     test_collinearity_detects_monotone_duplicate()
     test_ranking_finds_real_driver()
@@ -118,4 +156,5 @@ if __name__ == "__main__":
     test_model_r2_near_zero_when_no_relation()
     test_threshold_sweep_monotone()
     test_dual_pol_rvi_surface_vs_volume()
+    test_zone_fraction_excludes_invalid_pixels()
     print("ALL PHASE-H TESTS PASSED")
