@@ -19,8 +19,38 @@ import xarray as xr
 
 ZONE_ORDER = ("A", "B", "C", "D")
 ZONE_COLORS = {"A": "#d62728", "B": "#1f77b4", "C": "#2ca02c", "D": "#9e9e9e"}
-ZONE_LABELS = {"A": "A — tapis flottant", "B": "B — lac résiduel",
-               "C": "C — prairie stable appariée", "D": "D — autres couverts"}
+
+# Zone labels are MUTABLE MODULE STATE, set by whichever notebook is running.
+# The English manuscript and the French working record share this plotting code,
+# so a hardcoded language leaks into the other language's figures — where it
+# cannot be corrected by editing the document, because the text is baked into
+# the PNG. `set_zone_labels` exists so the English export can claim the labels
+# for the whole process; call it once, right after import.
+ZONE_LABELS_FR = {"A": "A — tapis flottant", "B": "B — lac résiduel",
+                  "C": "C — prairie stable appariée", "D": "D — autres couverts"}
+ZONE_LABELS_EN = {"A": "A — floating mat", "B": "B — residual lake",
+                  "C": "C — matched grassland", "D": "D — other cover"}
+ZONE_LABELS = dict(ZONE_LABELS_FR)
+
+
+def set_zone_labels(labels: dict | str) -> dict:
+    """Set the zone labels used by every plot and table in this module.
+
+    Accepts a mapping, or ``"en"`` / ``"fr"`` for the two built-in sets.
+    Mutates in place rather than rebinding, so callers that already did
+    ``from .zone_viz import ZONE_LABELS`` see the change."""
+    if isinstance(labels, str):
+        try:
+            labels = {"en": ZONE_LABELS_EN, "fr": ZONE_LABELS_FR}[labels.lower()]
+        except KeyError:
+            raise ValueError(f"unknown label set {labels!r}; use 'en', 'fr', "
+                             "or a mapping") from None
+    missing = [z for z in ZONE_ORDER if z not in labels]
+    if missing:
+        raise ValueError(f"labels missing for zones {missing}")
+    ZONE_LABELS.clear()
+    ZONE_LABELS.update(labels)
+    return ZONE_LABELS
 
 
 def save_figure(fig, name: str, outdir, dpi: int = 300,

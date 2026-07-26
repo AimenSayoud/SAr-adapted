@@ -10,7 +10,7 @@ Figure A1 renders the chain graphically. In summary: a near-surface water table
 raises and modulates the dielectric constant of the canopy and surface peat;
 this produces both a **variable penetration depth** and **dominant volume
 scattering** (higher RVI, higher σ⁰); the phase centre therefore becomes unstable
-between passes, coherence falls (Δ = −0.069), and per-pixel inversion fails
+between passes, coherence falls (mean Δ = −0.081), and per-pixel inversion fails
 across six methods. Spatial aggregation divides the noise by √N_eff and reveals a
 3.3 mm seasonal signal, which correlates with moisture anomalies at near-zero lag
 — identifying it as **dielectric rather than mechanical** (the lake oscillates

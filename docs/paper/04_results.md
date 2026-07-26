@@ -27,7 +27,7 @@ model; if it fails, no estimator on the same network will succeed.
 | Zone | Median | p25–p75 | **% ≥ 0.7** |
 |---|---|---|---|
 | **C** — matched grassland | **0.734** | 0.671–0.803 | **64.7 %** |
-| D — other cover | 0.639 | 0.597–0.693 | 23.1 % |
+| D — other cover | 0.639 | 0.597–0.693 | 23.2 % |
 | **A** — floating mat | **0.604** | 0.566–0.647 | **5.4 %** |
 | B — residual lake | 0.584 | 0.542–0.630 | 1.5 % |
 
@@ -76,11 +76,26 @@ fails, with the same pairs, the same sparsity and the same estimator.
 | Quantity | Value |
 |---|---|
 | Mean coherence A / C | 0.408 / 0.492 |
-| **Paired Δ (coh A − coh C)** | **−0.069** |
-| Wilcoxon signed-rank | ***p* = 2.2 × 10⁻⁴⁹** |
-| Fraction of negative pairs | 88 % |
-| **Date-jackknife** | Δ ∈ [−0.0705, −0.0652], **sign stable for every removal** |
+| **Paired Δ (coh A − coh C), mean** | **−0.081** |
+| Paired Δ, median | −0.050 |
+| Fraction of pairs with A lower | 89 % |
+| **Date-jackknife** (on the mean Δ) | Δ ∈ [−0.0842, −0.0774], **sign stable for every date removed** |
+| Wilcoxon signed-rank | *p* = 4.84 × 10⁻⁴⁶ (nominal; see below) |
 | Decorrelation time τ | 21 d (A) vs 32 d (C) |
+
+The mean exceeds the median in magnitude (−0.081 against −0.050), so the
+distribution of paired differences is left-skewed: a subset of interferograms
+shows a much larger deficit than the typical one. Both are reported because the
+gap is itself informative, and the jackknife is computed on the mean.
+
+**On the *p*-value.** The 356 pairs share ~90 acquisition dates and are
+therefore **not independent**, so the Wilcoxon *p* is quoted as a nominal value
+and is **not** the inferential basis of this result. The evidence is the effect
+size and its stability: a mean deficit of −0.081, negative in 89 % of pairs, with
+a date-jackknife range of [−0.0842, −0.0774] that never changes sign when any
+single acquisition and all its pairs are removed. A 16 % relative reduction in
+coherence across 356 correlated observations should not be read through an
+extreme *p*-value.
 
 The deficit therefore depends on no single acquisition and survives control for
 baseline, atmosphere (both by pairing), slope (DEM) and canopy optical wetness
