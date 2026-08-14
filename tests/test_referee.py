@@ -18,6 +18,7 @@ from insar_wetlands.referee import (amplitude_vs_size,
                                     count_closed_triplets,
                                     excess_above_floor,
                                     toroidal_permutation_test,
+                                    _shape_descriptors,
                                     wrapped_seasonal_amplitude,
                                     coupling_scaled_bound,
                                     estimator_noise_bias,
@@ -402,53 +403,106 @@ def test_two_sided_tail_hides_a_directional_effect_on_a_skewed_null():
     assert h["p_two_sided"] > 0.05 > g["p_two_sided"], (g, h)
 
 
-def test_compact_blob_fallback_flags_a_shape_mismatch():
-    """The L7 configuration: a ribbon of pixels hugging a boundary, tested
-    against a null of COMPACT blobs because no rigid shift of the ribbon fits
-    inside the zone.
+def test_shape_mismatch_is_flagged_when_the_null_cannot_match_the_shape():
+    """A single ELONGATED set: one component, so matching the component sizes
+    still yields a compact draw, and the null remains unable to reproduce the
+    observed shape. The function must say so rather than return a p-value that
+    silently measures elongation.
 
-    This is not a fair comparison and the function must say so. A 27-pixel
-    ribbon can place every one of its pixels in the first row of the zone; a
-    27-pixel disc cannot, no matter where it is placed. The ribbon therefore
-    beats every null draw by construction, and a p-value pinned at the floor
-    measures its shape as much as its position."""
+    A bar spanning a disc reaches the margin at both ends; a compact blob of the
+    same pixel count cannot, at any position. The bar therefore beats the null
+    partly by construction, which is how a p-value pinned at the floor arises."""
     ny = nx = 60
     yy, xx = np.mgrid[0:ny, 0:nx]
     cy = cx = 29.5
     rad = np.hypot(yy - cy, xx - cx)
     R = 24.0
-    zm = rad <= R
-    zone = xr.DataArray(zm, dims=("y", "x"))
-    # signed distance to the zone margin: negative inside, 0 at the edge
+    zone = xr.DataArray(rad <= R, dims=("y", "x"))
     field = xr.DataArray(rad - R, dims=("y", "x"))
 
-    # 27 pixels distributed right around the margin. Any rigid translation of a
-    # full ring pushes part of it outside the zone, so no shift fits and the
-    # fallback must engage -- which is what happened to the 27 surviving pixels
-    # in L7, and is why that test reported a compact-blob null.
+    # a 4-px-wide bar right across the disc: no translation keeps it inside
+    sm = (np.abs(yy - cy) < 2) & (rad <= R)
+    subset = xr.DataArray(sm, dims=("y", "x"))
+    assert _shape_descriptors(sm)["n_components"] == 1
+
+    r = toroidal_permutation_test(subset, zone, field, n_trials=400, seed=0,
+                                  tail="greater")
+    assert r["n_rigid_accepted"] == 0
+    assert r["shape_warning"].startswith("SHAPE MISMATCH"), r["shape_warning"]
+    assert r["shape_null_median"]["component_rg_ratio_observed_over_null"] > 1.25
+
+    # a compact observed set of the same size raises no flag
+    cand = np.argwhere(rad <= R)
+    d = np.hypot(cand[:, 0] - 20, cand[:, 1] - 20)
+    keep = cand[np.argsort(d)[:int(sm.sum())]]
+    cm = np.zeros((ny, nx), bool); cm[keep[:, 0], keep[:, 1]] = True
+    rc = toroidal_permutation_test(xr.DataArray(cm, dims=("y", "x")), zone,
+                                   field, n_trials=400, seed=0, tail="greater")
+    assert rc["shape_warning"] == "", rc["shape_warning"]
+
+
+def test_component_matched_null_replaces_the_compact_fallback():
+    """The real L7 set is 15 fragments, not one cluster. A compact-blob null is
+    then the wrong control, and the component-matched null is the right one:
+    same pixel count, same fragment count, same fragment sizes, positions
+    randomised. It must engage before the compact fallback and must NOT trip
+    the shape warning, because it is genuinely shape-fair."""
+    ny = nx = 60
+    yy, xx = np.mgrid[0:ny, 0:nx]
+    cy = cx = 29.5
+    rad = np.hypot(yy - cy, xx - cx)
+    R = 24.0
+    zone = xr.DataArray(rad <= R, dims=("y", "x"))
+    field = xr.DataArray(rad - R, dims=("y", "x"))
+
     sm = np.zeros((ny, nx), bool)
     for a in np.linspace(0, 2 * np.pi, 27, endpoint=False):
         sm[int(round(cy + (R - 0.7) * np.sin(a))),
            int(round(cx + (R - 0.7) * np.cos(a)))] = True
     subset = xr.DataArray(sm, dims=("y", "x"))
 
-    r = toroidal_permutation_test(subset, zone, field, n_trials=800, seed=0,
+    r = toroidal_permutation_test(subset, zone, field, n_trials=600, seed=0,
                                   tail="greater")
-    assert r["mode"].startswith("compact blobs"), r["mode"]
     assert r["n_rigid_accepted"] == 0
+    assert r["mode"].startswith("component-matched"), r["mode"]
+    assert r["shape_warning"] == "", r["shape_warning"]
+    # the null now reproduces the observed fragmentation instead of one blob
+    obs, nul = r["shape_observed"], r["shape_null_median"]
+    assert abs(nul["n_components"] - obs["n_components"]) <= 1, (obs, nul)
+    assert 0.8 <= nul["component_rg_ratio_observed_over_null"] < 1.25, nul
 
-    # the ribbon wins outright -- and that is exactly the problem
-    assert r["p_greater"] == r["p_floor"]
-    assert r["p_is_censored_at_floor"] is True
-    # ... so the caller is told not to read it as a shape-preserving result
-    assert r["shape_warning"].startswith("SHAPE MISMATCH"), r["shape_warning"]
-    assert r["shape_null_median"]["rg_ratio_observed_over_null"] > 1.25
+    # and the test still has power: a set hugging the margin beats scattered
+    # draws placed anywhere, because position is all that now differs
+    assert r["observed"] > r["null_median"], r
+    assert r["p_greater"] < 0.05, r
 
-    # a compact observed set against the same compact null raises no flag
-    cm = np.zeros((ny, nx), bool); cm[20:25, 20:25] = True      # 25-px square
-    rc = toroidal_permutation_test(xr.DataArray(cm, dims=("y", "x")), zone,
-                                   field, n_trials=800, seed=0, tail="greater")
-    assert rc["shape_warning"] == "", rc["shape_warning"]
+
+def test_component_matched_null_finds_nothing_when_position_is_random():
+    """The converse, and the one that matters for trusting a small p-value:
+    fragments scattered at random must NOT look special against their own null.
+    Without this, the previous test could be passing on a broken statistic."""
+    ny = nx = 60
+    yy, xx = np.mgrid[0:ny, 0:nx]
+    cy = cx = 29.5
+    rad = np.hypot(yy - cy, xx - cx)
+    R = 24.0
+    zone = xr.DataArray(rad <= R, dims=("y", "x"))
+    field = xr.DataArray(rad - R, dims=("y", "x"))
+
+    inside = np.argwhere(rad <= R - 1)
+    rng = np.random.default_rng(7)
+    sm = np.zeros((ny, nx), bool)
+    pick = inside[rng.choice(len(inside), 27, replace=False)]
+    sm[pick[:, 0], pick[:, 1]] = True
+
+    r = toroidal_permutation_test(xr.DataArray(sm, dims=("y", "x")), zone,
+                                  field, n_trials=600, seed=0, tail="greater")
+    # a scattered set drawn away from the margin CAN be shifted rigidly, so this
+    # may take the exact-shape path -- which is the stronger control, not a
+    # failure. What must hold either way is that it finds nothing.
+    assert r["p_greater"] > 0.05, r          # no false positive
+    assert not r["p_is_censored_at_floor"]
+    assert r["shape_warning"] == "", r["shape_warning"]
 
 
 def test_wrapped_seasonal_fit_recovers_a_known_cycle_without_inversion():
@@ -601,7 +655,9 @@ if __name__ == "__main__":
     test_excess_above_floor_is_threshold_free()
     test_toroidal_permutation_preserves_cluster_shape()
     test_two_sided_tail_hides_a_directional_effect_on_a_skewed_null()
-    test_compact_blob_fallback_flags_a_shape_mismatch()
+    test_shape_mismatch_is_flagged_when_the_null_cannot_match_the_shape()
+    test_component_matched_null_replaces_the_compact_fallback()
+    test_component_matched_null_finds_nothing_when_position_is_random()
     test_wrapped_seasonal_fit_recovers_a_known_cycle_without_inversion()
     test_subdividing_the_reference_is_available_and_labelled()
     test_matched_cover_pool_selects_the_mat_class_not_its_complement()
