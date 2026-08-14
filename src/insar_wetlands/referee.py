@@ -513,7 +513,8 @@ def excess_above_floor(values: dict, floor: float) -> pd.DataFrame:
 
 def toroidal_permutation_test(subset: xr.DataArray, zone: xr.DataArray,
                               field: xr.DataArray, n_trials: int = 2000,
-                              seed: int = 0, stat=np.median) -> dict:
+                              seed: int = 0, stat=np.median,
+                              tail: str = "two_sided") -> dict:
     """Test a spatial subset's statistic while PRESERVING its clustering.
 
     A rank test on clustered pixels treats neighbours as independent
@@ -523,8 +524,15 @@ def toroidal_permutation_test(subset: xr.DataArray, zone: xr.DataArray,
     realisation has the same size, the same shape and the same internal
     autocorrelation as the observed one, and only its position changes.
 
-    Returns the observed statistic, the null distribution, and an empirical
-    *p*-value that is two-sided by default in the sense of |deviation|."""
+    Returns the observed statistic, the null distribution, and empirical
+    *p*-values for all three tails. `tail` selects which one `p_value` carries;
+    the others are always reported. This matters more than it looks: for a
+    directional hypothesis against a skewed null, a two-sided test on
+    |deviation| counts draws that deviate the OPPOSITE way and can hide a real
+    one-sided effect entirely."""
+    if tail not in ("greater", "less", "two_sided"):
+        raise ValueError("tail must be one of ['greater', 'less', "
+                         f"'two_sided'], got {tail!r}")
     sm, zm = subset.values, zone.values
     obs_vals = field.values[sm & np.isfinite(field.values)]
     if not obs_vals.size:
@@ -571,19 +579,35 @@ def toroidal_permutation_test(subset: xr.DataArray, zone: xr.DataArray,
     nulls = np.asarray(nulls)
     if not nulls.size:
         return {"n_subset": int(sm.sum()), "observed": observed, "n_null": 0,
-                "mode": "none", "p_value": float("nan"),
+                "mode": "none", "tail": tail, "p_value": float("nan"),
                 "note": "NO NULL COULD BE BUILT -- this is not a negative "
                         "result and must not be reported as one"}
     zone_vals = field.values[zm & np.isfinite(field.values)]
-    k = int(np.sum(np.abs(nulls - np.median(nulls))
-                   >= abs(observed - np.median(nulls))))
+    n = nulls.size
+    nmed = float(np.median(nulls))
+
+    # All three tails, because the choice is not innocuous here. A two-sided
+    # test on |deviation from the median| is the wrong statistic for a
+    # DIRECTIONAL hypothesis when the null is skewed: draws deviating strongly
+    # in the opposite direction inflate the count and mask a real effect. The
+    # caller picks the tail matching the question it actually asked, and the
+    # others are reported so the choice is visible rather than buried.
+    p = {
+        "greater": (1 + int(np.sum(nulls >= observed))) / (1 + n),
+        "less": (1 + int(np.sum(nulls <= observed))) / (1 + n),
+        "two_sided": (1 + int(np.sum(np.abs(nulls - nmed)
+                                     >= abs(observed - nmed)))) / (1 + n),
+    }
     return {"n_subset": int(sm.sum()), "observed": observed, "mode": mode,
+            "tail": tail,
             "zone_statistic": float(stat(zone_vals[np.isfinite(zone_vals)])),
-            "n_null": int(nulls.size), "null_median": float(np.median(nulls)),
+            "n_null": int(n), "null_median": nmed,
             "null_p05": float(np.percentile(nulls, 5)),
             "null_p95": float(np.percentile(nulls, 95)),
-            "p_value": float((1 + k) / (1 + nulls.size)),
-            "p_floor": float(1 / (1 + nulls.size)), "nulls": nulls}
+            "p_value": float(p[tail]),
+            "p_greater": float(p["greater"]), "p_less": float(p["less"]),
+            "p_two_sided": float(p["two_sided"]),
+            "p_floor": float(1 / (1 + n)), "nulls": nulls}
 
 
 def wrapped_seasonal_amplitude(dd: pd.DataFrame, date_col: str = "pair",
