@@ -253,8 +253,9 @@ def noise_floor_simulation(n_dates: int = 90, n_pairs: int = 356,
     running the real EVD, not just averaging random phasors — which is why this
     reproduces the whole per-pixel inversion on random input.
 
-    Pass `idx` (the real ``(i, j)`` date-index pairs, from
-    ``_pair_date_index(pairs)``) whenever it is available. The floor is strongly
+    Pass `idx` (the real ``(i, j)`` date-index pairs — the SECOND element
+    returned by ``_pair_date_index(pairs)``, not the first, which is the date
+    array itself) whenever it is available. The floor is strongly
     topology-dependent — roughly 0.69 at redundancy 2 against 0.36 at redundancy
     8 — so a floor quoted without its network is not reproducible. The synthetic
     fallback below only fixes the redundancy, not the baseline distribution."""
@@ -274,6 +275,19 @@ def noise_floor_simulation(n_dates: int = 90, n_pairs: int = 356,
         idx = np.array(built[:n_pairs])
     else:
         idx = np.asarray(idx)
+        # `idx` must hold small non-negative date INDICES, not dates or any
+        # other large-valued array. The most likely way to get this wrong is
+        # unpacking `_pair_date_index(pairs)` in the wrong order — its first
+        # return value is the date array, not the index pairs — which yields
+        # nanosecond-epoch integers here and would otherwise try to allocate a
+        # matrix with tens of trillions of entries. Fail with a clear message
+        # instead of letting that allocation raise deep inside numpy.
+        if idx.dtype.kind not in "iu" or idx.min() < 0 or idx.max() > 100_000:
+            raise ValueError(
+                "idx must be small non-negative integer (i, j) date indices, "
+                f"got dtype={idx.dtype}, range=[{idx.min()}, {idx.max()}]. "
+                "Did you unpack _pair_date_index(pairs) as `idx, _ = ...` "
+                "instead of `_, idx = ...`? It returns (dates, idx).")
         n_dates = max(n_dates, int(idx.max()) + 1)
 
     vals = []

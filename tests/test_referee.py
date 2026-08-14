@@ -184,6 +184,31 @@ def test_noise_floor_accepts_the_real_network_topology():
     assert 0.0 < r["median"] < 1.0
 
 
+def test_noise_floor_rejects_a_date_array_passed_as_idx():
+    """The actual bug this guards against: `_pair_date_index(pairs)` returns
+    (dates, idx); unpacking it as `idx, _ = ...` swaps them, so `idx` ends up
+    holding Timestamps. Cast to int that is a nanosecond epoch -- tens of
+    trillions -- and the naive code tried to allocate an (n, n) complex matrix
+    of that size, crashing deep inside numpy with an opaque error. Must fail
+    immediately and clearly instead."""
+    dates = pd.date_range("2022-01-01", periods=10, freq="12D")
+    try:
+        noise_floor_simulation(n_dates=10, n_trials=2, seed=0, idx=np.asarray(dates))
+    except ValueError as e:
+        assert "unpack" in str(e) or "non-negative integer" in str(e), e
+    else:
+        raise AssertionError("must reject a date array passed as idx")
+
+    # a plain float array (any non-integer dtype) must be rejected the same way
+    try:
+        noise_floor_simulation(n_dates=10, n_trials=2, seed=0,
+                               idx=np.array([[0.0, 1.0], [1.0, 2.0]]))
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("must reject a non-integer idx array")
+
+
 def test_amplitude_bias_is_positive_and_negligible_after_aggregation():
     """Two findings, both worth reporting.
 
@@ -263,6 +288,7 @@ if __name__ == "__main__":
     test_noise_floor_reproduces_the_estimator_not_a_random_phasor_average()
     test_noise_floor_falls_with_network_redundancy()
     test_noise_floor_accepts_the_real_network_topology()
+    test_noise_floor_rejects_a_date_array_passed_as_idx()
     test_amplitude_bias_is_positive_and_negligible_after_aggregation()
     test_coupling_scales_the_bound_and_diverges_as_coupling_falls()
     test_aggregation_beats_per_pixel_on_a_seasonal_cycle()
