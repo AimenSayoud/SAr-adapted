@@ -31,15 +31,25 @@ model; if it fails, no estimator on the same network will succeed.
 | **A** — floating mat | **0.604** | 0.566–0.647 | **5.4 %** |
 | B — residual lake | 0.584 | 0.542–0.630 | 1.5 % |
 
-Read against the **0.55 noise floor** (§3.1; Fig. 5, Fig. 6):
+Read against the simulated network noise floor, **0.488** with a 90 % interval
+of [0.448, 0.532] (§3.1; Fig. 5, Fig. 6). Because that floor is strongly
+topology-dependent, we express each zone as its **excess above the floor**, which
+requires no threshold:
 
-- **B (lake) = 0.584** sits *at* the floor — an internal validation, since
-  vegetated water is known to be decorrelated and the method classifies it
-  correctly. The chain behaves as expected on the control target.
-- **A (mat) = 0.604** is only ≈ 0.05 above the floor, adjacent to the lake. This
-  is not "somewhat worse" than C: **A ≈ noise, C ≈ signal**.
-- **C = 0.734** is clearly above, with 65 % of pixels at distributed-scatterer
-  quality — **on exactly the same network**.
+| Zone | Temporal coherence | Excess over floor |
+|---|---|---|
+| **C** — matched grassland | 0.734 | **0.246** |
+| D — other cover | 0.639 | 0.151 |
+| **A** — floating mat | **0.604** | **0.116** |
+| B — residual lake | 0.584 | 0.096 |
+
+The mat retains **47 %** of the matched grassland's excess coherence above the
+floor. Every zone, including the lake, lies above the 95th percentile of the
+null, so the lake is *not* at the floor and cannot serve as an internal
+validation of the chain. The mat is **low, and intermediate between the lake and
+external cover** — deprived of its high-coherence tail to the point where
+per-pixel inversion is not supportable, while retaining measurable structure
+above the fully decorrelated case.
 
 
 ![**Figure 5.** Phase-linking result. (a) Temporal-coherence distributions by zone, with the 0.55 noise floor and the 0.7 reliability threshold; (b) full multi-threshold curve.](figures/F05_temporal_coherence.png)
@@ -281,7 +291,15 @@ the lake was not, A − B would have revealed it. It reveals nothing.
 | Published raised-bog breathing (Hrysiewicz et al., 2024) | 10–40 mm |
 | **Measured here** | **3.3 mm** |
 
-The signal is **one to two orders of magnitude too small** for flotation.
+Read against the measured amplitude alone, the signal is far below free
+flotation. **That comparison does not survive its own uncertainty**: propagating
+the 95 % interval (§4.3.7) to vertical gives 8.7 mm, and dividing by any coupling
+fraction below unity raises it further — 17.3 mm at *f* = 0.5, 34.6 mm at
+*f* = 0.25 — which overlaps the 10–40 mm reported for raised bogs. The
+order-of-magnitude argument is therefore **not available to us**, and we do not
+use it. What the comparison supports is narrower: C-band InSAR on this surface
+cannot distinguish an absence of motion from motion of peatland-breathing
+amplitude.
 
 #### 4.3.6 Closure-phase bias does not discriminate
 
@@ -314,7 +332,9 @@ measures the degree of non-stationarity, not its nature.**
 seasonal amplitude is 3.29 mm LOS. Attributing **all** of it to motion — that
 is, deliberately ignoring §4.3.5 — gives
 
-> d_vert ≤ 3.29 / cos(32.26°) ≈ **3.9 mm** seasonal vertical amplitude.
+> d_vert ≤ 3.29 / cos(32.26°) ≈ **3.9 mm** on the point estimate, and
+> ≤ 7.32 / cos(32.26°) ≈ **8.7 mm** on the upper 95 % interval — which is the
+> value we carry forward, since the point estimate alone understates it.
 
 Assumptions: purely vertical motion; no phase aliasing (verified, since
 centimetre-scale motion would produce an incoherent aggregate rather than a
@@ -338,9 +358,10 @@ of 0.90 mm lies below the matched-null p95 of 2.0 mm:
 
 > **H3 is rejected.** The detected seasonal signal (3.29 mm, *p* = 0.014) is
 > **dielectric**: the lake, which cannot breathe, oscillates identically; the
-> mat-minus-lake difference cancels; and the amplitude is one to two orders of
-> magnitude too small for flotation. We are measuring a **seasonal moisture
-> contrast** between saturated surfaces and dry grassland.
+> mat-minus-lake difference cancels. We are measuring a **seasonal moisture
+> contrast** between saturated surfaces and dry grassland. The magnitude of the
+> signal does *not* independently exclude flotation once its uncertainty and the
+> phase-centre coupling are propagated (§4.3.5c).
 
 *Distinction to maintain*: this establishes that the **seasonal signal** is
 dielectric. It says nothing about the nature of the **decorrelation** mechanism,

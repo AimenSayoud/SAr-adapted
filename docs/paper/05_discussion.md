@@ -130,7 +130,8 @@ This question is **distinct** from that of the seasonal signal, whose dielectric
 origin is established (§4.3).
 
 **In-situ validation.** A ground-based **laser** remains the only direct
-measurement able to confirm the ≤ 3.9 mm bound and to separate (a) from (b).
+measurement able to constrain the phase-centre coupling on which any
+statement about mat motion depends, and to separate (a) from (b).
 
 **Measured water table.** Rzecin is an instrumented site; an in-situ WTD series
 would transform the H4 test, since its temporal structure differs from that of
@@ -140,8 +141,9 @@ temperature.
 
 - **One site, one track, one polarisation** (VV): transferability of the
   predictive model (R²cv = 0.24) to other peatlands remains to be demonstrated.
-- **No in-situ validation** (neither laser nor WTD): the ≤ 3.9 mm bound is
-  internal to the InSAR analysis.
+- **No in-situ validation** (neither laser nor WTD): the constraint on
+  apparent phase-centre displacement is internal to the InSAR analysis, and the
+  coupling between that phase centre and the peat is unmeasured.
 - **S1A-only window** (12-day revisit): a degraded cadence relative to what is
   now available.
 - ***p*-values at the floor** (1/(1 + N)) for several tests; more null draws

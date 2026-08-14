@@ -19,12 +19,15 @@ closure-phase dispersion is **3.2×** larger — and the drivers of its coherenc
 **reverse sign** relative to the adjacent grassland.
 
 **3. The measurable seasonal signal is dielectric, and motion is bounded.**
-Spatial aggregation recovers a seasonal amplitude of **3.29 mm** (*p* = 0.014)
+Spatial aggregation recovers a seasonal amplitude of **3.29 mm** (*p* = 0.038 against a reference-matched null)
 invisible pixel by pixel. But the residual lake — which cannot breathe —
 oscillates identically (2.63 mm, same phase); the mat-minus-lake difference
-cancels (0.90 mm, *p* = 0.45); and the amplitude is one to two orders of
-magnitude too small for flotation. **Seasonal vertical motion of the mat is
-≤ 3.9 mm**, against 10–40 mm published for raised bogs.
+cancels (0.90 mm, *p* = 0.45). Propagating the 95 % interval gives a constraint
+of **≤ 8.7 mm vertical on apparent phase-centre displacement**. Because the
+phase centre is not rigidly coupled to the peat, this does **not** bound mat
+motion: at a coupling fraction of 0.5 it admits 17 mm, within the 10–40 mm
+published for raised bogs. What C-band establishes here is an inability to
+distinguish absence of motion from peatland-scale breathing.
 
 **4. What the sensor tracks is surface wetness.** On deseasonalised anomalies
 the aggregated phase co-varies with Sentinel-2 optical wetness (*r* = 0.42–0.45,
@@ -38,8 +41,9 @@ failure of a differential forcing.
 > **What does C-band Sentinel-1 InSAR actually measure over a floating
 > peatland?**
 >
-> Not surface motion, which stays below 4 mm — but the **hydrological state** of
-> that surface, through a **penetration-depth** effect. At C-band the floating
+> Not surface motion — which our phase does not observe, because the scattering
+> centre is not coupled to the peat — but the **hydrological state** of that
+> surface, through a **penetration-depth** effect. At C-band the floating
 > peatland behaves as a **wet scattering volume with a quasi-random phase**,
 > whose phase centre moves with moisture rather than with the substrate.
 
@@ -64,9 +68,10 @@ here applies without modification. The return of Sentinel-1 to a 6-day revisit
 will reduce temporal decorrelation but **will not change the wavelength**, on
 which volumetric decorrelation depends.
 
-**In-situ validation** — surface laser and measured water table — remains
-necessary to confirm the 3.9 mm bound and to separate, within the decorrelation
-mechanism, dielectric variability from non-rigid micro-movement.
+**In-situ validation** — surface laser and measured water table — is now the
+only route to constraining the phase-centre coupling on which any statement
+about mat motion depends, and to separating, within the decorrelation mechanism,
+dielectric variability from non-rigid micro-movement.
 
 ---
 

@@ -13,6 +13,10 @@ import xarray as xr
 
 from insar_wetlands.inversion.isbas import PHASE_TO_MM
 from insar_wetlands.referee import (amplitude_vs_size,
+                                    count_closed_triplets,
+                                    excess_above_floor,
+                                    toroidal_permutation_test,
+                                    wrapped_seasonal_amplitude,
                                     coupling_scaled_bound,
                                     estimator_noise_bias,
                                     bootstrap_amplitude_ci,
@@ -276,6 +280,104 @@ def test_matrix_fill_arithmetic():
     assert abs(m["redundancy"] - 4.0) < 0.01
 
 
+def test_triplet_count_agrees_between_trace_and_enumeration():
+    """A count, not a mystery: trace(A^3)/6 and direct enumeration must agree.
+
+    Also checks the structural point the count is meant to make -- a constrained
+    baseline network closes far fewer triangles than a random graph of the same
+    density -- using a chain network, which closes none at all."""
+    # triangle 0-1-2 plus a dangling edge 2-3
+    pairs = ["20220101_20220113", "20220113_20220125", "20220101_20220125",
+             "20220125_20220206"]
+    r = count_closed_triplets(pairs)
+    assert r["agree"], r
+    assert r["triplets_trace"] == 1, r
+    assert r["n_dates"] == 4 and r["n_pairs"] == 4
+
+    # a pure chain closes nothing, however many dates
+    chain = [f"2022{(i // 28) + 1:02d}{(i % 28) + 1:02d}_"
+             f"2022{((i + 1) // 28) + 1:02d}{((i + 1) % 28) + 1:02d}"
+             for i in range(12)]
+    c = count_closed_triplets(chain)
+    assert c["triplets_trace"] == 0 and c["agree"], c
+
+
+def test_excess_above_floor_is_threshold_free():
+    df = excess_above_floor({"A": 0.604, "B": 0.584, "C": 0.734, "D": 0.639},
+                            floor=0.488).set_index("zone")
+    assert abs(df.loc["A", "excess"] - 0.116) < 1e-9
+    assert abs(df.loc["C", "excess"] - 0.246) < 1e-9
+    # the mat keeps ~47 % of the grassland's excess -- no threshold involved
+    assert abs(df.loc["A", "frac_of_max_excess"] - 0.116 / 0.246) < 1e-9
+    # a moving floor changes the numbers but never the ordering
+    d2 = excess_above_floor({"A": 0.604, "C": 0.734}, floor=0.45).set_index("zone")
+    assert d2.loc["A", "excess"] < d2.loc["C", "excess"]
+
+
+def test_toroidal_permutation_preserves_cluster_shape():
+    """A rank test would treat clustered pixels as independent. This shifts the
+    cluster rigidly instead, so every null draw has the same size, shape and
+    internal autocorrelation -- only the position changes."""
+    ny = nx = 40
+    zone = xr.DataArray(np.ones((ny, nx), bool), dims=("y", "x"))
+    # a compact 3x3 cluster
+    sm = np.zeros((ny, nx), bool); sm[5:8, 5:8] = True
+    subset = xr.DataArray(sm, dims=("y", "x"))
+
+    # field with a strong gradient: the cluster sits where the field is low
+    field = xr.DataArray(np.tile(np.arange(nx, dtype=float), (ny, 1)),
+                         dims=("y", "x"))
+    r = toroidal_permutation_test(subset, zone, field, n_trials=500, seed=0)
+    assert r["n_subset"] == 9
+    assert r["n_null"] > 100, r
+    assert 0.0 < r["p_value"] <= 1.0
+    assert r["p_value"] >= r["p_floor"]
+
+    # on a field with no structure the cluster must NOT look special
+    flat = xr.DataArray(np.zeros((ny, nx)), dims=("y", "x"))
+    rf = toroidal_permutation_test(subset, zone, flat, n_trials=200, seed=0)
+    assert rf["p_value"] > 0.5, rf
+
+
+def test_wrapped_seasonal_fit_recovers_a_known_cycle_without_inversion():
+    """Closes the hole M4 opens: the published amplitude comes from the network
+    inversion, so it is not covered by the wrapped-phase immunity argument."""
+    from insar_wetlands.inversion.isbas import PHASE_TO_MM
+    dates = pd.date_range("2022-01-01", periods=60, freq="12D")
+    t = (dates - dates[0]).days.values / 365.25
+    truth = 3.3 * np.cos(2 * np.pi * t)
+    rows = []
+    for i in range(len(dates)):
+        for j in range(i + 1, min(i + 4, len(dates))):
+            rows.append({"pair": f"{dates[i]:%Y%m%d}_{dates[j]:%Y%m%d}",
+                         "ddphase_rad": (truth[j] - truth[i]) / PHASE_TO_MM,
+                         "weight": 1.0})
+    r = wrapped_seasonal_amplitude(pd.DataFrame(rows))
+    assert abs(r["amplitude_mm"] - 3.3) < 0.2, r
+    assert r["rms_residual_mm"] < 0.1, r
+    assert r["n_pairs"] == len(rows)
+
+
+def test_subdividing_the_reference_is_available_and_labelled():
+    """The symmetric test: subdividing only the target is blind to a seasonal
+    term carried by the reference, since every sub-patch keeps the same one."""
+    unw, corr, zones, tmpl = _stack(breathing_amp_mm=30.0)
+    tgt = amplitude_vs_size(unw, corr, zones, sizes=(64, 32), n_draws=3,
+                            subdivide="target")
+    ref = amplitude_vs_size(unw, corr, zones, sizes=(64, 32), n_draws=3,
+                            subdivide="reference")
+    assert set(tgt.subdivided.unique()) == {"A"}, tgt.subdivided.unique()
+    assert set(ref.subdivided.unique()) == {"C"}, ref.subdivided.unique()
+    # the signal lives in A, so subdividing C must still show it
+    assert ref.amplitude_mm.median() > 15, ref
+    try:
+        amplitude_vs_size(unw, corr, zones, subdivide="nonsense")
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("must reject an unknown subdivide target")
+
+
 if __name__ == "__main__":
     test_erode_zone_removes_a_border_ring()
     test_erosion_of_a_thin_zone_can_empty_it()
@@ -294,4 +396,9 @@ if __name__ == "__main__":
     test_aggregation_beats_per_pixel_on_a_seasonal_cycle()
     test_family_correction_raises_the_pvalue()
     test_matrix_fill_arithmetic()
+    test_triplet_count_agrees_between_trace_and_enumeration()
+    test_excess_above_floor_is_threshold_free()
+    test_toroidal_permutation_preserves_cluster_shape()
+    test_wrapped_seasonal_fit_recovers_a_known_cycle_without_inversion()
+    test_subdividing_the_reference_is_available_and_labelled()
     print("ALL REFEREE-TOOLKIT TESTS PASSED")
