@@ -514,26 +514,99 @@ def excess_above_floor(values: dict, floor: float) -> pd.DataFrame:
 def _shape_descriptors(mask: np.ndarray) -> dict:
     """Size-independent descriptors of a pixel set's shape.
 
-    Needed because `toroidal_permutation_test` falls back to compact blobs when
-    a rigid shift will not fit, and a compact blob is not interchangeable with
-    an elongated or fragmented one. `radius_of_gyration` is the RMS distance of
-    the pixels from their own centroid: for a fixed pixel count it is smallest
-    for a disc and grows without bound as the set is drawn out into a ribbon.
-    Comparing it between the observed set and the null draws says whether the
-    fallback compared like with like."""
+    Needed because `toroidal_permutation_test` cannot always preserve shape, and
+    a compact blob is not interchangeable with an elongated or fragmented one.
+
+    Two radii of gyration are reported and they answer different questions.
+    `radius_of_gyration` is over the whole set; for a FRAGMENTED set it is a
+    function of where the fragments sit, so it measures position, not shape --
+    a set lying along a margin has a large one by definition. Using it as a
+    fairness criterion would therefore penalise exactly the effect under test.
+    `component_radius_of_gyration` averages within fragments and is intrinsic:
+    it is ~0 for isolated pixels however they are arranged, and grows only when
+    a fragment is itself drawn out. That is the one to match on."""
     yx = np.argwhere(mask)
     if not len(yx):
         return {"n_px": 0}
     from scipy.ndimage import label
-    _, n_comp = label(mask, structure=np.ones((3, 3), int))
+    lab, n_comp = label(mask, structure=np.ones((3, 3), int))
     c = yx.mean(0)
     rg = float(np.sqrt(((yx - c) ** 2).sum(1).mean()))
+    crg = []
+    for i in range(1, n_comp + 1):
+        p = np.argwhere(lab == i)
+        crg.append(float(np.sqrt(((p - p.mean(0)) ** 2).sum(1).mean())))
     h = int(np.ptp(yx[:, 0])) + 1
     w = int(np.ptp(yx[:, 1])) + 1
     return {"n_px": int(len(yx)), "n_components": int(n_comp),
-            "radius_of_gyration": rg, "bbox_h": h, "bbox_w": w,
+            "radius_of_gyration": rg,
+            "component_radius_of_gyration": float(np.mean(crg)) if crg else 0.0,
+            "bbox_h": h, "bbox_w": w,
             # 1.0 for a filled disc, ->0 as the set spreads or fragments
             "fill_fraction": float(len(yx) / (h * w))}
+
+
+def _component_sizes(mask: np.ndarray) -> np.ndarray:
+    from scipy.ndimage import label
+    lab, n = label(mask, structure=np.ones((3, 3), int))
+    return np.bincount(lab.ravel())[1:] if n else np.array([], int)
+
+
+def _nearest_k(cand: np.ndarray, seed_i: int, k: int) -> np.ndarray:
+    """Indices of the `k` candidates nearest a seed. argpartition, not argsort:
+    the null is rebuilt thousands of times and only the membership matters."""
+    d = ((cand[:, 0] - cand[seed_i, 0]) ** 2
+         + (cand[:, 1] - cand[seed_i, 1]) ** 2)
+    if k >= len(d):
+        return np.arange(len(d))
+    return np.argpartition(d, k - 1)[:k]
+
+
+def component_matched_null(mask: np.ndarray, zone: np.ndarray,
+                           field: np.ndarray, n_trials: int = 2000,
+                           seed: int = 0, stat=np.median,
+                           with_shapes: bool = False):
+    """Null draws preserving a set's FRAGMENTATION, not just its pixel count.
+
+    The compact-blob fallback fails when the observed set is scattered: a single
+    blob of 27 pixels and 15 loose fragments of 27 pixels reach quite different
+    parts of a distance field, so comparing them measures shape. This rebuilds
+    the observed component-size distribution -- same number of fragments, same
+    sizes, each grown compactly -- at random disjoint positions in the zone.
+
+    Preserved: pixel count, fragment count, fragment sizes, per-fragment
+    compactness, hence the effective sample size. Randomised: where the
+    fragments sit, which is the hypothesis under test. Their mutual arrangement
+    is deliberately NOT preserved -- 'they line the margin together' is the
+    claim being tested, so a null that reproduced it would test nothing."""
+    sizes = _component_sizes(mask)
+    cand = np.argwhere(zone)
+    if not len(sizes) or len(cand) <= int(mask.sum()):
+        return (np.array([]), []) if with_shapes else np.array([])
+    rng = np.random.default_rng(seed)
+    out, shapes = [], []
+    for _ in range(n_trials):
+        avail = cand
+        got = []
+        for s in sizes:
+            if len(avail) <= s:
+                break
+            idx = _nearest_k(avail, int(rng.integers(len(avail))), int(s))
+            got.append(avail[idx])
+            keep = np.ones(len(avail), bool)
+            keep[idx] = False
+            avail = avail[keep]          # fragments stay disjoint
+        else:
+            yx = np.concatenate(got)
+            v = field[yx[:, 0], yx[:, 1]]
+            v = v[np.isfinite(v)]
+            if v.size:
+                out.append(float(stat(v)))
+                if with_shapes:
+                    b = np.zeros_like(zone)
+                    b[yx[:, 0], yx[:, 1]] = True
+                    shapes.append(_shape_descriptors(b))
+    return (np.asarray(out), shapes) if with_shapes else np.asarray(out)
 
 
 def toroidal_permutation_test(subset: xr.DataArray, zone: xr.DataArray,
@@ -585,13 +658,23 @@ def toroidal_permutation_test(subset: xr.DataArray, zone: xr.DataArray,
     n_rigid = len(nulls)
 
     if not nulls:
-        # A rigid shift of an irregular cluster rarely lands wholly inside an
+        # A rigid shift of an irregular set rarely lands wholly inside an
         # irregular zone, so this branch is the normal case, not an edge case.
-        # Fall back to compact blobs of the SAME SIZE drawn anywhere in the
-        # zone: that preserves the two properties the test depends on --
-        # cardinality and compactness, hence the effective sample size -- while
-        # randomising position. It relaxes exact shape, which is why the mode
-        # used is reported rather than left implicit.
+        # Second choice: rebuild the observed FRAGMENTATION at random positions.
+        # This keeps pixel count, fragment count and fragment sizes, so a
+        # scattered observation is compared against scattered draws rather than
+        # against a single blob it could never resemble.
+        cm, cshapes = component_matched_null(sm, zm, field.values,
+                                             n_trials=n_trials, seed=seed,
+                                             stat=stat, with_shapes=True)
+        if cm.size:
+            mode = ("component-matched (count, fragment sizes and compactness "
+                    "preserved; position randomised)")
+            nulls, shapes = list(cm), cshapes
+
+    if not nulls:
+        # Last resort: compact blobs of the same pixel count. Preserves
+        # cardinality only, so the shape check below is what makes it usable.
         mode = "compact blobs of equal size (exact shape relaxed)"
         cand = np.argwhere(zm)
         n_px = int(sm.sum())
@@ -639,22 +722,29 @@ def toroidal_permutation_test(subset: xr.DataArray, zone: xr.DataArray,
     if shapes:
         null_shape = {k: float(np.median([s[k] for s in shapes]))
                       for k in ("n_components", "radius_of_gyration",
+                                "component_radius_of_gyration",
                                 "fill_fraction")}
-        # The fallback compares an observed set of arbitrary shape against
-        # compact draws. If the observed set is markedly LESS compact, it can
-        # reach parts of the field the null structurally cannot, and the
-        # p-value then partly measures shape rather than position.
-        rg_ratio = obs_shape["radius_of_gyration"] / max(
-            null_shape["radius_of_gyration"], 1e-9)
-        null_shape["rg_ratio_observed_over_null"] = float(rg_ratio)
-        if rg_ratio > 1.25 or obs_shape["n_components"] > 1.5 * max(
-                null_shape["n_components"], 1):
-            warn = ("SHAPE MISMATCH: the observed set is more spread out or "
-                    "more fragmented than the compact null draws (radius of "
-                    f"gyration x{rg_ratio:.2f}, {obs_shape['n_components']} "
-                    f"components vs {null_shape['n_components']:.0f}). An "
-                    "elongated set hugging a boundary can reach values a "
-                    "compact set of the same size cannot, so part of this "
+        # Fairness is judged on INTRINSIC shape only: fragment count and
+        # within-fragment elongation, which set the effective sample size and
+        # what the set can physically reach. Whole-set spread is deliberately
+        # excluded -- for a fragmented set it is a property of position, and
+        # position is the hypothesis, so matching on it would test nothing.
+        a = obs_shape["component_radius_of_gyration"]
+        b = null_shape["component_radius_of_gyration"]
+        rg_ratio = 1.0 if max(a, b) < 0.5 else a / max(b, 1e-9)
+        null_shape["component_rg_ratio_observed_over_null"] = float(rg_ratio)
+        null_shape["rg_ratio_observed_over_null"] = float(
+            obs_shape["radius_of_gyration"]
+            / max(null_shape["radius_of_gyration"], 1e-9))
+        n_obs = obs_shape["n_components"]
+        n_nul = max(null_shape["n_components"], 1)
+        if rg_ratio > 1.25 or not 0.67 < n_obs / n_nul < 1.5:
+            warn = ("SHAPE MISMATCH: the null draws do not reproduce the "
+                    "observed set's intrinsic shape (within-fragment radius of "
+                    f"gyration x{rg_ratio:.2f}, {n_obs} fragments vs "
+                    f"{null_shape['n_components']:.0f}). A set that is more "
+                    "elongated or less fragmented than its null can reach "
+                    "values the null structurally cannot, so part of this "
                     "p-value reflects shape, not position. Do not report it "
                     "as a shape-preserving result.")
 
