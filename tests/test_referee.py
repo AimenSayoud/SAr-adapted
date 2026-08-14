@@ -334,11 +334,72 @@ def test_toroidal_permutation_preserves_cluster_shape():
     assert r["n_null"] > 100, r
     assert 0.0 < r["p_value"] <= 1.0
     assert r["p_value"] >= r["p_floor"]
+    # the default is two-sided, and every tail is reported whatever is asked
+    assert r["tail"] == "two_sided"
+    assert r["p_value"] == r["p_two_sided"]
+    for k in ("p_greater", "p_less", "p_two_sided"):
+        assert r["p_floor"] <= r[k] <= 1.0, (k, r[k])
 
     # on a field with no structure the cluster must NOT look special
     flat = xr.DataArray(np.zeros((ny, nx)), dims=("y", "x"))
     rf = toroidal_permutation_test(subset, zone, flat, n_trials=200, seed=0)
     assert rf["p_value"] > 0.5, rf
+
+    bad = "one-sided"
+    try:
+        toroidal_permutation_test(subset, zone, field, tail=bad)
+    except ValueError as e:
+        assert bad in str(e)
+    else:                                    # a silent default would be worse
+        raise AssertionError("an unknown tail must raise, not fall back")
+
+
+def test_two_sided_tail_hides_a_directional_effect_on_a_skewed_null():
+    """The bug that reversed L7's verdict, pinned as a test.
+
+    Signed distance to a margin is NEGATIVE inside a zone, so 'less negative'
+    means 'closer to the margin'. Because the margin is a localised feature,
+    most of the zone's area sits far from it: the null of positions is strongly
+    LEFT-skewed, with a long tail running inward. That tail contains many draws
+    whose |deviation from the null median| exceeds the observed one -- while
+    deviating in the OPPOSITE direction to the hypothesis. A two-sided test
+    counts them and returns a null result for a cluster that is in fact closer
+    to the margin than 95 % of null draws.
+
+    The cleanest way to see that the two-sided statistic is the wrong one is
+    that it is not even invariant to how the field is parameterised. 'Closer to
+    the margin than the null' is a statement about ORDER, so it must survive any
+    monotone rescaling of distance. |deviation from the null median| is a
+    statement about MAGNITUDE, and it does not: rescaling alone moves the
+    two-sided p-value across 0.05 while the one-sided p-value does not move at
+    all."""
+    ny = nx = 60
+    yy, xx = np.mgrid[0:ny, 0:nx]
+    zone = xr.DataArray(np.ones((ny, nx), bool), dims=("y", "x"))
+
+    # distance to a short stretch of margin, negated. Area grows with distance,
+    # so -distance is left-skewed: near-margin positions are RARE.
+    my, mx = 0.0, 30.0
+    dist = np.hypot(yy - my, xx - mx)
+    linear = xr.DataArray(-dist, dims=("y", "x"))
+    # the same ordering, stretched: any monotone map of the same geometry
+    squared = xr.DataArray(-dist ** 2 / 10.0, dims=("y", "x"))
+
+    sm = np.zeros((ny, nx), bool); sm[1:4, 29:32] = True   # hugs the margin
+    subset = xr.DataArray(sm, dims=("y", "x"))
+
+    kw = dict(n_trials=3000, seed=1, tail="greater")
+    g = toroidal_permutation_test(subset, zone, linear, **kw)
+    h = toroidal_permutation_test(subset, zone, squared, **kw)
+
+    assert g["tail"] == "greater" and g["p_value"] == g["p_greater"]
+    # the cluster really is more marginal than the bulk of the null
+    assert g["observed"] > g["null_p95"] and h["observed"] > h["null_p95"]
+    # the directional answer is a rank statement: rescaling cannot touch it
+    assert g["p_greater"] < 0.05 and h["p_greater"] == g["p_greater"], (g, h)
+    # the two-sided answer is not a rank statement, and it flips
+    assert h["p_two_sided"] > 20 * g["p_two_sided"], (g, h)
+    assert h["p_two_sided"] > 0.05 > g["p_two_sided"], (g, h)
 
 
 def test_wrapped_seasonal_fit_recovers_a_known_cycle_without_inversion():
@@ -490,6 +551,7 @@ if __name__ == "__main__":
     test_triplet_count_agrees_between_trace_and_enumeration()
     test_excess_above_floor_is_threshold_free()
     test_toroidal_permutation_preserves_cluster_shape()
+    test_two_sided_tail_hides_a_directional_effect_on_a_skewed_null()
     test_wrapped_seasonal_fit_recovers_a_known_cycle_without_inversion()
     test_subdividing_the_reference_is_available_and_labelled()
     test_matched_cover_pool_selects_the_mat_class_not_its_complement()
