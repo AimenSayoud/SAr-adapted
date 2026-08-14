@@ -13,6 +13,7 @@ import xarray as xr
 
 from insar_wetlands.inversion.isbas import PHASE_TO_MM
 from insar_wetlands.referee import (amplitude_vs_size,
+                                    matched_null_pairs,
                                     matched_cover_pool,
                                     count_closed_triplets,
                                     excess_above_floor,
@@ -412,6 +413,62 @@ def test_matched_cover_pool_selects_the_mat_class_not_its_complement():
     assert wider.values.sum() > pool.values.sum()
 
 
+def test_matched_null_pairs_works_where_the_adjacent_halves_null_cannot():
+    """The failure that broke L1 in Colab.
+
+    `null_distribution` needs n_target + n_reference pixels in ONE CONTIGUOUS
+    blob. On a land-cover-matched pool that demand is far stronger than drawing
+    two patches anywhere in the class, and when it fails the frame comes back
+    empty — so every statistic computed from it raises, several cells later,
+    with no hint of the cause. Two independently drawn disjoint patches need
+    only the total."""
+    from insar_wetlands.aggregate import null_distribution
+    unw, corr, zones, tmpl = _stack(breathing_amp_mm=30.0)
+
+    # a pool with plenty of pixels but no single contiguous blob big enough:
+    # two separated strips of 60 px each
+    m = np.zeros((NY, NX), bool)
+    m[13:16, 1:21] = True
+    m[24:27, 1:21] = True
+    zones = {**zones, "POOL": _mk(m, tmpl)}
+    assert m.sum() == 120
+
+    nt, nr = 50, 50                      # 100 total: fits, but not contiguously
+    old = null_distribution(unw, corr, zones, tmpl, nt, nr, n_trials=5,
+                            ref="POOL")
+    new_ = matched_null_pairs(unw, corr, zones, tmpl, "POOL", nt, nr,
+                              n_trials=5)
+    assert len(new_) > 0, "independent patches must succeed here"
+    assert new_.attrs["size_scale"] == 1.0, new_.attrs
+    assert new_.amplitude_mm.notna().all()
+    # the old construction is the one that struggles on this geometry
+    assert len(old) <= len(new_)
+
+
+def test_matched_null_pairs_scales_down_rather_than_failing():
+    """Too small a pool must widen the null, not empty it: fewer pixels means
+    more aggregate noise, so the test becomes conservative rather than broken."""
+    unw, corr, zones, tmpl = _stack(breathing_amp_mm=30.0)
+    m = np.zeros((NY, NX), bool); m[14:18, 2:20] = True      # 72 px
+    zones = {**zones, "POOL": _mk(m, tmpl)}
+    out = matched_null_pairs(unw, corr, zones, tmpl, "POOL",
+                             n_target=200, n_reference=150, n_trials=4)
+    assert 0 < out.attrs["size_scale"] < 1.0, out.attrs
+    assert out.attrs["n_target"] + out.attrs["n_reference"] <= int(m.sum())
+    assert "conservative" in out.attrs["note"]
+    assert len(out) > 0
+
+
+def test_matched_null_pairs_reports_an_impossible_pool_instead_of_raising():
+    unw, corr, zones, tmpl = _stack()
+    m = np.zeros((NY, NX), bool); m[5, 5:9] = True            # 4 px
+    zones = {**zones, "POOL": _mk(m, tmpl)}
+    out = matched_null_pairs(unw, corr, zones, tmpl, "POOL", 200, 150)
+    assert out.empty and out.attrs["size_scale"] == 0.0
+    assert "too small" in out.attrs["note"]
+    assert list(out.columns) == ["trial", "amplitude_mm", "r2_seasonal"]
+
+
 if __name__ == "__main__":
     test_erode_zone_removes_a_border_ring()
     test_erosion_of_a_thin_zone_can_empty_it()
@@ -436,4 +493,7 @@ if __name__ == "__main__":
     test_wrapped_seasonal_fit_recovers_a_known_cycle_without_inversion()
     test_subdividing_the_reference_is_available_and_labelled()
     test_matched_cover_pool_selects_the_mat_class_not_its_complement()
+    test_matched_null_pairs_works_where_the_adjacent_halves_null_cannot()
+    test_matched_null_pairs_scales_down_rather_than_failing()
+    test_matched_null_pairs_reports_an_impossible_pool_instead_of_raising()
     print("ALL REFEREE-TOOLKIT TESTS PASSED")

@@ -634,3 +634,75 @@ def matched_cover_pool(zones: dict, worldcover: xr.DataArray,
     pool.attrs["dominant_class"] = int(dominant_class)
     pool.attrs["n_px"] = int(pool.values.sum())
     return pool
+
+
+def matched_null_pairs(unw: xr.DataArray, corr: xr.DataArray, zones: dict,
+                       template: xr.DataArray, pool: str, n_target: int,
+                       n_reference: int, n_trials: int = 300,
+                       seed: int = 0) -> pd.DataFrame:
+    """Null from two INDEPENDENT compact patches of the same matched pool.
+
+    `null_distribution` cuts a single contiguous blob of ``n_target +
+    n_reference`` pixels into two adjacent halves. That has two problems here.
+
+    It is **geometrically unlike the real observable**: the mat and its
+    reference lie about a kilometre apart, not side by side, so a null built
+    from adjacent halves shares far more of the atmospheric screen than the
+    quantity it is supposed to mimic.
+
+    And it is **infeasible on a matched pool**. Requiring 897 pixels of the
+    mat's own land-cover class in one contiguous patch outside the site is a
+    much stronger demand than drawing two patches of 499 and 398 anywhere in
+    that class; when it cannot be met, `null_distribution` returns an empty
+    frame and every statistic computed from it fails.
+
+    Drawing the two patches independently, disjointly, and from the same
+    matched pool fixes both. If even the disjoint requirement cannot be met the
+    two sizes are scaled down by a common factor rather than failing: fewer
+    pixels means more aggregate noise, so the null becomes WIDER and the test
+    more conservative, which is the safe direction to err in. The factor is
+    recorded in ``.attrs['size_scale']`` so it is reported rather than hidden."""
+    cand = np.argwhere(zones[pool].values)
+    scale = 1.0
+    nt, nr = int(n_target), int(n_reference)
+    if len(cand) < nt + nr:
+        scale = len(cand) / (nt + nr)
+        nt, nr = max(int(nt * scale), 20), max(int(nr * scale), 20)
+    if len(cand) < nt + nr:
+        out = pd.DataFrame(columns=["trial", "amplitude_mm", "r2_seasonal"])
+        out.attrs.update(size_scale=0.0, n_target=0, n_reference=0,
+                         pool_px=int(len(cand)),
+                         note="pool too small even after scaling")
+        return out
+
+    rng = np.random.default_rng(seed)
+    rows = []
+    for t in range(n_trials):
+        first = _compact_blob(cand, int(rng.integers(len(cand))), nt)
+        keep = np.ones(len(cand), bool)
+        keep[first] = False                      # disjoint: no shared pixels
+        rest = cand[keep]
+        if len(rest) < nr:
+            continue
+        second = _compact_blob(rest, int(rng.integers(len(rest))), nr)
+        z = dict(zones)
+        for name, pts in (("_n1", cand[first]), ("_n2", rest[second])):
+            a = np.zeros_like(zones[pool].values)
+            a[pts[:, 0], pts[:, 1]] = True
+            z[name] = xr.DataArray(a, coords=template.coords, dims=template.dims)
+        try:
+            dd = aggregate_unwrapped(unw, corr, z, "_n1", "_n2")
+            if len(dd) < 10:
+                continue
+            s = seasonal_amplitude(invert_aggregate(dd))
+            rows.append({"trial": t, "amplitude_mm": s["amplitude_mm"],
+                         "r2_seasonal": s["r2_seasonal"]})
+        except Exception:
+            continue
+    out = pd.DataFrame(rows, columns=["trial", "amplitude_mm", "r2_seasonal"])
+    out.attrs.update(size_scale=float(scale), n_target=nt, n_reference=nr,
+                     pool_px=int(len(cand)),
+                     note="" if scale == 1.0 else
+                     f"patch sizes scaled by {scale:.2f} to fit the pool; "
+                     "the null is therefore conservative (wider)")
+    return out
