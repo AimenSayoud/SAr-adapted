@@ -79,33 +79,44 @@ def subdivide_zone(mask: xr.DataArray, n_px: int, seed: int = 0,
 def amplitude_vs_size(unw: xr.DataArray, corr: xr.DataArray, zones: dict,
                       sizes=(499, 250, 125, 60), reference: str = "C",
                       target: str = "A", n_draws: int = 12,
-                      seed: int = 0) -> pd.DataFrame:
-    """Seasonal amplitude of `target` - `reference` as the target shrinks.
+                      seed: int = 0, subdivide: str = "target") -> pd.DataFrame:
+    """Seasonal amplitude of `target` - `reference` as one of them shrinks.
 
     Returns one row per (size, draw). Aggregate noise falls as 1/sqrt(N), so the
     expectation under "no coherent signal" is that amplitude RISES as the patch
     shrinks, tracking the noise floor. A flat amplitude is the signature of a
-    real, spatially coherent signal."""
+    real, spatially coherent signal.
+
+    `subdivide` selects WHICH side shrinks, and running both is what makes the
+    test conclusive. Subdividing only the target is blind to the one alternative
+    that still matters: a seasonal term carried by the REFERENCE zone, or by any
+    regionally common signal, is equally flat under subdivision of the target,
+    because every sub-patch keeps the same reference. Subdividing the reference
+    instead, at fixed target, separates the two."""
+    if subdivide not in ("target", "reference"):
+        raise ValueError("subdivide must be 'target' or 'reference'")
+    shrink = target if subdivide == "target" else reference
     rows = []
     for n in sizes:
         for d in range(n_draws):
-            sub = subdivide_zone(zones[target], n, seed=seed + 1000 * d)
+            sub = subdivide_zone(zones[shrink], n, seed=seed + 1000 * d)
             if sub is None:
                 continue
-            z = {**zones, target: sub}
+            z = {**zones, shrink: sub}
             try:
                 dd = aggregate_unwrapped(unw, corr, z, target, reference)
                 if len(dd) < 10:
                     continue
                 s = seasonal_amplitude(invert_aggregate(dd))
-                rows.append({"n_px": n, "draw": d,
+                rows.append({"n_px": n, "draw": d, "subdivided": shrink,
                              "amplitude_mm": s["amplitude_mm"],
                              "phase_doy": s.get("phase_doy"),
                              "r2_seasonal": s["r2_seasonal"]})
             except Exception:
                 continue
-    return pd.DataFrame(rows, columns=["n_px", "draw", "amplitude_mm",
-                                       "phase_doy", "r2_seasonal"])
+    return pd.DataFrame(rows, columns=["n_px", "draw", "subdivided",
+                                       "amplitude_mm", "phase_doy",
+                                       "r2_seasonal"])
 
 
 # ------------------------------------------------------------ null, revisited
@@ -445,3 +456,149 @@ def matrix_fill(n_dates: int, n_pairs: int) -> dict:
             "possible_pairs": int(possible),
             "fill_fraction": float(n_pairs / possible) if possible else float("nan"),
             "redundancy": float(n_pairs / max(n_dates - 1, 1))}
+
+
+# ------------------------------------------- second-round referee additions
+def count_closed_triplets(pairs: list[str]) -> dict:
+    """Closed triangles in the interferogram network, two independent ways.
+
+    The count is a deterministic property of the pair list, so leaving it
+    "unresolved" is indefensible: trace(A^3)/6 on the adjacency matrix and a
+    direct enumeration must agree. Reported alongside the count a network of the
+    same density would give if its pairs were drawn at random, because HyP3
+    pairs follow constrained baselines and therefore close far fewer triangles
+    than an unstructured graph of equal density."""
+    dates = sorted({d for p in pairs for d in (str(p)[:8], str(p)[9:17])})
+    di = {d: i for i, d in enumerate(dates)}
+    n = len(dates)
+    A = np.zeros((n, n), dtype=np.int64)
+    for p in pairs:
+        i, j = di[str(p)[:8]], di[str(p)[9:17]]
+        A[i, j] = A[j, i] = 1
+    trace_count = int(np.trace(A @ A @ A) // 6)
+
+    enumerated = 0
+    for i in range(n):
+        for j in range(i + 1, n):
+            if not A[i, j]:
+                continue
+            enumerated += int(np.sum(A[j, j + 1:] & A[i, j + 1:]))
+
+    m = int(A.sum() // 2)
+    p_edge = 2 * m / (n * (n - 1)) if n > 1 else 0.0
+    random_expect = p_edge ** 3 * n * (n - 1) * (n - 2) / 6
+    return {"n_dates": n, "n_pairs": m, "triplets_trace": trace_count,
+            "triplets_enumerated": enumerated,
+            "agree": trace_count == enumerated,
+            "random_graph_expectation": float(random_expect),
+            "ratio_to_random": float(trace_count / random_expect)
+            if random_expect else float("nan")}
+
+
+def excess_above_floor(values: dict, floor: float) -> pd.DataFrame:
+    """Coherence expressed as excess over the network noise floor.
+
+    Replaces a threshold-based dichotomy with a statement that needs no
+    threshold at all: what fraction of the reference zone's excess above the
+    floor does the target retain? Robust to the floor moving, which it does —
+    it is topology-dependent."""
+    rows = [{"zone": z, "value": float(v), "excess": float(v) - floor}
+            for z, v in values.items()]
+    df = pd.DataFrame(rows)
+    ref = df["excess"].max()
+    df["frac_of_max_excess"] = df["excess"] / ref if ref else np.nan
+    df.attrs["floor"] = float(floor)
+    return df
+
+
+def toroidal_permutation_test(subset: xr.DataArray, zone: xr.DataArray,
+                              field: xr.DataArray, n_trials: int = 2000,
+                              seed: int = 0, stat=np.median) -> dict:
+    """Test a spatial subset's statistic while PRESERVING its clustering.
+
+    A rank test on clustered pixels treats neighbours as independent
+    observations, which they are not at a correlation length of several pixels;
+    it therefore returns a *p*-value that is far too small. This shifts the
+    subset rigidly and toroidally inside the zone instead, so every null
+    realisation has the same size, the same shape and the same internal
+    autocorrelation as the observed one, and only its position changes.
+
+    Returns the observed statistic, the null distribution, and an empirical
+    *p*-value that is two-sided by default in the sense of |deviation|."""
+    sm, zm = subset.values, zone.values
+    obs_vals = field.values[sm & np.isfinite(field.values)]
+    if not obs_vals.size:
+        return {"n_subset": 0}
+    observed = float(stat(obs_vals))
+
+    yx = np.argwhere(sm)
+    y0, x0 = yx.min(0)
+    rel = yx - (y0, x0)                     # shape preserved exactly
+    ny, nx = sm.shape
+    rng = np.random.default_rng(seed)
+    nulls = []
+    for _ in range(n_trials):
+        dy, dx = rng.integers(0, ny), rng.integers(0, nx)
+        yy = (rel[:, 0] + dy) % ny
+        xx = (rel[:, 1] + dx) % nx
+        if not zm[yy, xx].all():            # must land wholly inside the zone
+            continue
+        v = field.values[yy, xx]
+        v = v[np.isfinite(v)]
+        if v.size:
+            nulls.append(float(stat(v)))
+    nulls = np.asarray(nulls)
+    if not nulls.size:
+        return {"n_subset": int(sm.sum()), "observed": observed, "n_null": 0,
+                "note": "no shift placed the subset wholly inside the zone"}
+    zone_vals = field.values[zm & np.isfinite(field.values)]
+    k = int(np.sum(np.abs(nulls - np.median(nulls))
+                   >= abs(observed - np.median(nulls))))
+    return {"n_subset": int(sm.sum()), "observed": observed,
+            "zone_statistic": float(stat(zone_vals[np.isfinite(zone_vals)])),
+            "n_null": int(nulls.size), "null_median": float(np.median(nulls)),
+            "null_p05": float(np.percentile(nulls, 5)),
+            "null_p95": float(np.percentile(nulls, 95)),
+            "p_value": float((1 + k) / (1 + nulls.size)),
+            "p_floor": float(1 / (1 + nulls.size)), "nulls": nulls}
+
+
+def wrapped_seasonal_amplitude(dd: pd.DataFrame, date_col: str = "pair",
+                               value_col: str = "ddphase_rad") -> dict:
+    """Fit the annual cycle directly on per-pair WRAPPED phase differences.
+
+    Closes a hole opened by conceding that immunity to unwrapping errors does
+    not survive the network inversion to date-referenced values — because the
+    published amplitude comes from exactly that inversion.
+
+    Each pair contributes ``phi_j - phi_i``, so a cycle ``a·cos + b·sin`` on the
+    dates predicts the pair difference directly and no inversion is needed. Safe
+    here only because the amplitude is small: 3.3 mm is ~0.75 rad two-way, well
+    inside ±pi, so wrapping does not alias. The check would be invalid for a
+    signal approaching half a wavelength."""
+    from .inversion.isbas import PHASE_TO_MM
+
+    d = dd.dropna(subset=[value_col]).copy()
+    ref = pd.to_datetime([str(p)[:8] for p in d[date_col]])
+    sec = pd.to_datetime([str(p)[9:17] for p in d[date_col]])
+    t0 = min(ref.min(), sec.min())
+    tr = (ref - t0).days.values / 365.25
+    ts = (sec - t0).days.values / 365.25
+    # design: difference of the harmonic between the two dates, plus a trend
+    X = np.column_stack([
+        ts - tr,
+        np.cos(2 * np.pi * ts) - np.cos(2 * np.pi * tr),
+        np.sin(2 * np.pi * ts) - np.sin(2 * np.pi * tr),
+    ])
+    y = d[value_col].values * PHASE_TO_MM        # rad -> mm, no inversion
+    w = d["weight"].values if "weight" in d else np.ones(len(d))
+    W = np.sqrt(w)[:, None]
+    coef, *_ = np.linalg.lstsq(X * W, y * np.sqrt(w), rcond=None)
+    trend, a, b = coef
+    resid = y - X @ coef
+    ss = float(np.sum((y - y.mean()) ** 2))
+    return {"amplitude_mm": float(np.hypot(a, b)),
+            "phase_doy": float((np.degrees(np.arctan2(b, a)) % 360) * 365.25 / 360),
+            "trend_mm_yr": float(trend), "n_pairs": int(len(d)),
+            "r2": float(1 - np.sum(resid ** 2) / ss) if ss else np.nan,
+            "rms_residual_mm": float(np.sqrt(np.mean(resid ** 2)))}

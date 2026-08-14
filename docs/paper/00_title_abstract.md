@@ -43,9 +43,11 @@ aggregation over 499 pixels recovers a seasonal amplitude of **3.29 mm**
 (*p* = 0.014 against 280 size-matched null realisations) that six per-pixel
 inversions could not see. However, the **residual lake oscillates identically**
 (2.63 mm, same phase) although it cannot breathe; the mat-minus-lake difference
-**cancels** (0.90 mm, *p* = 0.45); and the amplitude is one to two orders of
-magnitude too small for free flotation. Attributing the entire signal to motion
-yields a **robust upper bound of ≤ 3.9 mm** on seasonal vertical displacement.
+**cancels** (0.90 mm, *p* = 0.45). Attributing the entire signal to motion and
+propagating its 95 % interval yields a constraint on **apparent phase-centre
+displacement** of ≤ 8.7 mm vertical; because the phase centre is not rigidly
+coupled to the mat, this does **not** exclude peat motion of the amplitude
+published for raised bogs.
 
 **(H4) What the sensor does track is surface wetness.** On deseasonalised
 anomalies, the aggregated phase co-varies with Sentinel-2 optical wetness
@@ -75,8 +77,8 @@ aggregation.
   limitation is physical, not algorithmic.
 - Spatial aggregation recovers a 3.3 mm seasonal signal invisible pixel by
   pixel, but three independent tests show it is **dielectric**.
-- Seasonal vertical motion of the mat is bounded at **≤ 3.9 mm**, an order of
-  magnitude below values reported for raised bogs.
+- Apparent phase-centre displacement is constrained to **≤ 8.7 mm** vertical;
+  mat motion itself is **not** bounded, because the coupling is unmeasured.
 - Aggregated phase responds to **surface-moisture anomalies at near-zero lag**
   through a sensitivity contrast between surfaces.
 - A reproducible weak-signal protocol — size-matched nulls and empirical

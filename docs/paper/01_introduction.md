@@ -84,8 +84,9 @@ each paired with the test that could refute it:
 
 1. A **multi-method demonstration** that the limitation is physical rather than
    algorithmic, at a site where the expected signal is maximal.
-2. A **quantitative upper bound** (≤ 3.9 mm seasonal vertical amplitude),
-   directly comparable to published raised-bog values.
+2. A **quantitative constraint on apparent phase-centre displacement**
+   (≤ 8.7 mm seasonal vertical amplitude), together with an explicit statement
+   of why it does not transfer to the peat surface.
 3. Evidence, from three independent arguments, that the detectable seasonal
    signal is **dielectric**.
 4. Two transferable methodological contributions: a **change of observable**

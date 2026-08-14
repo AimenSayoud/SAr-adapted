@@ -12,14 +12,13 @@ mat motion*
 
 We thank both referees for reports of unusual quality. Referee 1 worked
 systematically through our statistics and protocol; Referee 2 attacked the
-physics and the logical structure of our claims. Between them they identified two
+physics and the logical structure of our claims. Between them they identified several
 places where our conclusions outran our evidence, and we have revised
 accordingly.
 
-We want to be direct about the outcome, because the revision is not uniformly
-favourable to us. We ran twelve new tests in response to specific objections.
-Three of them **weakened** claims we had made, and we report those first rather
-than burying them:
+We ran thirteen new tests in response to specific objections. Four of them
+required us to withdraw or narrow a published claim, and we state those first
+rather than leaving them to be found:
 
 1. **The confidence interval on our headline amplitude is much wider than we had
    acknowledged.** A date-level bootstrap (2 000 resamples) gives 3.29 mm with a
@@ -34,7 +33,18 @@ than burying them:
    to **0.038**. The reference zone does carry most of the variance, exactly as
    the referee suspected. We now report the larger, correct *p*.
 
-3. **Our reading of the lake as "at the noise floor" does not hold.** Simulating
+3. **The propagated interval kills our order-of-magnitude argument against
+   flotation, and we had not noticed.** Carrying the upper interval through the
+   line-of-sight-to-vertical conversion gives 8.66 mm, and through the coupling
+   fraction of item 4 below it reaches 17 mm at *f* = 0.5 and 35 mm at
+   *f* = 0.25 — overlapping the 10–40 mm range published for raised-bog
+   breathing. The statement that our signal is "one to two orders of magnitude
+   too small for flotation" is therefore **withdrawn**, along with the figure
+   that plotted it on a logarithmic axis as though the separation were
+   established. This is not a weakening of the bound; it is the loss of a
+   separate argument, and we are grateful it was caught before submission.
+
+4. **Our reading of the lake as "at the noise floor" does not hold.** Simulating
    the floor properly on our real network topology puts it at 0.488
    (90 % interval [0.448, 0.532]), and every zone — including the lake at
    0.584 — sits above that interval. The "internal validation" we claimed from
@@ -42,7 +52,7 @@ than burying them:
    replaced by the weaker claim the data support.
 
 Referee 2 also identified a **logical inconsistency at the centre of the paper**,
-which we accept in full. If the phase centre sits in a saturated canopy volume
+which we accept in full, and which is the origin of item 3 above. If the phase centre sits in a saturated canopy volume
 decoupled from the substrate — which is our own conclusion — then our phase does
 not observe the peat, and a bound derived from it is a bound on *apparent
 phase-centre displacement*. We have rewritten every statement of the bound
@@ -54,11 +64,10 @@ Two objections resolved in our favour, and both are new results:
   not, holds.** Repeating the amplitude retrieval at 499 → 250 → 125 → 60 pixels
   leaves it flat (×0.93) where pure noise would inflate it by ×2.88, while the
   scatter across draws rises as 1/√N exactly as expected.
-- **The 27 mat pixels that survive our reliability threshold are significantly
-  concentrated at the margin** (median 40 m from the boundary against 113 m for
-  the mat as a whole, Mann–Whitney *p* = 0.004). Referee 1 asked what those
-  pixels show; they show that the anchored edge holds phase while the interior
-  does not. This is now a result in the paper rather than an unexamined 5.4 %.
+- **The 27 mat pixels that survive our reliability threshold sit
+  preferentially at the margin.** We present this as an observation with two
+  live explanations rather than as a result: our own rank test is invalid on
+  clustered pixels, and a mixed-pixel explanation is not excluded. See M6.
 
 Finally, we have corrected the numerical inconsistencies both referees found.
 They were transcription errors — numbers typed into the prose from an early run
@@ -134,10 +143,18 @@ round trip and cannot detect an error in the convention itself. Nothing in our
 chain independently verifies that the delivered product's sign matches MintPy's.
 The sign chain has several links (product → re-wrapping → eigen-decomposition →
 double difference → scaling), any of which could invert it. Since your exclusion
-turns entirely on this, we state the convention, state that it is unverified
-against an external reference, and identify the check that would settle it — a
-known subsiding target in the same scene. We would rather declare this than
-present the sign argument as more secure than it is.
+turns entirely on this, we state the convention explicitly.
+
+**We were, however, too pessimistic about what it would take to verify it.**
+Three external checks need no field access, and we are doing the first before
+submission: comparing the sign of our chain against **EGMS** line-of-sight
+velocities over any non-zero-signal urban or industrial target in the same scene
+— an afternoon's work, which also supplies an external reference. The sign of the
+DEM-error term is fixed analytically by the perpendicular baseline recorded in
+the metadata, and the sign of topographically correlated atmospheric delay is
+likewise known; either gives independent confirmation. A chain of inference whose
+first link the authors themselves declare unverified is not one we should ask you
+to accept, and it will be verified rather than declared.
 
 **M3. The synthetic validation validates the wrong observable. [Done]**
 
@@ -170,7 +187,7 @@ wrapped phase; it does **not** survive a network inversion to date-referenced
 values, which requires phase consistency the wrapped input does not provide. The
 claim is now scoped to the two statistics it actually covers.
 
-**M5. The matched control has ~5 effective samples. [Partly done; further work identified]**
+**M5. The matched control has ~5 effective samples. [Partly done — the outstanding test is blocking]**
 
 We took your option 3. Repeating the retrieval against eight independent compact
 control patches gives amplitudes from 2.52 to 10.16 mm — a factor of four — with
@@ -184,11 +201,29 @@ different dielectric seasonality. We are re-running the test restricted to the
 WorldCover grassland class before drawing a conclusion, and will report it in the
 next revision.
 
-There is nonetheless a defensible reading available now, and we think it is the
-right one: the large spread across *unmatched* cover is precisely why land-cover
-matching was necessary, which supports the original design of zone C rather than
-undermining it. What it also shows is that the absolute amplitude is
-control-dependent, and we now report it as a range rather than a point.
+We should state the result without softening it. Four of the seven controls
+give a **larger** amplitude than ours; our value sits at the 43rd percentile, an
+implied *p* of about 0.6 against the variability of control choice. That is not
+"our value lies within the range" — it is "our value is indistinguishable from
+what an arbitrary control produces".
+
+Our reading that the spread across *unmatched* cover is precisely why matching
+was necessary may well be right, but you would be entitled to call it a
+rationalisation rather than a test, because as things stand it is one. **We
+therefore treat the grassland-restricted re-run not as a next-revision
+improvement but as the test that decides whether H3 survives**, and we will not
+submit before knowing its outcome:
+
+- matched controls tight around ~1 mm while A − C gives 3.29 mm → matching does
+  the work, H3 stands, and we gain the strongest available argument for our
+  design;
+- matched controls spread over 2–8 mm → the amplitude is an artefact of control
+  selection and H3 falls.
+
+**A consequence we had missed.** The seasonal phase across those controls spans
+140 days. Our DOY 104 maximum is therefore not corroborative of anything, and we
+have removed its use as physical confirmation ("consistent with spring swelling
+at high water table") from §4.3.4 and the conclusions.
 
 **M6. "A ≈ noise" is contradicted by our own multi-threshold table. [Conceded]**
 
@@ -200,15 +235,42 @@ is all our argument requires, now stands in its place: the mat is deprived of it
 high-coherence tail to the point where per-pixel inversion is not supportable,
 while retaining measurable structure above the fully decorrelated case.
 
-**The 27 pixels above 0.7. [Done — and it produced a result]**
+**The 27 pixels above 0.7. [Partly done — an observation, not yet a result]**
 
-You were right that a referee would ask, and right that it belonged in the paper.
-They are **significantly concentrated at the margin**: median signed distance to
-the boundary 40 m, against 113 m for the mat as a whole (Mann–Whitney
-*p* = 0.004). The interpretation is physical and consistent with the rest of the
-paper — the anchored edge holds phase, the interior does not — and it bears on the
-buoyant-extent question (M9a) from an independent direction. This is now a
-subsection rather than an unexamined percentage.
+You were right that a referee would ask, and right that it belonged in the
+paper. The observation is that they lie preferentially at the margin: median
+signed distance to the boundary 40 m, against 113 m for the mat as a whole.
+
+**We must withdraw the statistic we first attached to it, and the reason is one
+our own protocol should have caught.** We reported Mann–Whitney *p* = 0.004 on
+27 pixels against 499, at a measured spatial correlation length of 160 m — four
+pixels at our sampling. Contiguous pixels are not independent observations, so
+the effective sample size is a handful and that *p* is badly inflated. This is
+exactly the error our §5.3.2 rules were written to prevent; we applied them to
+the seasonal null and not to our own new test. The test is being redone by
+**toroidal permutation**, which shifts the surviving cluster rigidly inside the
+zone so that every null realisation preserves its size, shape and internal
+autocorrelation.
+
+**And a second explanation is not excluded, which your own numbers point to.**
+The median distance is 40 m — exactly one pixel. With multi-looking and
+filtering applied upstream, the effective resolution cell is wider than the
+sampling, so first-ring pixels are contaminated by stable surrounding terrain by
+construction. "The anchored edge holds phase" and "edge pixels contain stable
+grassland" predict the same observation, and we cannot separate them at this
+resolution. It is presented as an observation with two live explanations, one of
+them instrumental, and retained as a testable prediction for the coring
+transects rather than as a result.
+
+**The test we should have run instead, and now will.** We eroded the 65-pixel
+lake, where it could not work. We did not erode the **mat**, which has 499
+pixels and can easily afford it: one to two pixels of erosion leaves ~420 then
+~350, and tests in a single pass whether the coherence deficit *increases* on
+the pure interior, whether the seasonal amplitude survives, and whether closure
+dispersion rises — while answering the margin question by interior-versus-ring
+difference rather than by an invalid rank test. Our radial profile already
+suggests it will go our way (interior plateau 0.40, exterior peak 0.47). This is
+the highest-value test remaining to us and it needs no field access.
 
 **M7. Rzecin is instrumented and we use an optical proxy. [Deferred, with a correction]**
 
@@ -228,7 +290,7 @@ On the in-situ series: we accept that "preferable" is not an adequate answer.
 See *Work requiring field access* below for what we are doing and on what
 timescale.
 
-**M8. The subdivision test is promised twice and never performed. [Done — and it passes]**
+**M8. The subdivision test is promised twice and never performed. [Done — result favourable, one gap]**
 
 This was the most productive item in either report. Results:
 
@@ -247,9 +309,21 @@ merely asserted.
 
 We accept your point about the botanical survey. The 32 recognised plant
 communities are in tension with a single "hydrological unit", and we now name
-that tension explicitly and resolve it with this result: the mat is
-heterogeneous in vegetation while behaving as one unit at the scale and in the
-quantity we aggregate.
+that tension explicitly.
+
+**One limitation of this test, which we would rather state than have found.**
+Every sub-patch of the mat keeps the *same* reference zone, the same regional
+atmospheric screen and the same temporal window. An annual cycle carried by the
+**reference** — whose effective sample size is 5 — would therefore be equally
+flat under subdivision of the target. The test as run is blind to precisely the
+alternative that still matters, and read that way it is the same fact as M5
+rather than an independent confirmation.
+
+The missing test is symmetric and costs an hour: **subdivide the reference at
+fixed target**. Flat under both subdivisions demonstrates spatial coherence of
+both terms; collapsing or exploding under subdivision of the reference
+identifies the source. It is implemented and will be reported before
+submission, and we do not present M8 as settled until it is done.
 
 **M9. Site characterisation. [Deferred — requires field access]**
 
@@ -291,12 +365,25 @@ results table, explicitly labelled as uncorrected for pair dependence and
 explicitly *not* the inferential basis. Your point about a 16 % relative
 difference carrying an extreme *p*-value is taken and stated.
 
-**S2. Several *p*-values sit at the resolution floor. [Done]**
+**S2. Several *p*-values sit at the resolution floor. [Partly done — one gap remains]**
 
-Raised to 2 000 draws (1 851 completed; the remainder could not be placed
-geometrically). The seasonal amplitude gives *p* = **0.0216** against a floor of
-0.00054 — a measurement rather than a floor. Note this is roughly 1.5× our
-published 0.014, i.e. the additional draws moved the estimate against us.
+The published null was raised to 2 000 draws (1 851 completed). The seasonal
+amplitude gives *p* = **0.0216** against a floor of 0.00054 — a measurement
+rather than a floor, and roughly 1.5× our published 0.014.
+
+**But we must flag that this leaves the wrong null well-sampled and the right
+one under-sampled.** The *p* that now matters is the one from the
+reference-corrected null (R2 §4.5), and that rests on **184 draws with 7
+exceedances**. Its exact binomial 95 % interval is **[0.015, 0.077]**, which
+**straddles 0.05**. We cannot rest H3 on a *p* whose own interval contains the
+conventional threshold. The corrected null is being raised to ≥ 5 000 draws —
+machine time and nothing else — before submission.
+
+We also owe you a note on the 7.5 % of draws that failed to place. A placement
+failure rate that high means the null is spatially constrained, and if accepted
+locations differ systematically (scene edge, particular covers or slopes) the
+null is biased. We will report the map of accepted locations and the sensitivity
+of *p* to the placement constraint.
 
 **S3. No multiplicity control across the forcing family. [Deferred — with your third option adopted]**
 
@@ -325,6 +412,26 @@ We draw the consequences rather than reporting the interval and moving on:
   interval gives a bound of ≈ **7 mm** on apparent phase-centre displacement.
 - **The refined "< 2.4 mm" second-level bound is withdrawn entirely.** It was
   derived from a point estimate and does not survive its own uncertainty.
+- **Propagated to vertical and through the coupling fraction, it withdraws our
+  order-of-magnitude argument as well** — see R2 §4.1.
+
+**A cross-validation we failed to claim.** The bootstrap gives 3.29 mm with a
+standard deviation of 1.73, i.e. **1.90σ from zero**, a one-sided *p* of 0.028.
+Our corrected empirical null gives 0.038. These are two methodologically
+independent routes — one resampling acquisitions, one permuting terrain — and
+they agree to within a factor of 1.4. We had presented them merely as not
+contradicting each other; they do better than that, and this is direct evidence
+that the protocol is calibrated.
+
+**A caveat on the scheme, which probably makes our interval too wide.** An
+i.i.d. bootstrap over dates destroys the temporal sampling structure, and we are
+fitting an *annual cycle*, whose conditioning depends directly on how evenly the
+year is covered. Resamples that over- or under-represent parts of the year
+degrade the harmonic fit and inflate the interval. [0.58, 7.32] is therefore
+likely conservative. We will report three intervals and discuss the differences:
+the analytic interval from the harmonic fit's covariance, a residual (wild)
+bootstrap preserving temporal coverage, and the i.i.d. date bootstrap as the
+conservative bound.
 
 **S5. The 0.55 noise floor is asserted, not documented. [Done — and it changed a conclusion]**
 
@@ -349,9 +456,35 @@ The floor moves by nearly a factor of two across plausible networks, so we now
 quote it with its network and its spread rather than as a bare number.
 
 **Two consequences we accept.** First, our published 0.55 sits between
-redundancy 3 and 4 in this table and we cannot yet fully reconcile it with 0.488;
-we report the new simulation, state the discrepancy, and are identifying which
-assumption differs. Second, and more importantly, **every zone lies above the
+redundancy 3 and 4 in this table. We accept that "we cannot reconcile our own
+published number" is not a tenable position in a revision, since the floor
+governs the 0.7 threshold, hence the usable-pixel fractions, hence the central
+argument. We are identifying which assumption differs and will report a single
+reproducible value.
+
+**We also accept that the 0.7 threshold is now post-hoc.** It was chosen to sit
+comfortably above 0.55; with the floor at 0.488 [0.448, 0.532] that
+justification is gone. Rather than defend a threshold we are removing the
+privilege given to any: the full usable-fraction-against-threshold curve becomes
+the primary result, with the floor and its interval shown as a shaded band. This
+is more robust and more informative than a single number, and it answers M6 in
+the same stroke.
+
+**And we adopt your threshold-free reformulation**, which we think is the right
+replacement for the dichotomy we withdrew:
+
+| Zone | Temporal coherence | Excess over floor (0.488) |
+|---|---|---|
+| C — matched grassland | 0.734 | 0.246 |
+| D — other cover | 0.639 | 0.151 |
+| **A — mat** | **0.604** | **0.116** |
+| B — lake | 0.584 | 0.096 |
+
+> The mat retains **47 %** of the matched grassland's excess coherence above the
+> network floor.
+
+That is quantitative, defensible, uses no arbitrary threshold, and survives the
+floor moving. Second, and more importantly, **every zone lies above the
 95th percentile of this null** — including the lake at 0.584. Our claim that the
 lake "sits at the floor" and thereby validated the chain internally is
 **withdrawn**. This reaches your M6 from a second direction.
@@ -365,15 +498,20 @@ empirical null is dominated by the reference term, not by the target, and the
 1/√N argument alone does not capture it. We present this as validation of the
 protocol's necessity rather than of the 1/√N heuristic.
 
-**S7. The closed-triplet count needs explaining. [Deferred]**
+**S7. The closed-triplet count needs explaining. [Done]**
 
-We take the point and have not yet resolved it. The enumeration procedure is now
-documented, but we cannot yet fully account for why the count is 518 rather than
-the larger number a 4× redundant network would typically admit. Since we
-originally reported a pre-registered prediction as falsified *because* the network
-holds only 518 triplets, this matters, and we prefer to state it as unresolved
-than to offer an explanation we have not verified. See also §4.8 in the second
-response, which changes how that "falsification" should be described.
+You are right that leaving this open was disproportionate to its difficulty: the
+number of closed triangles is fully determined by the pair list. We now compute
+it two independent ways — trace(A³)/6 on the adjacency matrix and direct
+enumeration — and require them to agree, alongside the count a random graph of
+the same density would give. The gap between the two is the explanation: HyP3
+pairs follow constrained perpendicular and temporal baselines, so the network is
+far from a random graph and closes correspondingly fewer triangles at equal
+density. Both figures are reported.
+
+This also matters for how we describe the closure result, since we originally
+called a prediction falsified *because* the network holds only 518 triplets —
+see R2 §4.8, where that description changes.
 
 ### Moderate issues
 
@@ -470,15 +608,31 @@ We have quantified the gap rather than merely acknowledging it. Writing *f* for
 the fraction of the phase that follows mat motion, the observable is *f* × true
 motion, so our measured bound implies:
 
-| Coupling *f* | Implied bound on mat motion |
+| Coupling *f* | Implied bound on vertical mat motion |
 |---|---|
-| 1.00 (phase centre rigid with the surface) | 3.9 mm |
-| 0.75 | 5.2 mm |
-| 0.50 | 7.8 mm |
-| 0.25 | 15.6 mm |
-| 0.10 | 39.0 mm |
+| 1.00 (phase centre rigid with the surface) | 8.7 mm |
+| 0.75 | 11.5 mm |
+| 0.50 | 17.3 mm |
+| 0.25 | 34.6 mm |
+| 0.10 | 86.6 mm |
 
-**And *f* is not constrained by our data.** Every statement of the bound is
+The table is anchored on the **upper 95 % interval converted to vertical**
+(7.32 mm ÷ cos 32.26° = 8.66 mm), not on the point estimate. Anchoring it on
+3.9 mm, as our first draft of this letter did, would have applied an uncertainty
+correction to a quantity from which we had just removed the uncertainty.
+
+**And *f* is not constrained by our data.**
+
+**The consequence we initially failed to propagate.** Published raised-bog
+breathing spans 10–40 mm. Our table reaches 10 mm at *f* = 0.87 and covers the
+whole published range by *f* = 0.25. **Our measurement is therefore compatible
+with peatland breathing of the published magnitude**, and the order-of-magnitude
+argument is withdrawn wherever it appears — abstract, §4.3.5(c), the summary
+table, the literature-context figure, and the conclusions. What survives is a
+cleaner statement and, we think, a more useful one:
+
+> C-band InSAR on this surface cannot distinguish an absence of motion from
+> motion of peatland-breathing amplitude. Every statement of the bound is
 reworded, the coupling assumption is added explicitly to the assumption list, and
 the subtitle is changed.
 
@@ -552,11 +706,22 @@ tested.** We therefore concede the instrumental contamination objection as a
 declared limitation rather than claiming a passed test, and note that a
 higher-resolution water mask is the route to settling it.
 
-This compounds the mechanism objection Referee 1 raised (M10) and the RVI
-observation we answer there: the lake has the highest RVI in the scene, so it is
-probably not behaving as open water. Taken together, the lake is a weaker control
-than we presented, and the level-1 bound — which does not depend on it — carries
-correspondingly more of the argument.
+**But the physical argument does not depend on *this* lake, and we had not seen
+that.** What the control requires is a surface that cannot breathe mechanically,
+in the same scene, under the same atmospheric screen. There are larger water
+bodies elsewhere in the burst, not enclosed by the mat, which would give a clean
+"cannot breathe" control that is large enough to erode and free of the vegetated
+fringe. This is pure reprocessing and it is the way to save our most elegant
+control rather than concede it. It is scheduled.
+
+On the RVI: before concluding "vegetated fringe" we will check the absolute VH
+level against the Sentinel-1 IW noise-equivalent sigma-zero (≈ −22 dB). Over calm
+water both polarisations approach the instrument noise floor and the VH/VV ratio
+— hence RVI — becomes noise-dominated and tends high with no vegetation at all.
+We note that σ⁰ VV = −15.41 dB at 32° incidence is too bright for calm open water
+(−20 to −25 dB would be expected), which does support the vegetated-fringe or
+roughened-water reading; but we would rather settle it with the noise-floor check
+than concede on an intuition, and the conclusion is firmer either way.
 
 ### 4.5 Null construction: matched in size, but is it matched in structure? [Conceded — you were right]
 
@@ -625,12 +790,22 @@ threshold.
 
 **This changes the description materially, and not in our favour rhetorically.**
 We had reported "predicted a bias at ≈ 5σ, found 1.6σ" as a *falsified
-prediction*. The accurate description is an **underpowered test**: the observed
-bias is in the expected direction at 1.6σ, which is weak positive evidence, not a
-refutation. The most direct test of the dielectric hypothesis is therefore
-**inconclusive**. We now say so, state the detection limit alongside the
-non-detection, and will complete the comparison against the predicted magnitude
-once §4.7 is done.
+prediction*. The observed bias is in the expected direction at 1.6σ — weak
+positive evidence, not a refutation.
+
+**We must be careful not to over-correct, and the honest position is that the
+label depends on a number we do not yet have.** If the moisture-phase framework
+predicts a bias of order 0.5 rad for our wavelength and moisture range, then our
+non-detection at a 0.114 rad limit **refutes** the dielectric hypothesis — the
+test is not underpowered, it is discriminating and negative. If the prediction is
+of order 0.05 rad, the test is genuinely underpowered and "inconclusive" is
+right. **We therefore cannot describe this test before completing §4.7**, which
+is why that item is not deferrable: it is the calibration that decides whether
+our most direct test supports our main conclusion or contradicts it.
+
+One figure we had and did not use: the mat's closure standard error (0.0568 rad)
+is **2.28×** the grassland's (0.0249). That is the same information as our
+published ×3.2 dispersion ratio, reached independently.
 
 ### 4.9 The expected order of magnitude is unsourced. [Conceded — requires the site archive]
 
@@ -682,23 +857,23 @@ revision adds three more entries to it, all of which weakened our own claims.
 
 ## Summary of new analyses in this revision
 
-| Test | Objection | Outcome | Direction |
+| Test | Objection | Outcome | Effect on the paper |
 |---|---|---|---|
-| Coupling-scaled bound | R2 §4.1 | bound is on phase centre; *f* unconstrained | **against us** |
-| Estimator noise bias | R2 §4.1 | ×1.003 after aggregation — amplitude not inflated | for us |
-| Matrix fill | R2 §4.2 | 8.9 %, redundancy 4.0 | **against us** |
-| Subdivision, 499→60 px | R1 M8 | amplitude flat (×0.93 vs ×2.88 for noise) | **for us** |
-| Null keeping the real reference | R2 §4.5 | 1.80× wider; *p* 0.014 → 0.038 | **against us** |
-| Lake-mask erosion | R2 §4.4 | inconclusive; zone too small | neutral |
-| Eight independent controls | R1 M5 | amplitude control-dependent (2.5–10.2 mm) | **against us** |
-| Bootstrap CI | R1 S4 | 3.29 mm [0.58, 7.32] | **against us** |
-| Closure detection limit | R2 §4.8 | 0.114 rad; observed 1.6σ — underpowered | neutral |
-| Noise-floor simulation | R1 S5 | 0.488 [0.448, 0.532]; lake not at floor | **against us** |
-| Seasonal synthetic validation | R1 M3 | aggregation IQR 5.5× tighter | for us |
-| The 27 surviving pixels | R1 M6 | concentrated at margin, *p* = 0.004 | **for us** |
-| 2 000 null draws | R1 S2 | *p* = 0.0216, off the floor | **against us** |
+| Coupling-scaled bound | R2 §4.1 | bound is on phase centre; *f* unconstrained | claim **withdrawn**, replaced by a scoped statement |
+| Bootstrap CI | R1 S4 | 3.29 mm [0.58, 7.32] | bound **withdrawn**; order-of-magnitude argument withdrawn |
+| Null keeping the real reference | R2 §4.5 | 1.80× wider; *p* → 0.038 | *p* **restated**; more draws required |
+| Noise-floor simulation | R1 S5 | 0.488 [0.448, 0.532] | "lake at floor" **withdrawn**; threshold replaced by a curve |
+| Matrix fill | R2 §4.2 | 8.9 %, redundancy 4.0 | MLE claim **narrowed** to burst products |
+| Eight independent controls | R1 M5 | 2.5–10.2 mm, phase spread 140 d | H3 **pending** the matched re-run; DOY corroboration removed |
+| 2 000 null draws | R1 S2 | *p* = 0.0216 | *p* **restated**, off the floor |
+| Estimator noise bias | R2 §4.1 | ×1.003 after aggregation | amplitude **confirmed** not noise-inflated |
+| Subdivision, 499→60 px | R1 M8 | flat ×0.93 against ×2.88 for noise | aggregation assumption **supported**, pending the symmetric test |
+| Seasonal synthetic validation | R1 M3 | aggregation IQR 5.5× tighter | validation **replaced** on the right observable |
+| Closure detection limit | R2 §4.8 | limit 0.114 rad; observed 1.6σ | description **pending** the predicted magnitude |
+| Lake-mask erosion | R2 §4.4 | zone too small to erode | limitation **declared**; larger control scheduled |
+| The 27 surviving pixels | R1 M6 | preferentially marginal | statistic **withdrawn**; re-test scheduled |
 
-Eight of thirteen moved against our published position. We report them all.
+Six claims withdrawn or narrowed, three restated, two supported, two pending.
 
 ---
 
@@ -763,15 +938,36 @@ Both reports converge on the point that our subtitle claims more than we
 demonstrate. Referee 1 notes that some journals discourage interrogative titles;
 Referee 2 asks for the bound to be requalified. We propose:
 
-> **C-band Sentinel-1 phase over a floating peatland tracks surface wetness
-> rather than mat motion: an instrumental limit and a weak-signal protocol**
+> **C-band Sentinel-1 cannot constrain vertical motion of a saturated floating
+> peatland: coherence deficit, phase-centre decoupling, and a weak-signal test
+> protocol**
 
-with "an upper bound on mat motion" removed from the subtitle, and the bound
-presented in the text as a constraint on apparent phase-centre displacement under
-a stated coupling assumption.
+Our first draft of this response proposed "*tracks surface wetness rather than
+mat motion*". We have withdrawn it. It would have promoted H4 — a moderate
+correlation on anomalies, an optical proxy, a sign convention we had declared
+unverified, and no measured water table — to the title, making our least secure
+conclusion the most prominent claim. The second half, "rather than mat motion",
+also sits badly with the coupling table: we cannot exclude mat motion, only
+report that our phase does not observe it.
 
-We are grateful to both referees. The paper makes weaker claims than it did and we
-think it is a better paper for it — the two results that survived the hardest
-tests, the spatial coherence of the aggregated signal and the marginal
-concentration of the surviving pixels, are both new, and both came from
-objections we would not have thought to raise ourselves.
+The formulation above states a non-capacity assertively, which is a result, and
+names the three things we actually demonstrate. "Floating peatland" is retained
+for indexing. "An upper bound on mat motion" is removed from the subtitle
+entirely, and the bound appears in the text only as a constraint on apparent
+phase-centre displacement under a stated coupling assumption.
+
+We are grateful to both referees. The paper makes weaker claims than it did, and
+we think it is a better paper for it.
+
+We should be accurate about what has survived so far, since one claim in our
+first draft of this letter did not. The spatial coherence of the aggregated
+signal under subdivision is a genuine new result, pending the symmetric test on
+the reference. The marginal concentration of the surviving pixels is **not** yet
+a result — it has not been correctly tested, and we would have been claiming
+exactly the pattern we have just spent this revision correcting.
+
+What has been most useful is not any single test but the fact that the protocol
+turned on its authors. It was built to keep us honest about weak signals; applied
+to our own conclusions, it withdrew four of them. That is the strongest evidence
+we can offer that it works, and it is the part of this paper we would most like
+to see used elsewhere.

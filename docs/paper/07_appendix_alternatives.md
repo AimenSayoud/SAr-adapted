@@ -81,7 +81,8 @@ LOS-to-vertical conversion.
 below the ≈ 39° that a nominal mid-swath value would suggest. The LOS-to-vertical
 factor is therefore **1.183**, not 1.29 — a 9 % difference that propagates
 directly into any displacement bound. The bounds of §4.3.7 use the measured
-value (ceiling 3.9 mm, refined bound 2.4 mm). Reading the incidence from the
+value (8.7 mm on the propagated interval; the refined 2.4 mm bound is
+withdrawn, see §4.3.7). Reading the incidence from the
 product metadata rather than assuming it is worth the effort.
 
 ### A.6 Phenology alone — excluded
@@ -141,9 +142,10 @@ This is the principal weakness of the refined bound (§4.3.7, level 2). Lake and
 mat float on the same water table: a **common** motion would produce the same
 A − B cancellation as an **absence** of motion.
 
-**What limits the problem.** The robust level-1 ceiling (≤ 3.9 mm, A − C against
-stable ground) does not depend on the lake and already excludes flotation-scale
-motion.
+**What limits the problem.** The level-1 ceiling (A − C against stable ground)
+does not depend on the lake. It does **not**, however, exclude flotation-scale
+motion: propagated to vertical and divided by an unmeasured coupling fraction it
+admits 17 mm at *f* = 0.5, within the published raised-bog range.
 
 **What would resolve it.** In-situ **laser** measurement — a direct, absolute
 observation of mat movement.
@@ -174,7 +176,7 @@ discussions:
 
 | | Question | Answer | Sections |
 |---|---|---|---|
-| **Q1** | Can Sentinel-1 measure vertical displacement? | **No**, not reliably; bound ≤ 3.9 mm | §4.1, §4.2, §4.3 |
+| **Q1** | Can Sentinel-1 measure vertical displacement? | **No**; apparent phase-centre displacement ≤ 8.7 mm, mat motion unconstrained | §4.1, §4.2, §4.3 |
 | **Q2** | Can Sentinel-1 inform on seasonal hydrological state? | **Possibly yes**, moderate but measurable | §4.3.4, §4.4 |
 
 Q1 is an **instrumental-limit** result; Q2 is a **capability** result. Conflating
