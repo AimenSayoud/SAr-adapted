@@ -402,6 +402,55 @@ def test_two_sided_tail_hides_a_directional_effect_on_a_skewed_null():
     assert h["p_two_sided"] > 0.05 > g["p_two_sided"], (g, h)
 
 
+def test_compact_blob_fallback_flags_a_shape_mismatch():
+    """The L7 configuration: a ribbon of pixels hugging a boundary, tested
+    against a null of COMPACT blobs because no rigid shift of the ribbon fits
+    inside the zone.
+
+    This is not a fair comparison and the function must say so. A 27-pixel
+    ribbon can place every one of its pixels in the first row of the zone; a
+    27-pixel disc cannot, no matter where it is placed. The ribbon therefore
+    beats every null draw by construction, and a p-value pinned at the floor
+    measures its shape as much as its position."""
+    ny = nx = 60
+    yy, xx = np.mgrid[0:ny, 0:nx]
+    cy = cx = 29.5
+    rad = np.hypot(yy - cy, xx - cx)
+    R = 24.0
+    zm = rad <= R
+    zone = xr.DataArray(zm, dims=("y", "x"))
+    # signed distance to the zone margin: negative inside, 0 at the edge
+    field = xr.DataArray(rad - R, dims=("y", "x"))
+
+    # 27 pixels distributed right around the margin. Any rigid translation of a
+    # full ring pushes part of it outside the zone, so no shift fits and the
+    # fallback must engage -- which is what happened to the 27 surviving pixels
+    # in L7, and is why that test reported a compact-blob null.
+    sm = np.zeros((ny, nx), bool)
+    for a in np.linspace(0, 2 * np.pi, 27, endpoint=False):
+        sm[int(round(cy + (R - 0.7) * np.sin(a))),
+           int(round(cx + (R - 0.7) * np.cos(a)))] = True
+    subset = xr.DataArray(sm, dims=("y", "x"))
+
+    r = toroidal_permutation_test(subset, zone, field, n_trials=800, seed=0,
+                                  tail="greater")
+    assert r["mode"].startswith("compact blobs"), r["mode"]
+    assert r["n_rigid_accepted"] == 0
+
+    # the ribbon wins outright -- and that is exactly the problem
+    assert r["p_greater"] == r["p_floor"]
+    assert r["p_is_censored_at_floor"] is True
+    # ... so the caller is told not to read it as a shape-preserving result
+    assert r["shape_warning"].startswith("SHAPE MISMATCH"), r["shape_warning"]
+    assert r["shape_null_median"]["rg_ratio_observed_over_null"] > 1.25
+
+    # a compact observed set against the same compact null raises no flag
+    cm = np.zeros((ny, nx), bool); cm[20:25, 20:25] = True      # 25-px square
+    rc = toroidal_permutation_test(xr.DataArray(cm, dims=("y", "x")), zone,
+                                   field, n_trials=800, seed=0, tail="greater")
+    assert rc["shape_warning"] == "", rc["shape_warning"]
+
+
 def test_wrapped_seasonal_fit_recovers_a_known_cycle_without_inversion():
     """Closes the hole M4 opens: the published amplitude comes from the network
     inversion, so it is not covered by the wrapped-phase immunity argument."""
@@ -552,6 +601,7 @@ if __name__ == "__main__":
     test_excess_above_floor_is_threshold_free()
     test_toroidal_permutation_preserves_cluster_shape()
     test_two_sided_tail_hides_a_directional_effect_on_a_skewed_null()
+    test_compact_blob_fallback_flags_a_shape_mismatch()
     test_wrapped_seasonal_fit_recovers_a_known_cycle_without_inversion()
     test_subdividing_the_reference_is_available_and_labelled()
     test_matched_cover_pool_selects_the_mat_class_not_its_complement()

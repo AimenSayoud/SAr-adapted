@@ -511,6 +511,31 @@ def excess_above_floor(values: dict, floor: float) -> pd.DataFrame:
     return df
 
 
+def _shape_descriptors(mask: np.ndarray) -> dict:
+    """Size-independent descriptors of a pixel set's shape.
+
+    Needed because `toroidal_permutation_test` falls back to compact blobs when
+    a rigid shift will not fit, and a compact blob is not interchangeable with
+    an elongated or fragmented one. `radius_of_gyration` is the RMS distance of
+    the pixels from their own centroid: for a fixed pixel count it is smallest
+    for a disc and grows without bound as the set is drawn out into a ribbon.
+    Comparing it between the observed set and the null draws says whether the
+    fallback compared like with like."""
+    yx = np.argwhere(mask)
+    if not len(yx):
+        return {"n_px": 0}
+    from scipy.ndimage import label
+    _, n_comp = label(mask, structure=np.ones((3, 3), int))
+    c = yx.mean(0)
+    rg = float(np.sqrt(((yx - c) ** 2).sum(1).mean()))
+    h = int(np.ptp(yx[:, 0])) + 1
+    w = int(np.ptp(yx[:, 1])) + 1
+    return {"n_px": int(len(yx)), "n_components": int(n_comp),
+            "radius_of_gyration": rg, "bbox_h": h, "bbox_w": w,
+            # 1.0 for a filled disc, ->0 as the set spreads or fragments
+            "fill_fraction": float(len(yx) / (h * w))}
+
+
 def toroidal_permutation_test(subset: xr.DataArray, zone: xr.DataArray,
                               field: xr.DataArray, n_trials: int = 2000,
                               seed: int = 0, stat=np.median,
@@ -545,6 +570,7 @@ def toroidal_permutation_test(subset: xr.DataArray, zone: xr.DataArray,
     ny, nx = sm.shape
     rng = np.random.default_rng(seed)
     nulls = []
+    shapes = []
     for _ in range(n_trials):
         dy, dx = rng.integers(0, ny), rng.integers(0, nx)
         yy = (rel[:, 0] + dy) % ny
@@ -556,6 +582,7 @@ def toroidal_permutation_test(subset: xr.DataArray, zone: xr.DataArray,
         if v.size:
             nulls.append(float(stat(v)))
     mode = "toroidal shift (shape preserved exactly)"
+    n_rigid = len(nulls)
 
     if not nulls:
         # A rigid shift of an irregular cluster rarely lands wholly inside an
@@ -575,6 +602,9 @@ def toroidal_permutation_test(subset: xr.DataArray, zone: xr.DataArray,
                 v = v[np.isfinite(v)]
                 if v.size:
                     nulls.append(float(stat(v)))
+                    b = np.zeros_like(zm)
+                    b[cand[idx, 0], cand[idx, 1]] = True
+                    shapes.append(_shape_descriptors(b))
 
     nulls = np.asarray(nulls)
     if not nulls.size:
@@ -598,8 +628,41 @@ def toroidal_permutation_test(subset: xr.DataArray, zone: xr.DataArray,
         "two_sided": (1 + int(np.sum(np.abs(nulls - nmed)
                                      >= abs(observed - nmed)))) / (1 + n),
     }
+    # A p-value equal to the floor means ZERO null draws reached the observed
+    # value. The permutation has then only bounded p from above, and quoting the
+    # floor as if it were an estimate overstates what was measured.
+    censored = bool(p[tail] <= 1 / (1 + n) + 1e-12)
+
+    obs_shape = _shape_descriptors(sm)
+    null_shape = {}
+    warn = ""
+    if shapes:
+        null_shape = {k: float(np.median([s[k] for s in shapes]))
+                      for k in ("n_components", "radius_of_gyration",
+                                "fill_fraction")}
+        # The fallback compares an observed set of arbitrary shape against
+        # compact draws. If the observed set is markedly LESS compact, it can
+        # reach parts of the field the null structurally cannot, and the
+        # p-value then partly measures shape rather than position.
+        rg_ratio = obs_shape["radius_of_gyration"] / max(
+            null_shape["radius_of_gyration"], 1e-9)
+        null_shape["rg_ratio_observed_over_null"] = float(rg_ratio)
+        if rg_ratio > 1.25 or obs_shape["n_components"] > 1.5 * max(
+                null_shape["n_components"], 1):
+            warn = ("SHAPE MISMATCH: the observed set is more spread out or "
+                    "more fragmented than the compact null draws (radius of "
+                    f"gyration x{rg_ratio:.2f}, {obs_shape['n_components']} "
+                    f"components vs {null_shape['n_components']:.0f}). An "
+                    "elongated set hugging a boundary can reach values a "
+                    "compact set of the same size cannot, so part of this "
+                    "p-value reflects shape, not position. Do not report it "
+                    "as a shape-preserving result.")
+
     return {"n_subset": int(sm.sum()), "observed": observed, "mode": mode,
-            "tail": tail,
+            "tail": tail, "n_rigid_accepted": int(n_rigid),
+            "p_is_censored_at_floor": censored,
+            "shape_observed": obs_shape, "shape_null_median": null_shape,
+            "shape_warning": warn,
             "zone_statistic": float(stat(zone_vals[np.isfinite(zone_vals)])),
             "n_null": int(n), "null_median": nmed,
             "null_p05": float(np.percentile(nulls, 5)),
