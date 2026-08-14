@@ -602,3 +602,35 @@ def wrapped_seasonal_amplitude(dd: pd.DataFrame, date_col: str = "pair",
             "trend_mm_yr": float(trend), "n_pairs": int(len(d)),
             "r2": float(1 - np.sum(resid ** 2) / ss) if ss else np.nan,
             "rms_residual_mm": float(np.sqrt(np.mean(resid ** 2)))}
+
+
+def matched_cover_pool(zones: dict, worldcover: xr.DataArray,
+                       dominant_class: int | None = None,
+                       exclude_reference: str | None = "C") -> xr.DataArray:
+    """Pixels of the SAME land-cover class as the mat, for independent controls.
+
+    The multi-control test drew its patches from zone D, and that was wrong in a
+    way the zone definitions make structural: D is built as
+    ``outside & ~water & flat & ~C``, i.e. as the COMPLEMENT of the matched
+    reference. Controls drawn from it are guaranteed *not* to be land-cover
+    matched, so their spread measures how much the cover varies, not how much
+    the mat's amplitude depends on the choice of a comparable control.
+
+    The right pool is the same-class terrain: ``(C | D)`` recovers
+    ``outside & ~water & flat`` exactly, and intersecting it with the mat's
+    dominant WorldCover class gives matched candidates. The published reference
+    is excluded by default so the controls are independent of it.
+
+    This is the pool for the test that decides whether the seasonal result is a
+    property of the mat or of the reference chosen to measure it against."""
+    if dominant_class is None:
+        from .stratify import dominant_class as _dom
+        dominant_class = _dom(worldcover, zones["A"])
+    eligible = zones["C"] | zones["D"]            # outside & ~water & flat
+    pool = eligible & (worldcover == dominant_class)
+    if exclude_reference and exclude_reference in zones:
+        pool = pool & ~zones[exclude_reference]
+    pool = pool.astype(bool)
+    pool.attrs["dominant_class"] = int(dominant_class)
+    pool.attrs["n_px"] = int(pool.values.sum())
+    return pool

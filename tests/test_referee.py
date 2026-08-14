@@ -13,6 +13,7 @@ import xarray as xr
 
 from insar_wetlands.inversion.isbas import PHASE_TO_MM
 from insar_wetlands.referee import (amplitude_vs_size,
+                                    matched_cover_pool,
                                     count_closed_triplets,
                                     excess_above_floor,
                                     toroidal_permutation_test,
@@ -378,6 +379,39 @@ def test_subdividing_the_reference_is_available_and_labelled():
         raise AssertionError("must reject an unknown subdivide target")
 
 
+def test_matched_cover_pool_selects_the_mat_class_not_its_complement():
+    """The gate test's foundation. Zone D is defined as the COMPLEMENT of the
+    matched reference, so controls drawn from it cannot be land-cover matched —
+    which is exactly why the first multi-control run was uninformative."""
+    tmpl = xr.DataArray(np.zeros((NY, NX)), dims=("y", "x"))
+    A = np.zeros((NY, NX), bool); A[2:8, 2:8] = True
+    C = np.zeros((NY, NX), bool); C[2:8, 10:16] = True
+    D = np.zeros((NY, NX), bool); D[10:28, 2:28] = True
+    zones = {"A": _mk(A, tmpl), "C": _mk(C, tmpl), "D": _mk(D, tmpl)}
+    wc = np.full((NY, NX), 10)          # 10 = some other class
+    wc[A] = 30                          # mat's dominant class
+    wc[C] = 30                          # the matched reference shares it
+    wc[12:20, 4:20] = 30                # matched terrain inside D
+    worldcover = _mk(wc, tmpl)
+
+    pool = matched_cover_pool(zones, worldcover)
+    assert pool.attrs["dominant_class"] == 30
+    pv = pool.values
+    # only same-class pixels, and the published reference is excluded
+    assert (worldcover.values[pv] == 30).all()
+    assert not (pv & C).any(), "reference must be excluded by default"
+    # the pool must be a strict subset of C|D, never reaching inside the site
+    assert not (pv & A).any()
+    assert pv.sum() > 0
+
+    # it must NOT simply be zone D: D contains other classes
+    assert pool.values.sum() < D.sum(), "pool should be narrower than all of D"
+
+    # keeping the reference is available and strictly widens the pool
+    wider = matched_cover_pool(zones, worldcover, exclude_reference=None)
+    assert wider.values.sum() > pool.values.sum()
+
+
 if __name__ == "__main__":
     test_erode_zone_removes_a_border_ring()
     test_erosion_of_a_thin_zone_can_empty_it()
@@ -401,4 +435,5 @@ if __name__ == "__main__":
     test_toroidal_permutation_preserves_cluster_shape()
     test_wrapped_seasonal_fit_recovers_a_known_cycle_without_inversion()
     test_subdividing_the_reference_is_available_and_labelled()
+    test_matched_cover_pool_selects_the_mat_class_not_its_complement()
     print("ALL REFEREE-TOOLKIT TESTS PASSED")
