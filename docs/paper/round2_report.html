@@ -1,0 +1,475 @@
+<title>Rzecin Phase L Findings</title>
+<style>
+  :root {
+    --paper:      #F7F8F6;
+    --surface:    #FFFFFF;
+    --sunk:       #EDEFEB;
+    --ink:        #151917;
+    --ink-soft:   #4A524E;
+    --ink-faint:  #737C77;
+    --rule:       #D8DDD7;
+    --accent:     #10605C;
+    --accent-soft:#E2EDEB;
+    --pass:       #2F6B3C;
+    --open:       #8A5A12;
+    --inconc:     #5B5F6B;
+    --pass-bg:    #E6EFE7;
+    --open-bg:    #F6EDDD;
+    --inconc-bg:  #E9EAED;
+
+    --serif: "Iowan Old Style", "Charter", Georgia, "Times New Roman", serif;
+    --mono: ui-monospace, "SF Mono", "Cascadia Mono", "Roboto Mono", Menlo, monospace;
+
+    --measure: 68ch;
+    --s1: .35rem; --s2: .7rem; --s3: 1.1rem; --s4: 1.8rem; --s5: 2.8rem; --s6: 4.4rem;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:      #121614;
+      --surface:    #1A201D;
+      --sunk:       #212825;
+      --ink:        #E8EDE9;
+      --ink-soft:   #AAB4AE;
+      --ink-faint:  #7C8781;
+      --rule:       #2E3733;
+      --accent:     #6FC7BE;
+      --accent-soft:#1B2E2C;
+      --pass:       #8CC896;
+      --open:       #DDB169;
+      --inconc:     #A3AAB6;
+      --pass-bg:    #1B2A1E;
+      --open-bg:    #2E2617;
+      --inconc-bg:  #23262B;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper:      #121614;
+    --surface:    #1A201D;
+    --sunk:       #212825;
+    --ink:        #E8EDE9;
+    --ink-soft:   #AAB4AE;
+    --ink-faint:  #7C8781;
+    --rule:       #2E3733;
+    --accent:     #6FC7BE;
+    --accent-soft:#1B2E2C;
+    --pass:       #8CC896;
+    --open:       #DDB169;
+    --inconc:     #A3AAB6;
+    --pass-bg:    #1B2A1E;
+    --open-bg:    #2E2617;
+    --inconc-bg:  #23262B;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--serif);
+    font-size: 17px;
+    line-height: 1.62;
+    margin: 0;
+    padding: var(--s5) var(--s3) var(--s6);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: var(--measure); margin: 0 auto; display: flex; flex-direction: column; gap: var(--s5); }
+  .block { display: flex; flex-direction: column; gap: var(--s3); }
+
+  /* ---- masthead ---- */
+  .masthead { display: flex; flex-direction: column; gap: var(--s2);
+              border-bottom: 2px solid var(--ink); padding-bottom: var(--s3); }
+  .eyebrow { font-family: var(--mono); font-size: .68rem; letter-spacing: .14em;
+             text-transform: uppercase; color: var(--accent); }
+  h1 { font-size: clamp(1.9rem, 5vw, 2.7rem); line-height: 1.12; margin: 0;
+       text-wrap: balance; font-weight: 600; letter-spacing: -.015em; }
+  .standfirst { color: var(--ink-soft); font-size: 1.06rem; margin: 0; text-wrap: pretty; }
+  .byline { font-family: var(--mono); font-size: .72rem; color: var(--ink-faint); }
+
+  /* ---- status strip ---- */
+  .strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
+           gap: var(--s1); background: var(--sunk); padding: var(--s2);
+           border: 1px solid var(--rule); }
+  .tile { background: var(--surface); border: 1px solid var(--rule);
+          padding: var(--s2); display: flex; flex-direction: column; gap: 2px; }
+  .tile b { font-family: var(--mono); font-size: .74rem; letter-spacing: .06em; color: var(--ink-faint); }
+  .tile span { font-family: var(--mono); font-size: .78rem; font-weight: 700; }
+  .tile.is-pass   { border-left: 3px solid var(--pass); }
+  .tile.is-pass span { color: var(--pass); }
+  .tile.is-open   { border-left: 3px solid var(--open); }
+  .tile.is-open span { color: var(--open); }
+  .tile.is-inconc { border-left: 3px solid var(--inconc); }
+  .tile.is-inconc span { color: var(--inconc); }
+
+  /* ---- headings ---- */
+  h2 { font-size: 1.42rem; line-height: 1.2; margin: 0; font-weight: 600;
+       letter-spacing: -.01em; text-wrap: balance;
+       padding-top: var(--s3); border-top: 1px solid var(--rule); }
+  h2 .n { font-family: var(--mono); font-size: .8rem; color: var(--accent);
+          display: block; margin-bottom: var(--s1); letter-spacing: .1em; }
+  h3 { font-size: 1.03rem; margin: 0; font-weight: 700; color: var(--ink); }
+
+  p { margin: 0; text-wrap: pretty; }
+  .block > p + p { margin-top: calc(var(--s3) * -1 + .8rem); }
+  a { color: var(--accent); }
+  strong { font-weight: 700; }
+  code { font-family: var(--mono); font-size: .86em; background: var(--sunk);
+         padding: .08em .32em; border-radius: 2px; }
+
+  ul { margin: 0; padding-left: 1.15rem; display: flex; flex-direction: column; gap: var(--s1); }
+
+  /* ---- tables ---- */
+  .scroll { overflow-x: auto; border: 1px solid var(--rule); background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; font-size: .87rem; }
+  caption { caption-side: top; text-align: left; font-family: var(--mono);
+            font-size: .68rem; letter-spacing: .1em; text-transform: uppercase;
+            color: var(--ink-faint); padding: var(--s2) var(--s2) var(--s1); }
+  th, td { padding: .5rem .7rem; text-align: left; border-bottom: 1px solid var(--rule);
+           vertical-align: top; }
+  thead th { font-family: var(--mono); font-size: .7rem; letter-spacing: .05em;
+             text-transform: uppercase; color: var(--ink-faint);
+             border-bottom: 1.5px solid var(--ink); white-space: nowrap; }
+  tbody tr:last-child td { border-bottom: none; }
+  td.num, th.num { font-family: var(--mono); font-variant-numeric: tabular-nums;
+                   text-align: right; white-space: nowrap; }
+  .hi { background: var(--accent-soft); }
+
+  /* ---- verdict ---- */
+  .verdict { border-left: 3px solid var(--accent); background: var(--surface);
+             padding: var(--s2) var(--s3); display: flex; flex-direction: column; gap: var(--s1); }
+  .verdict .lab { font-family: var(--mono); font-size: .68rem; letter-spacing: .12em;
+                  text-transform: uppercase; color: var(--accent); }
+  .verdict.is-pass { border-left-color: var(--pass); }
+  .verdict.is-pass .lab { color: var(--pass); }
+  .verdict.is-open { border-left-color: var(--open); }
+  .verdict.is-open .lab { color: var(--open); }
+  .verdict.is-inconc { border-left-color: var(--inconc); }
+  .verdict.is-inconc .lab { color: var(--inconc); }
+
+  blockquote { margin: 0; padding: var(--s2) var(--s3); background: var(--sunk);
+               color: var(--ink-soft); font-style: italic; }
+
+  /* ---- L7 correction sequence: numbered because it IS a sequence ---- */
+  .steps { display: flex; flex-direction: column; gap: var(--s3);
+           counter-reset: step; }
+  .step { display: grid; grid-template-columns: 2.4rem 1fr; gap: var(--s2);
+          align-items: start; }
+  .step::before { counter-increment: step; content: counter(step, decimal-leading-zero);
+                  font-family: var(--mono); font-size: .78rem; font-weight: 700;
+                  color: var(--accent); padding-top: .25rem;
+                  border-top: 2px solid var(--accent); }
+  .step-body { display: flex; flex-direction: column; gap: var(--s1); }
+
+  .callout { border: 1px solid var(--open); background: var(--open-bg);
+             padding: var(--s2) var(--s3); display: flex; flex-direction: column; gap: var(--s1); }
+  .callout .lab { font-family: var(--mono); font-size: .68rem; letter-spacing: .12em;
+                  text-transform: uppercase; color: var(--open); }
+
+  footer { border-top: 1px solid var(--rule); padding-top: var(--s3);
+           font-size: .82rem; color: var(--ink-faint); }
+
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <div class="eyebrow">Round-2 response · Phase L</div>
+    <h1>The gate, and the tests that matter either way</h1>
+    <p class="standfirst">Nine tests built to answer the second-round critique of the response letter. The gate passed. Three results changed direction once tested properly, two are weaker than the first pass suggested, and one is still open.</p>
+    <div class="byline">Rzecin floating peatland · Sentinel-1 C-band InSAR · <code>notebooks/phaseL_gate.ipynb</code></div>
+  </header>
+
+  <section class="strip" aria-label="Outcome at a glance">
+    <div class="tile is-pass"><b>L1 gate</b><span>PASSED</span></div>
+    <div class="tile is-pass"><b>L2 erosion</b><span>ANSWERED</span></div>
+    <div class="tile is-pass"><b>L3 subdivide</b><span>CONCLUSIVE</span></div>
+    <div class="tile is-pass"><b>L4 triplets</b><span>ANSWERED</span></div>
+    <div class="tile is-inconc"><b>L5 wrapped</b><span>INCONCLUSIVE</span></div>
+    <div class="tile is-pass"><b>L6 null</b><span>RESOLVED</span></div>
+    <div class="tile is-open"><b>L7 margin</b><span>OPEN</span></div>
+    <div class="tile is-pass"><b>L8 intervals</b><span>ANSWERED</span></div>
+  </section>
+
+  <section class="block">
+    <h2><span class="n">§ 0</span>What this document is</h2>
+    <p>The second-round critique made one structural charge and several specific ones. The structural charge was that our twelve tests had been graded by their authors, and that the design on which the headline result rests — matching a target zone against a land-cover-matched reference — had been <em>asserted</em> rather than <em>tested</em>.</p>
+    <p>Phase L was built to answer that charge first and everything else second: <strong>L1 is a gate</strong>, and the remaining tests were only to be read if the gate passed. It passed.</p>
+    <p>Every number below is produced by code in <code>src/insar_wetlands/referee.py</code>, exercised by <code>tests/test_referee.py</code>, and reproduced by <code>notebooks/phaseL_gate.ipynb</code>.</p>
+  </section>
+
+  <section class="block">
+    <h2><span class="n">§ 1 · L1 · answers R1 M5</span>The gate</h2>
+    <p><strong>The objection.</strong> The seasonal amplitude is a difference between the mat and a reference zone. If the reference is not genuinely comparable, the difference measures the mismatch, not the mat. Round 1 asserted the match; it never tested whether a <em>differently chosen</em> matched reference would give the same answer.</p>
+    <p><strong>The test.</strong> Build 25 independent control patches from the land-cover-matched pool — same WorldCover class, same flatness and water screens, outside the mat, disjoint from the published reference C — and recompute the seasonal amplitude against each.</p>
+
+    <div class="scroll">
+      <table>
+        <caption>Amplitude stability across independently chosen references</caption>
+        <thead><tr><th>Quantity</th><th class="num">Phase K (unmatched)</th><th class="num">Phase L (matched)</th></tr></thead>
+        <tbody>
+          <tr><td>Median amplitude</td><td class="num">—</td><td class="num hi">3.115 mm</td></tr>
+          <tr><td>Spread</td><td class="num">range 2.52–10.16, sd 2.92</td><td class="num hi">IQR 0.482</td></tr>
+          <tr><td>Controls clearing null p95 (2.025 mm)</td><td class="num">—</td><td class="num hi">25 / 25</td></tr>
+          <tr><td>Empirical <em>p</em></td><td class="num">—</td><td class="num hi">0.0033</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="verdict is-pass">
+      <span class="lab">Verdict — gate passed</span>
+      <p>The amplitude is stable across independently chosen matched references: the spread collapses from sd 2.92 mm to an IQR of 0.48 mm once the control pool is matched on land cover. The design is now tested rather than asserted, which was the critique's central demand.</p>
+    </div>
+
+    <p><strong>A diagnostic worth keeping.</strong> The matched null (0.855 mm) agrees closely with the published D-based null (0.850 mm), but a null built against the <em>real</em> zone C gives 1.533 mm. The extra variance is therefore a property of <strong>C's fragmentation</strong>, not of the null construction — a real limitation of the published reference, and it should be stated as one.</p>
+  </section>
+
+  <section class="block">
+    <h2><span class="n">§ 2 · L2</span>Erode the mat</h2>
+    <p><strong>The objection.</strong> Zone A's border pixels contain surrounding terrain through the resolution cell and sidelobes. If the coherence deficit and the seasonal amplitude are contamination artefacts, both should move when the border is stripped.</p>
+
+    <div class="scroll">
+      <table>
+        <caption>Successive one-pixel erosions</caption>
+        <thead><tr><th>Quantity</th><th class="num">0 px</th><th class="num">1 px</th><th class="num">2 px</th><th>Reading</th></tr></thead>
+        <tbody>
+          <tr><td>Coherence deficit</td><td class="num">−0.0809</td><td class="num">−0.0832</td><td class="num">−0.0789</td><td>stable, non-monotonic, 5 % swing</td></tr>
+          <tr><td>Closure dispersion (× ref.)</td><td class="num">3.22</td><td class="num">3.35</td><td class="num">3.58</td><td>rises monotonically</td></tr>
+          <tr><td>Seasonal amplitude</td><td class="num">×1.00</td><td class="num">—</td><td class="num">×1.15</td><td>noise alone predicts ×1.46</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="verdict is-pass">
+      <span class="lab">Verdict</span>
+      <p>The coherence deficit is <strong>not</strong> a border artefact: it does not weaken under erosion, and swings non-monotonically by 5 %, consistent with resampling noise rather than a contamination gradient. The closure dispersion <em>rises</em> monotonically — the opposite of what contamination predicts. The amplitude rises ×1.15 where pure noise predicts ×1.46, so the signal is partly, but not wholly, explained by the shrinking sample.</p>
+    </div>
+  </section>
+
+  <section class="block">
+    <h2><span class="n">§ 3 · L3 · makes M8 conclusive</span>Subdivide the reference</h2>
+    <p><strong>The objection.</strong> Round 1 subdivided only the <em>target</em>. A flat amplitude under target subdivision is consistent with a coherent signal — but also with a reference-side artefact that subdivision never touched.</p>
+
+    <div class="scroll">
+      <table>
+        <caption>Amplitude ratio under subdivision, both directions</caption>
+        <thead><tr><th>Subdivision</th><th class="num">Ratio</th><th>Noise prediction</th></tr></thead>
+        <tbody>
+          <tr><td>Target</td><td class="num">0.93</td><td>rise</td></tr>
+          <tr><td><strong>Reference</strong></td><td class="num hi">1.02</td><td>rise</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="verdict is-pass">
+      <span class="lab">Verdict — conclusive</span>
+      <p>The amplitude is flat under subdivision of <em>either</em> side. A noise-floor artefact must rise as either patch shrinks; it does not. This closes M8 completely and is the cleanest positive result in Phase L.</p>
+    </div>
+  </section>
+
+  <section class="block">
+    <h2><span class="n">§ 4 · L4 · answers R1 S7</span>Closed triplets</h2>
+    <p><strong>The objection.</strong> The closure-phase test found no significant bias. If the network contained few closed triplets, that null result would be uninformative — an absence of power, not an absence of bias.</p>
+    <p><strong>Result.</strong> <strong>518</strong> closed triplets, verified two independent ways — trace(A³)/6 and direct enumeration — which agree exactly. That is <strong>6.28× more</strong> than a random network of the same node and edge count.</p>
+
+    <div class="verdict is-pass">
+      <span class="lab">Verdict</span>
+      <p>The network is unusually well closed, not poorly closed. The closure null result is <strong>not</strong> explained by a shortage of triplets. Note this inverts the direction the objection assumed.</p>
+    </div>
+
+    <blockquote>This does not yet settle §4.8. Whether the closure result is <em>discriminating and negative</em> or <em>underpowered for the effect size in question</em> depends on the moisture-phase literature (De Zan 2014; Zwieback 2015, 2017), which we have not yet worked through.</blockquote>
+  </section>
+
+  <section class="block">
+    <h2><span class="n">§ 5 · L5 · closes the M4 hole</span>Amplitude without the network inversion</h2>
+    <p><strong>The objection.</strong> The published amplitude comes from the network inversion, so our "wrapped phase is immune to unwrapping errors" defence does not cover it.</p>
+
+    <div class="scroll">
+      <table>
+        <caption>Seasonal amplitude, two estimators</caption>
+        <thead><tr><th>Estimator</th><th class="num">Amplitude</th></tr></thead>
+        <tbody>
+          <tr><td>Wrapped, no inversion</td><td class="num">2.32 mm</td></tr>
+          <tr><td>Network inversion (published)</td><td class="num">3.29 mm</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>The difference is <strong>1.94 σ</strong> of the wrapped estimator, whose fit quality is <em>r</em>² = 0.0053.</p>
+
+    <div class="verdict is-inconc">
+      <span class="lab">Verdict — inconclusive, and reported as such</span>
+      <p>The wrapped estimator is far too noisy to either confirm or refute the network value — an <em>r</em>² of 0.005 means it explains essentially none of the variance. 1.94 σ is not a contradiction, but neither is it a corroboration. The M4 hole is <strong>narrowed, not closed</strong>.</p>
+    </div>
+  </section>
+
+  <section class="block">
+    <h2><span class="n">§ 6 · L6 · gated on L1</span>Corrected null at 5 000 draws</h2>
+    <p><strong>Result.</strong> 4 614 valid draws, empirical <em>p</em> = <strong>0.0260</strong>, exact 95 % CI <strong>[0.0214, 0.0308]</strong>.</p>
+    <div class="verdict is-pass">
+      <span class="lab">Verdict — resolved</span>
+      <p>The interval no longer straddles 0.05. In round 1 the draw count was low enough that the confidence interval on the <em>p</em>-value itself crossed the threshold, which we flagged. It no longer does.</p>
+    </div>
+  </section>
+
+  <section class="block">
+    <h2><span class="n">§ 7 · L7 · answers R1 M6</span>The 27 pixels</h2>
+    <p>This test went through four corrections. Each is recorded because the sequence is the most instructive part of Phase L.</p>
+
+    <div class="steps">
+      <div class="step"><div class="step-body">
+        <h3>The original test was invalid</h3>
+        <p>Mann–Whitney on 27 pixels, <em>p</em> = 0.004. The pixels were selected by a threshold on temporal coherence and scored against a spatially autocorrelated distance field.</p>
+      </div></div>
+
+      <div class="step"><div class="step-body">
+        <h3>A two-sided statistic answered a directional question</h3>
+        <p>The toroidal permutation returned <em>p</em> = 0.262, which we first read as "the concentration does not survive". <strong>That reading was wrong.</strong> Signed distance is negative inside the zone, so <em>closer to the margin</em> means a <strong>higher</strong> value — and the observed −40.0 m sits <strong>above</strong> the null p95 of −56.6 m. An observation beyond the null's 95th percentile cannot have <em>p</em> = 0.262 for a directional question.</p>
+        <p>The statistic was two-sided on |deviation from the null median|, and the null is strongly left-skewed (|p05 − median| = 166.7 m against |observed − median| = 49.4 m), so the long inward tail — draws deviating in the <em>opposite</em> direction to the hypothesis — inflated the count.</p>
+      </div></div>
+
+      <div class="step"><div class="step-body">
+        <h3>The one-sided p-value is censored, not estimated</h3>
+        <p><code>p_greater</code> = 1/4001 exactly: <strong>zero of 4 000</strong> draws reached −40 m. The permutation therefore <em>bounds</em> p from above and cannot estimate it. Correct statement: <strong>p &lt; 2.5 × 10⁻⁴ (0/4000)</strong> — never "p = 0.00025".</p>
+      </div></div>
+
+      <div class="step"><div class="step-body">
+        <h3>The null could not match the observation's shape</h3>
+        <p>The null had fallen back to compact blobs, because no rigid shift of the observed set fits inside zone A. Shape descriptors show why that control is invalid.</p>
+        <div class="scroll">
+          <table>
+            <caption>Observed set against the compact-blob null</caption>
+            <thead><tr><th>Descriptor</th><th class="num">Observed</th><th class="num">Compact null</th></tr></thead>
+            <tbody>
+              <tr><td>Pixels</td><td class="num">27</td><td class="num">27</td></tr>
+              <tr><td><strong>Connected components</strong></td><td class="num hi">15</td><td class="num">1</td></tr>
+              <tr><td>Radius of gyration</td><td class="num">11.81</td><td class="num">2.15 (×5.50)</td></tr>
+              <tr><td>Fill fraction</td><td class="num">0.029</td><td class="num">0.643</td></tr>
+              <tr><td>Bounding box</td><td class="num">25 × 37 px</td><td class="num">—</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>A set of 15 scattered fragments can reach parts of a distance field that a single 27-pixel blob cannot occupy at <em>any</em> position. The <em>p</em>-value measured <strong>shape as much as position</strong> — which is exactly how it came to be pinned at the floor.</p>
+      </div></div>
+    </div>
+
+    <div class="callout">
+      <span class="lab">We conceded too much in round 1</span>
+      <p>M6 objected that 27 <em>clustered</em> pixels at a 160 m correlation length are not 27 independent observations. <strong>That premise is wrong.</strong> The 27 pixels are 15 separate fragments — mostly isolated pixels and pairs — spread over a 1000 × 1480 m box. Most fragments are separated by <em>more</em> than the correlation length, so the effective sample size is nearer <strong>15 than 1</strong>: the Mann–Whitney was inflated by roughly a factor of two, not by a factor of 27. It was still not a valid test, but a 27-fold concession was an overcorrection on our part.</p>
+    </div>
+
+    <div class="verdict is-open">
+      <span class="lab">Status — open, pending re-run</span>
+      <p>A component-matched null is now implemented: it reproduces the observed fragment count and fragment sizes at random disjoint positions, preserving what fixes the effective sample size while randomising position. <strong>It has not yet run on the real data</strong> — the last Colab execution predates it. Until it does, the honest statement is that the Mann–Whitney was invalid though less so than conceded; the marginal concentration is in the predicted direction and is large (−40 m against a null median of −89 m); but no null matched on both size and shape has yet been constructed, so it stands as an <strong>observation</strong>, not a significant permutation result.</p>
+    </div>
+
+    <p><strong>A limitation no statistic can remove.</strong> The observed median distance is 40 m — exactly one pixel. An anchored margin that holds phase, and border pixels contaminated by stable surrounding terrain, predict the same thing at this resolution. L7 cannot separate them whatever <em>p</em>-value it returns.</p>
+  </section>
+
+  <section class="block">
+    <h2><span class="n">§ 8 · L8 · answers R1 S4</span>Three intervals, not one</h2>
+    <p><strong>The objection.</strong> An i.i.d. bootstrap over dates destroys the temporal sampling structure and will understate the interval.</p>
+
+    <div class="scroll">
+      <table>
+        <caption>95 % intervals on the seasonal amplitude</caption>
+        <thead><tr><th>Method</th><th class="num">Interval (LOS, mm)</th><th class="num">Width</th></tr></thead>
+        <tbody>
+          <tr><td>Analytic</td><td class="num">[2.22, 4.35]</td><td class="num">2.13</td></tr>
+          <tr><td>Bootstrap</td><td class="num">[0.58, 7.32]</td><td class="num hi">6.74 (×3.2)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>Propagating the analytic upper limit: 4.35 mm LOS → <strong>5.14 mm vertical</strong> (incidence 32.3°, factor 1.183) → <strong>10.3 mm</strong> at an assumed coupling fraction <em>f</em> = 0.5.</p>
+
+    <div class="callout">
+      <span class="lab">Decision required before submission</span>
+      <p>Which interval the manuscript quotes must be stated explicitly and justified. Quoting the analytic interval while the bootstrap is 3.2× wider needs a reason in the text; the conservative choice for an upper <em>bound</em> is the wider one. This is an authors' call, not a computational result, and it is currently unstated.</p>
+    </div>
+  </section>
+
+  <section class="block">
+    <h2><span class="n">§ 9</span>Claims withdrawn from the manuscript</h2>
+    <p>All instances removed and verified absent from <code>docs/paper/</code>:</p>
+    <ul>
+      <li>"one to two orders of magnitude too small for flotation"</li>
+      <li>the "≤ 3.9 mm" and "&lt; 2.4 mm" bounds</li>
+      <li>"A ≈ noise, C ≈ signal"</li>
+      <li>"B sits at the floor"</li>
+      <li>"below 4 mm"</li>
+    </ul>
+    <p>These rested on the pre-Phase-L bound and on the N<sub>eff</sub> assumptions since measured. The surviving quantitative claim is the ≤ 8.7 mm ceiling on apparent <strong>phase-centre</strong> displacement, with the explicit statement that it does not transfer to the peat surface.</p>
+  </section>
+
+  <section class="block">
+    <h2><span class="n">§ 10</span>Outstanding, honestly classified</h2>
+
+    <h3>Not deferrable, not compute-bound</h3>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Item</th><th>Why it blocks</th><th>Effort</th></tr></thead>
+        <tbody>
+          <tr><td>De Zan (2014); Zwieback (2015, 2017)</td><td>Decides whether the closure result is discriminating-and-negative or underpowered. §4.8 cannot be written without it. L4 establishes the network is well closed, but not what effect size it could detect.</td><td>Reading, days</td></tr>
+          <tr><td>EGMS sign check</td><td>H4's first inferential link is unverified by our own admission.</td><td>An afternoon</td></tr>
+          <tr><td>L7 re-run, component-matched null</td><td>The only Phase L result still open.</td><td>Minutes</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Requires field access or archive</h3>
+    <ul>
+      <li>In-situ water-table depth series, 2022–2024</li>
+      <li>Stratigraphic / coring records constraining the floating fraction</li>
+      <li>Laser and UAV campaigns — see Appendix A.11 for what each would test</li>
+      <li>Descending-track reproduction (Mo2)</li>
+      <li>Quantitative outcomes for all six estimators (Mo1)</li>
+    </ul>
+
+    <h3>Editorial, before submission</h3>
+    <ul>
+      <li>Cut to ≈ 8 figures and 6 tables</li>
+      <li>Abstract under 350 words; highlights under 85 characters each</li>
+      <li>Complete the reference list; mint the Zenodo DOI</li>
+      <li>Replace author and affiliation placeholders in <code>response_to_referees.md</code></li>
+    </ul>
+  </section>
+
+  <section class="block">
+    <h2><span class="n">§ 11</span>Summary</h2>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Test</th><th>Objection</th><th>Outcome</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td><strong>L1</strong></td><td>Matched design asserted, not tested</td><td>25/25 controls clear the null; IQR 0.482; <em>p</em> = 0.0033</td><td><strong>PASSED</strong></td></tr>
+          <tr><td><strong>L2</strong></td><td>Border contamination</td><td>Deficit stable under erosion; closure dispersion rises</td><td>Answered</td></tr>
+          <tr><td><strong>L3</strong></td><td>Only the target was subdivided</td><td>Flat both ways (0.93 / 1.02)</td><td>Conclusive</td></tr>
+          <tr><td><strong>L4</strong></td><td>Closure null may lack power</td><td>518 triplets, 6.28× a random network</td><td>Answered; §4.8 open</td></tr>
+          <tr><td><strong>L5</strong></td><td>Amplitude depends on the inversion</td><td>2.32 vs 3.29 mm, 1.94 σ, <em>r</em>² = 0.005</td><td>Inconclusive</td></tr>
+          <tr><td><strong>L6</strong></td><td><em>p</em>-value CI straddles 0.05</td><td><em>p</em> = 0.0260, CI [0.0214, 0.0308]</td><td>Resolved</td></tr>
+          <tr><td><strong>L7</strong></td><td>27 clustered pixels not independent</td><td>Premise wrong (15 fragments); fair null pending</td><td><strong>OPEN</strong></td></tr>
+          <tr><td><strong>L8</strong></td><td>Bootstrap understates the interval</td><td>Analytic vs bootstrap differ ×3.2</td><td>Answered; choice unstated</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p><strong>Three results changed direction once tested properly</strong> — L4 (the network is better closed than a random one, not worse), L7 step 4 (the pixels are not clustered, so we over-conceded), and L7 step 2 (the concentration is in the predicted direction, not absent). <strong>Two are weaker than the first pass suggested</strong>: L5 is inconclusive, and L7 has no valid <em>p</em>-value yet.</p>
+  </section>
+
+  <section class="block">
+    <h2><span class="n">§ 12</span>Methodological note for the referees</h2>
+    <p>Four of the corrections in Phase L were to <strong>our own</strong> tests, found by our own diagnostics, after those tests had already produced a publishable-looking number:</p>
+    <ul>
+      <li>A two-sided statistic answering a directional question on a skewed null — it reversed the verdict.</li>
+      <li>A <em>p</em>-value pinned at the permutation floor, reported as if estimated.</li>
+      <li>A null that did not match the observation on the property doing the work.</li>
+      <li>A first version of the fairness check that used whole-set spread — which for a fragmented set is a function of <em>position</em>, the hypothesis under test, and would have suppressed a true result. Caught by a synthetic case before it touched the data.</li>
+    </ul>
+    <p>We report these rather than quietly fixing them, for the same reason Appendix A.13 records the errors corrected during the original analysis: a protocol that never surprises its authors is not being tested.</p>
+  </section>
+
+  <footer>
+    Generated from <code>notebooks/phaseL_gate.ipynb</code> · branch <code>claude/insar-wetlands-pipeline-mqd0qv</code> · all figures reproducible from <code>src/insar_wetlands/referee.py</code>
+  </footer>
+
+</div>
