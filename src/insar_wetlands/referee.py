@@ -547,14 +547,37 @@ def toroidal_permutation_test(subset: xr.DataArray, zone: xr.DataArray,
         v = v[np.isfinite(v)]
         if v.size:
             nulls.append(float(stat(v)))
+    mode = "toroidal shift (shape preserved exactly)"
+
+    if not nulls:
+        # A rigid shift of an irregular cluster rarely lands wholly inside an
+        # irregular zone, so this branch is the normal case, not an edge case.
+        # Fall back to compact blobs of the SAME SIZE drawn anywhere in the
+        # zone: that preserves the two properties the test depends on --
+        # cardinality and compactness, hence the effective sample size -- while
+        # randomising position. It relaxes exact shape, which is why the mode
+        # used is reported rather than left implicit.
+        mode = "compact blobs of equal size (exact shape relaxed)"
+        cand = np.argwhere(zm)
+        n_px = int(sm.sum())
+        if len(cand) > n_px:
+            for _ in range(n_trials):
+                idx = _compact_blob(cand, int(rng.integers(len(cand))), n_px)
+                v = field.values[cand[idx, 0], cand[idx, 1]]
+                v = v[np.isfinite(v)]
+                if v.size:
+                    nulls.append(float(stat(v)))
+
     nulls = np.asarray(nulls)
     if not nulls.size:
         return {"n_subset": int(sm.sum()), "observed": observed, "n_null": 0,
-                "note": "no shift placed the subset wholly inside the zone"}
+                "mode": "none", "p_value": float("nan"),
+                "note": "NO NULL COULD BE BUILT -- this is not a negative "
+                        "result and must not be reported as one"}
     zone_vals = field.values[zm & np.isfinite(field.values)]
     k = int(np.sum(np.abs(nulls - np.median(nulls))
                    >= abs(observed - np.median(nulls))))
-    return {"n_subset": int(sm.sum()), "observed": observed,
+    return {"n_subset": int(sm.sum()), "observed": observed, "mode": mode,
             "zone_statistic": float(stat(zone_vals[np.isfinite(zone_vals)])),
             "n_null": int(nulls.size), "null_median": float(np.median(nulls)),
             "null_p05": float(np.percentile(nulls, 5)),
