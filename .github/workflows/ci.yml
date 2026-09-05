@@ -37,3 +37,10 @@ jobs:
 
       - name: Manuscript numbers match the exported CSVs
         run: make check
+
+      # The generated appendix and manuscript are committed, so they can go
+      # stale against the sections and CSVs they are built from. Regenerating
+      # here and diffing is what makes "do not edit by hand" checkable rather
+      # than merely stated.
+      - name: Generated manuscript files have not drifted
+        run: make check-generated
