@@ -13,6 +13,7 @@ from pathlib import Path
 import yaml
 
 from insar_wetlands.phases import (
+    GROUPS,
     execution_order,
     find_cycles,
     load_phases,
@@ -118,6 +119,63 @@ def test_a_cycle_is_reported_not_hung_on(tmp_path):
     assert any("cycle" in p for p in validate(ps))
 
 
+# --- groups ----------------------------------------------------------------
+
+def test_a_phase_without_a_group_is_caught(tmp_path):
+    """Group is what the two filename schemes never carried."""
+    ps = load_phases(write(tmp_path, {
+        "phaseG": {"title": "g", "notebook": "notebooks/04_hypotheses/g.ipynb"},
+    }))
+    assert any("no group declared" in p for p in validate(ps))
+
+
+def test_an_unknown_group_is_caught(tmp_path):
+    ps = load_phases(write(tmp_path, {
+        "phaseG": {"title": "g", "group": "miscellaneous",
+                   "notebook": "notebooks/04_hypotheses/g.ipynb"},
+    }))
+    assert any("unknown group" in p for p in validate(ps))
+
+
+def test_a_notebook_filed_outside_its_group_directory_is_caught(tmp_path):
+    """The declaration and the filesystem are two statements of one fact. If
+    they may disagree, the flat layout grows back one notebook at a time."""
+    ps = load_phases(write(tmp_path, {
+        "phaseG": {"title": "g", "group": "hypotheses",
+                   "notebook": "notebooks/02_inversion/g.ipynb"},
+    }))
+    assert any("belongs in notebooks/04_hypotheses/" in p for p in validate(ps))
+
+
+def test_group_is_orthogonal_to_status(tmp_path):
+    """A superseded phase keeps the group of the question it asked, so it is
+    filed next to the phase that replaced it rather than in a graveyard."""
+    ps = load_phases(write(tmp_path, {
+        "phaseC2": {"title": "old", "group": "inversion", "status": "superseded",
+                    "notebook": "notebooks/02_inversion/c2.ipynb"},
+        "phaseE2": {"title": "new", "group": "inversion", "status": "current",
+                    "notebook": "notebooks/02_inversion/e2.ipynb",
+                    "supersedes": ["phaseC2"]},
+    }))
+    assert ps["phaseC2"].group == ps["phaseE2"].group
+    assert ps["phaseC2"].is_live is False
+
+
+def test_every_real_phase_declares_a_known_group():
+    phases = load_phases(REPO / "config" / "phases.yaml")
+    for name, p in phases.items():
+        assert p.group in GROUPS, f"{name} has group {p.group!r}"
+
+
+def test_the_readme_table_is_grouped_and_still_covers_everything():
+    phases = load_phases(REPO / "config" / "phases.yaml")
+    table = readme_table(phases)
+    for directory in GROUPS.values():
+        assert f"### {directory}" in table
+    for name in phases:
+        assert f"`{name}`" in table
+
+
 # --- ordering --------------------------------------------------------------
 
 def test_execution_order_respects_dependencies(tmp_path):
@@ -174,7 +232,8 @@ def test_the_projects_own_declaration_is_sound():
 def test_every_notebook_on_disk_is_declared():
     phases = load_phases(REPO / "config" / "phases.yaml")
     declared = {p.notebook for p in phases.values()}
-    on_disk = {str(p.relative_to(REPO)) for p in (REPO / "notebooks").glob("*.ipynb")}
+    on_disk = {str(p.relative_to(REPO))
+               for p in (REPO / "notebooks").glob("**/*.ipynb")}
     assert on_disk == declared
 
 

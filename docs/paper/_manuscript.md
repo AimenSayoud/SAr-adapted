@@ -1473,7 +1473,7 @@ Model, GLO-30.
 
 ## Appendix B. Numeric tables
 
-Tables exported by `notebooks/export_figures_en.ipynb`. Each is reproduced here and shipped as CSV alongside the figures.
+Tables exported by `notebooks/06_manuscript/export_figures_en.ipynb`. Each is reproduced here and shipped as CSV alongside the figures.
 
 ### T01. Zone definition, pixel counts and areas
 

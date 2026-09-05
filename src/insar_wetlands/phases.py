@@ -29,6 +29,28 @@ import yaml
 
 STATUSES = {"current", "superseded", "exploratory", "tooling"}
 
+# Groups answer "what question is this phase part of", which is the axis the
+# filenames never carried: two naming schemes grew side by side (phase01..15 by
+# chronology, phaseA..L by hypothesis) and neither says that phaseE2 is the
+# decisive H1 test while phase08 and phase09 are the inversions it supersedes.
+#
+# A group is orthogonal to `status`: phaseC1 is exploratory but belongs with the
+# inversions, and phaseC2 is superseded but is filed next to the phaseE2 that
+# replaced it — which is where a reader looks for it.
+#
+# The value is also the directory under `notebooks/`, so the declaration and the
+# filesystem cannot disagree: `validate` checks that every notebook actually
+# lives in its group's directory. The numeric prefixes give reading order to a
+# listing that was otherwise 38 files in no order at all.
+GROUPS = {
+    "data":        "01_data",
+    "inversion":   "02_inversion",
+    "corrections": "03_corrections",
+    "hypotheses":  "04_hypotheses",
+    "robustness":  "05_robustness",
+    "manuscript":  "06_manuscript",
+}
+
 
 @dataclass(frozen=True)
 class Phase:
@@ -37,6 +59,10 @@ class Phase:
     name: str
     title: str
     notebook: str
+    # Defaulted rather than required so the synthetic graphs in the tests stay
+    # readable; `validate` reports an entry that omits it, which is what keeps
+    # the real declaration honest.
+    group: str = ""
     question: str = "-"
     status: str = "current"
     supersedes: list[str] = field(default_factory=list)
@@ -89,6 +115,22 @@ def validate(phases: dict[str, Phase], repo: str | Path | None = None) -> list[s
         if repo and not (repo / p.notebook).exists():
             problems.append(f"{name}: notebook not found — {p.notebook}")
 
+        # The group and the directory are two statements of the same fact, so a
+        # notebook filed in the wrong place is a declaration error, not a
+        # cosmetic one: it is how the flat layout would grow back.
+        if not p.group:
+            problems.append(f"{name}: no group declared "
+                            f"(expected one of {sorted(GROUPS)})")
+        elif p.group not in GROUPS:
+            problems.append(f"{name}: unknown group {p.group!r} "
+                            f"(expected one of {sorted(GROUPS)})")
+        else:
+            want = f"notebooks/{GROUPS[p.group]}"
+            if str(Path(p.notebook).parent) != want:
+                problems.append(
+                    f"{name}: group {p.group!r} means the notebook belongs in "
+                    f"{want}/, but it is declared at {p.notebook}")
+
         for dep in p.upstream():
             if dep not in phases:
                 problems.append(f"{name}: input refers to unknown phase {dep!r}")
@@ -108,7 +150,7 @@ def validate(phases: dict[str, Phase], repo: str | Path | None = None) -> list[s
     # A notebook on disk that nobody declared is how the README fell behind.
     if repo:
         declared = {p.notebook for p in phases.values()}
-        for nb in sorted((repo / "notebooks").glob("*.ipynb")):
+        for nb in sorted((repo / "notebooks").glob("**/*.ipynb")):
             rel = str(nb.relative_to(repo))
             if rel not in declared:
                 problems.append(f"undeclared notebook: {rel}")
@@ -182,21 +224,53 @@ def missing_inputs(phase: Phase, phases: dict[str, Phase],
     return missing
 
 
+GROUP_TITLES = {
+    "data":        "Data preparation — acquisition, network, masks, products",
+    "inversion":   "Inversion — every attempt to recover per-pixel displacement (H1)",
+    "corrections": "Corrections — atmosphere and viewing geometry",
+    "hypotheses":  "Hypothesis tests — zone contrast, aggregation, hydrology (H2–H4)",
+    "robustness":  "Robustness — falsification, external controls, referee rounds",
+    "manuscript":  "Manuscript — figures, tables and the assembled document",
+}
+
+
 def readme_table(phases: dict[str, Phase]) -> str:
     """The phase table, generated. Replaces the hand-written one that
-    documented 14 of 38."""
-    rows = ["| Phase | Question | Status | Paper |",
-            "|---|---|---|---|"]
+    documented 14 of 38.
+
+    One sub-table per group. A single 38-row table was sorted by dependency,
+    which is the right order to *run* the pipeline and the wrong one to read it:
+    it interleaved the H1 inversions with the data preparation and left no way
+    to see that phaseD, phaseG and phaseI are one argument."""
     marks = {"current": "✅", "superseded": "⛔ superseded",
              "exploratory": "🔍 exploratory", "tooling": "🔧 tooling"}
-    for name in execution_order(phases, live_only=False):
-        p = phases[name]
-        nb = Path(p.notebook).name
-        q = p.question if p.question != "-" else "—"
-        rows.append(f"| [`{name}`]({p.notebook}) — {p.title} | {q} | "
-                    f"{marks.get(p.status, p.status)} | {p.paper} |")
-        del nb
-    return "\n".join(rows)
+    order = execution_order(phases, live_only=False)
+    out: list[str] = []
+    for group, heading in GROUP_TITLES.items():
+        members = [n for n in order if phases[n].group == group]
+        if not members:
+            continue
+        out += [f"### {GROUPS[group]} — {heading}", "",
+                "| Phase | Question | Status | Paper |", "|---|---|---|---|"]
+        for name in members:
+            ph = phases[name]
+            q = ph.question if ph.question != "-" else "—"
+            out.append(f"| [`{name}`]({ph.notebook}) — {ph.title} | {q} | "
+                       f"{marks.get(ph.status, ph.status)} | {ph.paper} |")
+        out.append("")
+    # A phase whose group is unknown would otherwise vanish from the table
+    # silently; `validate` reports it, and it still gets listed here.
+    rest = [n for n in order if phases[n].group not in GROUP_TITLES]
+    if rest:
+        out += ["### Ungrouped", "",
+                "| Phase | Question | Status | Paper |", "|---|---|---|---|"]
+        for name in rest:
+            ph = phases[name]
+            q = ph.question if ph.question != "-" else "—"
+            out.append(f"| [`{name}`]({ph.notebook}) — {ph.title} | {q} | "
+                       f"{marks.get(ph.status, ph.status)} | {ph.paper} |")
+        out.append("")
+    return "\n".join(out).rstrip()
 
 
 def summary(phases: dict[str, Phase]) -> dict:
