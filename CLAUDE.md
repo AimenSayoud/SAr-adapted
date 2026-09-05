@@ -32,6 +32,26 @@ exists to prevent recurrence:
 **When you introduce or change a load-bearing number, add it to `REGISTRY` in the same
 change.** One line, permanent protection.
 
+## Starting a phase
+
+Every phase notebook opens the same way:
+
+```python
+from insar_wetlands.bootstrap import start
+ctx = start("phaseG")
+```
+
+`start` mounts Drive, loads the config, resolves paths, configures logging to both the
+notebook and `outputs/<phase>/run.log`, and returns a `Context`. Everything on it is lazy —
+`ctx.pairs`, `ctx.template`, `ctx.dem`, `ctx.zones`, `ctx.layer(name)`, `ctx.to_grid(obj)` —
+so a phase pays only for what it uses.
+
+**Never rebuild that preamble by hand, and never construct a path from a literal.**
+`paths.py` is the only place a path is made; a Colab-only default hidden in a signature is
+what this replaced.
+
+Migrated so far: `phaseG`, `phaseD`, `phase01`. The rest still carry the old preamble.
+
 ## Archiving a run
 
 Every phase execution ends with one line, so the run survives the Colab session:
