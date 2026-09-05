@@ -242,9 +242,15 @@ comparable across zones; and with **measured** N_eff (§4.5.1) A and C sit only
 | Baselines ≤ 60 d | −3.87 mm yr⁻¹ | **−4.88 mm yr⁻¹** |
 
 The signal is **indistinguishable from the null**. More fundamentally, bog
-breathing is **seasonal**, so regressing a *velocity* on a periodic signal
-returns ≈ 0 by construction: this test had **no power** on the physics being
-sought. The null control is what exposed the design error.
+breathing is **seasonal**, and a *velocity* regressed on a periodic signal is
+not ≈ 0 but an artifact of where the observation window falls relative to the
+cycle: bounded in magnitude by 6*A*/π*N*² for amplitude *A* over *N* annual
+periods (§3.3), it changes sign when the window shifts by half a cycle. With
+the amplitude of Table 7 over three annual cycles that bound is well below the
+rate tabulated above, so it does not by itself explain the value — but it does
+mean the test had **no power** on the physics being sought, not because it
+returns zero, but because what it returns is set by the calendar rather than by
+the peatland. The null control is what exposed the design error.
 
 #### 4.3.4 Seasonal amplitude: detection
 
