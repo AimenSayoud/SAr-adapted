@@ -29,5 +29,8 @@ jobs:
       - name: Ground-truth test suite
         run: make test
 
+      - name: Pipeline declaration is sound
+        run: make phases
+
       - name: Manuscript numbers match the exported CSVs
         run: make check
