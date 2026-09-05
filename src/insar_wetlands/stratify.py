@@ -78,7 +78,8 @@ def worldcover_tile_name(lat: float, lon: float, year: int = 2021) -> str:
 
 
 def load_worldcover(template: xr.DataArray, cfg: dict | None = None,
-                    year: int = 2021, cache_dir="/content/worldcover") -> xr.DataArray:
+                    year: int = 2021,
+                    cache_dir: str | Path | None = None) -> xr.DataArray:
     """Charge ESA WorldCover 10 m (label de couvert indépendant) sur la grille
     du crop.
 
@@ -94,6 +95,11 @@ def load_worldcover(template: xr.DataArray, cfg: dict | None = None,
     from .aoi import buffered_bbox
 
     cfg = cfg or load_config()
+    if cache_dir is None:
+        # Was hardcoded to /content/worldcover, which is silently wrong off Colab
+        # and, being a default, wrote somewhere unexpected instead of raising.
+        from .paths import make_paths
+        cache_dir = make_paths(cfg=cfg).cache
     lon, lat = cfg["site"]["centroid"]
     tile = worldcover_tile_name(lat, lon, year)
     base = (f"https://esa-worldcover.s3.eu-central-1.amazonaws.com/"
