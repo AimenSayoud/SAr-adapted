@@ -1,0 +1,17 @@
+# Loose requirements — what the pipeline needs, without pinning.
+# Use this when you deliberately want to move the stack forward.
+# For reproducing published results, use requirements-lock.txt instead.
+asf_search
+hyp3_sdk
+pystac-client
+cdsapi
+rioxarray
+rasterio
+geopandas
+shapely
+pyproj
+xarray
+h5py
+netcdf4
+pyyaml
+planetary-computer

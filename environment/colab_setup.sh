@@ -7,7 +7,16 @@
 # =========================================================
 set -e
 
-echo ">>> Installation des dependances pip..."
+# Reproducibility: use the pinned lock file when it exists, so a rerun installs
+# the stack that produced the published numbers. Fall back to the loose list.
+if [ -f environment/requirements-lock.txt ]; then
+    echo ">>> Installation depuis requirements-lock.txt (versions epinglees)..."
+    pip install -q -r environment/requirements-lock.txt
+    pip install -q -e .
+    return 0 2>/dev/null || exit 0
+fi
+
+echo ">>> Pas de lock file — installation des dependances pip (non epinglees)..."
 pip install -q --upgrade \
     asf_search \
     hyp3_sdk \
