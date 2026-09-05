@@ -22,8 +22,7 @@ except ImportError:
     HAS_MPL = False
 
 from insar_wetlands.hydro_link import driver_pvalues, lag_scan
-from insar_wetlands.zone_viz import (zone_areas, zone_field_table,
-                                     zone_label_array)
+from insar_wetlands.zone_viz import zone_areas, zone_field_table, zone_label_array
 
 NY = NX = 12
 
@@ -175,8 +174,11 @@ def test_plots_run():
     if not HAS_MPL:
         print("  (matplotlib absent -> test de trace saute)")
         return
-    from insar_wetlands.zone_viz import (plot_zone_distributions, plot_zone_map,
-                                         plot_zones_over_field)
+    from insar_wetlands.zone_viz import (
+        plot_zone_distributions,
+        plot_zone_map,
+        plot_zones_over_field,
+    )
     tmpl = _tmpl(); zones = _zones(tmpl)
     fld = xr.DataArray(np.random.default_rng(1).normal(0, 1, (NY, NX)),
                        coords=tmpl.coords, dims=tmpl.dims)
@@ -189,6 +191,7 @@ def test_hydro_tables_keep_their_columns_when_no_zone_qualifies():
     """A column-less DataFrame turns a legitimate "no result" into a KeyError
     several frames away — which is exactly how S06 was lost silently."""
     import pandas as pd
+
     from insar_wetlands.stratify import coherence_vs_hydro, freeze_coherence_gain
     empty = pd.DataFrame(columns=["zone", "pair", "mean_coh"])
     hydro = pd.DataFrame(columns=["dwtd", "tmin"]); hydro.index.name = "pair"
@@ -205,7 +208,9 @@ def test_pair_hydro_index_survives_a_csv_round_trip():
     """pair_hydro_change is keyed by `pair` and merged on that key downstream.
     Writing the cache with index=False drops the key, and the merge then matches
     nothing — silently."""
-    import tempfile, pathlib
+    import pathlib
+    import tempfile
+
     import pandas as pd
     df = pd.DataFrame([{"pair": "20220101_20220113", "dwtd": 1.2, "tmin": 270.0}]
                       ).set_index("pair")
@@ -223,6 +228,7 @@ def test_hydro_accepts_the_pair_key_as_index_or_column():
     lost key may fail, and it must fail with a message that names the cause."""
     import numpy as np
     import pandas as pd
+
     from insar_wetlands.stratify import coherence_vs_hydro, freeze_coherence_gain
     pairs = [f"2022{(i % 12) + 1:02d}01_2022{(i % 12) + 1:02d}13" for i in range(40)]
     rng = np.random.default_rng(0)

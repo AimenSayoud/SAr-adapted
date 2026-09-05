@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import math
-from pathlib import Path
 
 from shapely.geometry import shape
 from shapely.geometry.base import BaseGeometry

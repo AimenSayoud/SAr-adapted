@@ -13,7 +13,7 @@ import pytest
 import yaml
 
 from insar_wetlands.bootstrap import Context, start
-from insar_wetlands.paths import COLAB_DRIVE, Paths, make_paths, repo_root, resolve_drive
+from insar_wetlands.paths import COLAB_DRIVE, Paths, repo_root, resolve_drive
 
 
 @pytest.fixture()

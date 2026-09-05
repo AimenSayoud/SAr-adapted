@@ -14,12 +14,17 @@ import tempfile
 import zipfile
 from pathlib import Path
 
-from insar_wetlands.paper_build import (SECTION_ORDER, add_page_setup,
-                                        polish_tables,
-                                        assemble_markdown, build_data_appendix,
-                                        collect_sections, csv_to_markdown,
-                                        find_missing_images,
-                                        repair_content_types)
+from insar_wetlands.paper_build import (
+    SECTION_ORDER,
+    add_page_setup,
+    assemble_markdown,
+    build_data_appendix,
+    collect_sections,
+    csv_to_markdown,
+    find_missing_images,
+    polish_tables,
+    repair_content_types,
+)
 
 CT = ('<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.'
       'openxmlformats.org/package/2006/content-types"><Default Extension="xml"'
@@ -246,6 +251,7 @@ def test_line_numbers_are_off_unless_asked_for():
     """Continuous numbering is what a journal wants at submission, but it
     clutters a document being read. It must be opt-in."""
     import inspect
+
     from insar_wetlands.paper_build import build_manuscript
     for fn in (build_manuscript, add_page_setup):
         assert inspect.signature(fn).parameters["line_numbers"].default is False, fn

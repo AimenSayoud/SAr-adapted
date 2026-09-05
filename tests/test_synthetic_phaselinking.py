@@ -13,9 +13,7 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
-from insar_wetlands.inversion.isbas import PHASE_TO_MM
-from insar_wetlands.inversion.phaselinking import (evd_phase_linking, evd_pixel,
-                                                   _pair_date_index)
+from insar_wetlands.inversion.phaselinking import _pair_date_index, evd_phase_linking, evd_pixel
 
 
 def _wrap(x):

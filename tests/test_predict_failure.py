@@ -13,8 +13,12 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
-from insar_wetlands.predict_failure import (covariate_table, fit_failure_model,
-                                            rank_covariates, threshold_sweep)
+from insar_wetlands.predict_failure import (
+    covariate_table,
+    fit_failure_model,
+    rank_covariates,
+    threshold_sweep,
+)
 from insar_wetlands.stratify import dual_pol_rvi
 
 NY = NX = 30
@@ -121,8 +125,8 @@ def test_zone_fraction_excludes_invalid_pixels():
     fragmented zone is compared against a complete one."""
     import numpy as np
     import xarray as xr
-    from insar_wetlands.predict_failure import (zone_fraction_above,
-                                                zone_values, threshold_sweep)
+
+    from insar_wetlands.predict_failure import threshold_sweep, zone_fraction_above, zone_values
     vals = np.array([[0.9, 0.9, 0.9, 0.5],
                      [np.nan, np.nan, np.nan, np.nan]])
     field = xr.DataArray(vals, dims=("y", "x"))

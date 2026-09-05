@@ -52,3 +52,25 @@ pythonpath = ["src"]
 [tool.ruff]
 line-length = 100
 target-version = "py310"
+
+# A focused set, not everything ruff can say. The aim is to catch real defects
+# (F821 undefined names, B023 loop-variable closures) without churning working
+# scientific code for stylistic preferences.
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "B", "UP"]
+ignore = [
+    "E501",   # line length: enforced by the formatter's 100, not as an error
+    "B008",   # call in a default argument: deliberate in one API here
+    "E702",   # `a = 1; b = 2` — the author's compact style, used 66 times.
+              # Reformatting working scientific code for style is exactly the
+              # churn this configuration is meant to avoid.
+    "E741",   # ambiguous name `l`: one occurrence, in maths where it reads fine
+    "E731",   # lambda assignment: one occurrence, deliberate
+    "B007",   # unused loop variable: cosmetic
+    "B905",   # zip() without strict=: would change behaviour where lengths
+              # differ, so it is a deliberate follow-up, not a lint fix
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests construct deliberately odd inputs and rebind module constants.
+"tests/*" = ["B011", "E731"]

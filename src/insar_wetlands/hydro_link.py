@@ -24,8 +24,7 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
-from .aggregate import (aggregate_unwrapped, filter_pairs, invert_aggregate,
-                        matched_null_zones)
+from .aggregate import aggregate_unwrapped, filter_pairs, invert_aggregate, matched_null_zones
 
 
 def _detrend(y: np.ndarray, t: np.ndarray, deseasonalize: bool = False

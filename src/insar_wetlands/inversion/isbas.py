@@ -12,7 +12,6 @@ dates consecutives, rattaches au point de reference.
 from __future__ import annotations
 
 import numpy as np
-import pandas as pd
 import xarray as xr
 
 from ..network import design_matrix

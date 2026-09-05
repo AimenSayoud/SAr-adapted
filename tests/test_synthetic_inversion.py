@@ -12,8 +12,7 @@ import pandas as pd
 import xarray as xr
 
 from insar_wetlands.compare import fit_velocity
-from insar_wetlands.inversion.isbas import (PHASE_TO_MM, invert_stack,
-                                            phase_closure)
+from insar_wetlands.inversion.isbas import PHASE_TO_MM, invert_stack, phase_closure
 from insar_wetlands.network import design_matrix
 
 

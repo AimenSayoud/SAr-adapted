@@ -98,9 +98,9 @@ def load_static_layer(cropped_root: str | Path, layer: str) -> xr.DataArray:
 
 def aoi_mask(template: xr.DataArray, cfg: dict | None = None) -> xr.DataArray:
     """Masque booleen (y, x) : True a l'interieur du polygone Rzecin."""
+    from pyproj import Transformer
     from rasterio.features import geometry_mask
     from shapely.ops import transform as shp_transform
-    from pyproj import Transformer
 
     from .aoi import load_aoi
 

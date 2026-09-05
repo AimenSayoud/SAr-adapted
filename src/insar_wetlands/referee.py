@@ -28,8 +28,13 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
-from .aggregate import (_compact_blob, aggregate_unwrapped, empirical_pvalue,
-                        invert_aggregate, seasonal_amplitude)
+from .aggregate import (
+    _compact_blob,
+    aggregate_unwrapped,
+    empirical_pvalue,
+    invert_aggregate,
+    seasonal_amplitude,
+)
 from .inversion.isbas import PHASE_TO_MM
 
 
@@ -215,7 +220,8 @@ def bootstrap_amplitude_ci(dd: pd.DataFrame, n_boot: int = 2000,
     amps = []
     for _ in range(n_boot):
         keep = set(rng.choice(dates, len(dates), replace=True))
-        sub = dd[dd["pair"].map(lambda p: p[:8] in keep and p[9:17] in keep)]
+        sub = dd[dd["pair"].map(
+            lambda p, keep=keep: p[:8] in keep and p[9:17] in keep)]
         if len(sub) < 10:
             continue
         try:

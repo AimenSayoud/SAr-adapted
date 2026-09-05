@@ -138,7 +138,7 @@ def submit_pairs(pairs: pd.DataFrame, granules: dict, name: str,
     return pairs.merge(pd.DataFrame(rows), on="pair", how="left")
 
 
-def fetch_jobs(name: str) -> "object":
+def fetch_jobs(name: str) -> object:
     """Recupere le batch de jobs HyP3 portant ce nom (suivi/telechargement)."""
     import hyp3_sdk as sdk
 

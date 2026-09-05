@@ -13,9 +13,10 @@ OUT     := $(HUB)/03_paper01_rzecin/current
 
 RUN := PYTHONPATH=$(SRC) $(PY) -c
 
-.PHONY: help test check phases readme assemble appendix docx all clean
+.PHONY: help lint test check phases readme assemble appendix docx all clean
 
 help:
+	@echo "make lint      - ruff, on the focused rule set in pyproject"
 	@echo "make test      - run the synthetic ground-truth test suite"
 	@echo "make check     - verify manuscript numbers against the exported CSVs"
 	@echo "make phases    - validate config/phases.yaml and print the pipeline"
@@ -24,6 +25,9 @@ help:
 	@echo "make assemble  - concatenate sections into _manuscript.md"
 	@echo "make docx      - build the .docx into the hub (runs check first)"
 	@echo "make all       - test, check, appendix, assemble, docx"
+
+lint:
+	$(PY) -m ruff check src tests
 
 test:
 	PYTHONPATH=$(SRC) $(PY) -m pytest tests -q
@@ -77,7 +81,7 @@ docx: check appendix assemble
 	  -o $(OUT)/manuscript.docx
 	@echo "built: 03_paper01_rzecin/current/manuscript.docx"
 
-all: test phases docx
+all: lint test phases docx
 
 clean:
 	rm -f $(PAPER)/_manuscript.md

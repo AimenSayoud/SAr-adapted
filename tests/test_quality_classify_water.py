@@ -20,10 +20,14 @@ import xarray as xr
 
 from insar_wetlands.classify import CLASS_NAMES, classify, pick_reference_pixel
 from insar_wetlands.masking.water_mask import (
-    flooded_fraction, optical_to_s1_dates, water_mask,
+    flooded_fraction,
+    optical_to_s1_dates,
+    water_mask,
 )
 from insar_wetlands.quality import (
-    pair_dry_mask, quality_index, weight_matrix_for_pixel,
+    pair_dry_mask,
+    quality_index,
+    weight_matrix_for_pixel,
 )
 
 Y, X = 4, 5

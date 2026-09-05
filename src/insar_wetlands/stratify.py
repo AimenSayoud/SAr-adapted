@@ -18,6 +18,8 @@ un facteur causal propre, distinct de « la végétation en bande C ».
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 import xarray as xr
@@ -90,9 +92,11 @@ def load_worldcover(template: xr.DataArray, cfg: dict | None = None,
     téléchargement du Go entier) ; repli sur téléchargement si /vsicurl échoue.
     """
     from pathlib import Path
+
     import rioxarray  # noqa: F401
-    from .config import load_config
+
     from .aoi import buffered_bbox
+    from .config import load_config
 
     cfg = cfg or load_config()
     if cache_dir is None:
@@ -470,6 +474,7 @@ def signed_distance_to_aoi(template: xr.DataArray, cfg: dict) -> xr.DataArray:
     """Distance signée (m) au bord du polygone : négative DEDANS, positive
     DEHORS. Base du profil radial tapis-centre -> bord -> extérieur."""
     from scipy.ndimage import distance_transform_edt
+
     from .stack import aoi_mask
 
     aoi = aoi_mask(template, cfg).values
@@ -557,7 +562,7 @@ def backscatter_by_zone(rtc: xr.Dataset, zones: dict) -> pd.DataFrame:
     ratio = rtc["ratio_vh_vv_db"].mean("time", skipna=True) if "ratio_vh_vv_db" in rtc else None
     for z in ("A", "B", "C", "D"):
         m = zones[z].values
-        def stat(field):
+        def stat(field, m=m):  # bound as a default: called within this iteration, so behaviour is unchanged
             v = field.values[m & np.isfinite(field.values)]
             return float(np.median(v)) if v.size else np.nan
         row = {"zone": z, "sigma0_vv_db": stat(vv_mean),

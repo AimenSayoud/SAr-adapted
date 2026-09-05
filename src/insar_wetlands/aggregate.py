@@ -203,7 +203,9 @@ def aggregate_unwrapped(unw: xr.DataArray, corr: xr.DataArray, zones: dict,
         a, b = p.split("_")
         uk, ck = u[k], c[k]
 
-        def wmean(m):
+        def wmean(m, uk=uk, ck=ck):
+            # uk/ck bound as defaults: wmean is called inside this iteration,
+            # so behaviour is unchanged, but the late-binding trap is removed.
             ok = m & np.isfinite(uk) & np.isfinite(ck)
             if ok.sum() < 5:
                 return np.nan, 0.0
@@ -538,7 +540,7 @@ def closure_bias_by_zone(wrapped: xr.DataArray, zones: dict,
         m = zones[z].values
         vals = []
         for a, b, c in triplets:
-            def agg(idx):
+            def agg(idx, m=m):  # bound as a default: called within this iteration, so behaviour is unchanged
                 v = ph[idx][m]
                 v = v[np.isfinite(v)]
                 return np.mean(np.exp(1j * v)) if v.size >= 5 else np.nan
