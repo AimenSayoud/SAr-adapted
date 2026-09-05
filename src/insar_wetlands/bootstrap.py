@@ -146,12 +146,14 @@ class Context:
 
         The plain `align_grid` fails when the CRS is not written on the object;
         the reproject_match fallback handles that case."""
-        from .stack import align_grid
-        try:
-            return align_grid(obj, self.template)
-        except Exception:                            # noqa: BLE001
-            t = self.template.rio.write_crs(self.template.rio.crs)
-            return obj.rio.write_crs(t.rio.crs).rio.reproject_match(t)
+        from .stack import to_grid
+        return to_grid(obj, self.template)
+
+    def cache_df(self, tag: str, fn, index_col=None, **kw):
+        """Cache a DataFrame under <drive>/figures_cache/."""
+        cache_dir = self.paths.drive / "figures_cache"
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        return cache_df(cache_dir, tag, fn, index_col=index_col, **kw)
 
     @property
     def outdir(self) -> Path:
@@ -166,6 +168,23 @@ class Context:
                           repo=self.paths.repo)
         self.log.info("archived run: %s", run)
         return run
+
+
+def cache_df(cache_dir: str | Path, tag: str, fn, index_col=None, **kw):
+    """Cache a DataFrame to CSV in cache_dir.
+
+    `index_col` matters: a frame keyed by its index (like pair_hydro_change
+    keyed by `pair`) loses that key if written with index=False, and the next
+    run silently merges against a RangeIndex, matching nothing.
+    """
+    import pandas as pd
+
+    f = Path(cache_dir) / f"{tag}.csv"
+    if f.exists():
+        return pd.read_csv(f, index_col=index_col, **kw)
+    df = fn()
+    df.to_csv(f, index=index_col is not None)
+    return df
 
 
 def start(phase: str,
