@@ -313,9 +313,9 @@ def joint_annual_trend(cropped_root, annual_pairs: list[str],
     est identique. Retourne une vitesse (mm/an) + erreur standard, projetee
     en vertical.
     """
+    from .compare import fit_velocity
     from .geometry import los_to_vertical
     from .inversion.isbas import invert_stack
-    from .compare import fit_velocity
     from .stack import load_layer
 
     unw = load_layer(cropped_root, "unw_phase", annual_pairs)

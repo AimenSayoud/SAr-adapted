@@ -315,7 +315,6 @@ def load_timeseries(work_dir: str | Path, coh_threshold: float | None = 0.7):
     0.5-0.6 acceptable sur tourbiere). Passer None pour la serie brute.
     """
     import h5py
-    import numpy as np
     import pandas as pd
     import xarray as xr
 

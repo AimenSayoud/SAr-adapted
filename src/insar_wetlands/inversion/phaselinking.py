@@ -43,7 +43,7 @@ def wrap_unw(unw: xr.DataArray) -> xr.DataArray:
                           keep_attrs=True)
 
 
-def zone_tcoh_summary(ds: xr.Dataset, zones: dict) -> "pd.DataFrame":
+def zone_tcoh_summary(ds: xr.Dataset, zones: dict) -> pd.DataFrame:
     """Résumé par zone de la temporal_coherence du phase-linking EVD.
 
     Colonnes : zone, n_px, tcoh_median, tcoh_p25, tcoh_p75, frac_ge_0p7.

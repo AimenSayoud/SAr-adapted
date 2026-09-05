@@ -12,24 +12,28 @@ import pandas as pd
 import xarray as xr
 
 from insar_wetlands.inversion.isbas import PHASE_TO_MM
-from insar_wetlands.referee import (amplitude_vs_size,
-                                    matched_null_pairs,
-                                    matched_cover_pool,
-                                    count_closed_triplets,
-                                    excess_above_floor,
-                                    toroidal_permutation_test,
-                                    _shape_descriptors,
-                                    wrapped_seasonal_amplitude,
-                                    coupling_scaled_bound,
-                                    estimator_noise_bias,
-                                    bootstrap_amplitude_ci,
-                                    detectable_closure_bias, erode_zone,
-                                    family_corrected_pvalue, matrix_fill,
-                                    multi_control_patches,
-                                    noise_floor_simulation,
-                                    null_against_real_reference,
-                                    subdivide_zone,
-                                    synthetic_seasonal_recovery)
+from insar_wetlands.referee import (
+    _shape_descriptors,
+    amplitude_vs_size,
+    bootstrap_amplitude_ci,
+    count_closed_triplets,
+    coupling_scaled_bound,
+    detectable_closure_bias,
+    erode_zone,
+    estimator_noise_bias,
+    excess_above_floor,
+    family_corrected_pvalue,
+    matched_cover_pool,
+    matched_null_pairs,
+    matrix_fill,
+    multi_control_patches,
+    noise_floor_simulation,
+    null_against_real_reference,
+    subdivide_zone,
+    synthetic_seasonal_recovery,
+    toroidal_permutation_test,
+    wrapped_seasonal_amplitude,
+)
 
 NY = NX = 30
 
@@ -137,8 +141,7 @@ def test_multi_control_recovers_the_signal_against_every_control():
 
 
 def test_bootstrap_ci_brackets_the_amplitude():
-    from insar_wetlands.aggregate import aggregate_unwrapped, invert_aggregate
-    from insar_wetlands.aggregate import seasonal_amplitude
+    from insar_wetlands.aggregate import aggregate_unwrapped, invert_aggregate, seasonal_amplitude
     unw, corr, zones, tmpl = _stack(breathing_amp_mm=30.0)
     dd = aggregate_unwrapped(unw, corr, zones, "A", "C")
     point = seasonal_amplitude(invert_aggregate(dd))["amplitude_mm"]

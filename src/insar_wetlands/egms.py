@@ -46,10 +46,10 @@ def points_in_aoi(egms: xr.DataArray, cfg: dict | None = None,
     AOI reprojeté. Un `n_aoi = 0` = aucun point EGMS sur la tourbière (attendu
     en PSI) ; regarder alors `n_buffer` pour le contexte de bordure.
     """
-    from shapely.ops import transform as shp_transform
-    from shapely.geometry import box
     from pyproj import Transformer
     from rasterio.features import geometry_mask
+    from shapely.ops import transform as shp_transform
+
     from .aoi import load_aoi
 
     geom = load_aoi(cfg)
@@ -108,8 +108,7 @@ def load_egms_timeseries_csv(csv_path, cfg: dict | None = None,
     dans l'AOI (+ tampon). Le CSV EGMS a des colonnes easting/northing (3035)
     ou lat/lon selon l'export, puis des colonnes de dates (YYYYMMDD) en mm."""
     from shapely.geometry import Point
-    from shapely.ops import transform as shp_transform
-    from pyproj import Transformer
+
     from .aoi import load_aoi
 
     df = pd.read_csv(csv_path)

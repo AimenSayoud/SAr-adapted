@@ -14,9 +14,14 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
-from insar_wetlands.aggregate import (aggregate_unwrapped, closure_bias_by_zone,
-                                      double_difference, invert_aggregate,
-                                      phasor_verdict, zone_phasor)
+from insar_wetlands.aggregate import (
+    aggregate_unwrapped,
+    closure_bias_by_zone,
+    double_difference,
+    invert_aggregate,
+    phasor_verdict,
+    zone_phasor,
+)
 from insar_wetlands.inversion.isbas import PHASE_TO_MM
 
 NY = NX = 20
@@ -178,7 +183,7 @@ def test_matched_null_respects_sizes_and_pvalue():
     """Le nul doit avoir la MEME taille que les zones reelles (le bruit d'un
     agregat decroit en 1/sqrt(N) : un nul 4x plus grand sous-estime le plancher
     et fabrique de fausses detections)."""
-    from insar_wetlands.aggregate import (empirical_pvalue, matched_null_zones)
+    from insar_wetlands.aggregate import empirical_pvalue, matched_null_zones
 
     D = np.zeros((NY, NX), bool); D[1:19, 1:19] = True
     zones = {"D": xr.DataArray(D, dims=("y", "x"),

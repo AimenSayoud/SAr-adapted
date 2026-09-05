@@ -14,8 +14,7 @@ Execution : python tests/test_nisar_gunw.py
 
 import numpy as np
 
-from insar_wetlands.nisar import (build_gunw_stack, find_gunw_layers,
-                                   gunw_pair_id, load_gunw)
+from insar_wetlands.nisar import build_gunw_stack, find_gunw_layers, gunw_pair_id, load_gunw
 
 BASE = "science/LSAR/GUNW/grids/frequencyA/unwrappedInterferogram"
 
@@ -45,7 +44,8 @@ def test_pair_id():
 
 
 def test_find_and_load(tmp_path=None):
-    import tempfile, os
+    import os
+    import tempfile
 
     d = tempfile.mkdtemp()
     fp = os.path.join(d, "g.h5")
@@ -66,7 +66,8 @@ def test_find_and_load(tmp_path=None):
 
 
 def test_build_stack():
-    import tempfile, os
+    import os
+    import tempfile
 
     d = tempfile.mkdtemp()
     f1 = os.path.join(d, "A_20260617T000000Z_20260629T000000Z.h5")

@@ -5,14 +5,18 @@ correctly — the same shape as the other test modules here."""
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
 import pytest
 
 from insar_wetlands.run_archive import (
-    archive_run, compare_runs, describe_file, drive_root,
-    latest_run, list_runs, load_manifest, run_id,
+    archive_run,
+    compare_runs,
+    drive_root,
+    latest_run,
+    list_runs,
+    load_manifest,
+    run_id,
 )
 
 

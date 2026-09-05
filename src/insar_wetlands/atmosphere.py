@@ -80,6 +80,7 @@ def load_gacos_ztd(gacos_dir, date: str, template: xr.DataArray) -> xr.DataArray
     (WIDTH, FILE_LENGTH, X_FIRST, Y_FIRST, X_STEP, Y_STEP). Delai en metres.
     """
     from pathlib import Path
+
     import rioxarray  # noqa: F401
 
     gacos_dir = Path(gacos_dir)

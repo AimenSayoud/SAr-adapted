@@ -124,7 +124,7 @@ class Paths:
         """A named artefact at the Drive root, e.g. ``water_mask.nc``."""
         return self.drive / name
 
-    def for_phase(self, phase: str) -> "Paths":
+    def for_phase(self, phase: str) -> Paths:
         return Paths(repo=self.repo, drive=self.drive, phase=phase)
 
     @staticmethod

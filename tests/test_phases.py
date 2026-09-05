@@ -10,12 +10,16 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
 import yaml
 
 from insar_wetlands.phases import (
-    Phase, execution_order, find_cycles, load_phases, missing_inputs,
-    readme_table, summary, validate,
+    execution_order,
+    find_cycles,
+    load_phases,
+    missing_inputs,
+    readme_table,
+    summary,
+    validate,
 )
 
 REPO = Path(__file__).resolve().parents[1]

@@ -11,11 +11,16 @@ Run: python tests/test_paper_numbers.py
 import tempfile
 from pathlib import Path
 
-from insar_wetlands.paper_numbers import (GENERATED_SECTIONS, REGISTRY,
-                                          SUPERSEDED,
-                                          check_manuscript_numbers,
-                                          expected_values, fixed,
-                                          hand_written_text, scientific)
+from insar_wetlands.paper_numbers import (
+    GENERATED_SECTIONS,
+    REGISTRY,
+    SUPERSEDED,
+    check_manuscript_numbers,
+    expected_values,
+    fixed,
+    hand_written_text,
+    scientific,
+)
 
 
 def test_formatters_match_manuscript_typography():

@@ -31,8 +31,8 @@ def build_hybrid_pairs(dates: pd.Series, short_max_days: int = 48,
     annuelles meme-mois}. Colonnes : ref_date, sec_date, dt_days, pair, kind
     ('short'|'annual'). Deduplique (une paire ne peut etre que d'un type).
     """
+    from .annual_pairs import build_annual_pair_list, gather_candidate_dates
     from .hyp3.jobs import build_sbas_pairs
-    from .annual_pairs import gather_candidate_dates, build_annual_pair_list
 
     short = build_sbas_pairs(dates, short_max_days, max_pairs_per_date).copy()
     short["kind"] = "short"
@@ -67,10 +67,10 @@ def invert_hybrid(cropped_root, pairs: list[str], ref_yx: tuple[float, float],
 
     Retourne un Dataset {vertical_mm(time,y,x), rms_residual_rad, n_valid_pairs}.
     """
-    from .stack import load_layer
+    from .annual_pairs import deramp
     from .geometry import incidence_angle, los_to_vertical
     from .inversion.isbas import invert_stack
-    from .annual_pairs import deramp
+    from .stack import load_layer
 
     unw = load_layer(cropped_root, "unw_phase", pairs)
     corr = load_layer(cropped_root, "corr", pairs)

@@ -100,6 +100,7 @@ class Context:
     @cached_property
     def flooded_fraction(self):
         import xarray as xr
+
         from .masking.water_mask import flooded_fraction as ff
         path = self.paths.drive_file("water_mask.nc")
         return self.to_grid(ff(xr.open_dataset(path)))
@@ -112,6 +113,7 @@ class Context:
         either is unavailable the zones are still defined, and the log says so
         rather than the notebook failing halfway through."""
         import xarray as xr
+
         from .stratify import define_zones, load_worldcover, s2_landcover_features
 
         wc = None
@@ -191,7 +193,7 @@ def start(phase: str,
 
     if mount and _in_colab():
         try:
-            from google.colab import drive as _drive   # type: ignore
+            from google.colab import drive as _drive  # type: ignore
             _drive.mount("/content/drive")
         except Exception as e:                          # noqa: BLE001
             logging.getLogger("insar").warning("Drive mount skipped: %s", e)

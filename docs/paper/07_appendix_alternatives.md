@@ -56,7 +56,7 @@ realisation (the floor depends on the number of pairs).
 refuted**; the signal is carried entirely by the growing season.
 
 *Corroborating evidence*: the freeze test showed the mat gaining **less**
-coherence on freezing (+0.028) than grassland (+0.077) — the mat does not freeze
+coherence on freezing (+0.028) than grassland (+0.078) — the mat does not freeze
 like stable ground.
 
 ### A.4 Atmosphere — excluded by construction

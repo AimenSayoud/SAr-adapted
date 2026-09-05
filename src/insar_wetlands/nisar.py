@@ -36,7 +36,6 @@ import re
 from pathlib import Path
 
 import numpy as np
-import pandas as pd
 import xarray as xr
 
 _TS = re.compile(r"(\d{8})T\d{6}Z")

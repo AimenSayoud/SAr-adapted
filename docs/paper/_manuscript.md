@@ -31,8 +31,9 @@ identically. Phase linking, the maximum-likelihood estimator, recovers only
 land-cover-matched vegetation on stable ground **using the same network**.
 
 **(H2) The mat is a distinct radar target.** At matched land cover and
-phenology, its coherence is significantly lower (Δ = **−0.069**, Wilcoxon
-*p* = 2.2 × 10⁻⁴⁹, date-jackknife sign-stable), its boundary is sharp, its
+phenology, its coherence is significantly lower (mean Δ = **−0.081**, lower in
+89 % of pairs, date-jackknife [−0.0842, −0.0774] sign-stable), its boundary is
+sharp, its
 closure-phase dispersion is 3.2× larger, and — obtained by an independent
 statistical route — the predictors of coherence **reverse sign** between mat and
 grassland.
@@ -42,9 +43,11 @@ aggregation over 499 pixels recovers a seasonal amplitude of **3.29 mm**
 (*p* = 0.014 against 280 size-matched null realisations) that six per-pixel
 inversions could not see. However, the **residual lake oscillates identically**
 (2.63 mm, same phase) although it cannot breathe; the mat-minus-lake difference
-**cancels** (0.90 mm, *p* = 0.45); and the amplitude is one to two orders of
-magnitude too small for free flotation. Attributing the entire signal to motion
-yields a **robust upper bound of ≤ 3.9 mm** on seasonal vertical displacement.
+**cancels** (0.90 mm, *p* = 0.45). Attributing the entire signal to motion and
+propagating its 95 % interval yields a constraint on **apparent phase-centre
+displacement** of ≤ 8.7 mm vertical; because the phase centre is not rigidly
+coupled to the mat, this does **not** exclude peat motion of the amplitude
+published for raised bogs.
 
 **(H4) What the sensor does track is surface wetness.** On deseasonalised
 anomalies, the aggregated phase co-varies with Sentinel-2 optical wetness
@@ -74,8 +77,8 @@ aggregation.
   limitation is physical, not algorithmic.
 - Spatial aggregation recovers a 3.3 mm seasonal signal invisible pixel by
   pixel, but three independent tests show it is **dielectric**.
-- Seasonal vertical motion of the mat is bounded at **≤ 3.9 mm**, an order of
-  magnitude below values reported for raised bogs.
+- Apparent phase-centre displacement is constrained to **≤ 8.7 mm** vertical;
+  mat motion itself is **not** bounded, because the coupling is unmeasured.
 - Aggregated phase responds to **surface-moisture anomalies at near-zero lag**
   through a sensitivity contrast between surfaces.
 - A reproducible weak-signal protocol — size-matched nulls and empirical
@@ -168,8 +171,9 @@ each paired with the test that could refute it:
 
 1. A **multi-method demonstration** that the limitation is physical rather than
    algorithmic, at a site where the expected signal is maximal.
-2. A **quantitative upper bound** (≤ 3.9 mm seasonal vertical amplitude),
-   directly comparable to published raised-bog values.
+2. A **quantitative constraint on apparent phase-centre displacement**
+   (≤ 8.7 mm seasonal vertical amplitude), together with an explicit statement
+   of why it does not transfer to the peat surface.
 3. Evidence, from three independent arguments, that the detectable seasonal
    signal is **dielectric**.
 4. Two transferable methodological contributions: a **change of observable**
@@ -461,19 +465,29 @@ model; if it fails, no estimator on the same network will succeed.
 | Zone | Median | p25–p75 | **% ≥ 0.7** |
 |---|---|---|---|
 | **C** — matched grassland | **0.734** | 0.671–0.803 | **64.7 %** |
-| D — other cover | 0.639 | 0.597–0.693 | 23.1 % |
+| D — other cover | 0.639 | 0.597–0.693 | 23.2 % |
 | **A** — floating mat | **0.604** | 0.566–0.647 | **5.4 %** |
 | B — residual lake | 0.584 | 0.542–0.630 | 1.5 % |
 
-Read against the **0.55 noise floor** (§3.1; Fig. 5, Fig. 6):
+Read against the simulated network noise floor, **0.488** with a 90 % interval
+of [0.448, 0.532] (§3.1; Fig. 5, Fig. 6). Because that floor is strongly
+topology-dependent, we express each zone as its **excess above the floor**, which
+requires no threshold:
 
-- **B (lake) = 0.584** sits *at* the floor — an internal validation, since
-  vegetated water is known to be decorrelated and the method classifies it
-  correctly. The chain behaves as expected on the control target.
-- **A (mat) = 0.604** is only ≈ 0.05 above the floor, adjacent to the lake. This
-  is not "somewhat worse" than C: **A ≈ noise, C ≈ signal**.
-- **C = 0.734** is clearly above, with 65 % of pixels at distributed-scatterer
-  quality — **on exactly the same network**.
+| Zone | Temporal coherence | Excess over floor |
+|---|---|---|
+| **C** — matched grassland | 0.734 | **0.246** |
+| D — other cover | 0.639 | 0.151 |
+| **A** — floating mat | **0.604** | **0.116** |
+| B — residual lake | 0.584 | 0.096 |
+
+The mat retains **47 %** of the matched grassland's excess coherence above the
+floor. Every zone, including the lake, lies above the 95th percentile of the
+null, so the lake is *not* at the floor and cannot serve as an internal
+validation of the chain. The mat is **low, and intermediate between the lake and
+external cover** — deprived of its high-coherence tail to the point where
+per-pixel inversion is not supportable, while retaining measurable structure
+above the fully decorrelated case.
 
 
 ![**Figure 5.** Phase-linking result. (a) Temporal-coherence distributions by zone, with the 0.55 noise floor and the 0.7 reliability threshold; (b) full multi-threshold curve.](figures/F05_temporal_coherence.png)
@@ -510,11 +524,26 @@ fails, with the same pairs, the same sparsity and the same estimator.
 | Quantity | Value |
 |---|---|
 | Mean coherence A / C | 0.408 / 0.492 |
-| **Paired Δ (coh A − coh C)** | **−0.069** |
-| Wilcoxon signed-rank | ***p* = 2.2 × 10⁻⁴⁹** |
-| Fraction of negative pairs | 88 % |
-| **Date-jackknife** | Δ ∈ [−0.0705, −0.0652], **sign stable for every removal** |
+| **Paired Δ (coh A − coh C), mean** | **−0.081** |
+| Paired Δ, median | −0.050 |
+| Fraction of pairs with A lower | 89 % |
+| **Date-jackknife** (on the mean Δ) | Δ ∈ [−0.0842, −0.0774], **sign stable for every date removed** |
+| Wilcoxon signed-rank | *p* = 4.84 × 10⁻⁴⁶ (nominal; see below) |
 | Decorrelation time τ | 21 d (A) vs 32 d (C) |
+
+The mean exceeds the median in magnitude (−0.081 against −0.050), so the
+distribution of paired differences is left-skewed: a subset of interferograms
+shows a much larger deficit than the typical one. Both are reported because the
+gap is itself informative, and the jackknife is computed on the mean.
+
+**On the *p*-value.** The 356 pairs share ~90 acquisition dates and are
+therefore **not independent**, so the Wilcoxon *p* is quoted as a nominal value
+and is **not** the inferential basis of this result. The evidence is the effect
+size and its stability: a mean deficit of −0.081, negative in 89 % of pairs, with
+a date-jackknife range of [−0.0842, −0.0774] that never changes sign when any
+single acquisition and all its pairs are removed. A 16 % relative reduction in
+coherence across 356 correlated observations should not be read through an
+extreme *p*-value.
 
 The deficit therefore depends on no single acquisition and survives control for
 baseline, atmosphere (both by pairing), slope (DEM) and canopy optical wetness
@@ -700,7 +729,15 @@ the lake was not, A − B would have revealed it. It reveals nothing.
 | Published raised-bog breathing (Hrysiewicz et al., 2024) | 10–40 mm |
 | **Measured here** | **3.3 mm** |
 
-The signal is **one to two orders of magnitude too small** for flotation.
+Read against the measured amplitude alone, the signal is far below free
+flotation. **That comparison does not survive its own uncertainty**: propagating
+the 95 % interval (§4.3.7) to vertical gives 8.7 mm, and dividing by any coupling
+fraction below unity raises it further — 17.3 mm at *f* = 0.5, 34.6 mm at
+*f* = 0.25 — which overlaps the 10–40 mm reported for raised bogs. The
+order-of-magnitude argument is therefore **not available to us**, and we do not
+use it. What the comparison supports is narrower: C-band InSAR on this surface
+cannot distinguish an absence of motion from motion of peatland-breathing
+amplitude.
 
 #### 4.3.6 Closure-phase bias does not discriminate
 
@@ -733,7 +770,9 @@ measures the degree of non-stationarity, not its nature.**
 seasonal amplitude is 3.29 mm LOS. Attributing **all** of it to motion — that
 is, deliberately ignoring §4.3.5 — gives
 
-> d_vert ≤ 3.29 / cos(32.26°) ≈ **3.9 mm** seasonal vertical amplitude.
+> d_vert ≤ 3.29 / cos(32.26°) ≈ **3.9 mm** on the point estimate, and
+> ≤ 7.32 / cos(32.26°) ≈ **8.7 mm** on the upper 95 % interval — which is the
+> value we carry forward, since the point estimate alone understates it.
 
 Assumptions: purely vertical motion; no phase aliasing (verified, since
 centimetre-scale motion would produce an incoherent aggregate rather than a
@@ -757,9 +796,10 @@ of 0.90 mm lies below the matched-null p95 of 2.0 mm:
 
 > **H3 is rejected.** The detected seasonal signal (3.29 mm, *p* = 0.014) is
 > **dielectric**: the lake, which cannot breathe, oscillates identically; the
-> mat-minus-lake difference cancels; and the amplitude is one to two orders of
-> magnitude too small for flotation. We are measuring a **seasonal moisture
-> contrast** between saturated surfaces and dry grassland.
+> mat-minus-lake difference cancels. We are measuring a **seasonal moisture
+> contrast** between saturated surfaces and dry grassland. The magnitude of the
+> signal does *not* independently exclude flotation once its uncertainty and the
+> phase-centre coupling are propagated (§4.3.5c).
 
 *Distinction to maintain*: this establishes that the **seasonal signal** is
 dielectric. It says nothing about the nature of the **decorrelation** mechanism,
@@ -1034,7 +1074,8 @@ This question is **distinct** from that of the seasonal signal, whose dielectric
 origin is established (§4.3).
 
 **In-situ validation.** A ground-based **laser** remains the only direct
-measurement able to confirm the ≤ 3.9 mm bound and to separate (a) from (b).
+measurement able to constrain the phase-centre coupling on which any
+statement about mat motion depends, and to separate (a) from (b).
 
 **Measured water table.** Rzecin is an instrumented site; an in-situ WTD series
 would transform the H4 test, since its temporal structure differs from that of
@@ -1044,8 +1085,9 @@ temperature.
 
 - **One site, one track, one polarisation** (VV): transferability of the
   predictive model (R²cv = 0.24) to other peatlands remains to be demonstrated.
-- **No in-situ validation** (neither laser nor WTD): the ≤ 3.9 mm bound is
-  internal to the InSAR analysis.
+- **No in-situ validation** (neither laser nor WTD): the constraint on
+  apparent phase-centre displacement is internal to the InSAR analysis, and the
+  coupling between that phase centre and the peat is unmeasured.
 - **S1A-only window** (12-day revisit): a degraded cadence relative to what is
   now available.
 - ***p*-values at the floor** (1/(1 + N)) for several tests; more null draws
@@ -1071,18 +1113,21 @@ vegetation on stable ground. The burden of proof shifts: there is no case for
 seeking a seventh algorithm.
 
 **2. The mat is a distinct radar target.** At matched cover and phenology its
-coherence is significantly lower (Δ = −0.069, *p* = 2.2 × 10⁻⁴⁹, date-jackknife
+coherence is significantly lower (mean Δ = −0.081, lower in 89 % of pairs, date-jackknife
 sign-stable), its boundary is sharp, its scattering is volumetric, its
 closure-phase dispersion is **3.2×** larger — and the drivers of its coherence
 **reverse sign** relative to the adjacent grassland.
 
 **3. The measurable seasonal signal is dielectric, and motion is bounded.**
-Spatial aggregation recovers a seasonal amplitude of **3.29 mm** (*p* = 0.014)
+Spatial aggregation recovers a seasonal amplitude of **3.29 mm** (*p* = 0.038 against a reference-matched null)
 invisible pixel by pixel. But the residual lake — which cannot breathe —
 oscillates identically (2.63 mm, same phase); the mat-minus-lake difference
-cancels (0.90 mm, *p* = 0.45); and the amplitude is one to two orders of
-magnitude too small for flotation. **Seasonal vertical motion of the mat is
-≤ 3.9 mm**, against 10–40 mm published for raised bogs.
+cancels (0.90 mm, *p* = 0.45). Propagating the 95 % interval gives a constraint
+of **≤ 8.7 mm vertical on apparent phase-centre displacement**. Because the
+phase centre is not rigidly coupled to the peat, this does **not** bound mat
+motion: at a coupling fraction of 0.5 it admits 17 mm, within the 10–40 mm
+published for raised bogs. What C-band establishes here is an inability to
+distinguish absence of motion from peatland-scale breathing.
 
 **4. What the sensor tracks is surface wetness.** On deseasonalised anomalies
 the aggregated phase co-varies with Sentinel-2 optical wetness (*r* = 0.42–0.45,
@@ -1096,8 +1141,9 @@ failure of a differential forcing.
 > **What does C-band Sentinel-1 InSAR actually measure over a floating
 > peatland?**
 >
-> Not surface motion, which stays below 4 mm — but the **hydrological state** of
-> that surface, through a **penetration-depth** effect. At C-band the floating
+> Not surface motion — which our phase does not observe, because the scattering
+> centre is not coupled to the peat — but the **hydrological state** of that
+> surface, through a **penetration-depth** effect. At C-band the floating
 > peatland behaves as a **wet scattering volume with a quasi-random phase**,
 > whose phase centre moves with moisture rather than with the substrate.
 
@@ -1122,9 +1168,10 @@ here applies without modification. The return of Sentinel-1 to a 6-day revisit
 will reduce temporal decorrelation but **will not change the wavelength**, on
 which volumetric decorrelation depends.
 
-**In-situ validation** — surface laser and measured water table — remains
-necessary to confirm the 3.9 mm bound and to separate, within the decorrelation
-mechanism, dielectric variability from non-rigid micro-movement.
+**In-situ validation** — surface laser and measured water table — is now the
+only route to constraining the phase-centre coupling on which any statement
+about mat motion depends, and to separating, within the decorrelation mechanism,
+dielectric variability from non-rigid micro-movement.
 
 ---
 
@@ -1159,7 +1206,7 @@ Figure A1 renders the chain graphically. In summary: a near-surface water table
 raises and modulates the dielectric constant of the canopy and surface peat;
 this produces both a **variable penetration depth** and **dominant volume
 scattering** (higher RVI, higher σ⁰); the phase centre therefore becomes unstable
-between passes, coherence falls (Δ = −0.069), and per-pixel inversion fails
+between passes, coherence falls (mean Δ = −0.081), and per-pixel inversion fails
 across six methods. Spatial aggregation divides the noise by √N_eff and reveals a
 3.3 mm seasonal signal, which correlates with moisture anomalies at near-zero lag
 — identifying it as **dielectric rather than mechanical** (the lake oscillates
@@ -1205,7 +1252,7 @@ realisation (the floor depends on the number of pairs).
 refuted**; the signal is carried entirely by the growing season.
 
 *Corroborating evidence*: the freeze test showed the mat gaining **less**
-coherence on freezing (+0.028) than grassland (+0.077) — the mat does not freeze
+coherence on freezing (+0.028) than grassland (+0.078) — the mat does not freeze
 like stable ground.
 
 ### A.4 Atmosphere — excluded by construction
@@ -1230,7 +1277,8 @@ LOS-to-vertical conversion.
 below the ≈ 39° that a nominal mid-swath value would suggest. The LOS-to-vertical
 factor is therefore **1.183**, not 1.29 — a 9 % difference that propagates
 directly into any displacement bound. The bounds of §4.3.7 use the measured
-value (ceiling 3.9 mm, refined bound 2.4 mm). Reading the incidence from the
+value (8.7 mm on the propagated interval; the refined 2.4 mm bound is
+withdrawn, see §4.3.7). Reading the incidence from the
 product metadata rather than assuming it is worth the effort.
 
 ### A.6 Phenology alone — excluded
@@ -1290,9 +1338,10 @@ This is the principal weakness of the refined bound (§4.3.7, level 2). Lake and
 mat float on the same water table: a **common** motion would produce the same
 A − B cancellation as an **absence** of motion.
 
-**What limits the problem.** The robust level-1 ceiling (≤ 3.9 mm, A − C against
-stable ground) does not depend on the lake and already excludes flotation-scale
-motion.
+**What limits the problem.** The level-1 ceiling (A − C against stable ground)
+does not depend on the lake. It does **not**, however, exclude flotation-scale
+motion: propagated to vertical and divided by an unmeasured coupling fraction it
+admits 17 mm at *f* = 0.5, within the published raised-bog range.
 
 **What would resolve it.** In-situ **laser** measurement — a direct, absolute
 observation of mat movement.
@@ -1323,7 +1372,7 @@ discussions:
 
 | | Question | Answer | Sections |
 |---|---|---|---|
-| **Q1** | Can Sentinel-1 measure vertical displacement? | **No**, not reliably; bound ≤ 3.9 mm | §4.1, §4.2, §4.3 |
+| **Q1** | Can Sentinel-1 measure vertical displacement? | **No**; apparent phase-centre displacement ≤ 8.7 mm, mat motion unconstrained | §4.1, §4.2, §4.3 |
 | **Q2** | Can Sentinel-1 inform on seasonal hydrological state? | **Possibly yes**, moderate but measurable | §4.3.4, §4.4 |
 
 Q1 is an **instrumental-limit** result; Q2 is a **capability** result. Conflating

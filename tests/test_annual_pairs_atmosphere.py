@@ -16,8 +16,13 @@ import pytest
 import xarray as xr
 
 from insar_wetlands.annual_pairs import (
-    build_annual_pair_list, deramp, gather_candidate_dates, near_aoi_ring,
-    pick_seasonal_dates, select_optimal_annual_pairs, select_topk_annual_pairs,
+    build_annual_pair_list,
+    deramp,
+    gather_candidate_dates,
+    near_aoi_ring,
+    pick_seasonal_dates,
+    select_optimal_annual_pairs,
+    select_topk_annual_pairs,
     surface_valid_mask,
 )
 from insar_wetlands.atmosphere import pair_delays_mm, zenith_wet_delay_mm

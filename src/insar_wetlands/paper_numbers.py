@@ -85,6 +85,7 @@ SUPERSEDED = {
     "−0.0705": "old date-jackknife minimum, superseded by −0.0842",
     "−0.0652": "old date-jackknife maximum, superseded by −0.0774",
     "23.1 %": "old zone-D usable fraction, superseded by 23.2 %",
+    "+0.077)": "grassland freeze gain truncated instead of rounded; 0.07775 -> 0.078",
 }
 
 
@@ -115,6 +116,35 @@ REGISTRY = [
      {"series": "B−C"}, fixed(2)),
     ("seasonal amplitude A - B", "T07_seasonal_amplitudes.csv", "amplitude_mm",
      {"series": "A−B"}, fixed(2)),
+
+    # --- added 2026-09-05 -------------------------------------------------
+    # Every quantity a referee cross-checks first should be registered.
+    # Registration costs one line and removes an entire class of drift.
+    ("median temporal coherence, mat", "T02_temporal_coherence.csv", "median",
+     {"zone": "A"}, fixed(3)),
+    ("median temporal coherence, grassland", "T02_temporal_coherence.csv",
+     "median", {"zone": "C"}, fixed(3)),
+    ("median temporal coherence, lake", "T02_temporal_coherence.csv", "median",
+     {"zone": "B"}, fixed(3)),
+    ("mat area", "T01_zones.csv", "area_ha", {"zone": "A"}, fixed(2)),
+    ("lake area", "T01_zones.csv", "area_ha", {"zone": "B"}, fixed(2)),
+    ("mat pixel count", "T01_zones.csv", "n_px", {"zone": "A"}, fixed(0)),
+    ("sigma0 VV, mat", "T04_zone_signature.csv", "$\\sigma^0$ VV (dB)",
+     {"zone": "A"}, fixed(2)),
+    ("sigma0 VV, lake", "T04_zone_signature.csv", "$\\sigma^0$ VV (dB)",
+     {"zone": "B"}, fixed(2)),
+    ("median closure, mat", "T08_closure_phase.csv", "median_abs_rad",
+     {"zone": "A"}, fixed(3)),
+    ("median closure, grassland", "T08_closure_phase.csv", "median_abs_rad",
+     {"zone": "C"}, fixed(3)),
+    ("closed triplets", "T08_closure_phase.csv", "n_triplets", {"zone": "A"},
+     fixed(0)),
+    ("wetness correlation on anomalies", "T09_forcings.csv", "ANOMALIES",
+     {"driver": "s2_wetness"}, fixed(3)),
+    ("freeze gain, mat", "T10_hydrology_freeze.csv", "freeze_gain",
+     {"zone": "A"}, fixed(3)),
+    ("freeze gain, grassland", "T10_hydrology_freeze.csv", "freeze_gain",
+     {"zone": "C"}, fixed(3)),
 ]
 
 

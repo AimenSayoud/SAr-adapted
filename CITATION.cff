@@ -1,0 +1,22 @@
+cff-version: 1.2.0
+title: "insar-wetlands — C-band InSAR over the Rzecin floating peatland"
+message: "If you use this software, please cite it using these metadata."
+type: software
+authors:
+  - family-names: Sayoud
+    given-names: Aymen
+repository-code: "https://github.com/AimenSayoud/SAr-adapted"
+abstract: >-
+  Pipeline and analysis for assessing Sentinel-1 C-band interferometry over a
+  floating peatland (Schwingmoor) at Rzecin, Poland. Six inversion estimators,
+  a spatial-aggregation change of observable, and a weak-signal test protocol
+  based on size-matched nulls with empirical p-values.
+keywords:
+  - InSAR
+  - Sentinel-1
+  - peatland
+  - Schwingmoor
+  - phase linking
+  - decorrelation
+license: MIT
+version: 0.1.0
