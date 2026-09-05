@@ -152,8 +152,9 @@ def expected_values(figures_dir: str | Path) -> list[dict]:
     """Resolve every registry entry against the exported CSVs.
 
     Entries whose CSV is absent are returned with ``expected=None`` rather than
-    raising: before the first export there is nothing to check against, and that
-    is a pending state, not a failure."""
+    raising, so one run reports every unresolvable entry instead of stopping at
+    the first. Whether that is a failure is `check_manuscript_numbers`'s
+    decision, not this function's: see `PENDING`."""
     figures_dir = Path(figures_dir)
     out = []
     for name, fname, column, where, fmt in REGISTRY:
@@ -174,6 +175,21 @@ def expected_values(figures_dir: str | Path) -> list[dict]:
 # construction. Including it would make the check vacuous: every registered
 # number would "appear in the manuscript" no matter how stale the prose is.
 GENERATED_SECTIONS = {"09_appendix_data.md"}
+
+# Registry entries allowed to be unresolvable, by name, each with the reason.
+#
+# Why this exists as an explicit list rather than as silence. A registered
+# number whose CSV is missing or whose column was renamed used to be skipped,
+# so `make check` reported success against an empty `figures/` directory: the
+# guard failed *open*, in the one direction a guard must never fail. Renaming a
+# column would have quietly unregistered the number it protected.
+#
+# An entry is unresolvable for exactly two reasons. Either the export has not
+# run yet — a real pending state, and it belongs here with a note saying which
+# phase will produce it — or the CSV moved under the registry's feet, which is
+# the failure this module exists to catch. Only the first is a decision, so
+# only the first is written down.
+PENDING: dict[str, str] = {}
 
 
 def hand_written_text(paper_dir: str | Path) -> str:
@@ -198,6 +214,11 @@ def check_manuscript_numbers(paper_dir: str | Path,
     bad = []
     for item in expected_values(paper_dir / "figures"):
         if item["expected"] is None:
+            if item["name"] in PENDING:
+                continue
+            bad.append({**item,
+                        "expected": f"(unresolvable: {item.get('note', 'no value')})",
+                        "unresolvable": True})
             continue
         if item["expected"] not in haystack:
             bad.append(item)
@@ -217,5 +238,9 @@ def format_report(bad: list[dict]) -> str:
         where = f" where {b['where']}" if b.get("where") else ""
         lines.append(f"  - {b['name']}: expected {b['expected']!r} "
                      f"(from {b['csv']}:{b['column']}{where})")
+    if any(b.get("unresolvable") for b in bad):
+        lines.append("  An unresolvable entry means the CSV moved, not that the "
+                     "number is fine: re-export it, fix the registry, or list "
+                     "it in PENDING with a reason.")
     lines.append("  The exported CSV is the source of truth: update the text.")
     return "\n".join(lines)
