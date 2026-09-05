@@ -375,6 +375,8 @@ phaseK:
   title: Referee response
   notebook: notebooks/05_robustness/phaseK_referee_response.ipynb
   group: robustness
+  # Builds its own context with load_config instead of the bootstrap.
+  exempt: [bootstrap]
   question: Do the referees' objections change any reported number?
   status: current
   inputs: [phaseJ.nulls_300.csv, phaseG.phaseG_aggregate_series.csv]

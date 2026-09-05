@@ -8,6 +8,7 @@ away from the notebooks on disk — the failure that left the README documenting
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import yaml
@@ -174,6 +175,78 @@ def test_the_readme_table_is_grouped_and_still_covers_everything():
         assert f"### {directory}" in table
     for name in phases:
         assert f"`{name}`" in table
+
+
+# --- declared conventions --------------------------------------------------
+
+def _nb(path: Path, *sources: str) -> None:
+    """A minimal notebook containing the given code cells."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps({"cells": [
+        {"cell_type": "code", "source": s} for s in sources]}))
+
+
+def _one(tmp_path, code: str, **fields):
+    spec = {"title": "g", "group": "hypotheses",
+            "notebook": "notebooks/04_hypotheses/g.ipynb", **fields}
+    _nb(tmp_path / spec["notebook"], code)
+    return load_phases(write(tmp_path, {"phaseG": spec}))
+
+
+GOOD = 'ctx = start("phaseG")\nctx.archive(params={}, products={})\n'
+
+
+def test_a_live_phase_without_the_bootstrap_is_caught(tmp_path):
+    ps = _one(tmp_path, 'ctx.archive(params={}, products={})\n')
+    assert any("no `start(...)` bootstrap" in p for p in validate(ps, repo=tmp_path))
+
+
+def test_a_live_phase_that_never_archives_is_caught(tmp_path):
+    ps = _one(tmp_path, 'ctx = start("phaseG")\n')
+    assert any("no `ctx.archive(...)` call" in p for p in validate(ps, repo=tmp_path))
+
+
+def test_a_declared_exemption_excuses_the_bootstrap(tmp_path):
+    """The two real exceptions lived in CLAUDE.md prose, which no check reads."""
+    ps = _one(tmp_path, 'ctx.archive(params={}, products={})\n', exempt=["bootstrap"])
+    assert not [p for p in validate(ps, repo=tmp_path) if "bootstrap" in p]
+
+
+def test_an_unknown_exemption_is_caught(tmp_path):
+    ps = _one(tmp_path, GOOD, exempt=["whatever"])
+    assert any("unknown exemption" in p for p in validate(ps, repo=tmp_path))
+
+
+def test_a_superseded_phase_is_not_asked_to_archive(tmp_path):
+    """It must not be re-run, so it will never do a run to archive."""
+    ps = _one(tmp_path, "print('nothing')\n", status="superseded")
+    problems = validate(ps, repo=tmp_path)
+    assert not [p for p in problems if "archive" in p or "bootstrap" in p]
+
+
+def test_an_unrendered_archive_template_is_caught(tmp_path):
+    """The failure this check was written for. 34 of 38 notebooks ended with an
+    archive call emitted by a generator that left its str.format braces
+    doubled, so `params={{}}` was a set containing a dict. It is valid Python,
+    it raises TypeError only when run, and it meant no run was ever archived
+    despite the convention being adopted everywhere."""
+    ps = _one(tmp_path, 'ctx = start("phaseG")\nctx.archive(params={{}}, products={{}})\n')
+    assert any("unrendered" in p for p in validate(ps, repo=tmp_path))
+
+
+def test_a_correct_notebook_raises_nothing(tmp_path):
+    ps = _one(tmp_path, GOOD)
+    assert validate(ps, repo=tmp_path) == []
+
+
+def test_every_real_archive_call_is_rendered():
+    """Guards the fix across all 38 notebooks, not just the synthetic case."""
+    from insar_wetlands.phases import _archive_cells
+
+    phases = load_phases(REPO / "config" / "phases.yaml")
+    for name, p in phases.items():
+        for cell in _archive_cells(REPO / p.notebook):
+            assert "{{" not in cell and "}}" not in cell, name
 
 
 # --- ordering --------------------------------------------------------------
