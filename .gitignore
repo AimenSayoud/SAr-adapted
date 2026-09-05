@@ -12,3 +12,6 @@ outputs/
 __pycache__/
 *.egg-info/
 .ipynb_checkpoints/
+
+# macOS
+.DS_Store

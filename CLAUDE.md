@@ -32,6 +32,24 @@ exists to prevent recurrence:
 **When you introduce or change a load-bearing number, add it to `REGISTRY` in the same
 change.** One line, permanent protection.
 
+## Archiving a run
+
+Every phase execution ends with one line, so the run survives the Colab session:
+
+```python
+from insar_wetlands.run_archive import archive_run
+archive_run("phaseG", outdir, params=PARAMS, products=PRODUCTS)
+```
+
+It writes `<Drive>/runs/<phase>/<UTC timestamp>_<git sha>/manifest.json` recording the
+commit, whether the tree was dirty, package versions, parameters and products. Runs are
+never overwritten. Heavy files (`.nc`, `.tif`, `.h5`) are recorded by path, size and hash
+rather than copied. `compare_runs("phaseG")` says what changed between the last two runs —
+code, environment or parameters.
+
+**Any new or re-run phase must call it.** A result whose environment was not captured
+cannot be defended later.
+
 ## Files you must not edit by hand
 
 | File | Why |

@@ -7,12 +7,48 @@ name = "insar-wetlands"
 version = "0.1.0"
 description = "Pipeline InSAR (SBAS/ISBAS) pour la tourbiere de Rzecin"
 requires-python = ">=3.10"
+# Declared from the imports actually present in src/ (19 third-party packages
+# were in use; 4 were declared). Split into groups so an analysis-only install
+# does not drag in the acquisition SDKs, which need credentials.
 dependencies = [
-    "numpy",
-    "pandas",
-    "pyyaml",
-    "shapely",
+    "numpy>=1.24",
+    "pandas>=2.0",
+    "pyyaml>=6.0",
+    "shapely>=2.0",
+    "xarray>=2023.1",
+    "scipy>=1.10",
+    "scikit-learn>=1.3",
+    "matplotlib>=3.7",
+    "h5py>=3.8",
+    "rioxarray>=0.15",
+    "rasterio>=1.3",
+    "pyproj>=3.5",
+    "requests>=2.31",
+    "python-docx>=1.1",
 ]
+
+[project.optional-dependencies]
+# Only needed to fetch new data. Requires Earthdata / CDS credentials.
+acquisition = [
+    "asf-search>=6.7",
+    "hyp3-sdk>=6.1",
+    "cdsapi>=0.6",
+    "pystac-client>=0.7",
+    "planetary-computer>=1.0",
+]
+dev = ["pytest>=7", "ruff>=0.1"]
+all = ["insar-wetlands[acquisition,dev]"]
+
+# NOTE: `google.colab` is imported for the Drive mount but is provided by the
+# Colab runtime and must never be declared here — it is not installable.
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
