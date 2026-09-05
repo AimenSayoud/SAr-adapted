@@ -14,7 +14,7 @@ make readme     # regenerate the README phase table from phases.yaml
 make docx       # check + regenerate Appendix B + assemble + pandoc
 ```
 
-Heavy processing runs in Colab (`notebooks/phaseXX_*.ipynb`), reading data from the
+Heavy processing runs in Colab (`notebooks/<group>/phaseXX_*.ipynb`), reading data from the
 Drive-mounted `insar_rzecin/`. The user's Mac has 2 cores and 8 GB: never propose running
 MintPy, phase linking or null realisations locally.
 

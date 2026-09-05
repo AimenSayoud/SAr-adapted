@@ -154,7 +154,7 @@ def build_data_appendix(figures_dir: str | Path, out_md: str | Path,
     figures_dir, out_md = Path(figures_dir), Path(out_md)
     csvs = sorted(figures_dir.glob("T*.csv"))
     parts = [heading, "",
-             "Tables exported by `notebooks/export_figures_en.ipynb`. Each is "
+             "Tables exported by `notebooks/06_manuscript/export_figures_en.ipynb`. Each is "
              "reproduced here and shipped as CSV alongside the figures.", ""]
     for c in csvs:
         title = TABLE_TITLES.get(c.stem, c.stem.replace("_", " "))

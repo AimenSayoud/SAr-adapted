@@ -23,8 +23,8 @@ the detailed laboratory record; **this folder is the submission draft**.
 ## Build
 
 ```
-notebooks/export_figures_en.ipynb     →  docs/paper/figures/*.png, T*.csv
-notebooks/build_manuscript_docx.ipynb →  docs/paper/manuscript.docx
+notebooks/06_manuscript/export_figures_en.ipynb     →  docs/paper/figures/*.png, T*.csv
+notebooks/06_manuscript/build_manuscript_docx.ipynb →  docs/paper/manuscript.docx
 ```
 
 The export notebook writes **17 main figures, 6 supplementary figures and 10
