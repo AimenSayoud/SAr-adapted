@@ -22,6 +22,7 @@ confusing failure three phases later.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -42,6 +43,16 @@ STATUSES = {"current", "superseded", "exploratory", "tooling"}
 # filesystem cannot disagree: `validate` checks that every notebook actually
 # lives in its group's directory. The numeric prefixes give reading order to a
 # listing that was otherwise 38 files in no order at all.
+# Conventions a phase may be excused from, with the reason declared in
+# phases.yaml rather than in prose. CLAUDE.md used to carry the two bootstrap
+# exceptions as a sentence, which is a fact no check can read.
+EXEMPTIONS = {"bootstrap", "archive"}
+
+# Phases that must observe the conventions. A superseded phase must not be
+# re-run, so it is not required to archive a run it will never do; tooling
+# re-exports what other phases already declared and archived.
+MUST_OBSERVE = {"current", "exploratory"}
+
 GROUPS = {
     "data":        "01_data",
     "inversion":   "02_inversion",
@@ -66,6 +77,7 @@ class Phase:
     question: str = "-"
     status: str = "current"
     supersedes: list[str] = field(default_factory=list)
+    exempt: list[str] = field(default_factory=list)
     inputs: list[str] = field(default_factory=list)
     outputs: list[str] = field(default_factory=list)
     paper: str = "-"
@@ -139,6 +151,14 @@ def validate(phases: dict[str, Phase], repo: str | Path | None = None) -> list[s
                     f"{name} is {p.status} but depends on {dep}, which is "
                     f"{phases[dep].status} — a live phase must not read from a dead one")
 
+        for e in p.exempt:
+            if e not in EXEMPTIONS:
+                problems.append(f"{name}: unknown exemption {e!r} "
+                                f"(expected one of {sorted(EXEMPTIONS)})")
+
+        if repo:
+            problems.extend(_convention_problems(name, p, repo))
+
         for s in p.supersedes:
             if s not in phases:
                 problems.append(f"{name}: supersedes unknown phase {s!r}")
@@ -157,6 +177,80 @@ def validate(phases: dict[str, Phase], repo: str | Path | None = None) -> list[s
 
     problems.extend(f"dependency cycle: {' -> '.join(c)}" for c in find_cycles(phases))
     return problems
+
+
+def notebook_code(path: str | Path) -> str:
+    """Every code cell of a notebook, concatenated.
+
+    Read as JSON rather than with nbformat: the conventions below are checked
+    on every `make phases`, and a dependency is not worth one string search."""
+    import json
+
+    cells = json.loads(Path(path).read_text(encoding="utf-8")).get("cells", [])
+    out = []
+    for c in cells:
+        if c.get("cell_type") != "code":
+            continue
+        src = c.get("source", "")
+        out.append(src if isinstance(src, str) else "".join(src))
+    return "\n".join(out)
+
+
+def _convention_problems(name: str, p: Phase, repo: Path) -> list[str]:
+    """The conventions CLAUDE.md declares, checked rather than remembered.
+
+    Both of these were declared and unenforced, and both had decayed. Every
+    phase opened with the bootstrap, and 34 of 38 ended with the archive call —
+    but every one of those 34 archive cells was emitted by a generator that left
+    its `str.format` braces doubled, so `params={{}}` was a set containing a
+    dict and the call raised TypeError before it wrote anything. The convention
+    was universally adopted and had never once run."""
+    path = repo / p.notebook
+    if not path.exists():
+        return []                      # already reported as a missing notebook
+    try:
+        code = notebook_code(path)
+    except (ValueError, OSError) as e:
+        return [f"{name}: notebook is unreadable — {e}"]
+
+    problems = []
+    archives = re.search(r"\bctx\.archive\(|\barchive_run\(", code)
+
+    if p.status in MUST_OBSERVE:
+        if "bootstrap" not in p.exempt and not re.search(r"\bstart\(['\"]", code):
+            problems.append(
+                f"{name}: no `start(...)` bootstrap — rebuild the preamble with "
+                f"insar_wetlands.bootstrap, or declare `exempt: [bootstrap]`")
+        if "archive" not in p.exempt and not archives:
+            problems.append(
+                f"{name}: no `ctx.archive(...)` call — a result whose "
+                f"environment was not captured cannot be defended later")
+
+    # An archive cell that still carries doubled braces is a template that was
+    # never rendered. It is valid Python and fails only at run time, which is
+    # how it survived in 34 notebooks.
+    for cell in _archive_cells(path):
+        if "{{" in cell or "}}" in cell:
+            problems.append(
+                f"{name}: archive call contains an unrendered `{{{{...}}}}` "
+                f"template — `params={{{{}}}}` is a set containing a dict and "
+                f"raises TypeError, so the run is never archived")
+            break
+    return problems
+
+
+def _archive_cells(path: Path) -> list[str]:
+    import json
+
+    out = []
+    for c in json.loads(Path(path).read_text(encoding="utf-8")).get("cells", []):
+        if c.get("cell_type") != "code":
+            continue
+        src = c.get("source", "")
+        src = src if isinstance(src, str) else "".join(src)
+        if "ctx.archive(" in src or "archive_run(" in src:
+            out.append(src)
+    return out
 
 
 def find_cycles(phases: dict[str, Phase]) -> list[list[str]]:
