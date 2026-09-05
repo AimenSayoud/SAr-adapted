@@ -30,6 +30,10 @@ exists to prevent recurrence:
 - `REGISTRY` maps each load-bearing number to its CSV, column and format.
 - `SUPERSEDED` lists dead values (e.g. `−0.069`) that must never reappear.
 - `make check` fails if a registered number is absent or a superseded one is present.
+- The guard **fails closed**: an entry whose CSV or column cannot be resolved is
+  an error, not a skip. A genuinely pending export goes in `PENDING` with a
+  reason. Before this, `make check` passed against an empty `figures/`, so
+  renaming a column silently unregistered the number it protected.
 
 **When you introduce or change a load-bearing number, add it to `REGISTRY` in the same
 change.** One line, permanent protection.
