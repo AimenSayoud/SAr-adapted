@@ -419,6 +419,45 @@ def test_seasonal_amplitude_recovers_known_cycle():
     assert abs(float(amp.isel(y=0, x=0)) - 14.0) < 0.5
 
 
+def test_ols_velocity_is_biased_by_a_pure_seasonal_cycle():
+    """The fact behind the fix, pinned so it cannot be forgotten.
+
+    Regressing a velocity on a periodic signal does NOT return ~0. The OLS
+    slope depends on the PHASE of the cycle within the observation window:
+    over two whole periods of a zero-trend sinusoid it is -0.477 per unit
+    amplitude per year, and zero only in cosine phase. A 7 mm cycle therefore
+    yields -3.3 mm/yr of entirely fictitious subsidence."""
+    from insar_wetlands.compare import fit_velocity
+
+    t = np.linspace(0.0, 2.0, 2001)                 # exactly two periods
+    for phase, expected in [(0.0, -0.477), (np.pi / 2, 0.0)]:
+        y = np.sin(2 * np.pi * t + phase)
+        assert abs(np.polyfit(t, y, 1)[0] - expected) < 0.01, phase
+
+    # and the same through fit_velocity, on a zero-trend 7 mm cycle
+    dates = pd.date_range("2021-01-01", "2022-12-31", freq="15D")
+    ty = ((dates - dates[0]) / pd.Timedelta("365.25D")).values
+    da = xr.DataArray((7.0 * np.sin(2 * np.pi * ty))[:, None, None],
+                      dims=("time", "y", "x"),
+                      coords={"time": dates, "y": [0.0], "x": [0.0]})
+    assert float(fit_velocity(da).velocity_mm_yr.isel(y=0, x=0)) < -3.0
+
+
+def test_annual_trend_is_not_contaminated_by_the_cycle():
+    """The joint fit recovers the true trend whatever the seasonal amplitude."""
+    from insar_wetlands.products import annual_trend
+
+    dates = pd.date_range("2021-01-01", "2023-12-31", freq="12D")
+    t = ((dates - dates[0]) / pd.Timedelta("365.25D")).values
+    for true_trend in (0.0, -5.0, 3.5):
+        for amp in (0.0, 7.0, 20.0):
+            y = true_trend * t + amp * np.sin(2 * np.pi * t)
+            da = xr.DataArray(y[:, None, None], dims=("time", "y", "x"),
+                              coords={"time": dates, "y": [0.0], "x": [0.0]})
+            got = float(annual_trend(da).isel(y=0, x=0))
+            assert abs(got - true_trend) < 0.05, (true_trend, amp, got)
+
+
 def test_decorrelation_summary_aggregates_seasons():
     """decorrelation_summary computes median coherence and fraction usable per season."""
     df = pd.DataFrame([
