@@ -190,6 +190,7 @@ def plot_zone_distributions(field: xr.DataArray, zones: dict, ax=None,
     """Vue 3 — distributions par zone (preuve STATISTIQUE de la séparation).
 
     Une carte peut tromper l'œil ; des distributions séparées, non."""
+    import matplotlib
     import matplotlib.pyplot as plt
 
     if ax is None:
@@ -202,7 +203,12 @@ def plot_zone_distributions(field: xr.DataArray, zones: dict, ax=None,
         v = v[np.isfinite(v)]
         if v.size:
             data.append(v); labels.append(z); colors.append(ZONE_COLORS[z])
-    bp = ax.boxplot(data, labels=labels, patch_artist=True, showfliers=False)
+    # matplotlib 3.9 renamed boxplot's `labels` kwarg to `tick_labels` and
+    # removed the old name in 3.11; pyproject only pins `matplotlib>=3.7`, so
+    # both spellings can turn up on a fresh install. Pick by version rather
+    # than swapping the name outright.
+    label_kw = "tick_labels" if tuple(matplotlib.__version_info__) >= (3, 9) else "labels"
+    bp = ax.boxplot(data, patch_artist=True, showfliers=False, **{label_kw: labels})
     for patch, c in zip(bp["boxes"], colors):
         patch.set_facecolor(c); patch.set_alpha(.6)
     ax.set_ylabel(xlabel); ax.set_title(title); ax.grid(alpha=.3, axis="y")
