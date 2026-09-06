@@ -332,6 +332,36 @@ def test_polish_tables_is_a_noop_without_tables():
         assert rep == {"n_tables": 0, "widths_fixed": 0, "headers_fixed": 0}
 
 
+def test_generated_manuscript_and_appendix_match_source():
+    """Assert that regenerating the appendix and assembling the manuscript
+    is a no-op against the tracked docs/paper/ files (drift protection)."""
+    repo = Path(__file__).resolve().parents[1]
+    paper = repo / "docs" / "paper"
+    figs = paper / "figures"
+    if not (figs.exists() and list(figs.glob("T*.csv"))):
+        return
+
+    app_file = paper / "09_appendix_data.md"
+    if app_file.exists():
+        with tempfile.TemporaryDirectory() as d:
+            tmp_app = Path(d) / "09_appendix_data.md"
+            build_data_appendix(figs, tmp_app)
+            assert tmp_app.read_text() == app_file.read_text(), (
+                "docs/paper/09_appendix_data.md has drifted from figures/T*.csv; "
+                "run 'make appendix' to update."
+            )
+
+    ms_file = paper / "_manuscript.md"
+    if ms_file.exists():
+        with tempfile.TemporaryDirectory() as d:
+            tmp_ms = Path(d) / "_manuscript.md"
+            assemble_markdown(paper, tmp_ms)
+            assert tmp_ms.read_text() == ms_file.read_text(), (
+                "docs/paper/_manuscript.md has drifted from section files; "
+                "run 'make assemble' to update."
+            )
+
+
 if __name__ == "__main__":
     test_sections_are_ordered_by_manuscript_not_filesystem()
     test_assembly_keeps_order_and_reports_missing_images()

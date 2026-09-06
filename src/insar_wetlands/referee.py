@@ -912,3 +912,24 @@ def matched_null_pairs(unw: xr.DataArray, corr: xr.DataArray, zones: dict,
                      f"patch sizes scaled by {scale:.2f} to fit the pool; "
                      "the null is therefore conservative (wider)")
     return out
+
+
+VERDICTS: list[tuple[str, str]] = []
+
+
+def verdict(tag: str, text: str, storage: list[tuple[str, str]] | None = None) -> None:
+    """Record one paste-ready line for the response letter."""
+    target = VERDICTS if storage is None else storage
+    target.append((tag, text))
+    print(f"\n[{tag}] {text}\n")
+
+
+def clear_verdicts() -> None:
+    """Clear recorded verdicts."""
+    VERDICTS.clear()
+
+
+def get_verdicts() -> list[tuple[str, str]]:
+    """Return a copy of the recorded verdicts."""
+    return list(VERDICTS)
+

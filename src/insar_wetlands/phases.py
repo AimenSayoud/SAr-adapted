@@ -22,12 +22,45 @@ confusing failure three phases later.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
 import yaml
 
 STATUSES = {"current", "superseded", "exploratory", "tooling"}
+
+# Groups answer "what question is this phase part of", which is the axis the
+# filenames never carried: two naming schemes grew side by side (phase01..15 by
+# chronology, phaseA..L by hypothesis) and neither says that phaseE2 is the
+# decisive H1 test while phase08 and phase09 are the inversions it supersedes.
+#
+# A group is orthogonal to `status`: phaseC1 is exploratory but belongs with the
+# inversions, and phaseC2 is superseded but is filed next to the phaseE2 that
+# replaced it — which is where a reader looks for it.
+#
+# The value is also the directory under `notebooks/`, so the declaration and the
+# filesystem cannot disagree: `validate` checks that every notebook actually
+# lives in its group's directory. The numeric prefixes give reading order to a
+# listing that was otherwise 38 files in no order at all.
+# Conventions a phase may be excused from, with the reason declared in
+# phases.yaml rather than in prose. CLAUDE.md used to carry the two bootstrap
+# exceptions as a sentence, which is a fact no check can read.
+EXEMPTIONS = {"bootstrap", "archive"}
+
+# Phases that must observe the conventions. A superseded phase must not be
+# re-run, so it is not required to archive a run it will never do; tooling
+# re-exports what other phases already declared and archived.
+MUST_OBSERVE = {"current", "exploratory"}
+
+GROUPS = {
+    "data":        "01_data",
+    "inversion":   "02_inversion",
+    "corrections": "03_corrections",
+    "hypotheses":  "04_hypotheses",
+    "robustness":  "05_robustness",
+    "manuscript":  "06_manuscript",
+}
 
 
 @dataclass(frozen=True)
@@ -37,9 +70,14 @@ class Phase:
     name: str
     title: str
     notebook: str
+    # Defaulted rather than required so the synthetic graphs in the tests stay
+    # readable; `validate` reports an entry that omits it, which is what keeps
+    # the real declaration honest.
+    group: str = ""
     question: str = "-"
     status: str = "current"
     supersedes: list[str] = field(default_factory=list)
+    exempt: list[str] = field(default_factory=list)
     inputs: list[str] = field(default_factory=list)
     outputs: list[str] = field(default_factory=list)
     paper: str = "-"
@@ -89,6 +127,22 @@ def validate(phases: dict[str, Phase], repo: str | Path | None = None) -> list[s
         if repo and not (repo / p.notebook).exists():
             problems.append(f"{name}: notebook not found — {p.notebook}")
 
+        # The group and the directory are two statements of the same fact, so a
+        # notebook filed in the wrong place is a declaration error, not a
+        # cosmetic one: it is how the flat layout would grow back.
+        if not p.group:
+            problems.append(f"{name}: no group declared "
+                            f"(expected one of {sorted(GROUPS)})")
+        elif p.group not in GROUPS:
+            problems.append(f"{name}: unknown group {p.group!r} "
+                            f"(expected one of {sorted(GROUPS)})")
+        else:
+            want = f"notebooks/{GROUPS[p.group]}"
+            if str(Path(p.notebook).parent) != want:
+                problems.append(
+                    f"{name}: group {p.group!r} means the notebook belongs in "
+                    f"{want}/, but it is declared at {p.notebook}")
+
         for dep in p.upstream():
             if dep not in phases:
                 problems.append(f"{name}: input refers to unknown phase {dep!r}")
@@ -96,6 +150,14 @@ def validate(phases: dict[str, Phase], repo: str | Path | None = None) -> list[s
                 problems.append(
                     f"{name} is {p.status} but depends on {dep}, which is "
                     f"{phases[dep].status} — a live phase must not read from a dead one")
+
+        for e in p.exempt:
+            if e not in EXEMPTIONS:
+                problems.append(f"{name}: unknown exemption {e!r} "
+                                f"(expected one of {sorted(EXEMPTIONS)})")
+
+        if repo:
+            problems.extend(_convention_problems(name, p, repo))
 
         for s in p.supersedes:
             if s not in phases:
@@ -108,13 +170,87 @@ def validate(phases: dict[str, Phase], repo: str | Path | None = None) -> list[s
     # A notebook on disk that nobody declared is how the README fell behind.
     if repo:
         declared = {p.notebook for p in phases.values()}
-        for nb in sorted((repo / "notebooks").glob("*.ipynb")):
+        for nb in sorted((repo / "notebooks").glob("**/*.ipynb")):
             rel = str(nb.relative_to(repo))
             if rel not in declared:
                 problems.append(f"undeclared notebook: {rel}")
 
     problems.extend(f"dependency cycle: {' -> '.join(c)}" for c in find_cycles(phases))
     return problems
+
+
+def notebook_code(path: str | Path) -> str:
+    """Every code cell of a notebook, concatenated.
+
+    Read as JSON rather than with nbformat: the conventions below are checked
+    on every `make phases`, and a dependency is not worth one string search."""
+    import json
+
+    cells = json.loads(Path(path).read_text(encoding="utf-8")).get("cells", [])
+    out = []
+    for c in cells:
+        if c.get("cell_type") != "code":
+            continue
+        src = c.get("source", "")
+        out.append(src if isinstance(src, str) else "".join(src))
+    return "\n".join(out)
+
+
+def _convention_problems(name: str, p: Phase, repo: Path) -> list[str]:
+    """The conventions CLAUDE.md declares, checked rather than remembered.
+
+    Both of these were declared and unenforced, and both had decayed. Every
+    phase opened with the bootstrap, and 34 of 38 ended with the archive call —
+    but every one of those 34 archive cells was emitted by a generator that left
+    its `str.format` braces doubled, so `params={{}}` was a set containing a
+    dict and the call raised TypeError before it wrote anything. The convention
+    was universally adopted and had never once run."""
+    path = repo / p.notebook
+    if not path.exists():
+        return []                      # already reported as a missing notebook
+    try:
+        code = notebook_code(path)
+    except (ValueError, OSError) as e:
+        return [f"{name}: notebook is unreadable — {e}"]
+
+    problems = []
+    archives = re.search(r"\bctx\.archive\(|\barchive_run\(", code)
+
+    if p.status in MUST_OBSERVE:
+        if "bootstrap" not in p.exempt and not re.search(r"\bstart\(['\"]", code):
+            problems.append(
+                f"{name}: no `start(...)` bootstrap — rebuild the preamble with "
+                f"insar_wetlands.bootstrap, or declare `exempt: [bootstrap]`")
+        if "archive" not in p.exempt and not archives:
+            problems.append(
+                f"{name}: no `ctx.archive(...)` call — a result whose "
+                f"environment was not captured cannot be defended later")
+
+    # An archive cell that still carries doubled braces is a template that was
+    # never rendered. It is valid Python and fails only at run time, which is
+    # how it survived in 34 notebooks.
+    for cell in _archive_cells(path):
+        if "{{" in cell or "}}" in cell:
+            problems.append(
+                f"{name}: archive call contains an unrendered `{{{{...}}}}` "
+                f"template — `params={{{{}}}}` is a set containing a dict and "
+                f"raises TypeError, so the run is never archived")
+            break
+    return problems
+
+
+def _archive_cells(path: Path) -> list[str]:
+    import json
+
+    out = []
+    for c in json.loads(Path(path).read_text(encoding="utf-8")).get("cells", []):
+        if c.get("cell_type") != "code":
+            continue
+        src = c.get("source", "")
+        src = src if isinstance(src, str) else "".join(src)
+        if "ctx.archive(" in src or "archive_run(" in src:
+            out.append(src)
+    return out
 
 
 def find_cycles(phases: dict[str, Phase]) -> list[list[str]]:
@@ -182,21 +318,53 @@ def missing_inputs(phase: Phase, phases: dict[str, Phase],
     return missing
 
 
+GROUP_TITLES = {
+    "data":        "Data preparation — acquisition, network, masks, products",
+    "inversion":   "Inversion — every attempt to recover per-pixel displacement (H1)",
+    "corrections": "Corrections — atmosphere and viewing geometry",
+    "hypotheses":  "Hypothesis tests — zone contrast, aggregation, hydrology (H2–H4)",
+    "robustness":  "Robustness — falsification, external controls, referee rounds",
+    "manuscript":  "Manuscript — figures, tables and the assembled document",
+}
+
+
 def readme_table(phases: dict[str, Phase]) -> str:
     """The phase table, generated. Replaces the hand-written one that
-    documented 14 of 38."""
-    rows = ["| Phase | Question | Status | Paper |",
-            "|---|---|---|---|"]
+    documented 14 of 38.
+
+    One sub-table per group. A single 38-row table was sorted by dependency,
+    which is the right order to *run* the pipeline and the wrong one to read it:
+    it interleaved the H1 inversions with the data preparation and left no way
+    to see that phaseD, phaseG and phaseI are one argument."""
     marks = {"current": "✅", "superseded": "⛔ superseded",
              "exploratory": "🔍 exploratory", "tooling": "🔧 tooling"}
-    for name in execution_order(phases, live_only=False):
-        p = phases[name]
-        nb = Path(p.notebook).name
-        q = p.question if p.question != "-" else "—"
-        rows.append(f"| [`{name}`]({p.notebook}) — {p.title} | {q} | "
-                    f"{marks.get(p.status, p.status)} | {p.paper} |")
-        del nb
-    return "\n".join(rows)
+    order = execution_order(phases, live_only=False)
+    out: list[str] = []
+    for group, heading in GROUP_TITLES.items():
+        members = [n for n in order if phases[n].group == group]
+        if not members:
+            continue
+        out += [f"### {GROUPS[group]} — {heading}", "",
+                "| Phase | Question | Status | Paper |", "|---|---|---|---|"]
+        for name in members:
+            ph = phases[name]
+            q = ph.question if ph.question != "-" else "—"
+            out.append(f"| [`{name}`]({ph.notebook}) — {ph.title} | {q} | "
+                       f"{marks.get(ph.status, ph.status)} | {ph.paper} |")
+        out.append("")
+    # A phase whose group is unknown would otherwise vanish from the table
+    # silently; `validate` reports it, and it still gets listed here.
+    rest = [n for n in order if phases[n].group not in GROUP_TITLES]
+    if rest:
+        out += ["### Ungrouped", "",
+                "| Phase | Question | Status | Paper |", "|---|---|---|---|"]
+        for name in rest:
+            ph = phases[name]
+            q = ph.question if ph.question != "-" else "—"
+            out.append(f"| [`{name}`]({ph.notebook}) — {ph.title} | {q} | "
+                       f"{marks.get(ph.status, ph.status)} | {ph.paper} |")
+        out.append("")
+    return "\n".join(out).rstrip()
 
 
 def summary(phases: dict[str, Phase]) -> dict:

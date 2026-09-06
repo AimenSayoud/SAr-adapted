@@ -67,8 +67,14 @@ assumption is stated explicitly and is testable by subdividing the zone.
    so atmosphere and orbit cancel and differential motion remains.
 3. **Seasonal amplitude**: fit of *y* = c + d·t + a·cos(2πt) + b·sin(2πt), with
    amplitude √(a² + b²). **This is the correct observable**: bog breathing is
-   seasonal, not a drift, and regressing a *velocity* on a periodic signal
-   returns ≈ 0 by construction.
+   seasonal, not a drift. A *velocity* regressed on a periodic signal does not
+   return zero. For a cycle of amplitude *A* observed over *N* whole annual
+   periods, the ordinary-least-squares slope is −(6/π*N*²)·*A*·cos φ, with φ the
+   phase of the cycle at the start of the window: it vanishes only when the
+   window opens at an extremum, and otherwise reports **window placement**
+   rather than a physical rate. Trend and harmonic are therefore estimated
+   **jointly** above; fitting them in sequence lets the line absorb part of the
+   cycle and biases both.
 
 
 ![**Figure S3.** Synthetic validation. On identical simulated data, per-pixel inversion returns −13.7 mm yr⁻¹ (36 % usable pixels) whereas aggregation returns −19.8 mm yr⁻¹ against a ground truth of −20.](figures/S03_synthetic_validation.png)

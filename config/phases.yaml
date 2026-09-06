@@ -15,6 +15,10 @@
 # Fields
 #   title       one line, English
 #   notebook    path, relative to the repo root
+#   group       which question domain the phase belongs to; also the directory
+#               under notebooks/. Orthogonal to status: phaseC1 is exploratory
+#               but sits with the inversions, and phaseC2 is superseded but sits
+#               next to the phaseE2 that replaced it.
 #   question    the falsifiable question the phase answers
 #   status      current | superseded | exploratory | tooling
 #   supersedes  phases this one replaces (the b / bis / ter relationships)
@@ -25,11 +29,15 @@
 # Rules
 #   * A phase with status: superseded is kept for provenance and must not be re-run.
 #   * Adding a phase means adding an entry here, not inventing a new convention.
+#   * A notebook lives in its group's directory; `make phases` fails if the
+#     declaration and the filesystem disagree, which is how the flat layout of
+#     38 files in no order would otherwise grow back.
 #   * `make phases` validates this file and reports any phase whose inputs are missing.
 
 phase01:
   title: Multi-source acquisition inventory
-  notebook: notebooks/phase01_acquisition.ipynb
+  notebook: notebooks/01_data/phase01_acquisition.ipynb
+  group: data
   question: What Sentinel-1, Sentinel-2 and ERA5 data exist over the AOI and period?
   status: current
   inputs: []
@@ -38,7 +46,8 @@ phase01:
 
 phase01b:
   title: Pair selection — the paper's method, improved
-  notebook: notebooks/phase01b_selection.ipynb
+  notebook: notebooks/01_data/phase01b_selection.ipynb
+  group: data
   question: Which interferometric pairs should the network contain?
   status: current
   inputs: [phase01.s1_inventory.csv]
@@ -47,7 +56,8 @@ phase01b:
 
 phase02:
   title: HyP3 burst interferograms — SBAS network
-  notebook: notebooks/phase02_hyp3_jobs.ipynb
+  notebook: notebooks/01_data/phase02_hyp3_jobs.ipynb
+  group: data
   question: Can the planned network be produced as burst interferograms in the cloud?
   status: current
   inputs: [phase01b.sbas_pairs_planned.csv]
@@ -56,7 +66,8 @@ phase02:
 
 phase02b:
   title: HyP3 submission and download
-  notebook: notebooks/phase02b_hyp3.ipynb
+  notebook: notebooks/01_data/phase02b_hyp3.ipynb
+  group: data
   question: Same, for the alternative pair set.
   status: current
   inputs: [phase01b.pair_selection.csv]
@@ -65,7 +76,8 @@ phase02b:
 
 phase03:
   title: Network quality control and topology
-  notebook: notebooks/phase03_network_qc.ipynb
+  notebook: notebooks/01_data/phase03_network_qc.ipynb
+  group: data
   question: Is C-band coherence over the mat sufficient to proceed at all?
   status: current
   inputs: [phase02.hyp3_cropped]
@@ -74,7 +86,8 @@ phase03:
 
 phase03b:
   title: Per-pair vertical rate, deramp and quality control
-  notebook: notebooks/phase03b_pair_rates.ipynb
+  notebook: notebooks/01_data/phase03b_pair_rates.ipynb
+  group: data
   question: What vertical rate does each pair imply on its own?
   status: current
   inputs: [phase02b.hyp3_cropped]
@@ -83,7 +96,8 @@ phase03b:
 
 phase04:
   title: Sentinel-2 fusion onto the HyP3 UTM grid
-  notebook: notebooks/phase04_s2_fusion.ipynb
+  notebook: notebooks/01_data/phase04_s2_fusion.ipynb
+  group: data
   question: How do the optical observations align with the radar grid?
   status: current
   inputs: [phase02.hyp3_cropped]
@@ -92,7 +106,8 @@ phase04:
 
 phase04b:
   title: Ensemble, uncertainty and final products
-  notebook: notebooks/phase04b_products.ipynb
+  notebook: notebooks/01_data/phase04b_products.ipynb
+  group: data
   question: What is the per-pixel uncertainty of the pairwise rates?
   status: current
   inputs: [phase03b.pair_rates_b.pkl]
@@ -101,7 +116,8 @@ phase04b:
 
 phase05:
   title: Dynamic water mask
-  notebook: notebooks/phase05_water_mask.ipynb
+  notebook: notebooks/01_data/phase05_water_mask.ipynb
+  group: data
   question: Which pixels are inundated, and how often?
   status: current
   inputs: [phase04.s2_stack.nc, rtc_stack.nc]
@@ -110,7 +126,8 @@ phase05:
 
 phase06:
   title: Spatio-temporal classification, 5 classes
-  notebook: notebooks/phase06_classification.ipynb
+  notebook: notebooks/01_data/phase06_classification.ipynb
+  group: data
   question: Do the pixels fall into distinct behavioural classes?
   status: current
   inputs: [phase05.water_mask.nc]
@@ -119,7 +136,8 @@ phase06:
 
 phase07:
   title: Quality index W_i
-  notebook: notebooks/phase07_quality_index.ipynb
+  notebook: notebooks/01_data/phase07_quality_index.ipynb
+  group: data
   question: Can coherence and non-water fraction be combined into one weight?
   status: current
   inputs: [phase05.water_mask.nc]
@@ -128,7 +146,8 @@ phase07:
 
 phase08:
   title: SBAS inversion (MintPy)
-  notebook: notebooks/phase08_sbas_mintpy.ipynb
+  notebook: notebooks/02_inversion/phase08_sbas_mintpy.ipynb
+  group: inversion
   question: Does a standard small-baseline inversion recover displacement?
   status: current
   inputs: [phase02.hyp3_cropped, phase07.quality_index.nc]
@@ -137,7 +156,8 @@ phase08:
 
 phase09:
   title: ISBAS inversion, with closure control
-  notebook: notebooks/phase09_isbas.ipynb
+  notebook: notebooks/02_inversion/phase09_isbas.ipynb
+  group: inversion
   question: Does tolerating intermittent pixels rescue the inversion?
   status: current
   inputs: [phase02.hyp3_cropped, phase07.quality_index.nc]
@@ -146,7 +166,8 @@ phase09:
 
 phase10:
   title: SBAS versus ISBAS, quantitative
-  notebook: notebooks/phase10_comparison.ipynb
+  notebook: notebooks/02_inversion/phase10_comparison.ipynb
+  group: inversion
   question: Do the two inversions disagree anywhere that matters?
   status: current
   inputs: [phase08.ts_sbas_ref_only.nc, phase09.ts_isbas_ref_only.nc]
@@ -155,7 +176,8 @@ phase10:
 
 phase11:
   title: Comparative atmospheric correction — double-blind test
-  notebook: notebooks/phase11_atmosphere.ipynb
+  notebook: notebooks/03_corrections/phase11_atmosphere.ipynb
+  group: corrections
   question: Does ERA5 correction beat a local reference zone?
   status: current
   inputs: [era5_rzecin.nc, phase08.ts_sbas_ref_only.nc]
@@ -164,7 +186,8 @@ phase11:
 
 phase12:
   title: LOS to vertical decomposition
-  notebook: notebooks/phase12_los_vertical.ipynb
+  notebook: notebooks/03_corrections/phase12_los_vertical.ipynb
+  group: corrections
   question: What is the measured incidence angle, and the conversion factor?
   status: current
   inputs: [phase02.hyp3_cropped]
@@ -173,7 +196,8 @@ phase12:
 
 phase13:
   title: Hydrological analysis and dielectric separation
-  notebook: notebooks/phase13_hydrology.ipynb
+  notebook: notebooks/04_hypotheses/phase13_hydrology.ipynb
+  group: hypotheses
   question: Does the signal track water rather than motion?
   status: superseded
   supersedes: []
@@ -183,7 +207,8 @@ phase13:
 
 phase14:
   title: Uncertainties and final products
-  notebook: notebooks/phase14_products.ipynb
+  notebook: notebooks/01_data/phase14_products.ipynb
+  group: data
   question: What are the final maps and their uncertainties?
   status: current
   inputs: [phase12.hybrid_vertical_ts.nc]
@@ -192,7 +217,8 @@ phase14:
 
 phase15:
   title: Annual "seasonal-annual" pairs
-  notebook: notebooks/phase15_annual_pairs.ipynb
+  notebook: notebooks/02_inversion/phase15_annual_pairs.ipynb
+  group: inversion
   question: Does matching the seasonal state bypass temporal decorrelation?
   status: current
   inputs: [phase01.s1_inventory.csv]
@@ -201,7 +227,8 @@ phase15:
 
 phaseA:
   title: Hybrid network — the decisive InSAR test
-  notebook: notebooks/phaseA_hybrid_insar_test.ipynb
+  notebook: notebooks/02_inversion/phaseA_hybrid_insar_test.ipynb
+  group: inversion
   question: Does combining short and long baselines recover usable pixels over the AOI?
   status: current
   inputs: [phase02.hyp3_cropped]
@@ -210,7 +237,8 @@ phaseA:
 
 phaseB:
   title: External check against EGMS
-  notebook: notebooks/phaseB_egms_check.ipynb
+  notebook: notebooks/05_robustness/phaseB_egms_check.ipynb
+  group: robustness
   question: Does an independent ground-motion service see anything here?
   status: exploratory
   inputs: []
@@ -219,7 +247,8 @@ phaseB:
 
 phaseC1:
   title: LiCSBAS — an independent SBAS pipeline
-  notebook: notebooks/phaseC1_licsbas.ipynb
+  notebook: notebooks/02_inversion/phaseC1_licsbas.ipynb
+  group: inversion
   question: Does a completely separate implementation close the loop?
   status: exploratory
   inputs: [phase02.hyp3_cropped]
@@ -228,7 +257,8 @@ phaseC1:
 
 phaseC2:
   title: Phase linking / DS-InSAR — first attempt
-  notebook: notebooks/phaseC2_phaselinking.ipynb
+  notebook: notebooks/02_inversion/phaseC2_phaselinking.ipynb
+  group: inversion
   question: Does distributed-scatterer processing rescue the mat?
   status: superseded
   supersedes: []
@@ -238,7 +268,8 @@ phaseC2:
 
 phaseD:
   title: Inside versus outside — is the floating mat a distinct target?
-  notebook: notebooks/phaseD_inside_vs_outside.ipynb
+  notebook: notebooks/04_hypotheses/phaseD_inside_vs_outside.ipynb
+  group: hypotheses
   question: At matched land cover, does the mat decorrelate more than the same vegetation on stable ground?
   status: current
   inputs: [phase02.hyp3_cropped, phase05.water_mask.nc, phase04.s2_stack.nc]
@@ -247,7 +278,8 @@ phaseD:
 
 phaseDbis:
   title: Mechanism and spatial comparison — interior, edge, exterior, lake
-  notebook: notebooks/phaseDbis_mechanism_spatial.ipynb
+  notebook: notebooks/04_hypotheses/phaseDbis_mechanism_spatial.ipynb
+  group: hypotheses
   question: Is the boundary sharp, and where exactly does coherence step?
   status: current
   supersedes: []
@@ -257,7 +289,8 @@ phaseDbis:
 
 phaseDter:
   title: Scattering mechanism and DS-InSAR feasibility
-  notebook: notebooks/phaseDter_scattering_scatterers.ipynb
+  notebook: notebooks/04_hypotheses/phaseDter_scattering_scatterers.ipynb
+  group: hypotheses
   question: Is the mat radar-dark, or bright with unstable phase?
   status: current
   supersedes: []
@@ -267,7 +300,8 @@ phaseDter:
 
 phaseE:
   title: Phase linking with MiaplPy
-  notebook: notebooks/phaseE_phaselinking_miaplpy.ipynb
+  notebook: notebooks/02_inversion/phaseE_phaselinking_miaplpy.ipynb
+  group: inversion
   question: Does the standard DS-InSAR toolchain run on these products?
   status: superseded
   supersedes: [phaseC2]
@@ -277,7 +311,8 @@ phaseE:
 
 phaseE2:
   title: Lightweight EVD phase linking — the direct test of H1
-  notebook: notebooks/phaseE2_evd_phaselinking.ipynb
+  notebook: notebooks/02_inversion/phaseE2_evd_phaselinking.ipynb
+  group: inversion
   question: Does the maximum-likelihood estimator, run on the delivered interferograms, recover the mat?
   status: current
   supersedes: [phaseE, phaseC2]
@@ -287,7 +322,8 @@ phaseE2:
 
 phaseF:
   title: L-band test (NISAR)
-  notebook: notebooks/phaseF_nisar_lband.ipynb
+  notebook: notebooks/05_robustness/phaseF_nisar_lband.ipynb
+  group: robustness
   question: Does the mat become coherent at 24 cm?
   status: exploratory
   inputs: []
@@ -296,7 +332,8 @@ phaseF:
 
 phaseG:
   title: Spatial aggregation — the change of observable
-  notebook: notebooks/phaseG_aggregation.ipynb
+  notebook: notebooks/04_hypotheses/phaseG_aggregation.ipynb
+  group: hypotheses
   question: Does aggregating 499 pixels reveal a signal invisible pixel by pixel?
   status: current
   inputs: [phaseD.phaseD_coh_by_zone.csv, phase05.water_mask.nc]
@@ -305,7 +342,8 @@ phaseG:
 
 phaseH:
   title: Predicting where Sentinel-1 fails
-  notebook: notebooks/phaseH_predict_failure.ipynb
+  notebook: notebooks/04_hypotheses/phaseH_predict_failure.ipynb
+  group: hypotheses
   question: Which covariates predict temporal coherence inside the mat?
   status: current
   inputs: [phaseE2.phaseE2_evd.nc, rtc_dualpol_stack.nc]
@@ -314,7 +352,8 @@ phaseH:
 
 phaseI:
   title: Is the dielectric signal a hydrological sensor?
-  notebook: notebooks/phaseI_hydro_sensor.ipynb
+  notebook: notebooks/04_hypotheses/phaseI_hydro_sensor.ipynb
+  group: hypotheses
   question: On deseasonalised anomalies, does the aggregated phase track surface wetness?
   status: current
   supersedes: [phase13]
@@ -324,7 +363,8 @@ phaseI:
 
 phaseJ:
   title: Falsification — trying to demolish our own conclusion
-  notebook: notebooks/phaseJ_falsification.ipynb
+  notebook: notebooks/05_robustness/phaseJ_falsification.ipynb
+  group: robustness
   question: Which of the eight alternative explanations survive?
   status: current
   inputs: [phaseG.phaseG_aggregate_series.csv, phaseD.phaseD_coh_by_zone.csv]
@@ -333,7 +373,10 @@ phaseJ:
 
 phaseK:
   title: Referee response
-  notebook: notebooks/phaseK_referee_response.ipynb
+  notebook: notebooks/05_robustness/phaseK_referee_response.ipynb
+  group: robustness
+  # Builds its own context with load_config instead of the bootstrap.
+  exempt: [bootstrap]
   question: Do the referees' objections change any reported number?
   status: current
   inputs: [phaseJ.nulls_300.csv, phaseG.phaseG_aggregate_series.csv]
@@ -342,7 +385,8 @@ phaseK:
 
 phaseL:
   title: The gate, and the tests that matter either way
-  notebook: notebooks/phaseL_gate.ipynb
+  notebook: notebooks/05_robustness/phaseL_gate.ipynb
+  group: robustness
   question: Do the nine round-2 tests hold?
   status: current
   inputs: [phaseK.referee_response.csv]
@@ -351,7 +395,8 @@ phaseL:
 
 phaseZ:
   title: Full figure and table export
-  notebook: notebooks/phaseZ_export_figures.ipynb
+  notebook: notebooks/06_manuscript/phaseZ_export_figures.ipynb
+  group: manuscript
   question: "-"
   status: tooling
   inputs: [phaseD.phaseD_coh_by_zone.csv, phaseE2.phaseE2_evd.nc, phaseG.phaseG_aggregate_series.csv]
@@ -360,7 +405,8 @@ phaseZ:
 
 export_figures_en:
   title: Manuscript figure export (English), 300 dpi
-  notebook: notebooks/export_figures_en.ipynb
+  notebook: notebooks/06_manuscript/export_figures_en.ipynb
+  group: manuscript
   question: "-"
   status: tooling
   # UNVERIFIED: this and phaseZ both write docs/paper/figures/. docs/paper/README
@@ -374,7 +420,8 @@ export_figures_en:
 
 build_manuscript_docx:
   title: Manuscript assembly to .docx
-  notebook: notebooks/build_manuscript_docx.ipynb
+  notebook: notebooks/06_manuscript/build_manuscript_docx.ipynb
+  group: manuscript
   question: "-"
   status: tooling
   inputs: [docs/paper/figures/]
