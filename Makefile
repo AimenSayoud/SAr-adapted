@@ -10,6 +10,7 @@ PAPER   := docs/paper
 FIGURES := $(PAPER)/figures
 HUB     := $(HOME)/Documents/Research_Hub
 OUT     := $(HUB)/03_paper01_rzecin/current
+BIB     := $(HUB)/02_literature/bibliography/references.bib
 
 RUN := PYTHONPATH=$(SRC) $(PY) -c
 
@@ -77,10 +78,11 @@ check-generated: appendix assemble
 # check runs first on purpose: a document with a stale number should never
 # reach a file someone might send.
 docx: check check-generated appendix assemble
+	@test -f $(BIB) || (echo "ERROR: Missing bibliography at $(BIB). See 02_literature/SETUP.md §1." && exit 1)
 	@mkdir -p $(OUT)
 	pandoc $(PAPER)/_manuscript.md \
 	  --citeproc \
-	  --bibliography=$(HUB)/02_literature/bibliography/references.bib \
+	  --bibliography=$(BIB) \
 	  --resource-path=$(PAPER):$(FIGURES) \
 	  --fail-if-warnings \
 	  -o $(OUT)/manuscript.docx
