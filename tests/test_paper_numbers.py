@@ -9,6 +9,7 @@ Run: python tests/test_paper_numbers.py
 """
 
 import tempfile
+from contextlib import contextmanager
 from pathlib import Path
 
 from insar_wetlands.paper_numbers import (
@@ -22,6 +23,8 @@ from insar_wetlands.paper_numbers import (
     scientific,
 )
 
+REPO = Path(__file__).resolve().parents[1]
+
 
 def test_formatters_match_manuscript_typography():
     # U+2212 MINUS SIGN, not an ASCII hyphen: the manuscript uses the former,
@@ -33,6 +36,28 @@ def test_formatters_match_manuscript_typography():
     assert fixed(2)(3.286) == "3.29"
     assert scientific(2)(4.838844e-46) == "4.84 × 10⁻⁴⁶"
     assert scientific(2)(2.2e-49) == "2.20 × 10⁻⁴⁹"
+
+
+@contextmanager
+def _registry_scoped_to(*entry_names: str):
+    """Judge a synthetic fixture only against the values it actually wrote.
+
+    The fixtures below export one row of one table. Since the guard was made to
+    fail closed, every other registered number is legitimately unresolvable
+    against such a fixture — that is the new contract working, not the case
+    under test — so the rest are declared pending for the duration.
+
+    Scoped by entry name rather than by CSV: T07 alone carries three registered
+    rows, and a fixture that writes one of them leaves the other two as
+    unresolvable as if the file were missing."""
+    import insar_wetlands.paper_numbers as pn
+    before = pn.PENDING
+    pn.PENDING = {name: "not part of this fixture"
+                  for name, *_ in pn.REGISTRY if name not in entry_names}
+    try:
+        yield
+    finally:
+        pn.PENDING = before
 
 
 def _paper(tmp: Path, csv_rows: str, text: str):
@@ -60,17 +85,51 @@ def test_a_correct_number_passes():
                 if b["name"] == "seasonal amplitude A - C"] == []
 
 
-def test_missing_csv_is_pending_not_a_failure():
-    """Before the first export there is nothing to check against. That is a
-    pending state and must not be reported as a stale number."""
+def test_a_missing_csv_fails_the_check():
+    """The guard must fail closed.
+
+    This used to be the opposite test: an entry that could not be resolved was
+    skipped, on the reasoning that a pre-export state is pending rather than
+    wrong. The cost of that reasoning was that `make check` reported success
+    against an empty `figures/` directory, so renaming a column silently
+    unregistered the number it protected — the guard failed open, in the one
+    direction a guard must never fail. A pending export is still a legitimate
+    state; it is now written down in PENDING instead of inferred from silence."""
     with tempfile.TemporaryDirectory() as d:
         tmp = Path(d)
         (tmp / "figures").mkdir()
         (tmp / "04_results.md").write_text("no numbers here\n")
-        assert check_manuscript_numbers(tmp) == []
+
+        bad = check_manuscript_numbers(tmp)
+        assert len(bad) == len(REGISTRY)
+        assert all(b.get("unresolvable") for b in bad)
+
+        # expected_values itself still reports rather than raises, so one run
+        # names every unresolvable entry instead of stopping at the first.
         vals = expected_values(tmp / "figures")
         assert all(v["expected"] is None for v in vals)
         assert all("not exported" in v.get("note", "") for v in vals)
+
+
+def test_an_entry_declared_pending_is_allowed_to_be_unresolvable():
+    """An export that has not run yet is a decision, so it is written down."""
+    with tempfile.TemporaryDirectory() as d:
+        tmp = Path(d)
+        (tmp / "figures").mkdir()
+        (tmp / "04_results.md").write_text("no numbers here\n")
+        with _registry_scoped_to():          # every entry pending
+            assert check_manuscript_numbers(tmp) == []
+
+
+def test_the_report_says_an_unresolvable_entry_is_not_a_pass():
+    from insar_wetlands.paper_numbers import format_report
+    with tempfile.TemporaryDirectory() as d:
+        tmp = Path(d)
+        (tmp / "figures").mkdir()
+        (tmp / "04_results.md").write_text("no numbers here\n")
+        report = format_report(check_manuscript_numbers(tmp))
+    assert "unresolvable" in report
+    assert "the CSV moved" in report
 
 
 def test_generated_appendix_is_excluded():
@@ -120,7 +179,8 @@ def test_a_superseded_value_is_caught_even_when_partially_updated():
     every occurrence was updated. These figures repeat across the abstract,
     results, conclusions and appendix, so fixing four of five sites still
     passes. Superseded values are therefore checked for absence."""
-    with tempfile.TemporaryDirectory() as d:
+    with tempfile.TemporaryDirectory() as d, \
+            _registry_scoped_to("seasonal amplitude A - C"):
         tmp = _paper(Path(d), "series,amplitude_mm\nA−C,3.286\n",
                      "The amplitude is 3.29 mm.\n")
         # correct value present -> clean
@@ -150,7 +210,9 @@ if __name__ == "__main__":
     test_formatters_match_manuscript_typography()
     test_a_stale_number_is_reported()
     test_a_correct_number_passes()
-    test_missing_csv_is_pending_not_a_failure()
+    test_a_missing_csv_fails_the_check()
+    test_an_entry_declared_pending_is_allowed_to_be_unresolvable()
+    test_the_report_says_an_unresolvable_entry_is_not_a_pass()
     test_generated_appendix_is_excluded()
     test_registry_entries_are_wellformed()
     test_a_superseded_value_is_caught_even_when_partially_updated()

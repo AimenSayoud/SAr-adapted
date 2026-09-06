@@ -1,6 +1,6 @@
 # Inventaire des figures
 
-**Statut :** export automatisé — `notebooks/phaseZ_export_figures.ipynb`
+**Statut :** export automatisé — `notebooks/06_manuscript/phaseZ_export_figures.ipynb`
 
 Convention : **PNG 300 dpi** dans **`docs/article/figures/`** sous le nom
 `FXX_slug.png`, via `zone_viz.save_figure()`. Couleurs de zone constantes :
@@ -14,7 +14,7 @@ Convention : **PNG 300 dpi** dans **`docs/article/figures/`** sous le nom
 
 ## Régénération
 
-`notebooks/phaseZ_export_figures.ipynb` reconstruit les figures depuis les
+`notebooks/06_manuscript/phaseZ_export_figures.ipynb` reconstruit les figures depuis les
 **produits sauvegardés sur Drive** (`phaseD_coh_mean.nc`, `phaseE2_evd.nc`,
 `s2_stack.nc`, `rtc_dualpol_stack.nc`…) plutôt qu'en tout recalculant, et met en
 cache les séries agrégées dans `figures_cache/`. Les figures exigeant des

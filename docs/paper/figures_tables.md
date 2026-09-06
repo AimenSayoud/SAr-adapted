@@ -4,7 +4,7 @@
 > `SECTION_ORDER`; the captions that reach the article live in the section files
 > next to each `![…]` reference.
 
-Figures are produced by `notebooks/export_figures_en.ipynb` into
+Figures are produced by `notebooks/06_manuscript/export_figures_en.ipynb` into
 `docs/paper/figures/` as **300 dpi PNG**, named `FXX_slug.png`.
 Zone colours are constant throughout: **A** red `#d62728` · **B** blue
 `#1f77b4` · **C** green `#2ca02c` · **D** grey `#9e9e9e`.

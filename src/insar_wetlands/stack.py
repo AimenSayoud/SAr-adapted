@@ -38,6 +38,20 @@ def align_grid(da: xr.DataArray | xr.Dataset,
     return da.assign_coords(coords)
 
 
+def to_grid(obj: xr.DataArray | xr.Dataset,
+            template: xr.DataArray) -> xr.DataArray | xr.Dataset:
+    """Align an xarray object to template grid, reprojecting when necessary.
+
+    The plain `align_grid` handles arrays with identical shape but float jitter
+    in coordinates. If CRS/grid differ, this falls back to `rio.reproject_match`.
+    """
+    try:
+        return align_grid(obj, template)
+    except Exception:
+        t = template.rio.write_crs(template.rio.crs)
+        return obj.rio.write_crs(t.rio.crs).rio.reproject_match(t)
+
+
 def list_pairs(cropped_root: str | Path) -> list[str]:
     root = Path(cropped_root)
     return sorted(d.name for d in root.iterdir()

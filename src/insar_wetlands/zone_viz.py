@@ -232,3 +232,31 @@ def plot_radial(field: xr.DataArray, signed_dist: xr.DataArray, ax=None,
     ax.set_xlabel("distance signée au bord (m) — négatif = DEDANS")
     ax.set_ylabel(ylabel); ax.set_title(title); ax.grid(alpha=.3)
     return ax
+
+
+def draw_box(x: float, y: float, w: float, h: float, txt: str,
+             fc: str, fs: float = 8.5, ax=None):
+    """Draw a labelled box patch on a matplotlib axis (default: plt.gca())."""
+    import matplotlib.pyplot as plt
+    if ax is None:
+        ax = plt.gca()
+    ax.add_patch(plt.Rectangle((x, y), w, h, fc=fc, ec="k", lw=1.1, alpha=.92))
+    ax.text(x + w / 2, y + h / 2, txt, ha="center", va="center", fontsize=fs)
+
+
+def draw_arrow(x1: float, y1: float, x2: float, y2: float, txt: str = "",
+               ax=None):
+    """Draw an arrow between two coordinates with optional label."""
+    import matplotlib.pyplot as plt
+    if ax is None:
+        ax = plt.gca()
+    ax.annotate("", xy=(x2, y2), xytext=(x1, y1),
+                arrowprops=dict(arrowstyle="->", lw=1.4))
+    if txt:
+        ax.text((x1 + x2) / 2, (y1 + y2) / 2 + .015, txt,
+                ha="center", fontsize=7.5, style="italic")
+
+
+box = draw_box
+arrow = draw_arrow
+

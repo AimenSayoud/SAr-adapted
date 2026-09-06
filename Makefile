@@ -13,18 +13,19 @@ OUT     := $(HUB)/03_paper01_rzecin/current
 
 RUN := PYTHONPATH=$(SRC) $(PY) -c
 
-.PHONY: help lint test check phases readme assemble appendix docx all clean
+.PHONY: help lint test check check-generated phases readme assemble appendix docx all clean
 
 help:
 	@echo "make lint      - ruff, on the focused rule set in pyproject"
 	@echo "make test      - run the synthetic ground-truth test suite"
 	@echo "make check     - verify manuscript numbers against the exported CSVs"
+	@echo "make check-generated - assert generated manuscript and appendix have not drifted"
 	@echo "make phases    - validate config/phases.yaml and print the pipeline"
 	@echo "make readme    - regenerate the README phase table from phases.yaml"
 	@echo "make appendix  - regenerate Appendix B from figures/T*.csv"
 	@echo "make assemble  - concatenate sections into _manuscript.md"
 	@echo "make docx      - build the .docx into the hub (runs check first)"
-	@echo "make all       - test, check, appendix, assemble, docx"
+	@echo "make all       - test, check, check-generated, appendix, assemble, docx"
 
 lint:
 	$(PY) -m ruff check src tests
@@ -69,9 +70,13 @@ assemble:
 	print(r['n_sections'], 'sections,', len(r['images']), 'images'); \
 	print('MISSING IMAGES:', r['missing_images']) if r['missing_images'] else None"
 
+check-generated: appendix assemble
+	@git diff --exit-code $(PAPER)/09_appendix_data.md $(PAPER)/_manuscript.md \
+		|| (echo "ERROR: Generated manuscript files have drifted from source. Run 'make appendix assemble' and commit the result." && exit 1)
+
 # check runs first on purpose: a document with a stale number should never
 # reach a file someone might send.
-docx: check appendix assemble
+docx: check check-generated appendix assemble
 	@mkdir -p $(OUT)
 	pandoc $(PAPER)/_manuscript.md \
 	  --citeproc \

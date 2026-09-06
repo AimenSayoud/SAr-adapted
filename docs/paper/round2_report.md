@@ -22,7 +22,7 @@ three places where **we conceded too much in round 1** and the data says so.
 
 Every number below is produced by code in `src/insar_wetlands/referee.py`,
 exercised by `tests/test_referee.py`, and reproduced by
-`notebooks/phaseL_gate.ipynb`.
+`notebooks/05_robustness/phaseL_gate.ipynb`.
 
 ---
 
