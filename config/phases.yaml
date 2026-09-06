@@ -393,28 +393,13 @@ phaseL:
   outputs: [round2_report.md]
   paper: "docs/paper/round2_report.md"
 
-phaseZ:
-  title: Full figure and table export
-  notebook: notebooks/06_manuscript/phaseZ_export_figures.ipynb
-  group: manuscript
-  question: "-"
-  status: tooling
-  inputs: [phaseD.phaseD_coh_by_zone.csv, phaseE2.phaseE2_evd.nc, phaseG.phaseG_aggregate_series.csv]
-  outputs: [docs/paper/figures/]
-  paper: "all figures and T*.csv"
-
 export_figures_en:
-  title: Manuscript figure export (English), 300 dpi
+  title: Manuscript figure and table export (English), 300 dpi
   notebook: notebooks/06_manuscript/export_figures_en.ipynb
   group: manuscript
   question: "-"
   status: tooling
-  # UNVERIFIED: this and phaseZ both write docs/paper/figures/. docs/paper/README
-  # names this one as the build step, which suggests phaseZ is superseded — but
-  # phaseZ may still export the French figures in docs/article/. Left as two
-  # independent tooling notebooks until confirmed; guessing would put a wrong
-  # 'superseded' on a notebook that is still in use.
-  inputs: []
+  inputs: [phaseD.phaseD_coh_by_zone.csv, phaseE2.phaseE2_evd.nc, phaseG.phaseG_aggregate_series.csv]
   outputs: [docs/paper/figures/]
   paper: "all figures and T*.csv"
 
