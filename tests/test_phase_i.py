@@ -62,13 +62,25 @@ def test_lag_scan_finds_driver_and_lag():
 
 
 def test_detrend_kills_spurious_trend_correlation():
-    """Deux series purement tendancielles ne doivent PAS sembler correlees."""
+    """Deux series a tendance partagee mais SANS lien reel : le detrend doit
+    effondrer la correlation fallacieuse.
+
+    Chaque serie = tendance lineaire + bruit gaussien INDEPENDANT. Le bruit est
+    essentiel : sur deux droites *exactement* lineaires, `_detrend` renvoie un
+    residu au niveau du zero machine (~1e-14, verifie), et `np.corrcoef` de deux
+    vecteurs de poussiere flottante n'a pas de valeur definie -- son signe et son
+    amplitude dependent de l'ordre des sommations, qui a change entre numpy 2.2
+    et 2.5 (r est passe de <0.5 a 0.92 sans que `_detrend` ait bouge). Avec un
+    residu reel, la correlation testee est bien conditionnee et ne derive plus
+    d'une version de bibliotheque a l'autre."""
+    rng = np.random.default_rng(0)
     dates = pd.date_range("2022-01-01", periods=100, freq="12D")
     days = pd.date_range("2021-12-01", "2026-01-01", freq="1D")
     drivers = pd.DataFrame({"trend": pd.Series(
-        np.linspace(0, 10, len(days)), index=days)})
+        np.linspace(0, 10, len(days)) + rng.normal(0, 0.3, len(days)), index=days)})
     series = pd.DataFrame({"date": dates,
-                           "disp_mm": np.linspace(0, 50, len(dates))})
+                           "disp_mm": np.linspace(0, 50, len(dates))
+                           + rng.normal(0, 1.5, len(dates))})
     with_dt = lag_scan(series, drivers, max_lag_days=12, step=6, detrend=True)
     no_dt = lag_scan(series, drivers, max_lag_days=12, step=6, detrend=False)
     assert abs(no_dt.iloc[0]["r"]) > 0.95                     # piege sans detrend
