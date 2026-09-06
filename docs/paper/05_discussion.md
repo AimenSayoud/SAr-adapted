@@ -14,16 +14,35 @@ the domain of validity** of the method.
 | Substrate | consolidated peat | mat resting on water |
 | C-band coherence | usable | 5.4 % of pixels ≥ 0.7 |
 
-The discriminating factor is not "peatland or not" but **canopy wetness and
-scatterer stationarity**. Over a saturated mat, the phase centre is dominated by
-a wet vegetation volume whose configuration changes between passes, which
-decorrelates in 12 days at λ = 5.5 cm.
+The discriminating factor is not simply "peatland or not" but the combination of
+**canopy wetness, scattering structure, and target stationarity**. Unlike raised bogs
+where a consolidated, comparatively drier *Sphagnum* carpet provides stable surface
+scatterers (Hrysiewicz et al., 2024), the floating mat (*Schwingmoor*) at Rzecin is
+characterized by near-permanent saturation and low-stature emergent vegetation
+resting directly on an organic water layer (Milecka et al., 2017). Furthermore,
+unlike flooded emergent wetlands where coherent double-bounce scattering between
+vertical vegetation and underlying standing water preserves interferometric phase
+(Hong & Wdowinski, 2014), the low-stature, heterogeneous vegetation and saturated
+floating root mat at Rzecin provide a less stable scattering geometry. Because
+perpendicular baselines in the Sentinel-1 stack are small ($B_\perp < 100$ m),
+spatial decorrelation is negligible; the observed coherence collapse across 12-day
+revisits is predominantly driven by temporal changes in surface moisture,
+micro-topographic water pooling, and vegetation configuration—a pattern consistent
+with observations across non-forested herbaceous wetlands (Chen et al., 2020, 2021).
 
 **Generalisable contribution:** the success of C-band over peatlands does **not**
 transfer automatically to floating peatlands, which are nonetheless the sites
-where the expected signal is largest.
+where the expected vertical displacement from buoyancy is largest.
 
 ### 5.2 Comparison with drained peatlands, and a caution
+
+Floating fens are known to exhibit vertical mobility coupled to water level changes
+through root-mat buoyancy (Stofberg et al., 2016; Swarzenski et al., 1991; Sasser
+et al., 1996). Stofberg et al. (2016) demonstrated on temperate floating fens that
+root mats track surface water fluctuations hydrostatically, with buoyancy mediated
+by temperature and gas dynamics. However, translating this physical mechanism to
+satellite InSAR requires distinguishing true mechanical motion from radar phase
+artifacts.
 
 Patil et al. (2026) report subsidence of 0.48–1.40 cm yr⁻¹ over the drained
 Great Fen. Direct comparison with our bound would be a **category error**: their
@@ -54,12 +73,14 @@ seasonal fluctuations aligned with soil moisture as hydrological control of peat
 surface motion. Our results counsel care with that inference: **a seasonal
 oscillation correlated with moisture is not automatically motion.** At our site a
 3.3 mm signal correlating well with moisture proved **dielectric** — the residual
-lake, which cannot breathe, oscillated at the same amplitude and phase. A
+lake, which cannot breathe, oscillated at the same amplitude and phase. Phase
+variations induced by dielectric permittivity and moisture changes are well
+established in the InSAR literature (De Zan et al., 2014, 2015; Morrison et al.,
+2011; Zwieback et al., 2015, 2017; Mira et al., 2022; Zheng & Fattahi, 2025). A
 **control over a water surface**, or any target where motion is physically
 excluded, is inexpensive and separates genuine displacement from a
-penetration-depth effect. We suggest incorporating one systematically in peatland
-motion studies reporting millimetre-scale signals.
-
+penetration-depth or dielectric effect. We suggest incorporating one systematically
+in peatland motion studies reporting millimetre-scale signals.
 
 ![**Figure 16.** Our bound in context: raised-bog breathing, drained-fen subsidence, expected free flotation, and the value measured here.](figures/F16_literature_context.png)
 
@@ -94,17 +115,21 @@ decorrelated terrain.
 
 ### 5.4 Instrumental outlook
 
-**L-band is the most direct route.** At λ = 24 cm the radar **penetrates the
-canopy** and reaches the mat surface, where C-band (5.5 cm) decorrelates through
-volume scattering. **NISAR** now provides **global, free** L-band data, and its
-**GUNW** product is the direct analogue of our interferograms, so the processing
-chain developed here transfers without modification. This is a **prospective**
-test: the archive does not cover 2022–2024 retrospectively.
+**L-band is the most direct route.** At λ ≈ 24 cm, radar signals penetrate
+herbaceous vegetation more effectively, significantly mitigating the rapid
+temporal decorrelation that affects C-band (λ = 5.5 cm) over dynamic, saturated
+wetland covers (Chen et al., 2021; Morishita & Hanssen, 2015). **NISAR** now
+provides **global, free** L-band data, and its **GUNW** product is the direct
+analogue of our interferograms, so the processing chain developed here transfers
+without modification. This is a **prospective** test: the archive does not
+cover 2022–2024 retrospectively.
 
 **The return to a 6-day revisit will not suffice.** Sentinel-1C and 1D restore
-two-satellite operation, reducing *temporal* decorrelation. But all Sentinel-1
-platforms remain **C-band**: volumetric decorrelation depends on wavelength, not
-on Δt. We therefore do not expect a 6-day cycle to unlock this site.
+two-satellite operation, reducing temporal baseline. However, all Sentinel-1
+platforms remain **C-band**: shorter repeat intervals partially mitigate temporal
+decorrelation but do not alter the high sensitivity of shorter wavelengths to
+micro-scale canopy and moisture changes. We therefore do not expect a 6-day cycle
+alone to unlock this site.
 
 **Historical alternative.** ALOS-2/PALSAR-2 (L-band, 2015–2024) would allow a
 retrospective test over our window, but access is restricted.
