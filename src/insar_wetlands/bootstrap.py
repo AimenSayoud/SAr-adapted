@@ -210,7 +210,7 @@ def start(phase: str,
     from .config import load_config
     from .paths import repo_root
 
-    if mount and _in_colab():
+    if mount and _in_colab() and not Path("/content/drive/MyDrive").is_dir():
         try:
             from google.colab import drive as _drive  # type: ignore
             _drive.mount("/content/drive")
