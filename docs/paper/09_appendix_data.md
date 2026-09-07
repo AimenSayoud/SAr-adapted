@@ -73,12 +73,12 @@ Tables exported by `notebooks/06_manuscript/export_figures_en.ipynb`. Each is re
 
 ### T07. Seasonal amplitudes and empirical p-values
 
-| series | amplitude_mm |
-|---|---|
-| A−C | 3.286 |
-| B−C | 2.627 |
-| A−B | 0.901 |
-| NULL | 0.568 |
+| series | amplitude_mm | p_perm | n_null | null_type |
+|---|---|---|---|---|
+| A−C | 3.286 | 0.0324 | 277.0 | reference-matched |
+| B−C | 2.627 | 0.136 | 249.0 | reference-matched |
+| A−B | 0.901 |  |  | - |
+| NULL | 0.568 |  |  | - |
 
 
 ### T08. Closure-phase bias and dispersion by zone
