@@ -101,6 +101,16 @@ therefore insensitive to 2π jumps. Filtering baselines > 60 days (annual pairs,
 ±25 mm scatter) tests the sensitivity of the aggregated inversion: the seasonal
 result does not depend on it qualitatively.
 
+Furthermore, to test whether the headline 3.29 mm seasonal amplitude (fitted to
+unwrapped phase) could be driven by unwrapping inconsistencies, we evaluated
+triplet closure phase errors across all 518 closed loops in the 356-pair network
+over Zone A. Filtering out pairs with significant unwrapping errors (excluding
+pairs with maximum loop closure error $> 2\pi$, or excluding the worst 10 % to
+20 % RMS closure pairs) yields seasonal amplitudes of 2.80 to 2.97 mm and
+preserves the mid-April/May peak phase (Table XT12). The seasonal amplitude is
+thus robust to phase unwrapping pair exclusion and does not collapse unless
+extreme filtering breaks network connectivity (retaining only 14 % of pairs).
+
 ### A.8 Spatial correlation and N_eff — measured, with a consequence for §4.3.2
 
 **The criticism is well founded**: the 1/√N argument assumes independent pixels,

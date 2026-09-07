@@ -333,6 +333,10 @@ Two physical hypotheses could account for coherent phase over Zone B: (1) emerge
 macrophytes along the lake margins acting as distributed scatterers modulated by water-level
 and dielectric shifts, or (2) spatial leakage from the adaptive Goldstein phase filter
 ($\alpha = 0.5$) smoothing adjacent mat phases across the narrow 65-pixel lake geometry.
+Eroding Zone B by one perimeter ring ($d > 40$ m, leaving 26 interior pixels) yields
+2.22 mm at DOY 94, and an expanded 1,000-draw reference-matched null confirms $p = 0.1565$
+(836 valid draws, null median 1.67 mm, p95 3.40 mm, Table XT10), demonstrating that the lake
+signal is not purely a boundary-pixel artifact while remaining strictly non-significant.
 Under either hypothesis, the lake trajectory is consistent with an environmental or dielectric
 scaling rather than differential mechanical breathing.
 

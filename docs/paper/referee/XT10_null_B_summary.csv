@@ -1,0 +1,2 @@
+series,observed_mm,n_draws,k_exceed,p_value,ci_low,ci_high,null_median,null_p95
+B−C,2.627,836,130,0.1565,0.1316,0.1819,1.673,3.4

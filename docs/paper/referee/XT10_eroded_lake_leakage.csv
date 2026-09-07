@@ -1,0 +1,4 @@
+subset,n_px,mean_dist_m,amp_mm,phase_doy,r2
+Zone B full (65 px),65,51.17383098190498,2.627,94.7,0.114
+Border ring (<= 40 m),39,40.0,2.902,95.1,0.127
+Interior lake (> 40 m),26,67.93457745476243,2.217,93.6,0.093

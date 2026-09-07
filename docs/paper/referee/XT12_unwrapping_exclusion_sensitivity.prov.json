@@ -1,0 +1,10 @@
+{
+  "table": "XT12_unwrapping_exclusion_sensitivity.csv",
+  "description": "Seasonal amplitude fit sensitivity to phase unwrapping triplet closure error exclusions (Review M7)",
+  "git_sha": "580e72fb3b136d72047cb7e6994a8d4b38f7bc79",
+  "run_utc": "2026-09-07T14:38:00Z",
+  "execution_environment": "Google Colab CPU session s1",
+  "n_pairs_baseline": 356,
+  "n_closed_triplets": 518,
+  "target_series": "A\u2212C"
+}

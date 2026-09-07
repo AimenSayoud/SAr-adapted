@@ -1,0 +1,10 @@
+{
+  "table": "XT10_null_B_summary.csv",
+  "description": "Reference-matched null distribution for Zone B against Zone C (1000 trials)",
+  "git_sha": "580e72fb3b136d72047cb7e6994a8d4b38f7bc79",
+  "run_utc": "2026-09-07T14:38:00Z",
+  "execution_environment": "Google Colab CPU session s1",
+  "n_target_px": 65,
+  "n_draws_valid": 836,
+  "target_series": "B\u2212C"
+}
