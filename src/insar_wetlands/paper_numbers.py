@@ -86,12 +86,17 @@ SUPERSEDED = {
     "−0.0652": "old date-jackknife maximum, superseded by −0.0774",
     "23.1 %": "old zone-D usable fraction, superseded by 23.2 %",
     "+0.077)": "grassland freeze gain truncated instead of rounded; 0.07775 -> 0.078",
+    "p = 0.014": "old size-matched null p-value, superseded by reference-matched 0.026",
+    "p = 0.038": "interim 184-draw null p-value, superseded by 5000-draw 0.026",
+    "p = 0.036": "old lake B-C p-value, superseded by reference-matched 0.136",
 }
 
 
 # ------------------------------------------------------------------ registry
 # (name, csv, column, row selector, formatter)
 REGISTRY = [
+    ("seasonal amplitude A - C p", "T07_seasonal_amplitudes.csv", "p_perm",
+     {"series": "A−C"}, fixed(3)),
     ("Wilcoxon p, A vs C", "T05_paired_test.csv", "wilcoxon_p", None,
      scientific(2)),
     ("paired delta mean, A - C", "T05_paired_test.csv", "delta_mean", None,

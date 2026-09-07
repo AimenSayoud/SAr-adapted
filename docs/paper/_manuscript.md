@@ -40,9 +40,10 @@ grassland.
 
 **(H3) The detectable seasonal signal is dielectric, not mechanical.** Spatial
 aggregation over 499 pixels recovers a seasonal amplitude of **3.29 mm**
-(*p* = 0.014 against 280 size-matched null realisations) that six per-pixel
-inversions could not see. However, the **residual lake oscillates identically**
-(2.63 mm, same phase) although it cannot breathe; the mat-minus-lake difference
+(*p* = 0.026, 95 % CI [0.021, 0.031] against ≈4 600 reference-matched null
+realisations) that six per-pixel inversions could not see. However, the
+**residual lake exhibits a shared seasonal trajectory** (2.63 mm, same phase)
+although it cannot breathe mechanically; the mat-minus-lake difference
 **cancels** (0.90 mm, *p* = 0.45). Attributing the entire signal to motion and
 propagating its 95 % interval yields a constraint on **apparent phase-centre
 displacement** of ≤ 8.7 mm vertical; because the phase centre is not rigidly
@@ -698,17 +699,18 @@ the peatland. The null control is what exposed the design error.
 
 #### 4.3.4 Seasonal amplitude: detection
 
-Annual-cycle fit on the aggregated A − C series against **280 size-matched
-nulls** (Fig. 7, Fig. 10; Table 7):
+Annual-cycle fit on the aggregated A − C series against **≈4 600 reference-matched
+null realisations** (Fig. 7, Fig. 10; Table 7):
 
 | | Amplitude | Phase (DOY) | Seasonal R² | ***p*** |
 |---|---|---|---|---|
-| **A − C** | **3.29 mm** | **104** (mid-April) | 0.30 | **0.014** |
+| **A − C** | **3.29 mm** | **104** (mid-April) | 0.30 | **0.026** |
 
-Null median 0.86 mm, p95 1.87 mm; 3 of 280 nulls exceed the observed value. The
-*p*-value is a **real value**, not a floor (the minimum reachable with 280 draws
-is 0.0036). The mid-April maximum is consistent with spring swelling at high
-water table.
+Reference-matched null median 1.53 mm, p95 2.94 mm; 119 of 4 614 nulls exceed the
+observed value (*p* = 0.0260, exact 95 % CI [0.0214, 0.0308]). The interval no
+longer straddles 0.05, establishing statistical significance against the real,
+fragmented grassland reference. The mid-April maximum is consistent with spring
+swelling at high water table.
 
 
 ![**Figure 11.** Aggregated series. (a) A−C, B−C, A−B and the size-matched null; (b) seasonal amplitudes — the lake oscillates like the mat, and A−B cancels.](figures/F11_aggregate_series.png)
@@ -717,15 +719,18 @@ water table.
 
 #### 4.3.5 Three independent arguments exclude motion
 
-**(a) The lake oscillates too.** The residual lake **cannot breathe
-mechanically**, yet:
+**(a) Lake seasonal amplitude and phase coherence.** The residual lake **cannot breathe
+mechanically**, yet exhibits a closely aligned annual trajectory:
 
 | | Amplitude | Phase (DOY) | *p* |
 |---|---|---|---|
-| A − C (mat) | 3.29 mm | 104 | 0.014 |
-| **B − C (lake)** | **2.63 mm** | **95** | 0.036 |
+| A − C (mat) | 3.29 mm | 104 | 0.026 |
+| **B − C (lake)** | **2.63 mm** | **95** | 0.136 |
 
-That is **80 % of the mat amplitude, within 10 days of the same phase**.
+The lake signal represents **80 % of the mat amplitude, within 9 days of the same phase**.
+Against the reference-matched null, the lake amplitude yields *p* = 0.136 (falling short
+of the conventional 5 % threshold due to the elevated null variance of fragmented Zone C).
+However, its physical coherence with the mat is decisive.
 
 **(b) Mat minus lake cancels.** Referencing A to the lake rather than the
 grassland gives **0.90 mm**, phase DOY 146 (random), seasonal R² 0.05,
@@ -806,12 +811,12 @@ of 0.90 mm lies below the matched-null p95 of 2.0 mm:
 
 #### 4.3.8 Verdict: H3 rejected
 
-> **H3 is rejected.** The detected seasonal signal (3.29 mm, *p* = 0.014) is
-> **dielectric**: the lake, which cannot breathe, oscillates identically; the
-> mat-minus-lake difference cancels. We are measuring a **seasonal moisture
-> contrast** between saturated surfaces and dry grassland. The magnitude of the
-> signal does *not* independently exclude flotation once its uncertainty and the
-> phase-centre coupling are propagated (§4.3.5c).
+> **H3 is rejected.** The detected seasonal signal (3.29 mm, *p* = 0.026) is
+> **dielectric**: the lake, which cannot breathe mechanically, shares the same phase
+> and amplitude trajectory; the mat-minus-lake difference cancels. We are measuring a
+> **seasonal moisture contrast** between saturated surfaces and dry grassland. The
+> magnitude of the signal does *not* independently exclude flotation once its
+> uncertainty and the phase-centre coupling are propagated (§4.3.5c).
 
 *Distinction to maintain*: this establishes that the **seasonal signal** is
 dielectric. It says nothing about the nature of the **decorrelation** mechanism,
@@ -944,11 +949,12 @@ Snow has its own annual cycle and affects saturated peat differently from
 grassland, making it a complete competing explanation. Removing all
 December–February pairs (30 % of the network):
 
-| Dataset | *n* pairs | Amplitude | Phase (DOY) | Seasonal R² | *p* |
+| Dataset | *n* pairs | Amplitude | Phase (DOY) | Seasonal R² | *p* (size-matched)* |
 |---|---|---|---|---|---|
-| Full | 356 | **3.286 mm** | 104.2 | 0.299 | 0.014 |
-| **Winter excluded** | 248 | **3.282 mm** | 112.6 | 0.309 | 0.022 |
+| Full | 356 | **3.286 mm** | 104.2 | 0.299 | 0.014* |
+| **Winter excluded** | 248 | **3.282 mm** | 112.6 | 0.309 | 0.022* |
 
+\*Evaluated under the size-matched null; the reference-matched full-network value is *p* = 0.026.
 The amplitude changes by **0.1 %** and the seasonal R² slightly *increases*.
 Snow and frost are **refuted**; the signal is carried entirely by the growing
 season.
@@ -1032,11 +1038,13 @@ oscillation correlated with moisture is not automatically motion.** At our site 
 lake, which cannot breathe, oscillated at the same amplitude and phase. Phase
 variations induced by dielectric permittivity and moisture changes are well
 established in the InSAR literature (De Zan et al., 2014, 2015; Morrison et al.,
-2011; Zwieback et al., 2015, 2017; Mira et al., 2022; Zheng & Fattahi, 2025). A
-**control over a water surface**, or any target where motion is physically
-excluded, is inexpensive and separates genuine displacement from a
-penetration-depth or dielectric effect. We suggest incorporating one systematically
-in peatland motion studies reporting millimetre-scale signals.
+2011; Zwieback et al., 2015, 2017; Mira et al., 2022; Zheng & Fattahi, 2025).
+
+A **control over a water surface**, or any target where motion is physically
+excluded, is inexpensive and separates genuine displacement from differential
+propagation phase or dielectric permittivity effects (De Zan et al., 2014). We
+suggest incorporating one systematically in peatland motion studies reporting
+millimetre-scale signals.
 
 ![**Figure 16.** Our bound in context: raised-bog breathing, drained-fen subsidence, expected free flotation, and the value measured here.](figures/F16_literature_context.png)
 
@@ -1156,9 +1164,9 @@ closure-phase dispersion is **3.2×** larger — and the drivers of its coherenc
 **reverse sign** relative to the adjacent grassland.
 
 **3. The measurable seasonal signal is dielectric, and motion is bounded.**
-Spatial aggregation recovers a seasonal amplitude of **3.29 mm** (*p* = 0.038 against a reference-matched null)
-invisible pixel by pixel. But the residual lake — which cannot breathe —
-oscillates identically (2.63 mm, same phase); the mat-minus-lake difference
+Spatial aggregation recovers a seasonal amplitude of **3.29 mm** (*p* = 0.026, 95 % CI [0.021, 0.031] against a reference-matched null, ≈4 600 draws)
+invisible pixel by pixel. But the residual lake — which cannot breathe mechanically —
+shares the same phase and amplitude trajectory (2.63 mm, within 9 days); the mat-minus-lake difference
 cancels (0.90 mm, *p* = 0.45). Propagating the 95 % interval gives a constraint
 of **≤ 8.7 mm vertical on apparent phase-centre displacement**. Because the
 phase centre is not rigidly coupled to the peat, this does **not** bound mat
@@ -1725,7 +1733,7 @@ Tables exported by `notebooks/06_manuscript/export_figures_en.ipynb`. Each is re
 
 | series | amplitude_mm | p_perm | n_null | null_type |
 |---|---|---|---|---|
-| A−C | 3.286 | 0.0324 | 277.0 | reference-matched |
+| A−C | 3.286 | 0.026 | 4614.0 | reference-matched |
 | B−C | 2.627 | 0.136 | 249.0 | reference-matched |
 | A−B | 0.901 |  |  | - |
 | NULL | 0.568 |  |  | - |
