@@ -1,0 +1,6 @@
+scenario,n_pairs,pct_pairs_retained,amplitude_mm,diff_from_baseline_mm,phase_doy,diff_phase_days,r2_seasonal
+All pairs (baseline),356,100.0,3.286,0.0,104.2,0.0,0.299
+Exclude max closure > 2pi,105,29.5,2.791,-0.495,126.9,22.7,0.065
+Exclude max closure > pi,50,14.0,0.332,-2.954,284.9,180.7,0.002
+Exclude worst 10% RMS closure,320,89.9,2.799,-0.487,139.9,35.7,0.17
+Exclude worst 20% RMS closure,285,80.1,2.967,-0.319,135.3,31.1,0.152

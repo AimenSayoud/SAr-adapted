@@ -1,0 +1,14 @@
+{
+  "table": "XT10_eroded_lake_leakage.csv",
+  "description": "Zone B lake erosion and distance-to-mat leakage sensitivity analysis (Review M1b)",
+  "git_sha": "580e72fb3b136d72047cb7e6994a8d4b38f7bc79",
+  "run_utc": "2026-09-07T14:38:00Z",
+  "execution_environment": "Google Colab CPU session s1",
+  "lake_subsets": [
+    "Zone B full (65 px)",
+    "Border ring (<= 40 m, 39 px)",
+    "Interior lake (> 40 m, 26 px)"
+  ],
+  "target_series": "B\u2212C",
+  "n_pairs": 356
+}

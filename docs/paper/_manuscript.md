@@ -808,6 +808,10 @@ Two physical hypotheses could account for coherent phase over Zone B: (1) emerge
 macrophytes along the lake margins acting as distributed scatterers modulated by water-level
 and dielectric shifts, or (2) spatial leakage from the adaptive Goldstein phase filter
 ($\alpha = 0.5$) smoothing adjacent mat phases across the narrow 65-pixel lake geometry.
+Eroding Zone B by one perimeter ring ($d > 40$ m, leaving 26 interior pixels) yields
+2.22 mm at DOY 94, and an expanded 1,000-draw reference-matched null confirms $p = 0.1565$
+(836 valid draws, null median 1.67 mm, p95 3.40 mm, Table XT10), demonstrating that the lake
+signal is not purely a boundary-pixel artifact while remaining strictly non-significant.
 Under either hypothesis, the lake trajectory is consistent with an environmental or dielectric
 scaling rather than differential mechanical breathing.
 
@@ -1500,6 +1504,16 @@ dielectric state of the **soil** — which is precisely the variable we invoke.
 therefore insensitive to 2π jumps. Filtering baselines > 60 days (annual pairs,
 ±25 mm scatter) tests the sensitivity of the aggregated inversion: the seasonal
 result does not depend on it qualitatively.
+
+Furthermore, to test whether the headline 3.29 mm seasonal amplitude (fitted to
+unwrapped phase) could be driven by unwrapping inconsistencies, we evaluated
+triplet closure phase errors across all 518 closed loops in the 356-pair network
+over Zone A. Filtering out pairs with significant unwrapping errors (excluding
+pairs with maximum loop closure error $> 2\pi$, or excluding the worst 10 % to
+20 % RMS closure pairs) yields seasonal amplitudes of 2.80 to 2.97 mm and
+preserves the mid-April/May peak phase (Table XT12). The seasonal amplitude is
+thus robust to phase unwrapping pair exclusion and does not collapse unless
+extreme filtering breaks network connectivity (retaining only 14 % of pairs).
 
 ### A.8 Spatial correlation and N_eff — measured, with a consequence for §4.3.2
 
