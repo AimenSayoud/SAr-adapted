@@ -706,8 +706,8 @@ null realisations** (Fig. 7, Fig. 10; Table 7):
 |---|---|---|---|---|
 | **A − C** | **3.29 mm** | **104** (mid-April) | 0.30 | **0.026** |
 
-Reference-matched null median 1.53 mm, p95 2.94 mm; 119 of 4 614 nulls exceed the
-observed value (*p* = 0.0260, exact 95 % CI [0.0214, 0.0308]). The interval no
+Reference-matched null median 1.69 mm, p95 2.93 mm; 119 of 4 614 nulls exceed the
+observed value (*p* = 0.0258, exact 95 % CI [0.0214, 0.0308]). The interval no
 longer straddles 0.05, establishing statistical significance against the real,
 fragmented grassland reference. The mid-April maximum is consistent with spring
 swelling at high water table.

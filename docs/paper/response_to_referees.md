@@ -29,9 +29,11 @@ rather than leaving them to be found:
 2. **Referee 2's objection to our null construction was correct.** We built the
    null from two patches of stable ground, so the real reference zone never
    entered it. Rebuilding the null while keeping the actual reference zone gives
-   a distribution **1.80× wider** in median, and the *p*-value moves from 0.014
-   to **0.038**. The reference zone does carry most of the variance, exactly as
-   the referee suspected. We now report the larger, correct *p*.
+   a distribution **1.80× wider** in median, moving *p* from 0.014 as published
+   to 0.038 in the preliminary 184-draw test, and settling at **0.026** (95 % CI
+   [0.021, 0.031]) in the full reference-matched permutation run (4,614 draws).
+   The reference zone does carry most of the variance, exactly as the referee
+   suspected. We now report this definitive value.
 
 3. **The propagated interval kills our order-of-magnitude argument against
    flotation, and we had not noticed.** Carrying the upper interval through the
@@ -738,9 +740,10 @@ reference is retained:
 | **Keeping the real reference** | 184 | **1.53 mm** | **2.94 mm** | **0.038** |
 
 The correct null is **1.80× wider** in median. The fragmented reference zone does
-carry most of the variance, and *p* moves from 0.014 as published to **0.038**.
-We now report the larger value and the construction it comes from. The signal
-survives, with a materially reduced margin.
+carry most of the variance, and *p* moves from 0.014 as published to 0.038 in the
+preliminary 184-draw run, and **0.026** (95 % CI [0.021, 0.031]) in the definitive
+reference-matched permutation test (4,614 draws). We now report this definitive
+value and construction. The signal survives, with a realistically characterized margin.
 
 On the corollary: we agree that an *N*_eff of 5 for the reference is itself
 troubling. See Referee 1's M5 for the multi-control work, its result, and the
