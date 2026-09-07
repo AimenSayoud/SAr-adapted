@@ -1,0 +1,3 @@
+method,amplitude_mm,ci_low,ci_high
+analytic (harmonic fit covariance),3.286,2.224,4.349
+i.i.d. date bootstrap (conservative),3.31,0.585,7.322

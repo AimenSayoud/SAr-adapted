@@ -1,0 +1,2 @@
+n_subset,observed,mode,tail,n_rigid_accepted,p_is_censored_at_floor,zone_statistic,n_null,null_median,null_p05,null_p95,p_value,p_greater,p_less,p_two_sided,p_floor
+27,-40.0,component-matched,greater,0,False,-113.14,4000,-89.44,-144.22,-56.57,0.001,0.001,1.0,0.0992,0.00025

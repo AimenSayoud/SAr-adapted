@@ -1,0 +1,4 @@
+erosion_px,n_px,delta_mean,frac_a_lower,amplitude_mm,phase_doy,closure_disp_A,closure_disp_C,note
+0,499,-0.0809,0.8933,3.286,104.2,0.6833,0.2124,
+1,356,-0.0832,0.8567,3.528,106.6,0.7119,0.2124,
+2,233,-0.0789,0.8174,3.781,108.3,0.7602,0.2124,

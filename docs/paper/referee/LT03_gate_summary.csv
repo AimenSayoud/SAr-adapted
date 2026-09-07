@@ -1,0 +1,3 @@
+distribution,n,median,iqr,p95
+A - matched control,25,3.115,0.482,3.506
+matched null (ctrl-ctrl),300,0.855,1.084,2.025
