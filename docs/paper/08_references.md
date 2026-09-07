@@ -88,6 +88,10 @@ J. M., McNairn, H., & Rao, Y. S. (2020). Dual polarimetric radar vegetation
 index for crop growth monitoring using Sentinel-1 SAR data. *Remote Sensing of
 Environment*, 247, 111954. https://doi.org/10.1016/j.rse.2020.111954
 
+Lamentowicz, Ł., Lamentowicz, M., & Gąbka, M. (2008). Testate amoebae ecology and a
+local transfer function from a peatland in western Poland. *Wetlands*, 28(1),
+164–175. https://doi.org/10.1672/07-92.1
+
 Milecka, K., Kowalewski, G., Fiałkiewicz-Kozieł, B., Gałka, M., Lamentowicz, M.,
 Chojnicki, B. H., Goslar, T., & Barabach, J. (2017). Hydrological changes in
 the Rzecin peatland (Puszcza Notecka, Poland) induced by anthropogenic factors:

@@ -35,9 +35,9 @@ tests whether another mechanism could produce the same observations.
 | 7 | **Mis-assigned land cover** | Excluded | WorldCover + S2 matching + area within 0.6 % | A.9 |
 | 8 | **Mat and lake moving together** | **Not excluded** | requires in-situ laser | A.10 |
 
-**Six of eight alternatives are excluded**; one is measured and requires the
-scope of the |R| comparison (§4.3.2) to be reduced; one resists and requires the
-laser.
+**Five of eight alternatives are strictly excluded**, one is largely excluded,
+one is quantitatively measured (reducing the scope of the |R| comparison, §4.3.2),
+and one remains open awaiting in-situ laser validation.
 
 ### A.3 Snow and frost — excluded
 
@@ -147,13 +147,14 @@ does not depend on the lake. It does **not**, however, exclude flotation-scale
 motion: propagated to vertical and divided by an unmeasured coupling fraction it
 admits 17 mm at *f* = 0.5, within the published raised-bog range.
 
-**What would resolve it.** In-situ **laser** measurement — a direct, absolute
-observation of mat movement.
+**What would resolve it.** In-situ laser measurement — a direct, absolute
+observation of mat movement, analogous to the geometric levelling validation
+employed by Tampuu et al. (2020) over Estonian peatlands.
 
 ### A.11 What the laser and UAV should test
 
-Their role is **not** to validate a displacement we do not claim to measure, but
-to **test the mechanism**.
+Their role is not to validate a displacement we do not claim to measure, but
+to test the mechanism.
 
 | Instrument | Question | Outcome and reading |
 |---|---|---|
