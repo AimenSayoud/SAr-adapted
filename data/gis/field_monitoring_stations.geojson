@@ -1,0 +1,11 @@
+{
+"type": "FeatureCollection",
+"name": "field_monitoring_stations",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:EPSG::32633" } },
+"features": [
+{ "type": "Feature", "properties": { "name": "Rzecin Eddy Covariance Flux Tower (ICOS)", "type": "Tower" }, "geometry": { "type": "Point", "coordinates": [ 588357.801338151562959, 5846593.181197308003902 ] } },
+{ "type": "Feature", "properties": { "name": "Piezometer P1 (Mat Center)", "type": "Piezometer" }, "geometry": { "type": "Point", "coordinates": [ 588261.266305479919538, 5846542.023184791207314 ] } },
+{ "type": "Feature", "properties": { "name": "Piezometer P2 (Lagg Margin)", "type": "Piezometer" }, "geometry": { "type": "Point", "coordinates": [ 588527.109624584438279, 5846769.395861065015197 ] } },
+{ "type": "Feature", "properties": { "name": "Paleo Coring Core-1 (Lamentowicz 2008)", "type": "Core" }, "geometry": { "type": "Point", "coordinates": [ 588328.13416835013777, 5846576.61905378755182 ] } }
+]
+}
