@@ -36,7 +36,7 @@ acquisition = [
     "pystac-client>=0.7",
     "planetary-computer>=1.0",
 ]
-dev = ["pytest>=7", "ruff>=0.1"]
+dev = ["pytest>=7", "ruff>=0.1", "pytest-cov>=4"]
 all = ["insar-wetlands[acquisition,dev]"]
 
 # NOTE: `google.colab` is imported for the Drive mount but is provided by the
@@ -48,6 +48,15 @@ where = ["src"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
+addopts = "-ra -q"
+
+[tool.coverage.run]
+source = ["src/insar_wetlands"]
+omit = ["tests/*"]
+
+[tool.coverage.report]
+fail_under = 50
+show_missing = true
 
 [tool.ruff]
 line-length = 100

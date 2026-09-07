@@ -28,18 +28,22 @@ help:
 	@echo "make docx      - build the .docx into the hub (runs check first)"
 	@echo "make all       - test, check, check-generated, appendix, assemble, docx"
 
+RUFF    := $(shell command -v ruff 2>/dev/null || echo $(HOME)/Library/Python/3.14/bin/ruff)
+PYTEST  := $(shell command -v pytest 2>/dev/null || echo $(HOME)/Library/Python/3.14/bin/pytest)
+
 lint:
-	$(PY) -m ruff check src tests
+	$(RUFF) check src tests
 
 test:
-	PYTHONPATH=$(SRC) $(PY) -m pytest tests -q
+	PYTHONPATH=$(SRC) $(PYTEST) tests -q
 
 # The transcription guard. Compares every registered number against the CSV it
 # came from, and fails if a superseded value is still in the prose.
 check:
-	@$(RUN) "from insar_wetlands.paper_numbers import check_manuscript_numbers, format_report; \
+	@$(RUN) "from insar_wetlands.paper_numbers import check_manuscript_numbers, coverage_metric, format_report; \
 	import sys; bad = check_manuscript_numbers('$(PAPER)'); \
-	print(format_report(bad)); sys.exit(1 if bad else 0)"
+	cov = coverage_metric('$(PAPER)'); \
+	print(format_report(bad, cov)); sys.exit(1 if bad or cov['coverage_pct'] < 2.0 else 0)"
 
 # The declared pipeline: catches an undeclared notebook, a dependency on a
 # superseded phase, a cycle, or a missing notebook file.

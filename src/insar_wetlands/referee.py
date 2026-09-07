@@ -615,113 +615,64 @@ def component_matched_null(mask: np.ndarray, zone: np.ndarray,
     return (np.asarray(out), shapes) if with_shapes else np.asarray(out)
 
 
-def toroidal_permutation_test(subset: xr.DataArray, zone: xr.DataArray,
-                              field: xr.DataArray, n_trials: int = 2000,
-                              seed: int = 0, stat=np.median,
-                              tail: str = "two_sided") -> dict:
-    """Test a spatial subset's statistic while PRESERVING its clustering.
-
-    A rank test on clustered pixels treats neighbours as independent
-    observations, which they are not at a correlation length of several pixels;
-    it therefore returns a *p*-value that is far too small. This shifts the
-    subset rigidly and toroidally inside the zone instead, so every null
-    realisation has the same size, the same shape and the same internal
-    autocorrelation as the observed one, and only its position changes.
-
-    Returns the observed statistic, the null distribution, and empirical
-    *p*-values for all three tails. `tail` selects which one `p_value` carries;
-    the others are always reported. This matters more than it looks: for a
-    directional hypothesis against a skewed null, a two-sided test on
-    |deviation| counts draws that deviate the OPPOSITE way and can hide a real
-    one-sided effect entirely."""
-    if tail not in ("greater", "less", "two_sided"):
-        raise ValueError("tail must be one of ['greater', 'less', "
-                         f"'two_sided'], got {tail!r}")
-    sm, zm = subset.values, zone.values
-    obs_vals = field.values[sm & np.isfinite(field.values)]
-    if not obs_vals.size:
-        return {"n_subset": 0}
-    observed = float(stat(obs_vals))
-
+def _sample_toroidal_rigid(sm: np.ndarray, zm: np.ndarray,
+                           field_vals: np.ndarray, stat,
+                           n_trials: int, rng: np.random.Generator) -> list[float]:
+    """Sample null values by shifting the observed set rigidly on a torus."""
     yx = np.argwhere(sm)
     y0, x0 = yx.min(0)
-    rel = yx - (y0, x0)                     # shape preserved exactly
+    rel = yx - (y0, x0)
     ny, nx = sm.shape
-    rng = np.random.default_rng(seed)
     nulls = []
-    shapes = []
     for _ in range(n_trials):
         dy, dx = rng.integers(0, ny), rng.integers(0, nx)
         yy = (rel[:, 0] + dy) % ny
         xx = (rel[:, 1] + dx) % nx
-        if not zm[yy, xx].all():            # must land wholly inside the zone
+        if not zm[yy, xx].all():
             continue
-        v = field.values[yy, xx]
+        v = field_vals[yy, xx]
         v = v[np.isfinite(v)]
         if v.size:
             nulls.append(float(stat(v)))
-    mode = "toroidal shift (shape preserved exactly)"
-    n_rigid = len(nulls)
+    return nulls
 
-    if not nulls:
-        # A rigid shift of an irregular set rarely lands wholly inside an
-        # irregular zone, so this branch is the normal case, not an edge case.
-        # Second choice: rebuild the observed FRAGMENTATION at random positions.
-        # This keeps pixel count, fragment count and fragment sizes, so a
-        # scattered observation is compared against scattered draws rather than
-        # against a single blob it could never resemble.
-        cm, cshapes = component_matched_null(sm, zm, field.values,
-                                             n_trials=n_trials, seed=seed,
-                                             stat=stat, with_shapes=True)
-        if cm.size:
-            mode = ("component-matched (count, fragment sizes and compactness "
-                    "preserved; position randomised)")
-            nulls, shapes = list(cm), cshapes
 
-    if not nulls:
-        # Last resort: compact blobs of the same pixel count. Preserves
-        # cardinality only, so the shape check below is what makes it usable.
-        mode = "compact blobs of equal size (exact shape relaxed)"
-        cand = np.argwhere(zm)
-        n_px = int(sm.sum())
-        if len(cand) > n_px:
-            for _ in range(n_trials):
-                idx = _compact_blob(cand, int(rng.integers(len(cand))), n_px)
-                v = field.values[cand[idx, 0], cand[idx, 1]]
-                v = v[np.isfinite(v)]
-                if v.size:
-                    nulls.append(float(stat(v)))
-                    b = np.zeros_like(zm)
-                    b[cand[idx, 0], cand[idx, 1]] = True
-                    shapes.append(_shape_descriptors(b))
+def _sample_fallback_blobs(zm: np.ndarray, field_vals: np.ndarray,
+                           n_px: int, stat, n_trials: int,
+                           rng: np.random.Generator) -> tuple[list[float], list[dict]]:
+    """Sample compact blobs of equal pixel count as a last-resort null."""
+    cand = np.argwhere(zm)
+    nulls, shapes = [], []
+    if len(cand) > n_px:
+        for _ in range(n_trials):
+            idx = _compact_blob(cand, int(rng.integers(len(cand))), n_px)
+            v = field_vals[cand[idx, 0], cand[idx, 1]]
+            v = v[np.isfinite(v)]
+            if v.size:
+                nulls.append(float(stat(v)))
+                b = np.zeros_like(zm)
+                b[cand[idx, 0], cand[idx, 1]] = True
+                shapes.append(_shape_descriptors(b))
+    return nulls, shapes
 
-    nulls = np.asarray(nulls)
-    if not nulls.size:
-        return {"n_subset": int(sm.sum()), "observed": observed, "n_null": 0,
-                "mode": "none", "tail": tail, "p_value": float("nan"),
-                "note": "NO NULL COULD BE BUILT -- this is not a negative "
-                        "result and must not be reported as one"}
-    zone_vals = field.values[zm & np.isfinite(field.values)]
+
+def _calculate_permutation_tails(nulls: np.ndarray, observed: float,
+                                 tail: str) -> tuple[dict[str, float], bool]:
+    """Compute empirical p-values for all three tails and test for floor censoring."""
     n = nulls.size
     nmed = float(np.median(nulls))
-
-    # All three tails, because the choice is not innocuous here. A two-sided
-    # test on |deviation from the median| is the wrong statistic for a
-    # DIRECTIONAL hypothesis when the null is skewed: draws deviating strongly
-    # in the opposite direction inflate the count and mask a real effect. The
-    # caller picks the tail matching the question it actually asked, and the
-    # others are reported so the choice is visible rather than buried.
     p = {
         "greater": (1 + int(np.sum(nulls >= observed))) / (1 + n),
         "less": (1 + int(np.sum(nulls <= observed))) / (1 + n),
-        "two_sided": (1 + int(np.sum(np.abs(nulls - nmed)
-                                     >= abs(observed - nmed)))) / (1 + n),
+        "two_sided": (1 + int(np.sum(np.abs(nulls - nmed) >= abs(observed - nmed)))) / (1 + n),
     }
-    # A p-value equal to the floor means ZERO null draws reached the observed
-    # value. The permutation has then only bounded p from above, and quoting the
-    # floor as if it were an estimate overstates what was measured.
     censored = bool(p[tail] <= 1 / (1 + n) + 1e-12)
+    return p, censored
 
+
+def _evaluate_shape_diagnostics(sm: np.ndarray,
+                                shapes: list[dict]) -> tuple[dict, dict, str]:
+    """Evaluate shape preservation and return observed, null median and warnings."""
     obs_shape = _shape_descriptors(sm)
     null_shape = {}
     warn = ""
@@ -730,11 +681,6 @@ def toroidal_permutation_test(subset: xr.DataArray, zone: xr.DataArray,
                       for k in ("n_components", "radius_of_gyration",
                                 "component_radius_of_gyration",
                                 "fill_fraction")}
-        # Fairness is judged on INTRINSIC shape only: fragment count and
-        # within-fragment elongation, which set the effective sample size and
-        # what the set can physically reach. Whole-set spread is deliberately
-        # excluded -- for a fragmented set it is a property of position, and
-        # position is the hypothesis, so matching on it would test nothing.
         a = obs_shape["component_radius_of_gyration"]
         b = null_shape["component_radius_of_gyration"]
         rg_ratio = 1.0 if max(a, b) < 0.5 else a / max(b, 1e-9)
@@ -753,6 +699,63 @@ def toroidal_permutation_test(subset: xr.DataArray, zone: xr.DataArray,
                     "values the null structurally cannot, so part of this "
                     "p-value reflects shape, not position. Do not report it "
                     "as a shape-preserving result.")
+    return obs_shape, null_shape, warn
+
+
+def toroidal_permutation_test(subset: xr.DataArray, zone: xr.DataArray,
+                              field: xr.DataArray, n_trials: int = 2000,
+                              seed: int = 0, stat=np.median,
+                              tail: str = "two_sided") -> dict:
+    """Test a spatial subset's statistic while PRESERVING its clustering.
+
+    A rank test on clustered pixels treats neighbours as independent
+    observations, which they are not at a correlation length of several pixels;
+    it therefore returns a *p*-value that is far too small. This shifts the
+    subset rigidly and toroidally inside the zone instead, so every null
+    realisation has the same size, the same shape and the same internal
+    autocorrelation as the observed one, and only its position changes.
+    """
+    if tail not in ("greater", "less", "two_sided"):
+        raise ValueError("tail must be one of ['greater', 'less', "
+                         f"'two_sided'], got {tail!r}")
+    sm, zm = subset.values, zone.values
+    obs_vals = field.values[sm & np.isfinite(field.values)]
+    if not obs_vals.size:
+        return {"n_subset": 0}
+    observed = float(stat(obs_vals))
+
+    rng = np.random.default_rng(seed)
+    nulls = _sample_toroidal_rigid(sm, zm, field.values, stat, n_trials, rng)
+    mode = "toroidal shift (shape preserved exactly)"
+    n_rigid = len(nulls)
+    shapes: list[dict] = []
+
+    if not nulls:
+        cm, cshapes = component_matched_null(sm, zm, field.values,
+                                             n_trials=n_trials, seed=seed,
+                                             stat=stat, with_shapes=True)
+        if cm.size:
+            mode = ("component-matched (count, fragment sizes and compactness "
+                    "preserved; position randomised)")
+            nulls, shapes = list(cm), cshapes
+
+    if not nulls:
+        mode = "compact blobs of equal size (exact shape relaxed)"
+        nulls, shapes = _sample_fallback_blobs(zm, field.values, int(sm.sum()),
+                                               stat, n_trials, rng)
+
+    nulls_arr = np.asarray(nulls)
+    if not nulls_arr.size:
+        return {"n_subset": int(sm.sum()), "observed": observed, "n_null": 0,
+                "mode": "none", "tail": tail, "p_value": float("nan"),
+                "note": "NO NULL COULD BE BUILT -- this is not a negative "
+                        "result and must not be reported as one"}
+
+    zone_vals = field.values[zm & np.isfinite(field.values)]
+    p, censored = _calculate_permutation_tails(nulls_arr, observed, tail)
+    obs_shape, null_shape, warn = _evaluate_shape_diagnostics(sm, shapes)
+    n = nulls_arr.size
+    nmed = float(np.median(nulls_arr))
 
     return {"n_subset": int(sm.sum()), "observed": observed, "mode": mode,
             "tail": tail, "n_rigid_accepted": int(n_rigid),
@@ -761,12 +764,12 @@ def toroidal_permutation_test(subset: xr.DataArray, zone: xr.DataArray,
             "shape_warning": warn,
             "zone_statistic": float(stat(zone_vals[np.isfinite(zone_vals)])),
             "n_null": int(n), "null_median": nmed,
-            "null_p05": float(np.percentile(nulls, 5)),
-            "null_p95": float(np.percentile(nulls, 95)),
+            "null_p05": float(np.percentile(nulls_arr, 5)),
+            "null_p95": float(np.percentile(nulls_arr, 95)),
             "p_value": float(p[tail]),
             "p_greater": float(p["greater"]), "p_less": float(p["less"]),
             "p_two_sided": float(p["two_sided"]),
-            "p_floor": float(1 / (1 + n)), "nulls": nulls}
+            "p_floor": float(1 / (1 + n)), "nulls": nulls_arr}
 
 
 def wrapped_seasonal_amplitude(dd: pd.DataFrame, date_col: str = "pair",

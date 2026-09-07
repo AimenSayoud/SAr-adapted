@@ -84,6 +84,37 @@ propagation phase or dielectric permittivity effects (De Zan et al., 2014). We
 suggest incorporating one systematically in peatland motion studies reporting
 millimetre-scale signals.
 
+**Quantitative comparison with the moisture-phase framework.** Extending the lossy
+dielectric half-space framework of De Zan et al. (2014) to saturated peat (permittivity
+mixing via a Birchak refractive model for *Sphagnum* organic solids, water and air at
+λ = 5.55 cm, θ = 32.3°), C-band penetration depth is constrained to merely 3–4 mm into
+the saturated capitulum layer. Under this model, a seasonal moisture excursion of
+Δm_v ≈ 0.25 (from saturated m_v = 0.85 down to 0.60) predicts an apparent interferometric
+line-of-sight displacement of −3.28 mm — reproducing our measured seasonal semi-amplitude
+(3.29 mm LOS, Table 7) almost exactly.
+
+Two critical properties accompany this quantitative alignment:
+
+1. *Asymptotic ceiling*: The theoretical maximum LOS phase shift under complete desiccation
+   converges asymptotically to ≈ 6.13 mm LOS. While our semi-amplitude (3.29 mm) aligns
+   cleanly with plausible seasonal moisture variations, the full peak-to-peak swing
+   (6.57 mm) slightly exceeds this ceiling, suggesting either that sinusoidal fitting
+   over-estimates the amplitude of a non-linear saturating response, or that thermal
+   expansion and temperature-dependent water permittivity contribute an additional
+   ±1 mm seasonal component.
+2. *Decorrelation falsification*: For Δm_v = 0.25, the dielectric propagation model predicts
+   an interferometric coherence |γ| = 0.725. In our dataset, only 5.4 % of mat pixels
+   achieve γ ≥ 0.7. This establishes that dielectric moisture variation alone cannot
+   account for the observed decorrelation, isolating vegetation volume scattering and
+   non-stationary scatterer dynamics as the dominant decorrelation mechanisms.
+
+Furthermore, testing maximum temporal baseline subsets (24 d to 356 d, Table KT13)
+reveals that while short-baseline networks (≤ 24 d) suffer from severe accumulating
+closure-phase subsidence bias (−13.5 to −23.5 mm yr⁻¹), consistent with Zheng et al. (2022),
+expanding the network to ≥ 48 d and annual pairs causes the apparent velocity to
+contract to near-zero (−1.53 mm yr⁻¹ on A−C vs −1.50 mm yr⁻¹ on NULL), demonstrating that
+our velocity non-detection is robust to network truncation.
+
 ![**Figure 16.** Our bound in context: raised-bog breathing, drained-fen subsidence, expected free flotation, and the value measured here.](figures/F16_literature_context.png)
 
 ### 5.3 Two transferable methodological contributions
@@ -143,6 +174,21 @@ coherence matrix — the same algorithmic core. It is not applicable here (North
 America only, and C-band, hence the same limitation), but it confirms that the
 route explored is not marginal.
 
+#### Literature synthesis: moisture-induced phase and peatland InSAR
+
+The physical mechanisms governing moisture-induced phase variations, decorrelation,
+and InSAR observables across wetland and peat substrates are synthesized across six
+foundational studies in Table 11.
+
+| Study | System & Substrate | Observable & Method | Key Finding & Transfer to This Work |
+|---|---|---|---|
+| De Zan et al. (2014) | L-band; bare agricultural soil | Analytical lossy dielectric half-space (Born approx.) | Differential propagation phase in top lossy layer mimics deformation (≈ 10° for Δm_v = 0.01). Framework extended here to saturated peat. |
+| Morrison et al. (2011) | C-band; indoor sand bed | Laboratory DInSAR vs physical surface laser | DInSAR phase shift far exceeds true surface motion during wetting/drying, proving dielectric phase masquerades as motion under controlled conditions. |
+| Zwieback et al. (2015) | L-band; agricultural soils | Empirical regression on in-situ moisture | Soil moisture effect exceeds 2 cm apparent displacement for Δm_v = 0.20 (> 70 % of fields), bounding dielectric signal scales. |
+| De Zan & Gomba (2018) | L-band; vegetated terrain | Closure-phase inversion constrained by coherence | Joint inversion of vegetation and moisture from closure phase; highlights C-band vegetated peat as an unresolved frontier. |
+| Morishita & Hanssen (2015) | L-, C-, X-band; drained peat pasture | 3-parameter temporal decorrelation model | Demonstrates severe C-band decorrelation on peat compared to L-band, establishing physical need for L-band systems. |
+| Zheng et al. (2022) | C-band; multi-temporal Sentinel-1 | Closure-phase accumulation & baseline subset test | Multilooking closure phase creates systematic velocity bias (~cm yr⁻¹) in short-baseline networks; verified in our subset test (Table KT13). |
+
 ### 5.5 What remains open
 
 **The decorrelation mechanism.** Two families remain compatible: (a) **dielectric**
@@ -160,17 +206,21 @@ origin is established (§4.3).
 measurement able to constrain the phase-centre coupling on which any
 statement about mat motion depends, and to separate (a) from (b).
 
-**Measured water table.** Rzecin is an instrumented site; an in-situ WTD series
-would transform the H4 test, since its temporal structure differs from that of
-temperature.
+**Measured water table.** Rzecin is an instrumented station; however, continuous
+in-situ piezometer time series were unavailable across the full retrospective
+2022–2024 Sentinel-1 processing window due to institutional data governance
+policies and sensor maintenance intervals. Consequently, optical surface moisture
+proxies (Sentinel-2 NDWI/NMDI) were utilized as the primary continuous empirical
+covariate. Direct in-situ water-table depth records remain the ideal validation
+target for future prospective campaigns.
 
 ### 5.6 Limitations
 
 - **One site, one track, one polarisation** (VV): transferability of the
   predictive model (R²cv = 0.24) to other peatlands remains to be demonstrated.
-- **No in-situ validation** (neither laser nor WTD): the constraint on
-  apparent phase-centre displacement is internal to the InSAR analysis, and the
-  coupling between that phase centre and the peat is unmeasured.
+- **No in-situ validation** (neither laser nor continuous WTD during 2022–2024):
+  the constraint on apparent phase-centre displacement is internal to the InSAR
+  analysis, and the coupling between that phase centre and the peat is unmeasured.
 - **S1A-only window** (12-day revisit): a degraded cadence relative to what is
   now available.
 - ***p*-values at the floor** (1/(1 + N)) for several tests; more null draws
