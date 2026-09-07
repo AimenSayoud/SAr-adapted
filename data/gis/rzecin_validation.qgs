@@ -1,0 +1,235 @@
+<!DOCTYPE qgis PUBLIC 'http://mrcc.com/qgis.dtd' 'SYSTEM'>
+<qgis projectname="Rzecin InSAR Visual Validation" version="3.28.0">
+  <homePath path=""/>
+  <title>Rzecin InSAR Visual Validation Project</title>
+  <autotransaction active="0"/>
+  <evaluateDefaultValues active="0"/>
+  <trust active="0"/>
+  <projectCrs>
+    <spatialrefsys>
+      <wkt>PROJCS["WGS 84 / UTM zone 33N",GEOGCS["WGS 84",DATUM["WGS_1984",SPHEROID["WGS 84",6378137,298.257223563,AUTHORITY["EPSG","7030"]],AUTHORITY["EPSG","6326"]],PRIMEM["Greenwich",0,AUTHORITY["EPSG","8901"]],UNIT["degree",0.0174532925199433,AUTHORITY["EPSG","9122"]],AUTHORITY["EPSG","4326"]],PROJECTION["Transverse_Mercator"],PARAMETER["latitude_of_origin",0],PARAMETER["central_meridian",15],PARAMETER["scale_factor",0.9996],PARAMETER["false_easting",500000],PARAMETER["false_northing",0],UNIT["metre",1,AUTHORITY["EPSG","9001"]],AXIS["Easting",EAST],AXIS["Northing",NORTH],AUTHORITY["EPSG","32633"]]</wkt>
+      <proj4>+proj=utm +zone=33 +datum=WGS84 +units=m +no_defs=True</proj4>
+      <srsid>0</srsid>
+      <srid>32633</srid>
+      <authid>EPSG:32633</authid>
+      <description>WGS 84 / UTM zone 33N</description>
+      <projectionacronym>utm</projectionacronym>
+      <ellipsoidacronym>WGS84</ellipsoidacronym>
+      <geographicflag>false</geographicflag>
+    </spatialrefsys>
+  </projectCrs>
+  <layer-tree-group>
+    <customproperties/>
+    <layer-tree-group expanded="1" checked="Qt::Checked" name="1. Field &amp; Boundaries">
+      <layer-tree-layer expanded="1" checked="Qt::Checked" id="field_monitoring_stations" name="Field Monitoring Stations"/>
+      <layer-tree-layer expanded="1" checked="Qt::Checked" id="marginal_27_pixels" name="Phase L7: Marginal 27 Pixels"/>
+      <layer-tree-layer expanded="1" checked="Qt::Checked" id="lake_erosion_rings" name="X-010: Lake Erosion Rings"/>
+      <layer-tree-layer expanded="1" checked="Qt::Checked" id="zones_polygons" name="Zonation Polygons (Zones A, B, C, D)"/>
+      <layer-tree-layer expanded="1" checked="Qt::Checked" id="aoi_rzecin_boundary" name="Rzecin Peatland AOI (89.7 ha)"/>
+    </layer-tree-group>
+    <layer-tree-group expanded="1" checked="Qt::Checked" name="2. Radar Coherence &amp; Quality">
+      <layer-tree-layer expanded="1" checked="Qt::Checked" id="temporal_coherence_evd" name="Temporal Coherence EVD (Phase E2)"/>
+      <layer-tree-layer expanded="1" checked="Qt::Unchecked" id="mean_coherence_spatial" name="Mean Pair Coherence (356 pairs)"/>
+    </layer-tree-group>
+    <layer-tree-group expanded="1" checked="Qt::Checked" name="3. Environment, Water &amp; Topography">
+      <layer-tree-layer expanded="1" checked="Qt::Unchecked" id="water_flooded_fraction" name="Flooded Fraction (Water Mask)"/>
+      <layer-tree-layer expanded="1" checked="Qt::Unchecked" id="esa_worldcover_rzecin" name="ESA WorldCover 10m Classification"/>
+      <layer-tree-layer expanded="1" checked="Qt::Unchecked" id="distance_to_mat_boundary" name="Distance to Mat Boundary (m)"/>
+      <layer-tree-layer expanded="1" checked="Qt::Unchecked" id="zones_classified_raster" name="Zonation Grid (1=A, 2=B, 3=C, 4=D)"/>
+      <layer-tree-layer expanded="1" checked="Qt::Checked" id="slope_topography" name="Terrain Slope (degrees)"/>
+      <layer-tree-layer expanded="1" checked="Qt::Checked" id="elevation_glo30_dem" name="Copernicus 30m DEM Elevation (m)"/>
+    </layer-tree-group>
+  </layer-tree-group>
+  <projectlayers>
+    <maplayer type="raster" autoRefreshTime="0" autoRefreshMode="Disabled" refreshOnNotifyEnabled="0" refreshOnNotifyMessage="" hasScaleBasedVisibilityFlag="0" minScale="1e+08" maxScale="0" styleCategories="AllStyleCategories">
+      <id>elevation_glo30_dem</id>
+      <datasource>./elevation_glo30_dem.tif</datasource>
+      <keywordList><value></value></keywordList>
+      <layername>Copernicus 30m DEM Elevation (m)</layername>
+      <srs>
+        <spatialrefsys>
+          <authid>EPSG:32633</authid>
+          <description>WGS 84 / UTM zone 33N</description>
+        </spatialrefsys>
+      </srs>
+      <provider>gdal</provider>
+      <pipe><rasterrenderer opacity="1" alphaBand="-1" band="1" type="singlebandpseudocolor"/></pipe>
+      <blendMode>0</blendMode>
+    </maplayer>
+    <maplayer type="raster" autoRefreshTime="0" autoRefreshMode="Disabled" refreshOnNotifyEnabled="0" refreshOnNotifyMessage="" hasScaleBasedVisibilityFlag="0" minScale="1e+08" maxScale="0" styleCategories="AllStyleCategories">
+      <id>slope_topography</id>
+      <datasource>./slope_topography.tif</datasource>
+      <keywordList><value></value></keywordList>
+      <layername>Terrain Slope (degrees)</layername>
+      <srs>
+        <spatialrefsys>
+          <authid>EPSG:32633</authid>
+          <description>WGS 84 / UTM zone 33N</description>
+        </spatialrefsys>
+      </srs>
+      <provider>gdal</provider>
+      <pipe><rasterrenderer opacity="1" alphaBand="-1" band="1" type="singlebandpseudocolor"/></pipe>
+      <blendMode>0</blendMode>
+    </maplayer>
+    <maplayer type="raster" autoRefreshTime="0" autoRefreshMode="Disabled" refreshOnNotifyEnabled="0" refreshOnNotifyMessage="" hasScaleBasedVisibilityFlag="0" minScale="1e+08" maxScale="0" styleCategories="AllStyleCategories">
+      <id>mean_coherence_spatial</id>
+      <datasource>./mean_coherence_spatial.tif</datasource>
+      <keywordList><value></value></keywordList>
+      <layername>Mean Pair Coherence (356 pairs)</layername>
+      <srs>
+        <spatialrefsys>
+          <authid>EPSG:32633</authid>
+          <description>WGS 84 / UTM zone 33N</description>
+        </spatialrefsys>
+      </srs>
+      <provider>gdal</provider>
+      <pipe><rasterrenderer opacity="1" alphaBand="-1" band="1" type="singlebandpseudocolor"/></pipe>
+      <blendMode>0</blendMode>
+    </maplayer>
+    <maplayer type="raster" autoRefreshTime="0" autoRefreshMode="Disabled" refreshOnNotifyEnabled="0" refreshOnNotifyMessage="" hasScaleBasedVisibilityFlag="0" minScale="1e+08" maxScale="0" styleCategories="AllStyleCategories">
+      <id>temporal_coherence_evd</id>
+      <datasource>./temporal_coherence_evd.tif</datasource>
+      <keywordList><value></value></keywordList>
+      <layername>Temporal Coherence EVD (Phase E2)</layername>
+      <srs>
+        <spatialrefsys>
+          <authid>EPSG:32633</authid>
+          <description>WGS 84 / UTM zone 33N</description>
+        </spatialrefsys>
+      </srs>
+      <provider>gdal</provider>
+      <pipe><rasterrenderer opacity="1" alphaBand="-1" band="1" type="singlebandpseudocolor"/></pipe>
+      <blendMode>0</blendMode>
+    </maplayer>
+    <maplayer type="raster" autoRefreshTime="0" autoRefreshMode="Disabled" refreshOnNotifyEnabled="0" refreshOnNotifyMessage="" hasScaleBasedVisibilityFlag="0" minScale="1e+08" maxScale="0" styleCategories="AllStyleCategories">
+      <id>water_flooded_fraction</id>
+      <datasource>./water_flooded_fraction.tif</datasource>
+      <keywordList><value></value></keywordList>
+      <layername>Flooded Fraction (Water Mask)</layername>
+      <srs>
+        <spatialrefsys>
+          <authid>EPSG:32633</authid>
+          <description>WGS 84 / UTM zone 33N</description>
+        </spatialrefsys>
+      </srs>
+      <provider>gdal</provider>
+      <pipe><rasterrenderer opacity="1" alphaBand="-1" band="1" type="singlebandpseudocolor"/></pipe>
+      <blendMode>0</blendMode>
+    </maplayer>
+    <maplayer type="raster" autoRefreshTime="0" autoRefreshMode="Disabled" refreshOnNotifyEnabled="0" refreshOnNotifyMessage="" hasScaleBasedVisibilityFlag="0" minScale="1e+08" maxScale="0" styleCategories="AllStyleCategories">
+      <id>esa_worldcover_rzecin</id>
+      <datasource>./esa_worldcover_rzecin.tif</datasource>
+      <keywordList><value></value></keywordList>
+      <layername>ESA WorldCover 10m Classification</layername>
+      <srs>
+        <spatialrefsys>
+          <authid>EPSG:32633</authid>
+          <description>WGS 84 / UTM zone 33N</description>
+        </spatialrefsys>
+      </srs>
+      <provider>gdal</provider>
+      <pipe><rasterrenderer opacity="1" alphaBand="-1" band="1" type="singlebandpseudocolor"/></pipe>
+      <blendMode>0</blendMode>
+    </maplayer>
+    <maplayer type="raster" autoRefreshTime="0" autoRefreshMode="Disabled" refreshOnNotifyEnabled="0" refreshOnNotifyMessage="" hasScaleBasedVisibilityFlag="0" minScale="1e+08" maxScale="0" styleCategories="AllStyleCategories">
+      <id>distance_to_mat_boundary</id>
+      <datasource>./distance_to_mat_boundary.tif</datasource>
+      <keywordList><value></value></keywordList>
+      <layername>Distance to Mat Boundary (m)</layername>
+      <srs>
+        <spatialrefsys>
+          <authid>EPSG:32633</authid>
+          <description>WGS 84 / UTM zone 33N</description>
+        </spatialrefsys>
+      </srs>
+      <provider>gdal</provider>
+      <pipe><rasterrenderer opacity="1" alphaBand="-1" band="1" type="singlebandpseudocolor"/></pipe>
+      <blendMode>0</blendMode>
+    </maplayer>
+    <maplayer type="raster" autoRefreshTime="0" autoRefreshMode="Disabled" refreshOnNotifyEnabled="0" refreshOnNotifyMessage="" hasScaleBasedVisibilityFlag="0" minScale="1e+08" maxScale="0" styleCategories="AllStyleCategories">
+      <id>zones_classified_raster</id>
+      <datasource>./zones_classified_raster.tif</datasource>
+      <keywordList><value></value></keywordList>
+      <layername>Zonation Grid (1=A, 2=B, 3=C, 4=D)</layername>
+      <srs>
+        <spatialrefsys>
+          <authid>EPSG:32633</authid>
+          <description>WGS 84 / UTM zone 33N</description>
+        </spatialrefsys>
+      </srs>
+      <provider>gdal</provider>
+      <pipe><rasterrenderer opacity="1" alphaBand="-1" band="1" type="singlebandpseudocolor"/></pipe>
+      <blendMode>0</blendMode>
+    </maplayer>
+    <maplayer type="vector" autoRefreshTime="0" autoRefreshMode="Disabled" refreshOnNotifyEnabled="0" refreshOnNotifyMessage="" hasScaleBasedVisibilityFlag="0" minScale="1e+08" maxScale="0" styleCategories="AllStyleCategories">
+      <id>aoi_rzecin_boundary</id>
+      <datasource>./aoi_rzecin_boundary.geojson</datasource>
+      <keywordList><value></value></keywordList>
+      <layername>Rzecin Peatland AOI (89.7 ha)</layername>
+      <srs>
+        <spatialrefsys>
+          <authid>EPSG:32633</authid>
+          <description>WGS 84 / UTM zone 33N</description>
+        </spatialrefsys>
+      </srs>
+      <provider>ogr</provider>
+      <blendMode>0</blendMode>
+    </maplayer>
+    <maplayer type="vector" autoRefreshTime="0" autoRefreshMode="Disabled" refreshOnNotifyEnabled="0" refreshOnNotifyMessage="" hasScaleBasedVisibilityFlag="0" minScale="1e+08" maxScale="0" styleCategories="AllStyleCategories">
+      <id>zones_polygons</id>
+      <datasource>./zones_polygons.geojson</datasource>
+      <keywordList><value></value></keywordList>
+      <layername>Zonation Polygons (Zones A, B, C, D)</layername>
+      <srs>
+        <spatialrefsys>
+          <authid>EPSG:32633</authid>
+          <description>WGS 84 / UTM zone 33N</description>
+        </spatialrefsys>
+      </srs>
+      <provider>ogr</provider>
+      <blendMode>0</blendMode>
+    </maplayer>
+    <maplayer type="vector" autoRefreshTime="0" autoRefreshMode="Disabled" refreshOnNotifyEnabled="0" refreshOnNotifyMessage="" hasScaleBasedVisibilityFlag="0" minScale="1e+08" maxScale="0" styleCategories="AllStyleCategories">
+      <id>lake_erosion_rings</id>
+      <datasource>./lake_erosion_rings.geojson</datasource>
+      <keywordList><value></value></keywordList>
+      <layername>X-010: Lake Erosion Rings (Border, Interior, Center)</layername>
+      <srs>
+        <spatialrefsys>
+          <authid>EPSG:32633</authid>
+          <description>WGS 84 / UTM zone 33N</description>
+        </spatialrefsys>
+      </srs>
+      <provider>ogr</provider>
+      <blendMode>0</blendMode>
+    </maplayer>
+    <maplayer type="vector" autoRefreshTime="0" autoRefreshMode="Disabled" refreshOnNotifyEnabled="0" refreshOnNotifyMessage="" hasScaleBasedVisibilityFlag="0" minScale="1e+08" maxScale="0" styleCategories="AllStyleCategories">
+      <id>marginal_27_pixels</id>
+      <datasource>./marginal_27_pixels.geojson</datasource>
+      <keywordList><value></value></keywordList>
+      <layername>Phase L7: Marginal 27 Pixels</layername>
+      <srs>
+        <spatialrefsys>
+          <authid>EPSG:32633</authid>
+          <description>WGS 84 / UTM zone 33N</description>
+        </spatialrefsys>
+      </srs>
+      <provider>ogr</provider>
+      <blendMode>0</blendMode>
+    </maplayer>
+    <maplayer type="vector" autoRefreshTime="0" autoRefreshMode="Disabled" refreshOnNotifyEnabled="0" refreshOnNotifyMessage="" hasScaleBasedVisibilityFlag="0" minScale="1e+08" maxScale="0" styleCategories="AllStyleCategories">
+      <id>field_monitoring_stations</id>
+      <datasource>./field_monitoring_stations.geojson</datasource>
+      <keywordList><value></value></keywordList>
+      <layername>Field Monitoring Stations (Tower, Piezometers, Cores)</layername>
+      <srs>
+        <spatialrefsys>
+          <authid>EPSG:32633</authid>
+          <description>WGS 84 / UTM zone 33N</description>
+        </spatialrefsys>
+      </srs>
+      <provider>ogr</provider>
+      <blendMode>0</blendMode>
+    </maplayer>
+  </projectlayers>
+</qgis>

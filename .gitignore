@@ -5,9 +5,11 @@ outputs/
 # Donnees lourdes (restent sur Google Drive)
 *.nc
 *.tif
+!data/gis/*.tif
 *.tiff
 *.h5
 *.zip
+!data/gis/*.zip
 
 __pycache__/
 *.egg-info/
