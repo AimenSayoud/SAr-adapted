@@ -306,7 +306,8 @@ def test_every_notebook_on_disk_is_declared():
     phases = load_phases(REPO / "config" / "phases.yaml")
     declared = {p.notebook for p in phases.values()}
     on_disk = {str(p.relative_to(REPO))
-               for p in (REPO / "notebooks").glob("**/*.ipynb")}
+               for p in (REPO / "notebooks").glob("**/*.ipynb")
+               if not p.name.endswith("_output.ipynb")}
     assert on_disk == declared
 
 
