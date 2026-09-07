@@ -79,17 +79,24 @@ check-generated: appendix assemble
 	@git diff --exit-code $(PAPER)/09_appendix_data.md $(PAPER)/_manuscript.md \
 		|| (echo "ERROR: Generated manuscript files have drifted from source. Run 'make appendix assemble' and commit the result." && exit 1)
 
+REF_DOC := $(PAPER)/reference.docx
+
 # check runs first on purpose: a document with a stale number should never
 # reach a file someone might send.
 docx: check check-generated appendix assemble
 	@test -f $(BIB) || (echo "ERROR: Missing bibliography at $(BIB). See 02_literature/SETUP.md §1." && exit 1)
 	@mkdir -p $(OUT)
 	pandoc $(PAPER)/_manuscript.md \
+	  --reference-doc=$(REF_DOC) \
 	  --citeproc \
 	  --bibliography=$(BIB) \
 	  --resource-path=$(PAPER):$(FIGURES) \
 	  --fail-if-warnings \
-	  -o $(OUT)/manuscript.docx
+	  -o $(OUT)/manuscript.raw.docx
+	@$(RUN) "from insar_wetlands.docx_academic import polish_academic_docx; \
+	r = polish_academic_docx('$(OUT)/manuscript.raw.docx', '$(OUT)/manuscript.docx'); \
+	print(f'Academic docx polished: {r[\"tables_polished\"]} tables, {r[\"headings_cleaned\"]} headings, {r[\"captions_styled\"]} captions, {r[\"figures_centered\"]} figures')"
+	@rm -f $(OUT)/manuscript.raw.docx
 	@echo "built: 03_paper01_rzecin/current/manuscript.docx"
 
 all: lint test phases docx
