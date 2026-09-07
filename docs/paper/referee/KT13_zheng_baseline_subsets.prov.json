@@ -1,0 +1,20 @@
+{
+  "table": "KT13_zheng_baseline_subsets.csv",
+  "description": "Zheng et al. (2022) maximum temporal baseline subset stability test",
+  "git_sha": "a273d86ab993122481f5e7e34d2b93a023194b3d",
+  "run_utc": "2026-09-07T10:33:17.135954+00:00",
+  "subsets_tested": [
+    24,
+    36,
+    48,
+    60,
+    120,
+    "All"
+  ],
+  "target_series": [
+    "A\u2212C",
+    "B\u2212C",
+    "NULL"
+  ],
+  "n_pairs_total": 356
+}

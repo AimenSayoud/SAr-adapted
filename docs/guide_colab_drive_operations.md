@@ -93,15 +93,17 @@ Binary path on macOS: `/Users/aymen/Library/Python/3.14/bin/colab`. Ensure this 
 * **Root Cause**:
   Fresh Colab VMs have no global git identity configured and no GitHub authentication token in headless sessions.
 * **The Permanent Fix**:
-  1. Configure git global identity upon session startup:
-     ```python
-     subprocess.run(['git', 'config', '--global', 'user.email', 'aimensayoud@gmail.com'])
-     subprocess.run(['git', 'config', '--global', 'user.name', 'AimenSayoud'])
-     ```
-  2. Always add `|| true` to notebook push commands so headless execution never fails if push fails:
+  1. Configure git repo identity upon session startup (configured in `environment/colab_setup.sh`):
      ```bash
-     !git add -A docs/paper && git commit -m "..." || echo "nothing to commit"
-     !git push origin {BRANCH} || true
+     git config user.email "aimen.sayoud.polska@gmail.com"
+     git config user.name "Aymen Sayoud"
+     ```
+  2. For push rights from Colab: store a fine-grained GitHub PAT in Colab Secrets (`GITHUB_TOKEN`) with `Contents: Read and write`. The bootstrap script clones via `https://x-access-token:{token}@github.com/...`. If running headlessly without interactive secrets, `git pull` reads publicly, and outputs are either committed directly (if token configured) or retrieved via `colab download` to Mac where they are committed to `main`.
+  3. Commit and push result CSVs:
+     ```bash
+     !git add docs/paper/figures/T*.csv docs/paper/referee/*.csv
+     !git commit -m "run: <phase> @ $(git rev-parse --short HEAD) $(date -u +%Y%m%dT%H%M%SZ)" || echo "nothing to commit"
+     !git pull --rebase origin {BRANCH} && git push origin {BRANCH} || true
      ```
 
 ---

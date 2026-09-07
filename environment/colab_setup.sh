@@ -7,6 +7,10 @@
 # =========================================================
 set -e
 
+# Configure git identity for commits from Colab (C-013)
+git config user.email "aimen.sayoud.polska@gmail.com"
+git config user.name "Aymen Sayoud"
+
 # Reproducibility: use the pinned lock file when it exists, so a rerun installs
 # the stack that produced the published numbers. Fall back to the loose list.
 if [ -f environment/requirements-lock.txt ]; then
