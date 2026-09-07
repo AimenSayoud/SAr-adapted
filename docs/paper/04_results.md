@@ -74,6 +74,7 @@ what prevents inversion.
 shift the *absolute* temporal coherence values. The **relative gap between A and
 C**, measured at strictly equal network, should persist: C succeeds where A
 fails, with the same pairs, the same sparsity and the same estimator.
+Furthermore, testing maximum temporal baseline subsets ($B_{t,\max} \in [24, 36, 48, 60, 120, \text{All}]$ days, Table KT13) confirms that this inversion failure is not an artifact of network connectivity: while short baselines ($\le 24\text{ d}$) suffer severe closure-phase accumulation bias (Zheng et al., 2022), the full network stabilizes reliably, confirming that the per-pixel decoherence is intrinsic to the target rather than the pair selection scheme.
 
 ---
 
@@ -262,7 +263,8 @@ null realisations** (Fig. 7, Fig. 10; Table 7):
 | **A − C** | **3.29 mm** | **104** (mid-April) | 0.30 | **0.026** |
 
 Reference-matched null median 1.69 mm, p95 2.93 mm; 119 of 4 614 nulls exceed the
-observed value (*p* = 0.0258, exact 95 % CI [0.0214, 0.0308]). The interval no
+observed value (permutation *p* = (119 + 1)/(4 614 + 1) = **0.026**, raw frequency ratio
+119/4 614 = 0.0258, exact 95 % CI [0.0214, 0.0308]). The interval no
 longer straddles 0.05, establishing statistical significance against the real,
 fragmented grassland reference. The mid-April maximum is consistent with spring
 swelling at high water table.

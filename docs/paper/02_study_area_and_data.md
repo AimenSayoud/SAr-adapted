@@ -2,10 +2,10 @@
 
 ### 2.1 Study area
 
-The **Rzecin peatland** (52.7632 °N, 16.3098 °E, Greater Poland; **89.7 ha**) is
-a transitional poor fen carrying a floating *Sphagnum* mat (*Schwingmoor*) with
-a residual lake undergoing terrestrialisation (Fig. 2). Three properties govern
-its radar response:
+The **Rzecin peatland** (52.7632 °N, 16.3098 °E, Greater Poland; **89.7 ha** total
+reserve area, Milecka et al., 2017; Juszczak et al., 2013) is a transitional poor
+fen carrying a floating *Sphagnum* mat (*Schwingmoor*) with a residual lake undergoing
+terrestrialisation (Fig. 2). Three properties govern its radar response:
 
 - **Near-surface water table**, 0–30 cm below the surface and hydrologically
   stable (Juszczak et al., 2013).
@@ -74,6 +74,19 @@ Four zones are defined on the radar grid (Fig. 2, Table 1):
 **Zone C is the core of the design.** It is a control matched in land cover and
 phenology, which isolates what is specific to the mat from what merely reflects
 "vegetation at C-band".
+
+**Stratification provenance and boundary sensitivity.** The documented 89.7 ha figure
+represents the legal and ecological reserve boundary established by published botanical
+and paleolimnological surveys (Milecka et al., 2017; Lamentowicz et al., 2008). On our
+~40 m radar analysis grid, the interior of this polygon discretizes to 564 pixels (90.24 ha,
+a +0.6 % discretization difference). Zone A (79.84 ha, 499 pixels) is an operational
+remote-sensing stratification of the non-inundated vegetated peatland, derived by subtracting
+the 10.40 ha (65 pixels) residual lake (Zone B, water-mask fraction > 0.30). While sediment
+cores confirm the central basin as an active floating *Sphagnum* mat over gyttja, continuous
+meter-scale physical coring along the entire perimeter does not exist in published surveys.
+To verify that our results do not depend on exact margin delineation or peripheral grounding,
+we performed inward erosion sensitivity tests (removing 1–2 perimeter rings, §4.2.3 and §A.3);
+coherence distributions, decorrelation rates, and seasonal amplitudes remain completely invariant.
 
 ### 2.5 Objective validation of the masks
 
