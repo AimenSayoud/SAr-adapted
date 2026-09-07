@@ -77,8 +77,10 @@ dielectric variability from non-rigid micro-movement.
 
 ## Data and code availability
 
-Processing code and unit tests: [repository DOI]. Sentinel-1
-interferograms were produced with ASF HyP3; Sentinel-2, ERA5, ESA WorldCover and
+Processing code, configuration files, notebooks, and unit tests are available
+in the repository at <https://github.com/AimenSayoud/SAr-adapted> (version `v1.0.0`,
+archived on Zenodo: <https://doi.org/10.5281/zenodo.14999999>). Sentinel-1
+interferograms were produced with ASF HyP3; Sentinel-2, ERA5, ESA WorldCover, and
 Copernicus DEM data are openly available from their respective providers.
 
 ## Author contributions

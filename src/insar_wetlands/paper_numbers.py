@@ -235,10 +235,33 @@ def check_manuscript_numbers(paper_dir: str | Path,
     return bad
 
 
-def format_report(bad: list[dict]) -> str:
+def coverage_metric(paper_dir: str | Path,
+                    text: str | None = None) -> dict[str, float | int]:
+    """Ratio of registered numerals to total numerals in prose (C-004).
+
+    Computes registered numerals ÷ total numerals in non-generated sections.
+    Acts as an automated regression ratchet.
+    """
+    paper_dir = Path(paper_dir)
+    if text is None:
+        text = hand_written_text(paper_dir)
+    all_nums = re.findall(r"\b\d+(?:\.\d+)?\b", text)
+    exp = expected_values(paper_dir / "figures")
+    reg_nums = []
+    for item in exp:
+        if item.get("expected"):
+            reg_nums.extend(re.findall(r"\b\d+(?:\.\d+)?\b", str(item["expected"])))
+    n_reg = len(reg_nums)
+    n_total = len(all_nums)
+    pct = round(n_reg / n_total * 100.0, 2) if n_total > 0 else 0.0
+    return {"n_registered": n_reg, "n_total": n_total, "coverage_pct": pct}
+
+
+def format_report(bad: list[dict], cov: dict | None = None) -> str:
+    cov_str = f" (numeral coverage: {cov['n_registered']}/{cov['n_total']} [{cov['coverage_pct']}%])" if cov else ""
     if not bad:
-        return "all registered numbers appear in the manuscript"
-    lines = [f"{len(bad)} registered number(s) not found in the manuscript:"]
+        return f"all registered numbers appear in the manuscript{cov_str}"
+    lines = [f"{len(bad)} registered number(s) not found in the manuscript{cov_str}:"]
     for b in bad:
         where = f" where {b['where']}" if b.get("where") else ""
         lines.append(f"  - {b['name']}: expected {b['expected']!r} "

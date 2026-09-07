@@ -636,6 +636,26 @@ def test_matched_null_pairs_reports_an_impossible_pool_instead_of_raising():
     assert list(out.columns) == ["trial", "amplitude_mm", "r2_seasonal"]
 
 
+def test_calculate_permutation_tails_computes_exact_pvalues():
+    from insar_wetlands.referee import _calculate_permutation_tails
+    nulls = np.array([1.0, 2.0, 3.0, 4.0, 5.0])
+    p, censored = _calculate_permutation_tails(nulls, observed=4.5, tail="greater")
+    assert abs(p["greater"] - 2 / 6) < 1e-6
+    assert abs(p["less"] - 5 / 6) < 1e-6
+    assert censored is False
+
+
+def test_evaluate_shape_diagnostics_detects_mismatch():
+    from insar_wetlands.referee import _evaluate_shape_diagnostics
+    sm = np.zeros((10, 10), bool)
+    sm[2:5, 2:5] = True
+    shapes = [{"n_components": 1, "radius_of_gyration": 1.0,
+               "component_radius_of_gyration": 1.0, "fill_fraction": 1.0}]
+    obs_shape, null_shape, warn = _evaluate_shape_diagnostics(sm, shapes)
+    assert obs_shape["n_components"] == 1
+    assert warn == ""
+
+
 if __name__ == "__main__":
     test_erode_zone_removes_a_border_ring()
     test_erosion_of_a_thin_zone_can_empty_it()

@@ -146,8 +146,11 @@ ground-truth test is not evidence.
 - Do not add dependencies without asking. The stack is numpy / pandas / scipy / xarray /
   scikit-learn and stays small.
 
-## Open work
+## Open work and task ledger
 
-See `$HOME/Documents/Research_Hub/STATUS.md` for current versus superseded numbers and the
-blocking list. `docs/paper/response_to_referees.md` records the round-2 corrections; the
-July draft in the hub's `99_archive/` predates them and must not be used as a source.
+- `$HOME/Documents/Research_Hub/STATE.md`: Present state and confirmed project numbers.
+- `$HOME/Documents/Research_Hub/_ledger/_INDEX.md`: The authoritative task ledger. Rows where
+  `owner: CC` constitute the queue. When finishing an item, update its status to `state: applied`
+  or `state: closed` with its commit SHA.
+- `docs/paper/response_to_referees.md`: Records the round-2 referee commitments and corrections.
+  The July draft in the hub's `99_archive/` predates them and must never be quoted.
