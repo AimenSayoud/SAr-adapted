@@ -171,6 +171,8 @@ def validate(phases: dict[str, Phase], repo: str | Path | None = None) -> list[s
     if repo:
         declared = {p.notebook for p in phases.values()}
         for nb in sorted((repo / "notebooks").glob("**/*.ipynb")):
+            if nb.name.endswith("_output.ipynb"):
+                continue
             rel = str(nb.relative_to(repo))
             if rel not in declared:
                 problems.append(f"undeclared notebook: {rel}")
