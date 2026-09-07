@@ -30,11 +30,16 @@ one.
 | Relative orbit | 175, ascending |
 | Burst | `175_374052_IW1` (AOI coverage verified) |
 | Period | 2022-01-01 to 2024-12-31 |
-| Revisit | 12 days (**S1A-only era**: S1B had failed, S1C was not yet operational) |
-| Interferograms | **356 pairs** over ~90 acquisitions |
-| Processing | ASF **HyP3** `INSAR_ISCE_BURST` (coregistration, SNAPHU unwrapping, geocoding) |
-| Grid | UTM, ~40 m posting; analysis crop 129 × 138 pixels |
-| **Incidence angle (measured)** | **32.26°** over zone A → LOS-to-vertical factor **1.183** |
+| Revisit | 12 days (S1A-only era: S1B had failed, S1C was not yet operational) |
+| Interferograms | 356 pairs over ~90 acquisitions |
+| InSAR Processor | ASF HyP3 `INSAR_ISCE_BURST` (ISCE2 backend) |
+| Multilooking | 10 range × 2 azimuth looks (~40 m pixel posting) |
+| Phase filtering | Goldstein adaptive filter, parameter $\alpha = 0.5$ |
+| Phase unwrapping | SNAPHU (Minimum Cost Flow) |
+| Topographic phase | Copernicus 30 m GLO-30 DEM |
+| Water masking | Disabled during unwrapping across wetland extent |
+| Analysis grid | UTM, ~40 m posting; analysis crop 129 × 138 pixels |
+| Incidence angle (measured) | 32.26° over zone A → LOS-to-vertical factor 1.183 |
 
 
 ![**Figure 3.** Interferometric network. (a) 356 pairs over ~90 acquisitions, 2022–2024; (b) temporal-baseline distribution, with the 60-day robustness filter marked.](figures/F03_network.png)
@@ -42,7 +47,7 @@ one.
 > **Scope note.** The 2022–2024 window falls in the S1A-only era (12-day
 > revisit). The return to a two-satellite constellation (S1C, S1D) restores the
 > 6-day cycle and will reduce *temporal* decorrelation for future studies. It
-> does **not** change the wavelength, on which volumetric decorrelation depends
+> does not change the wavelength, on which volumetric decorrelation depends
 > (§5.4).
 
 
@@ -106,10 +111,10 @@ Three independent checks, none of them visual:
 | Zone | Coherence | σ⁰ VV (dB) | RVI | S2 wetness | Temporal coherence |
 |---|---|---|---|---|---|
 | A (mat) | 0.408 | −10.09 | 0.914 | −0.513 | 0.604 |
-| B (lake) | 0.396 | **−15.41** | 0.993 | **+0.185** | 0.584 |
-| C (grassland) | **0.492** | −11.22 | 0.881 | −0.522 | **0.734** |
+| B (lake) | 0.396 | −15.41 | 0.993 | +0.185 | 0.584 |
+| C (grassland) | 0.492 | −11.22 | 0.881 | −0.522 | 0.734 |
 | D (other) | 0.438 | −9.28 | 1.045 | −0.440 | 0.639 |
 
-The polygon is expressed in **five independent sensors**, with disjoint per-zone
-distributions (Fig. 8) and a **sharp step** at the boundary in all radial
-profiles (Fig. 3).
+The polygon is expressed in five independent sensors, with disjoint per-zone
+distributions (Fig. 8) and a sharp step at the boundary in all radial
+profiles (Fig. 9).

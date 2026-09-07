@@ -3,19 +3,21 @@
 ### 5.1 Why C-band succeeds on raised bogs and fails here
 
 Our results do not contradict Hrysiewicz et al. (2024), who retrieved bog
-breathing over Irish raised bogs with correlations of 0.8–0.9. They **delimit
-the domain of validity** of the method.
+breathing over Irish raised bogs with correlations of 0.8–0.9, nor Alshammari et al. (2018)
+or Tampuu et al. (2020), who demonstrated InSAR surface motion tracking across Scottish
+blanket bogs and Estonian peatlands. Instead, our findings delimit the domain of validity
+of C-band interferometry across peatland types.
 
 | | Raised bog | Floating fen (Rzecin) |
 |---|---|---|
-| Canopy | comparatively **dry** *Sphagnum* | *Sphagnum* + sedges, **saturated** |
-| Water table | deeper, more variable | **near-surface**, stable |
-| Scatterers | **surface**, stable | **volumetric**, non-stationary |
+| Canopy | comparatively dry *Sphagnum* | *Sphagnum* + sedges, saturated |
+| Water table | deeper, more variable | near-surface, stable |
+| Scatterers | surface, stable | volumetric, non-stationary |
 | Substrate | consolidated peat | mat resting on water |
 | C-band coherence | usable | 5.4 % of pixels ≥ 0.7 |
 
 The discriminating factor is not simply "peatland or not" but the combination of
-**canopy wetness, scattering structure, and target stationarity**. Unlike raised bogs
+canopy wetness, scattering structure, and target stationarity. Unlike raised bogs
 where a consolidated, comparatively drier *Sphagnum* carpet provides stable surface
 scatterers (Hrysiewicz et al., 2024), the floating mat (*Schwingmoor*) at Rzecin is
 characterized by near-permanent saturation and low-stature emergent vegetation
@@ -30,7 +32,7 @@ revisits is predominantly driven by temporal changes in surface moisture,
 micro-topographic water pooling, and vegetation configuration—a pattern consistent
 with observations across non-forested herbaceous wetlands (Chen et al., 2020, 2021).
 
-**Generalisable contribution:** the success of C-band over peatlands does **not**
+**Generalisable contribution:** the success of C-band over peatlands does not
 transfer automatically to floating peatlands, which are nonetheless the sites
 where the expected vertical displacement from buoyancy is largest.
 
@@ -45,10 +47,12 @@ satellite InSAR requires distinguishing true mechanical motion from radar phase
 artifacts.
 
 Patil et al. (2026) report subsidence of 0.48–1.40 cm yr⁻¹ over the drained
-Great Fen. Direct comparison with our bound would be a **category error**: their
-figure is a **rate** (mm yr⁻¹, vertical) while ours is the **amplitude** of an
-annual cycle (mm, line-of-sight). The comparable quantity is our **velocity**,
-which we did measure: −1.53 mm yr⁻¹ against a null of −1.50, i.e. not
+Great Fen, and Ghezelayagh et al. (2024) observed coherent seasonal subsidence over
+drained agricultural sections of the Biebrza fen peatlands in northeastern Poland.
+Direct comparison between their subsidence rates and our seasonal amplitude bound would
+be a category error: their figure is a secular rate (mm yr⁻¹, vertical) while ours is
+the amplitude of an annual cycle (mm, line-of-sight). The comparable quantity is our
+velocity, which we did measure: −1.53 mm yr⁻¹ against a null of −1.50, i.e. not
 significant, with a detection floor of ≈ 1.5–5 mm yr⁻¹.
 
 Read that way, the comparison is informative:
@@ -57,29 +61,31 @@ Read that way, the comparison is informative:
 |---|---|---|
 | Late-restored farms (Great Fen) | drained, under restoration | 14.0 mm yr⁻¹ |
 | Early-restored farms (Great Fen) | drained, under restoration | 11.7 mm yr⁻¹ |
-| Nature reserves (Holme, Woodwalton) | conserved, **wetter** | **4.8 mm yr⁻¹** |
-| **Rzecin (this study)** | **natural, saturated, never drained** | **not detected** |
+| Nature reserves (Holme, Woodwalton) | conserved, wetter | 4.8 mm yr⁻¹ |
+| Biebrza fens (Ghezelayagh et al., 2024) | drained/managed fen sections | seasonal subsidence detected |
+| Rzecin (this study) | natural, saturated, never drained | not detected |
 
 The gradient follows hydrological state. Rzecin, never drained and with a
-near-surface water table, sits **below the least-subsiding site** of that series
+near-surface water table, sits below the least-subsiding sites of those series
 — the ecologically expected outcome rather than a measurement failure. Our
-non-detection is therefore **consistent with** that literature, and the
+non-detection is therefore consistent with that literature, and the
 comparison delimits where C-band peatland subsidence monitoring applies: drained
 peat (agricultural surfaces, high coherence, centimetre-scale signal) rather than
 saturated floating mats (wet canopy, low coherence, millimetre-scale signal).
 
 **A methodological caution our results support.** Patil et al. interpret
 seasonal fluctuations aligned with soil moisture as hydrological control of peat
-surface motion. Our results counsel care with that inference: **a seasonal
-oscillation correlated with moisture is not automatically motion.** At our site a
-3.3 mm signal correlating well with moisture proved **dielectric** — the residual
-lake, which cannot breathe, oscillated at the same amplitude and phase. Phase
-variations induced by dielectric permittivity and moisture changes are well
-established in the InSAR literature (De Zan et al., 2014, 2015; Morrison et al.,
-2011; Zwieback et al., 2015, 2017; Mira et al., 2022; Zheng & Fattahi, 2025).
+surface motion. Our results counsel care with that inference: a seasonal
+oscillation correlated with moisture is not automatically motion. At our site,
+a 3.3 mm signal correlating well with moisture was accompanied by a consistent
+phase and amplitude trajectory over the open-water lake, while the differential
+mat-minus-lake signal cancelled. Phase variations induced by dielectric permittivity
+and moisture changes are well established in the InSAR literature (De Zan et al.,
+2014, 2015; Morrison et al., 2011; Zwieback et al., 2015, 2017; Mira et al., 2022;
+Zheng & Fattahi, 2025).
 
-A **control over a water surface**, or any target where motion is physically
-excluded, is inexpensive and separates genuine displacement from differential
+A control over a water surface, or any target where mechanical breathing is physically
+precluded, is inexpensive and separates genuine displacement from differential
 propagation phase or dielectric permittivity effects (De Zan et al., 2014). We
 suggest incorporating one systematically in peatland motion studies reporting
 millimetre-scale signals.
@@ -88,10 +94,15 @@ millimetre-scale signals.
 dielectric half-space framework of De Zan et al. (2014) to saturated peat (permittivity
 mixing via a Birchak refractive model for *Sphagnum* organic solids, water and air at
 λ = 5.55 cm, θ = 32.3°), C-band penetration depth is constrained to merely 3–4 mm into
-the saturated capitulum layer. Under this model, a seasonal moisture excursion of
-Δm_v ≈ 0.25 (from saturated m_v = 0.85 down to 0.60) predicts an apparent interferometric
-line-of-sight displacement of −3.28 mm — reproducing our measured seasonal semi-amplitude
-(3.29 mm LOS, Table 7) almost exactly.
+the saturated capitulum layer. Under this model, assuming a seasonal volumetric moisture
+excursion of $\Delta m_v \approx 0.25$ (from saturated $m_v = 0.85$ down to $0.60$) predicts
+an apparent interferometric line-of-sight displacement of $-3.28$ mm.
+
+Because in-situ dielectric moisture excursions were unmeasured during 2022–2024, this
+alignment should not be interpreted as exact calibration, but rather as an order-of-magnitude
+physical consistency check. Over a plausible range of moisture excursions $\Delta m_v \in [0.15, 0.35]$,
+the predicted LOS displacement envelope spans $-1.9$ mm to $-4.6$ mm, consistent with the
+observed 3.29 mm point estimate (Table 7) and well within the 95 % upper bound of 7.32 mm LOS.
 
 Two critical properties accompany this quantitative alignment:
 
@@ -102,13 +113,14 @@ Two critical properties accompany this quantitative alignment:
    over-estimates the amplitude of a non-linear saturating response, or that thermal
    expansion and temperature-dependent water permittivity contribute an additional
    ±1 mm seasonal component.
-2. *Decorrelation falsification*: For Δm_v = 0.25, the dielectric propagation model predicts
-   an interferometric coherence |γ| = 0.725. In our dataset, only 5.4 % of mat pixels
-   achieve γ ≥ 0.7. This establishes that dielectric moisture variation alone cannot
-   account for the observed decorrelation, isolating vegetation volume scattering and
-   non-stationary scatterer dynamics as the dominant decorrelation mechanisms.
+2. *Decorrelation falsification*: For $\Delta m_v = 0.25$, the dielectric propagation model
+   predicts an interferometric pair coherence $|\gamma| = 0.725$. In our dataset, the observed
+   mean pair coherence over Zone A is merely 0.408 (Table 4). This establishes that dielectric
+   moisture variation alone cannot account for the severe decorrelation observed, isolating
+   vegetation volume scattering and non-stationary scatterer dynamics as the dominant
+   decorrelation mechanisms.
 
-Furthermore, testing maximum temporal baseline subsets (24 d to 356 d, Table KT13)
+Furthermore, testing maximum temporal baseline subsets (24 d to 120 d and all-pair, Table 3)
 reveals that while short-baseline networks (≤ 24 d) suffer from severe accumulating
 closure-phase subsidence bias (−13.5 to −23.5 mm yr⁻¹), consistent with Zheng et al. (2022),
 expanding the network to ≥ 48 d and annual pairs causes the apparent velocity to
@@ -167,12 +179,15 @@ alone to unlock this site.
 **Historical alternative.** ALOS-2/PALSAR-2 (L-band, 2015–2024) would allow a
 retrospective test over our window, but access is restricted.
 
-**Methodological positioning.** The approach tested here is that of the
-operational state of the art: the **OPERA DISP-S1** product (NASA/JPL) performs
-hybrid persistent- and distributed-scatterer phase linking on the sample
-coherence matrix — the same algorithmic core. It is not applicable here (North
-America only, and C-band, hence the same limitation), but it confirms that the
-route explored is not marginal.
+**Methodological positioning.** The approach tested here reflects the operational
+state of the art for multi-looked burst products: the OPERA DISP-S1 product (NASA/JPL)
+performs hybrid persistent- and distributed-scatterer phase linking on the sample
+coherence matrix — the same algorithmic core evaluated here. Advanced full-covariance
+approaches utilizing raw Single Look Complex (SLC) data with Statistically Homogeneous
+Pixel (SHP) selection (e.g., SqueeSAR; Ferretti et al., 2011) and phase bias mitigation
+(Ansari et al., 2021) represent an important prospective avenue. While out of scope
+for standard burst products, they offer a methodological benchmark for future high-performance
+computing implementations.
 
 #### Literature synthesis: moisture-induced phase and peatland InSAR
 
@@ -187,7 +202,7 @@ foundational studies in Table 11.
 | Zwieback et al. (2015) | L-band; agricultural soils | Empirical regression on in-situ moisture | Soil moisture effect exceeds 2 cm apparent displacement for Δm_v = 0.20 (> 70 % of fields), bounding dielectric signal scales. |
 | De Zan & Gomba (2018) | L-band; vegetated terrain | Closure-phase inversion constrained by coherence | Joint inversion of vegetation and moisture from closure phase; highlights C-band vegetated peat as an unresolved frontier. |
 | Morishita & Hanssen (2015) | L-, C-, X-band; drained peat pasture | 3-parameter temporal decorrelation model | Demonstrates severe C-band decorrelation on peat compared to L-band, establishing physical need for L-band systems. |
-| Zheng et al. (2022) | C-band; multi-temporal Sentinel-1 | Closure-phase accumulation & baseline subset test | Multilooking closure phase creates systematic velocity bias (~cm yr⁻¹) in short-baseline networks; verified in our subset test (Table KT13). |
+| Zheng et al. (2022) | C-band; multi-temporal Sentinel-1 | Closure-phase accumulation & baseline subset test | Multilooking closure phase creates systematic velocity bias (~cm yr⁻¹) in short-baseline networks; verified in our subset test (Table 3). |
 
 ### 5.5 What remains open
 

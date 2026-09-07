@@ -150,6 +150,29 @@ REGISTRY = [
      {"zone": "A"}, fixed(3)),
     ("freeze gain, grassland", "T10_hydrology_freeze.csv", "freeze_gain",
      {"zone": "C"}, fixed(3)),
+
+    # --- added 2026-09-07 (ticket expansion) ------------------------------
+    ("grassland area", "T01_zones.csv", "area_ha", {"zone": "C"}, fixed(2)),
+    ("grassland pixel count", "T01_zones.csv", "n_px", {"zone": "C"}, fixed(0)),
+    ("lake pixel count", "T01_zones.csv", "n_px", {"zone": "B"}, fixed(0)),
+    ("mean coherence, mat", "T04_zone_signature.csv", "coherence",
+     {"zone": "A"}, fixed(3)),
+    ("mean coherence, grassland", "T04_zone_signature.csv", "coherence",
+     {"zone": "C"}, fixed(3)),
+    ("sigma0 VV, grassland", "T04_zone_signature.csv", "$\\sigma^0$ VV (dB)",
+     {"zone": "C"}, fixed(2)),
+    ("RVI, mat", "T04_zone_signature.csv", "RVI (volume)",
+     {"zone": "A"}, fixed(3)),
+    ("RVI, grassland", "T04_zone_signature.csv", "RVI (volume)",
+     {"zone": "C"}, fixed(3)),
+    ("S2 wetness, mat", "T04_zone_signature.csv", "S2 wetness",
+     {"zone": "A"}, fixed(3)),
+    ("S2 wetness, grassland", "T04_zone_signature.csv", "S2 wetness",
+     {"zone": "C"}, fixed(3)),
+    ("seasonal amplitude B - C p", "T07_seasonal_amplitudes.csv", "p_perm",
+     {"series": "B−C"}, fixed(3)),
+    ("paired delta median, A - C", "T05_paired_test.csv", "delta_median",
+     None, fixed(3)),
 ]
 
 
