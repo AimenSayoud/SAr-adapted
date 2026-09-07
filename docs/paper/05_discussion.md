@@ -76,11 +76,13 @@ oscillation correlated with moisture is not automatically motion.** At our site 
 lake, which cannot breathe, oscillated at the same amplitude and phase. Phase
 variations induced by dielectric permittivity and moisture changes are well
 established in the InSAR literature (De Zan et al., 2014, 2015; Morrison et al.,
-2011; Zwieback et al., 2015, 2017; Mira et al., 2022; Zheng & Fattahi, 2025). A
-**control over a water surface**, or any target where motion is physically
-excluded, is inexpensive and separates genuine displacement from a
-penetration-depth or dielectric effect. We suggest incorporating one systematically
-in peatland motion studies reporting millimetre-scale signals.
+2011; Zwieback et al., 2015, 2017; Mira et al., 2022; Zheng & Fattahi, 2025).
+
+A **control over a water surface**, or any target where motion is physically
+excluded, is inexpensive and separates genuine displacement from differential
+propagation phase or dielectric permittivity effects (De Zan et al., 2014). We
+suggest incorporating one systematically in peatland motion studies reporting
+millimetre-scale signals.
 
 ![**Figure 16.** Our bound in context: raised-bog breathing, drained-fen subsidence, expected free flotation, and the value measured here.](figures/F16_literature_context.png)
 

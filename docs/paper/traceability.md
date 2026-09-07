@@ -78,11 +78,11 @@ text without a corresponding row.
 | L_corr / N_eff measured | A 160 m / 31 · C 360 m / 5 · D 280 m / 219 | `phaseJ` J1 |
 | Velocity A−C vs null | −1.53 vs −1.50 mm yr⁻¹ → not significant | `phaseG` |
 | Velocity detection floor | ≈ 1.5–5 mm yr⁻¹ | `phaseG` |
-| **Amplitude A−C** | **3.29 mm**, DOY 104, ***p* = 0.014** (280 nulls, floor 0.0036) | `phaseJ` J4 |
+| **Amplitude A−C** | **3.29 mm**, DOY 104, ***p* = 0.026** (95 % CI [0.021, 0.031], ≈4 600 draws) | `phaseL` L6 |
 | Amplitude A−C **winter excluded** | **3.282 mm** (−0.1 %), R² 0.309, *p* = 0.022 | `phaseJ` J3 |
-| Matched null | median 0.86, p95 1.87 mm | `phaseJ` |
-| **Amplitude B−C (lake)** | **2.63 mm**, DOY 95, *p* = 0.036 | `phaseG` |
-| **Amplitude A−B** | **0.90 mm**, DOY 146, *p* = 0.448 | `phaseG` |
+| Matched null (reference-matched) | median 1.53, p95 2.94 mm | `phaseK` KT04 / `phaseL` L6 |
+| **Amplitude B−C (lake)** | **2.63 mm**, DOY 95, *p* = 0.136 (n.s.) | `export_figures_en` T07 |
+| **Amplitude A−B** | **0.90 mm**, DOY 146, *p* = 0.448 | `phaseG` / `export_figures_en` T07 |
 | **ROBUST ceiling (level 1)** | **≤ 3.9 mm vertical** (3.29 LOS ÷ cos 32.26°, all attributed to motion, NO lake assumption) | §4.3.7 |
 | Refined bound (level 2) | < 2 mm LOS / **2.4 mm** vertical — **assumes stable lake** | §4.3.7 |
 | Closure bias A | −0.090 rad, 1.6σ, *n* = 518 | `phaseG` |

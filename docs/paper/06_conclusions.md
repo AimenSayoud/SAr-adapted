@@ -19,9 +19,9 @@ closure-phase dispersion is **3.2×** larger — and the drivers of its coherenc
 **reverse sign** relative to the adjacent grassland.
 
 **3. The measurable seasonal signal is dielectric, and motion is bounded.**
-Spatial aggregation recovers a seasonal amplitude of **3.29 mm** (*p* = 0.038 against a reference-matched null)
-invisible pixel by pixel. But the residual lake — which cannot breathe —
-oscillates identically (2.63 mm, same phase); the mat-minus-lake difference
+Spatial aggregation recovers a seasonal amplitude of **3.29 mm** (*p* = 0.026, 95 % CI [0.021, 0.031] against a reference-matched null, ≈4 600 draws)
+invisible pixel by pixel. But the residual lake — which cannot breathe mechanically —
+shares the same phase and amplitude trajectory (2.63 mm, within 9 days); the mat-minus-lake difference
 cancels (0.90 mm, *p* = 0.45). Propagating the 95 % interval gives a constraint
 of **≤ 8.7 mm vertical on apparent phase-centre displacement**. Because the
 phase centre is not rigidly coupled to the peat, this does **not** bound mat

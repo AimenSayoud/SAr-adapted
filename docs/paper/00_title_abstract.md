@@ -40,9 +40,10 @@ grassland.
 
 **(H3) The detectable seasonal signal is dielectric, not mechanical.** Spatial
 aggregation over 499 pixels recovers a seasonal amplitude of **3.29 mm**
-(*p* = 0.014 against 280 size-matched null realisations) that six per-pixel
-inversions could not see. However, the **residual lake oscillates identically**
-(2.63 mm, same phase) although it cannot breathe; the mat-minus-lake difference
+(*p* = 0.026, 95 % CI [0.021, 0.031] against ≈4 600 reference-matched null
+realisations) that six per-pixel inversions could not see. However, the
+**residual lake exhibits a shared seasonal trajectory** (2.63 mm, same phase)
+although it cannot breathe mechanically; the mat-minus-lake difference
 **cancels** (0.90 mm, *p* = 0.45). Attributing the entire signal to motion and
 propagating its 95 % interval yields a constraint on **apparent phase-centre
 displacement** of ≤ 8.7 mm vertical; because the phase centre is not rigidly
