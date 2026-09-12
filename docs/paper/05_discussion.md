@@ -209,8 +209,9 @@ foundational studies in Table 11.
 **The decorrelation mechanism.** Two families remain compatible: (a) **dielectric**
 variability of saturated peat, and (b) **non-rigid micro-movement** (local
 flexure, sub-pixel differential settling). A third — **rigid-body** motion coupled
-to the water table — is excluded (no hydrological coupling of coherence, no
-stabilisation on freezing, no double-bounce signature). The closure-phase bias,
+to the water table — is not supported by any of three independent indicators (no
+hydrological coupling of coherence, no stabilisation on freezing, no dominant
+double-bounce signature). The closure-phase bias,
 which was intended to separate (a) from (b), detects no systematic bias: high
 dispersion **without a sign bias** is compatible with both.
 

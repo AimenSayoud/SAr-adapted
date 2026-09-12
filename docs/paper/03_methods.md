@@ -35,7 +35,7 @@ interferograms.
 acquisitions, redundancy ratio ≈ 4), a fully decorrelated pixel returns a
 simulated synthetic temporal coherence floor of ≈ 0.55. In the empirical
 network distribution across non-coherent terrain, the noise floor sits at
-0.488 (95 % empirical interval [0.448, 0.532]). Values near or below this range
+0.488 (90 % empirical interval [0.448, 0.532]). Values near or below this range
 must therefore be interpreted as noise rather than recoverable deformation.
 
 ### 3.2 Matched-cover comparison (H2)
@@ -44,7 +44,7 @@ The central test is paired by interferogram: each pair is observed in A and
 in C, which cancels perpendicular baseline and same-day atmosphere, leaving only
 the surface difference.
 
-**Statistics.** A Wilcoxon signed-rank test on the differences coh(A) − coh(C).
+**Statistics.** Paired differences coh(A) − coh(C) per interferogram.
 Because the 356 pairs share ~90 acquisition dates, a pair-level bootstrap
 understates uncertainty due to temporal correlation. We therefore report a
 date-jackknife: each acquisition date and all pairs containing it are removed in
@@ -81,7 +81,13 @@ conducted in two steps:
    against linear trend and annual harmonics:
    $$y(t_i) = c + d \cdot t_i + a \cos(2\pi t_i) + b \sin(2\pi t_i)$$
    yielding seasonal amplitude $A = \sqrt{a^2 + b^2}$. Estimating trend and harmonic jointly
-   prevents line absorption of cyclic phase.
+   prevents line absorption of cyclic phase. When an unmodelled periodic signal $f(t) = A \sin(2\pi t + \theta)$
+   of annual period is instead fitted by simple linear regression $y = c + d \cdot t$ over an observation window
+   of length $T = N$ years ($t \in [-N/2, N/2]$), the estimated slope is analytically bounded by:
+   $$|d| = \left| \frac{\int_{-N/2}^{N/2} t f(t) \, dt}{\int_{-N/2}^{N/2} t^2 \, dt} \right| \le \frac{(N/2)(A/\pi)}{N^3/12} = \frac{6A}{\pi N^2}$$
+   where the maximum truncation bias occurs when the observation window is centered on an antinode ($\theta = \pm \pi/2$).
+   This bound demonstrates that linear velocity regressed on periodic peatland breathing has no physical power and
+   reflects calendar truncation (§4.3.3).
 
 In addition, circular mean resultant length $|R| = |\sum w_k \exp(i\phi_k)| / \sum w_k$ is
 evaluated directly on wrapped phase, remaining independent of unwrapping errors.

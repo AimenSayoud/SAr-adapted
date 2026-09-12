@@ -3,7 +3,7 @@
 ### 2.1 Study area
 
 The **Rzecin peatland** (52.7632 °N, 16.3098 °E, Greater Poland; **89.7 ha** total
-reserve area, Milecka et al., 2017; Juszczak et al., 2013) is a transitional poor
+reserve area, Milecka et al., 2017; Juszczak et al., 2013; Lamentowicz et al., 2008) is a transitional poor
 fen carrying a floating *Sphagnum* mat (*Schwingmoor*) with a residual lake undergoing
 terrestrialisation (Fig. 2). Three properties govern its radar response:
 
@@ -82,7 +82,7 @@ phenology, which isolates what is specific to the mat from what merely reflects
 
 **Stratification provenance and boundary sensitivity.** The documented 89.7 ha figure
 represents the legal and ecological reserve boundary established by published botanical
-and paleolimnological surveys (Milecka et al., 2017; Lamentowicz et al., 2008). On our
+and paleolimnological surveys (Milecka et al., 2017; Juszczak et al., 2013; Lamentowicz et al., 2008). On our
 ~40 m radar analysis grid, the interior of this polygon discretizes to 564 pixels (90.24 ha,
 a +0.6 % discretization difference). Zone A (79.84 ha, 499 pixels) is an operational
 remote-sensing stratification of the non-inundated vegetated peatland, derived by subtracting
@@ -97,9 +97,8 @@ coherence distributions, decorrelation rates, and seasonal amplitudes remain com
 
 Three independent checks, none of them visual:
 
-1. **Area.** A + B = **90.24 ha** against **89.7 ha** documented → **+0.6 %**.
-   This is a numerical verification of geolocation that no visual inspection can
-   provide.
+1. **Area and grid discretisation.** A + B = **90.24 ha** against **89.7 ha** documented → **+0.6 %**.
+   This confirms grid scaling and polygon rasterization (area is translation-invariant and cannot by itself prove geolocation; exact co-registration is independently verified by the sharp radial-profile step at signed distance zero in Fig. 9 and multi-sensor boundary coincidence in Fig. 8).
 2. **Phenological twinning.** Median Sentinel-2 wetness is **−0.513** (A) versus
    **−0.522** (C): the matching is effective, so any coherence difference is not
    a land-cover artefact.
