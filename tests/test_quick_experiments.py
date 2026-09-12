@@ -156,3 +156,58 @@ def test_sparse_incomplete_network_phase_linking():
     # Circular coherence between truth and estimated phase history
     circ_coh = float(np.abs(np.mean(np.exp(1j * err))))
     assert circ_coh > 0.85, f"Expected high circular coherence, got {circ_coh:.3f}"
+
+
+def test_saturating_seasonal_fit():
+    """Verify non-linear saturating seasonal fit resolves the 6.13 mm ceiling violation."""
+    from insar_wetlands.referee import saturating_seasonal_fit
+
+    df = pd.read_csv("docs/paper/figures/phaseG_aggregate_series.csv")
+    res = saturating_seasonal_fit(df, ceiling_mm=6.13)
+
+    # Linear harmonic should reproduce the known 3.286 mm amplitude and exceed ceiling
+    lin = res["linear_harmonic"]
+    assert 3.28 <= lin["semi_amplitude_mm"] <= 3.29
+    assert lin["peak_to_peak_mm"] > 6.13
+    assert 103.0 <= lin["phase_doy"] <= 105.0
+
+    # Free saturating fit should fall strictly below 6.13 mm ceiling
+    free = res["free_saturating"]
+    assert free["peak_to_peak_mm"] < 6.13
+    assert free["semi_amplitude_mm"] < 3.065
+    assert free["r2"] >= lin["r2"]
+    assert 99.0 <= free["phase_doy"] <= 102.0
+
+    # Ceiling-constrained fit should strictly respect the 6.13 mm ceiling
+    fix = res["ceiling_constrained"]
+    assert fix["peak_to_peak_mm"] <= 6.13
+    assert fix["semi_amplitude_mm"] <= 3.065
+    assert fix["r2"] >= lin["r2"]
+    assert 99.0 <= fix["phase_doy"] <= 102.0
+
+    # Summary table checks
+    tbl = res["summary_table"]
+    assert len(tbl) == 3
+    assert not tbl.loc[tbl["model"].str.contains("saturating", case=False), "exceeds_ceiling"].any()
+
+
+def test_birchak_peat_forward_model():
+    """Verify Birchak refractive mixing dielectric forward model and penetration depth."""
+    from insar_wetlands.referee import birchak_peat_forward_model
+
+    res = birchak_peat_forward_model(mv=0.85, vs=0.07, eps_solid=2.2, T=15.0)
+
+    # Penetration depth at near-saturation (0.85) should be 3-4 mm
+    assert 3.0 <= res["penetration_depth_mm"] <= 4.0
+
+    # Point estimate for dmv = 0.25 should fall around -3.28 mm
+    assert -3.35 <= res["point_estimate_los_mm"] <= -3.20
+
+    # Envelope for dmv in [0.15, 0.35]
+    env = res["envelope_los_mm"]
+    assert -2.20 <= env[0] <= -2.00  # dmv=0.15
+    assert -4.30 <= env[1] <= -4.10  # dmv=0.35
+
+    # Complete desiccation ceiling should be approx 6.13 mm
+    assert 6.00 <= res["asymptotic_ceiling_mm"] <= 6.25
+

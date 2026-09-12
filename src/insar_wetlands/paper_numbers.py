@@ -172,6 +172,18 @@ REGISTRY = [
      {"series": "B−C"}, fixed(3)),
     ("paired delta median, A - C", "T05_paired_test.csv", "delta_median",
      None, fixed(3)),
+
+    # --- added 2026-09-12 (referee-forward-model) -----------------------
+    ("saturating semi-amplitude free", "T16_saturating_seasonal_fit.csv",
+     "semi_amplitude_mm", {"model": "Free saturating (tanh)"}, fixed(2)),
+    ("saturating semi-amplitude constrained", "T16_saturating_seasonal_fit.csv",
+     "semi_amplitude_mm", {"model": "Ceiling-constrained (tanh, 6.13 mm)"}, fixed(2)),
+    ("saturating ceiling", "T16_saturating_seasonal_fit.csv", "ceiling_mm",
+     {"model": "Linear harmonic"}, fixed(2)),
+    ("saturating peak-to-peak free", "T16_saturating_seasonal_fit.csv",
+     "peak_to_peak_mm", {"model": "Free saturating (tanh)"}, fixed(2)),
+    ("saturating peak-to-peak constrained", "T16_saturating_seasonal_fit.csv",
+     "peak_to_peak_mm", {"model": "Ceiling-constrained (tanh, 6.13 mm)"}, fixed(2)),
 ]
 
 
