@@ -160,7 +160,7 @@ admits 17 mm at *f* = 0.5, within the published raised-bog range.
 
 **What would resolve it.** In-situ laser measurement — a direct, absolute
 observation of mat movement, analogous to the geometric levelling validation
-employed by Tampuu et al. (2020) over Estonian peatlands.
+employed by Tampuu et al. (2023) over Estonian peatlands.
 
 ### A.11 What the laser and UAV should test
 

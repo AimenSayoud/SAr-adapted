@@ -4,7 +4,7 @@
 Multi-method evidence for a dielectric-dominated signal and an upper bound on
 mat motion*
 
-**Authors:** [A. Sayoud], [supervisor], [co-authors]
+**Authors:** A. Sayoud, supervisor, co-authors
 
 ---
 

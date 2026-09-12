@@ -101,7 +101,7 @@ rather than the baseline selection scheme.
 > non-stationarity under C-band multi-looked burst observation.
 
 **Scope.** Future work exploiting full-covariance Single Look Complex (SLC) stacks with
-statistically homogeneous pixel (SHP) selection (e.g. SqueeSAR; Ferretti et al., 2011; Ansari et al.,
+statistically homogeneous pixel (SHP) selection (e.g. SqueeSAR; Ferretti et al., 2011; Fornaro et al., 2015; Ansari et al.,
 2018) could optimize covariance estimation on a subset of the archive. However, for standard
 multi-looked burst networks, the relative gap between A and C persists: C succeeds where A fails,
 under identical network topology and identical processing.
@@ -185,10 +185,10 @@ independent radar fields.
 | Closure dispersion (median \|closure\|) | 0.683 rad | 0.212 rad | ×3.2 |
 
 At C-band the mat behaves as a denser, wetter scattering volume than dry
-grassland despite identical optical phenology. The higher RVI is inconsistent with a
-dominant simple open-water double-bounce signature. The 3.2-fold closure dispersion is a direct
-measurement of scatterer non-stationarity: mat triplets do not close, stable
-ground triplets do (Fig. 13, Fig. S5).
+grassland despite identical optical phenology. The higher dual-pol RVI (Mandal et al.,
+2020) is inconsistent with a dominant simple open-water double-bounce signature. The 3.2-fold
+closure dispersion is a direct measurement of scatterer non-stationarity: mat triplets do not
+close, stable ground triplets do (Fig. 13, Fig. S5).
 
 Importantly, A is not devoid of targets (59 % of pixels have D_A < 0.25).
 Its problem is not absent backscatter but an unstable phase — which is what
@@ -486,7 +486,9 @@ confound is thereby resolved: no residual linear temperature association was
 detected after deseasonalisation.
 
 **(b) Wetness survives**, and it originates from an optical sensor entirely
-independent of the radar (different platform, different measurement physics).
+independent of the radar (different platform, different measurement physics;
+cf. Rastogi et al., 2019 for optical remote sensing properties of peatland
+vegetation under hydrological variations at Rzecin).
 
 **(c) The lag drops from 54 d to 12 d** — one revisit cycle, hence
 instantaneous at our sampling resolution. This association occurs within the

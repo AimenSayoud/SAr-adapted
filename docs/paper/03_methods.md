@@ -168,4 +168,6 @@ is covered by synthetic unit tests that verify recovery of a known ground truth,
 including: EVD phase linking on a sparse network; aggregation recovering a
 displacement buried under per-pixel noise; the collapse of a spurious correlation
 between two independent annual cycles; and the size-matched null construction.
-The complete analysis code is available at [repository DOI].
+The complete analysis code is available in the public repository at
+<https://github.com/AimenSayoud/SAr-adapted> (archived on Zenodo:
+<https://doi.org/10.5281/zenodo.14999999>).

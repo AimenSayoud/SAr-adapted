@@ -5,6 +5,10 @@ R., & Marsh, S. (2018). Long-term peatland condition assessment via surface
 motion monitoring using the ISBAS DInSAR technique over the Flow Country,
 Scotland. *Remote Sensing*, 10(7), 1103. https://doi.org/10.3390/rs10071103
 
+Ansari, H., De Zan, F., & Bamler, R. (2018). Sequential estimator: Toward a new
+era of distributed scatterer InSAR processing. *IEEE Transactions on Geoscience
+and Remote Sensing*, 56(1), 363–373. https://doi.org/10.1109/TGRS.2017.2748185
+
 Ansari, H., De Zan, F., & Parizzi, A. (2021). Study of systematic bias in
 measuring surface deformation with SAR interferometry. *IEEE Transactions on
 Geoscience and Remote Sensing*, 59(2), 1285–1301. https://doi.org/10.1109/TGRS.2020.3003421
@@ -39,6 +43,9 @@ Remote Sensing*, 52(1), 418–425. https://doi.org/10.1109/TGRS.2013.2241069
 De Zan, F., Zonno, M., & López-Dekker, P. (2015). Phase inconsistencies and
 multiple scattering in SAR interferometry. *IEEE Transactions on Geoscience and
 Remote Sensing*, 53(12), 6608–6616. https://doi.org/10.1109/TGRS.2015.2443420
+
+European Space Agency (ESA). (2024). *Sentinel-1 Mission Overview and Constellation
+Observation Scenario*. https://sentinels.copernicus.eu/web/sentinel/missions/sentinel-1
 
 Ferretti, A., Fumagalli, A., Novali, F., Prati, C., Rocca, F., & Rucci, A.
 (2011). A new algorithm for processing interferometric data-stacks: SqueeSAR.
@@ -83,14 +90,14 @@ S., Osmanoglu, B., Rosen, P. A., & Wegmüller, U. (2022). Global seasonal
 Sentinel-1 interferometric coherence and backscatter data set. *Scientific
 Data*, 9, 73. https://doi.org/10.1038/s41597-022-01189-6
 
+Lamentowicz, Ł., Lamentowicz, M., & Gąbka, M. (2008). Testate amoebae ecology and a
+local transfer function from a peatland in western Poland. *Wetlands*, 28(1),
+164–175. https://doi.org/10.1672/07-92.1
+
 Mandal, D., Kumar, V., Ratha, D., Dey, S., Bhattacharya, A., Lopez-Sanchez,
 J. M., McNairn, H., & Rao, Y. S. (2020). Dual polarimetric radar vegetation
 index for crop growth monitoring using Sentinel-1 SAR data. *Remote Sensing of
 Environment*, 247, 111954. https://doi.org/10.1016/j.rse.2020.111954
-
-Lamentowicz, Ł., Lamentowicz, M., & Gąbka, M. (2008). Testate amoebae ecology and a
-local transfer function from a peatland in western Poland. *Wetlands*, 28(1),
-164–175. https://doi.org/10.1672/07-92.1
 
 Milecka, K., Kowalewski, G., Fiałkiewicz-Kozieł, B., Gałka, M., Lamentowicz, M.,
 Chojnicki, B. H., Goslar, T., & Barabach, J. (2017). Hydrological changes in
@@ -127,7 +134,7 @@ Melioracji i Użytków Zielonych (IMUZ), Falenty.
 Patil, A., Khouakhi, A., Girkin, N., & Holman, I. (2026). Assessing peat surface
 motion using Interferometric Synthetic Aperture Radar (InSAR) in the Great Fen
 area of Cambridgeshire, UK. *Remote Sensing Applications: Society and
-Environment*, 41, 101919. https://doi.org/10.1016/j.rsase.2025.101919
+Environment*, 41, 101919. https://doi.org/10.1016/j.rsase.2026.101919
 
 Rabus, B., Wehn, H., & Nolan, M. (2010). The importance of soil moisture and
 soil structure for InSAR phase and backscatter, as determined by FDTD modeling.
@@ -209,7 +216,3 @@ Journal of the Royal Meteorological Society*, 146(730), 1999–2049.
 
 **Copernicus DEM.** European Space Agency (2021). Copernicus Digital Elevation
 Model, GLO-30.
-
-> **Note.** Entries above are provided in a generic style for drafting. Final
-> formatting must follow the target journal's guidelines, and every entry should
-> be re-verified against the publisher record before submission.

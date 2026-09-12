@@ -3,9 +3,10 @@
 ### 2.1 Study area
 
 The **Rzecin peatland** (52.7632 °N, 16.3098 °E, Greater Poland; **89.7 ha** total
-reserve area, Milecka et al., 2017; Juszczak et al., 2013; Lamentowicz et al., 2008) is a transitional poor
+reserve area, Milecka et al., 2017; Juszczak et al., 2013; Lamentowicz et al., 2008;
+Wojterska et al., 2001; Oświecimska-Piasko et al., 2006) is a transitional poor
 fen carrying a floating *Sphagnum* mat (*Schwingmoor*) with a residual lake undergoing
-terrestrialisation (Fig. 2). Three properties govern its radar response:
+terrestrialisation (Fig. 2; Barabach, 2012, 2015). Three properties govern its radar response:
 
 - **Near-surface water table**, 0–30 cm below the surface and hydrologically
   stable (Juszczak et al., 2013).
@@ -30,7 +31,7 @@ one.
 | Relative orbit | 175, ascending |
 | Burst | `175_374052_IW1` (AOI coverage verified) |
 | Period | 2022-01-01 to 2024-12-31 |
-| Revisit | 12 days (S1A-only era: S1B had failed, S1C was not yet operational) |
+| Revisit | 12 days (S1A-only era: S1B had failed, S1C was not yet operational; ESA, 2024) |
 | Interferograms | 356 pairs over ~90 acquisitions |
 | InSAR Processor | ASF HyP3 `INSAR_ISCE_BURST` (ISCE2 backend) |
 | Multilooking | 10 range × 2 azimuth looks (~40 m pixel posting) |
@@ -45,8 +46,8 @@ one.
 ![**Figure 3.** Interferometric network. (a) 356 pairs over ~90 acquisitions, 2022–2024; (b) temporal-baseline distribution, with the 60-day robustness filter marked.](figures/F03_network.png)
 
 > **Scope note.** The 2022–2024 window falls in the S1A-only era (12-day
-> revisit). The return to a two-satellite constellation (S1C, S1D) restores the
-> 6-day cycle and will reduce *temporal* decorrelation for future studies. It
+> revisit; ESA, 2024). The return to a two-satellite constellation (S1C, S1D) restores the
+> 6-day cycle (ESA, 2024) and will reduce *temporal* decorrelation for future studies. It
 > does not change the wavelength, on which volumetric decorrelation depends
 > (§5.4).
 
@@ -81,14 +82,17 @@ phenology, which isolates what is specific to the mat from what merely reflects
 "vegetation at C-band".
 
 **Stratification provenance and boundary sensitivity.** The documented 89.7 ha figure
-represents the legal and ecological reserve boundary established by published botanical
-and paleolimnological surveys (Milecka et al., 2017; Juszczak et al., 2013; Lamentowicz et al., 2008). On our
+represents the legal and ecological reserve boundary established by published botanical,
+wetland inventory, and paleolimnological surveys (Milecka et al., 2017; Juszczak et al., 2013;
+Lamentowicz et al., 2008; Wojterska et al., 2001; Oświecimska-Piasko et al., 2006). On our
 ~40 m radar analysis grid, the interior of this polygon discretizes to 564 pixels (90.24 ha,
 a +0.6 % discretization difference). Zone A (79.84 ha, 499 pixels) is an operational
 remote-sensing stratification of the non-inundated vegetated peatland, derived by subtracting
 the 10.40 ha (65 pixels) residual lake (Zone B, water-mask fraction > 0.30). While sediment
-cores confirm the central basin as an active floating *Sphagnum* mat over gyttja, continuous
-meter-scale physical coring along the entire perimeter does not exist in published surveys.
+cores and ground-penetrating radar transects confirm the central basin as an active floating
+*Sphagnum* mat over gyttja and biogenic sediments (Barabach, 2012, 2015; Milecka et al., 2017),
+continuous meter-scale physical coring along the entire perimeter does not exist in published
+surveys.
 To verify that our results do not depend on exact margin delineation or peripheral grounding,
 we performed inward erosion sensitivity tests (removing 1–2 perimeter rings, §4.2.3 and §A.3);
 coherence distributions, decorrelation rates, and seasonal amplitudes remain completely invariant.

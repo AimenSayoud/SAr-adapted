@@ -1,10 +1,10 @@
 # C-band InSAR over a floating peatland: multi-method evidence for decorrelation and a non-unique hydrological phase response
 
-**Authors.** [Aymen Sayoud]¹, [Supervisor Name]¹, [Co-authors]
+**Authors.** Aymen Sayoud¹*, Supervisor Name¹, Co-authors¹
 
-¹ [Institutional Affiliation, Department, University, City, Country]
+¹ Institutional Affiliation, Department, University, City, Country
 
-**Corresponding author.** [author@institution.edu]
+*Corresponding author: aimen.sayoud.polska@gmail.com
 
 ---
 
