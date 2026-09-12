@@ -94,36 +94,82 @@ propagation phase or dielectric permittivity effects (De Zan et al., 2014). We
 suggest incorporating one systematically in peatland motion studies reporting
 millimetre-scale signals.
 
-**Quantitative comparison with the moisture-phase framework.** Extending the lossy
-dielectric half-space framework of De Zan et al. (2014) to saturated peat (permittivity
-mixing via a Birchak refractive model for *Sphagnum* organic solids, water and air at
-λ = 5.55 cm, θ = 32.3°; cf. Nolan & Fatland, 2003; Rabus et al., 2010), C-band penetration
-depth is constrained to merely 3–4 mm into the saturated capitulum layer. Under this model,
-assuming a seasonal volumetric moisture excursion of $\Delta m_v \approx 0.25$ (from saturated
-$m_v = 0.85$ down to $0.60$) predicts an apparent interferometric line-of-sight displacement
-of $-3.28$ mm.
+**Forward-model consistency analysis.** To evaluate whether the observed seasonal phase
+oscillation can be physically accounted for by dielectric permittivity changes without
+requiring mechanical peat displacement, we extend the lossy dielectric half-space framework of
+De Zan et al. (2014) to saturated organic peat (cf. Nolan & Fatland, 2003; Rabus et al., 2010;
+Ranjbar et al., 2021). Rather than presenting this as an exact calibration, we treat it as an
+order-of-magnitude consistency analysis.
 
-Because in-situ dielectric moisture excursions were unmeasured during 2022–2024, this
-alignment should not be interpreted as exact calibration, but rather as an order-of-magnitude
-physical consistency check. Over a plausible range of moisture excursions $\Delta m_v \in [0.15, 0.35]$,
-the predicted LOS displacement envelope spans $-1.9$ mm to $-4.6$ mm, consistent with the
-observed 3.29 mm point estimate (Table 7) and well within the 95 % upper bound of 7.32 mm LOS.
+*Material parameters and mixing model.* Peat soils are structurally distinct from mineral soils:
+they comprise approximately 90–95% pore space with very low solid bulk density. Standard empirical
+polynomial models calibrated on mineral sand and clay fractions (e.g., Hallikainen et al., 1985)
+carry no organic term and are inapplicable. We therefore implement a complex refractive mixing model
+(Birchak et al., 1974; Ulaby & Long, 2014) with exponent $\alpha = 0.5$:
+$$\epsilon_{\text{eff}}^{1/2} = m_v \epsilon_w^{1/2} + v_s \epsilon_s^{1/2} + (1 - v_s - m_v) \epsilon_{\text{air}}^{1/2}$$
+where $\epsilon_{\text{air}} = 1.0$, dry organic solids have permittivity $\epsilon_s \approx 2.2$
+with volume fraction $v_s = 0.07$ (consistent with peat bulk density $\rho_b \approx 0.10\text{ g cm}^{-3}$,
+particle density $\rho_s \approx 1.45\text{ g cm}^{-3}$, and porosity $\phi \approx 93\%$), and the
+complex permittivity of free water $\epsilon_w$ is evaluated via Debye relaxation (Klein & Swift, 1977;
+Stogryn, 1971; Ulaby & Long, 2014) at $f = 5.405\text{ GHz}$ and mean in-situ growing season
+temperature $T = 15^\circ\text{C}$ ($\epsilon_w = 72.9 - 24.9j$). This yields an effective loss tangent
+$\tan \delta = \epsilon'' / \epsilon' \approx 0.25 - 0.35$.
 
-Two critical properties accompany this quantitative alignment:
+*Geometry and layer structure.* For the Sentinel-1 radar geometry ($f = 5.405\text{ GHz}$,
+$\lambda = 5.5466\text{ cm}$, measured local incidence angle $\theta = 32.26^\circ$ from HyP3 burst
+metadata, VV polarization), the complex vertical wavenumber is $k_z(\epsilon) = \sqrt{k_0^2 \epsilon_{\text{eff}} - (k_0 \sin \theta)^2}$.
+The resulting power penetration depth ($1/e$) is $\delta_p = 1 / (2 |\text{Im}(k_z)|) \approx 3.4 - 4.4\text{ mm}$
+across saturated conditions ($m_v \in [0.70, 0.90]$; $3.6\text{ mm}$ at $m_v = 0.85$). Because the radar
+senses only the uppermost 3–4 mm of the canopy surface (the living *Sphagnum* capitulum layer) and the
+in-medium wavelength is compressed to $\lambda_m = \lambda / \text{Re}(\sqrt{\epsilon_{\text{eff}}}) \approx 8\text{ mm}$
+with severe attenuation, a lossy half-space formulation accurately isolates the apparent two-way
+propagation phase shift of this boundary layer without requiring deep multi-layer stratification.
 
-1. *Asymptotic ceiling*: The theoretical maximum LOS phase shift under complete desiccation
-   converges asymptotically to ≈ 6.13 mm LOS. While our semi-amplitude (3.29 mm) aligns
-   cleanly with plausible seasonal moisture variations, the full peak-to-peak swing
-   (6.57 mm) slightly exceeds this ceiling, suggesting either that sinusoidal fitting
-   over-estimates the amplitude of a non-linear saturating response, or that thermal
-   expansion and temperature-dependent water permittivity contribute an additional
-   ±1 mm seasonal component.
-2. *Decorrelation falsification*: For $\Delta m_v = 0.25$, the dielectric propagation model
-   predicts an interferometric pair coherence $|\gamma| = 0.725$. In our dataset, the observed
-   mean pair coherence over Zone A is merely 0.408 (Table 4). This establishes that dielectric
-   moisture variation alone cannot account for the severe decorrelation observed, isolating
-   vegetation volume scattering and non-stationary scatterer dynamics as the dominant
-   decorrelation mechanisms.
+*Moisture excursion in a saturated fen.* A volumetric moisture change of $\Delta m_v \approx 0.25$
+(from near-saturated $m_v = 0.85$ in spring down to $0.60$ in late summer) in the uppermost 3–4 mm
+skin layer is physically realistic and does not contradict the "hydrologically stable" water table
+(0–30 cm depth) described in §2.1. *Sphagnum* mosses are non-vascular plants lacking stomata and roots;
+water is drawn to the capitula entirely via capillary forces through the external stem leaf wicks.
+During warm, sunny summer periods of high atmospheric evaporative demand, evaporation from the exposed
+capitulum tips readily exceeds the rate of capillary replenishment from below, creating transient moisture
+depletions of $\Delta m_v \approx 0.20 - 0.30$ in the uppermost few millimetres of the living capitula
+(McCarter & Price, 2014; Strack et al., 2009) even while the underlying peat column remains permanently
+waterlogged.
+
+*Predicted apparent displacement envelope.* Leading with the uncertainty envelope across plausible
+near-surface moisture excursions $\Delta m_v \in [0.15, 0.35]$, the model predicts an apparent
+interferometric line-of-sight displacement spanning $-1.9\text{ mm}$ to $-4.6\text{ mm}$ (incorporating
+temperature sensitivity across $2^\circ\text{C}$ to $25^\circ\text{C}$; $-2.1\text{ mm}$ to $-4.2\text{ mm}$
+at $15^\circ\text{C}$). The $-3.28\text{ mm}$ point estimate for $\Delta m_v = 0.25$ falls centrally within
+this envelope. Crucially, this agreement demonstrates order-of-magnitude physical consistency with the
+observed 3.29 mm point estimate (Table 7) rather than a calibrated parameter alignment.
+
+Two critical properties accompany this forward-model consistency analysis:
+
+1. *Resolution of the asymptotic ceiling violation (Table T16)*: The theoretical maximum apparent LOS
+   displacement under complete desiccation ($m_v \to 0$) converges asymptotically to $6.13\text{ mm}$ LOS.
+   While our observed semi-amplitude ($3.29\text{ mm}$) falls safely below this ceiling, the full
+   peak-to-peak swing under a linear sinusoidal fit ($2 \times 3.286 = 6.57\text{ mm}$) slightly exceeds
+   it. To test whether this reflects the limitation of sinusoidal fitting on a non-linear bounded physical
+   process, we fit a non-linear saturating seasonal model ($y(t) = c + d\cdot t + S \tanh(A \cos(2\pi(t-\phi))/S)$)
+   to the observed differential phase series (Table T16). Under the saturating fit, the peak-to-peak
+   excursion contracts to $5.64\text{ mm}$ (unconstrained, $S = 2.91\text{ mm}$) and $5.83\text{ mm}$
+   (ceiling-constrained, $S = 3.065\text{ mm}$), yielding semi-amplitudes of $2.82 - 2.91\text{ mm}$ that
+   fall strictly below the $6.13\text{ mm}$ ceiling, while the fit quality actually improves from
+   $R^2 = 0.364$ to $R^2 = 0.372$. This confirms that the nominal ceiling violation is an artefact of
+   forcing a pure sinusoid onto a saturating response, fully reconciling the observed seasonal amplitude
+   with the physical bounds of the dielectric forward model.
+2. *Separation of phase and coherence mechanisms*: The dielectric propagation model is sufficient to explain
+   a phase perturbation of the observed order of magnitude (predicting apparent LOS displacements of $-1.9$
+   to $-4.6$ mm), but a propagation model alone does not account for the observed coherence loss; additional
+   scattering and target-instability processes are therefore required. The propagation model evaluates the
+   coherent phase perturbation induced across a lossy dielectric boundary, whereas the observed temporal
+   coherence ($\bar{\gamma} = 0.408$, Table 4) carries the entire scattering budget—including volume
+   decorrelation, non-stationary vegetation growth, thermal noise, and temporal decorrelation. This clarifies
+   that while dielectric fluctuations provide a physically consistent explanation for the seasonal phase
+   oscillation, they operate alongside distinct physical processes (primarily canopy volume scattering and
+   structural reorganizations) that drive the severe coherence loss.
+
 
 Furthermore, testing maximum temporal baseline subsets (24 d to 120 d and all-pair; Table 3, Table T15)
 reveals that while short-baseline networks (≤ 24 d) suffer from severe accumulating

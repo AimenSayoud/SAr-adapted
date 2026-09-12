@@ -1036,6 +1036,223 @@ def baseline_subset_amplitude_stability() -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+# ----------------------------------------------------------- forward model & saturation
+def saturating_seasonal_fit(
+    series: pd.DataFrame,
+    date_col: str = "date",
+    value_col: str = "disp_mm",
+    ceiling_mm: float = 6.13,
+) -> dict:
+    """Fit linear harmonic and non-linear saturating seasonal models to displacement.
+
+    Tests whether the observed seasonal amplitude is consistent with the dielectric
+    forward model's 6.13 mm asymptotic desiccation ceiling (Referee Report §3.7, §6.6; X-018).
+
+    Models:
+      1. Linear harmonic: y(t) = c + d*t + a*cos(2*pi*t) + b*sin(2*pi*t)
+         Semi-amplitude A = sqrt(a^2 + b^2), peak-to-peak = 2*A.
+      2. Free saturating tanh: y(t) = c + d*t + S * tanh(A * cos(2*pi*(t - phi)) / S)
+         Saturation scale S is freely estimated.
+      3. Ceiling-constrained saturating tanh: S = ceiling_mm / 2.0 = 3.065 mm,
+         strictly bounding the peak-to-peak swing <= 6.13 mm.
+
+    Returns:
+      Dictionary with keys:
+        'linear_harmonic': dict of metrics
+        'free_saturating': dict of metrics
+        'ceiling_constrained': dict of metrics
+        'summary_table': pd.DataFrame formatted for Table T16
+    """
+    from scipy.optimize import curve_fit
+
+    d = pd.to_datetime(series[date_col])
+    t = (d - d.iloc[0]).dt.days.values / 365.25
+    y = series[value_col].values.astype(float)
+    ok = np.isfinite(y)
+    t, y = t[ok], y[ok]
+    doy0 = int(pd.Timestamp(d.iloc[0]).dayofyear)
+    ss_tot = float(np.sum((y - np.mean(y)) ** 2))
+
+    # 1. Linear harmonic
+    M = np.column_stack([np.ones_like(t), t, np.cos(2 * np.pi * t), np.sin(2 * np.pi * t)])
+    beta, *_ = np.linalg.lstsq(M, y, rcond=None)
+    amp_lin = float(np.hypot(beta[2], beta[3]))
+    p2p_lin = 2.0 * amp_lin
+    phase_lin = float((np.arctan2(beta[3], beta[2]) / (2 * np.pi)) % 1.0 * 365.25)
+    doy_lin = round((doy0 + phase_lin) % 365.25, 1)
+    r2_lin = round(1.0 - float(np.sum((y - M @ beta) ** 2)) / ss_tot, 4)
+
+    # 2. Free saturating tanh
+    def _sat_free(t_val, c_val, d_slope, A_val, phi_val, S_val):
+        return c_val + d_slope * t_val + S_val * np.tanh(A_val * np.cos(2 * np.pi * (t_val - phi_val)) / S_val)
+
+    popt_free, _ = curve_fit(_sat_free, t, y, p0=[beta[0], beta[1], amp_lin, 0.28, 3.0], maxfev=10000)
+    t_dense = np.linspace(0, 1, 1000)
+    comp_free = popt_free[4] * np.tanh(popt_free[2] * np.cos(2 * np.pi * (t_dense - popt_free[3])) / popt_free[4])
+    p2p_free = float(comp_free.max() - comp_free.min())
+    semi_free = p2p_free / 2.0
+    doy_free = round((doy0 + popt_free[3] * 365.25) % 365.25, 1)
+    r2_free = round(1.0 - float(np.sum((y - _sat_free(t, *popt_free)) ** 2)) / ss_tot, 4)
+
+    # 3. Ceiling-constrained saturating tanh (S = ceiling / 2.0)
+    S_fix = ceiling_mm / 2.0
+
+    def _sat_fix(t_val, c_val, d_slope, A_val, phi_val):
+        return c_val + d_slope * t_val + S_fix * np.tanh(A_val * np.cos(2 * np.pi * (t_val - phi_val)) / S_fix)
+
+    popt_fix, _ = curve_fit(_sat_fix, t, y, p0=[beta[0], beta[1], amp_lin, 0.28], maxfev=10000)
+    comp_fix = S_fix * np.tanh(popt_fix[2] * np.cos(2 * np.pi * (t_dense - popt_fix[3])) / S_fix)
+    p2p_fix = float(comp_fix.max() - comp_fix.min())
+    semi_fix = p2p_fix / 2.0
+    doy_fix = round((doy0 + popt_fix[3] * 365.25) % 365.25, 1)
+    r2_fix = round(1.0 - float(np.sum((y - _sat_fix(t, *popt_fix)) ** 2)) / ss_tot, 4)
+
+    summary_df = pd.DataFrame([
+        {
+            "model": "Linear harmonic",
+            "semi_amplitude_mm": round(amp_lin, 3),
+            "peak_to_peak_mm": round(p2p_lin, 3),
+            "ceiling_mm": ceiling_mm,
+            "exceeds_ceiling": p2p_lin > ceiling_mm,
+            "phase_doy": doy_lin,
+            "r2": r2_lin,
+        },
+        {
+            "model": "Free saturating (tanh)",
+            "semi_amplitude_mm": round(semi_free, 3),
+            "peak_to_peak_mm": round(p2p_free, 3),
+            "ceiling_mm": ceiling_mm,
+            "exceeds_ceiling": p2p_free > ceiling_mm,
+            "phase_doy": doy_free,
+            "r2": r2_free,
+        },
+        {
+            "model": "Ceiling-constrained (tanh, 6.13 mm)",
+            "semi_amplitude_mm": round(semi_fix, 3),
+            "peak_to_peak_mm": round(p2p_fix, 3),
+            "ceiling_mm": ceiling_mm,
+            "exceeds_ceiling": p2p_fix > ceiling_mm,
+            "phase_doy": doy_fix,
+            "r2": r2_fix,
+        },
+    ])
+
+    return {
+        "linear_harmonic": {
+            "semi_amplitude_mm": round(amp_lin, 3),
+            "peak_to_peak_mm": round(p2p_lin, 3),
+            "phase_doy": doy_lin,
+            "r2": r2_lin,
+        },
+        "free_saturating": {
+            "semi_amplitude_mm": round(semi_free, 3),
+            "peak_to_peak_mm": round(p2p_free, 3),
+            "phase_doy": doy_free,
+            "r2": r2_free,
+            "saturation_scale_s": round(float(popt_free[4]), 3),
+        },
+        "ceiling_constrained": {
+            "semi_amplitude_mm": round(semi_fix, 3),
+            "peak_to_peak_mm": round(p2p_fix, 3),
+            "phase_doy": doy_fix,
+            "r2": r2_fix,
+            "ceiling_mm": ceiling_mm,
+        },
+        "summary_table": summary_df,
+    }
+
+
+def birchak_peat_forward_model(
+    mv: float = 0.85,
+    vs: float = 0.07,
+    eps_solid: float = 2.2,
+    T: float = 15.0,
+    f_hz: float = 5.405e9,
+    theta_deg: float = 32.26,
+) -> dict:
+    """Evaluate Birchak refractive mixing model and C-band dielectric penetration over peat.
+
+    Formulation:
+      - Debye free-water relaxation at T and f (Ulaby & Long, 2014)
+      - Refractive mixing (Birchak et al., 1974) with exponent alpha = 0.5:
+        n_eff = mv * sqrt(eps_w) + vs * sqrt(eps_s) + (1 - vs - mv) * 1.0
+        eps_eff = n_eff^2
+      - Complex vertical wavenumber:
+        kz = sqrt(k0^2 * eps_eff - (k0 * sin(theta))^2)
+      - Power penetration depth (1/e): delta_p = 1 / (2 * |Im(kz)|)
+      - Apparent LOS phase shift and displacement for drying excursion from mv1=0.85 to mv2.
+    """
+    c = 2.99792458e8
+    lam = c / f_hz
+    theta = np.deg2rad(theta_deg)
+    k0 = 2.0 * np.pi / lam
+    kx = k0 * np.sin(theta)
+
+    def _eps_water(T_c: float, f_val: float) -> complex:
+        e_inf = 4.9
+        e_0 = 88.045 - 0.4147 * T_c + 6.295e-4 * T_c**2 + 1.075e-5 * T_c**3
+        twopitau = 1.1109e-10 - 3.824e-12 * T_c + 6.938e-14 * T_c**2 - 5.096e-16 * T_c**3
+        return complex(e_inf + (e_0 - e_inf) / (1.0 + 1j * twopitau * f_val))
+
+    def _eps_peat(mv_val: float, vs_val: float, eps_s: float, T_c: float) -> complex:
+        va = 1.0 - vs_val - mv_val
+        n = mv_val * np.sqrt(_eps_water(T_c, f_hz)) + vs_val * np.sqrt(eps_s) + va * 1.0
+        return complex(n**2)
+
+    def _kz(eps_val: complex) -> complex:
+        k = np.sqrt((k0**2) * eps_val - kx**2)
+        return -k if np.imag(k) > 0 else k
+
+    def _phase_los(mv1: float, mv2: float, T_c: float = T) -> tuple[float, float, float]:
+        k1 = _kz(_eps_peat(mv1, vs, eps_solid, T_c))
+        k2 = _kz(_eps_peat(mv2, vs, eps_solid, T_c))
+        b1, b2 = -np.imag(k1), -np.imag(k2)
+        g = 2.0 * np.sqrt(b1 * b2) * 1j / (np.conj(k2) - k1)
+        phase_deg_val = float(np.rad2deg(np.angle(g)))
+        gamma_mag = float(np.abs(g))
+        los_disp_mm = float(np.deg2rad(phase_deg_val) * lam / (4.0 * np.pi) * 1000.0)
+        return phase_deg_val, los_disp_mm, gamma_mag
+
+    # Calculate penetration depth for requested mv
+    eps_curr = _eps_peat(mv, vs, eps_solid, T)
+    kz_curr = _kz(eps_curr)
+    delta_p_mm = float(1.0 / (2.0 * (-np.imag(kz_curr))) * 1000.0)
+
+    # Point estimate for dmv = 0.25 (0.85 -> 0.60)
+    _, los_pt_25, gamma_25 = _phase_los(0.85, 0.60)
+
+    # Uncertainty envelope for dmv in [0.15, 0.35]
+    _, los_dmv_15, _ = _phase_los(0.85, 0.70)
+    _, los_dmv_35, _ = _phase_los(0.85, 0.50)
+
+    # Temperature sensitivity for dmv = 0.25 (2C to 25C)
+    _, los_t_2c, _ = _phase_los(0.85, 0.60, T_c=2.0)
+    _, los_t_25c, _ = _phase_los(0.85, 0.60, T_c=25.0)
+
+    # Complete desiccation ceiling (0.85 -> 0.001)
+    _, los_dry, _ = _phase_los(0.85, 0.001)
+
+    return {
+        "penetration_depth_mm": round(delta_p_mm, 2),
+        "point_estimate_los_mm": round(los_pt_25, 2),
+        "point_estimate_gamma": round(gamma_25, 3),
+        "envelope_los_mm": (round(los_dmv_15, 2), round(los_dmv_35, 2)),
+        "temp_envelope_los_mm": (round(los_t_2c, 2), round(los_t_25c, 2)),
+        "asymptotic_ceiling_mm": round(abs(los_dry), 2),
+    }
+
+
+def generate_t16_saturating_seasonal_fit(
+    series_path: str = "docs/paper/figures/phaseG_aggregate_series.csv",
+    out_csv: str = "docs/paper/figures/T16_saturating_seasonal_fit.csv",
+) -> pd.DataFrame:
+    """Generate Table T16 comparing linear harmonic and saturating seasonal models."""
+    df = pd.read_csv(series_path)
+    res = saturating_seasonal_fit(df)
+    res["summary_table"].to_csv(out_csv, index=False)
+    return res["summary_table"]
+
+
 VERDICTS: list[tuple[str, str]] = []
 
 
@@ -1054,4 +1271,5 @@ def clear_verdicts() -> None:
 def get_verdicts() -> list[tuple[str, str]]:
     """Return a copy of the recorded verdicts."""
     return list(VERDICTS)
+
 

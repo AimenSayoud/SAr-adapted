@@ -164,3 +164,12 @@ Tables exported by `notebooks/06_manuscript/export_figures_en.ipynb`. Each is re
 | <=48d | 48 | 346 | -3.867 | 2.89 | 105.9 | Stabilized |
 | All pairs | 9999 | 356 | -1.531 | 3.286 | 104.2 | Full network constrained |
 
+
+### T16. T16 saturating seasonal fit
+
+| model | semi_amplitude_mm | peak_to_peak_mm | ceiling_mm | exceeds_ceiling | phase_doy | r2 |
+|---|---|---|---|---|---|---|
+| Linear harmonic | 3.286 | 6.573 | 6.13 | True | 104.2 | 0.3642 |
+| Free saturating (tanh) | 2.822 | 5.643 | 6.13 | False | 100.2 | 0.3719 |
+| Ceiling-constrained (tanh, 6.13 mm) | 2.912 | 5.825 | 6.13 | False | 100.9 | 0.3718 |
+
