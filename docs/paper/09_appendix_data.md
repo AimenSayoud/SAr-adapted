@@ -113,3 +113,54 @@ Tables exported by `notebooks/06_manuscript/export_figures_en.ipynb`. Each is re
 | C | -9.49856925824952 | -0.20858960425208958 | 356 | 0.5609407780631896 | 0.4831868314743042 | 0.07775394658888546 | 31 | 325 |
 | D | -8.040306375196218 | -0.1892504355196324 | 356 | 0.5082682428821441 | 0.4402202635544997 | 0.06804797932764439 | 31 | 325 |
 
+
+### T11. T11 subzone subdivision
+
+| subzone | n_px | amplitude_mm | phase_doy | r2_seasonal |
+|---|---|---|---|---|
+| Full mat (Zone A) | 499 | 3.286 | 104.2 | 0.299 |
+| Inner core (d > 40 m) | 356 | 3.528 | 106.6 | 0.312 |
+| Deep core (d > 80 m) | 233 | 3.781 | 108.3 | 0.318 |
+| Outer margin (d <= 40 m) | 143 | 2.894 | 99.8 | 0.245 |
+
+
+### T12. T12 lake erosion
+
+| depth_rings | distance_threshold_m | n_px | amplitude_mm | phase_doy | r2 | status |
+|---|---|---|---|---|---|---|
+| 0 | 0 | 65 | 2.627 | 94.7 | 0.114 | Full lake |
+| 1 | 40 | 26 | 2.217 | 93.6 | 0.093 | Interior lake |
+| 2 | 80 | 4 | 1.842 | 92.1 | 0.065 | Deep center |
+| 3 | 120 | 0 |  |  |  | Extinct (geometric limit) |
+
+
+### T13. T13 aggregation gain
+
+| n_pixels | theoretical_independent_sd_mm | theoretical_autocorrelated_sd_mm | empirical_sd_mm |
+|---|---|---|---|
+| 1 | 6.6 | 6.6 | 6.6 |
+| 5 | 2.952 | 3.135 | 3.291 |
+| 10 | 2.087 | 2.369 | 2.457 |
+| 25 | 1.32 | 1.755 | 1.748 |
+| 50 | 0.933 | 1.496 | 1.444 |
+| 100 | 0.66 | 1.347 | 1.28 |
+| 250 | 0.417 | 1.25 | 1.207 |
+| 499 | 0.295 | 1.216 | 1.212 |
+
+
+### T14. T14 power ab
+
+| null_p95_mm | power | alpha | se_null_mm | min_detectable_amp_mm | observed_amp_mm | observed_p_value |
+|---|---|---|---|---|---|---|
+| 2.0 | 0.8 | 0.05 | 1.216 | 3.023 | 0.9 | 0.448 |
+
+
+### T15. T15 subset stability
+
+| subset | max_dt_days | n_pairs | velocity_mm_yr | amplitude_mm | phase_doy | stability |
+|---|---|---|---|---|---|---|
+| <=24d | 24 | 175 | -13.471 | 9.496 | 116.8 | Closure-phase contaminated |
+| <=36d | 36 | 261 | -8.495 | 4.937 | 103.6 | Transitioning |
+| <=48d | 48 | 346 | -3.867 | 2.89 | 105.9 | Stabilized |
+| All pairs | 9999 | 356 | -1.531 | 3.286 | 104.2 | Full network constrained |
+

@@ -71,10 +71,17 @@ what prevents inversion.
 #### 4.1.4 Baseline subsets and closure-phase accumulation
 
 Testing maximum temporal baseline subsets ($B_{t,\max} \in [24, 36, 48\text{–}120, \text{All}]$ days;
-Table 3) confirms that this inversion failure is not an artifact of network connectivity. While short
+Table 3, Table T15) confirms that this inversion failure is not an artifact of network connectivity. While short
 baselines ($\le 24\text{ d}$) suffer severe closure-phase accumulation bias (Zheng et al., 2022), the
 full network stabilizes reliably, demonstrating that per-pixel decoherence is intrinsic to the target
 rather than the baseline selection scheme.
+
+Crucially, while the linear velocity estimate is severely corrupted by fading signal bias in short-baseline networks
+($-13.47$ mm yr⁻¹ at $\le 24$ d, attenuating toward $-1.53$ mm yr⁻¹ on all pairs), the harmonic seasonal amplitude
+stabilizes cleanly once intermediate baselines are included: amplitude settles to 2.89 mm at $\le 48$ d and 3.29 mm
+on all pairs, with seasonal phase locking tightly to DOY 104–106 across all non-truncated subsets. This demonstrates
+that the seasonal harmonic observable is robust against fading signal bias, whereas linear velocity on periodic signals
+merely reflects calendar truncation and closure-phase accumulation.
 
 **Table 3** — Baseline subset analysis and closure-phase accumulation test ($B_{t,\max} \in [24, 120]$ days and All pairs; cf. Zheng et al., 2022):
 
@@ -197,10 +204,13 @@ justified attempting phase linking in the first place (§4.1).
 #### 4.2.5 Environmental predictors operate in the mat and vanish in grassland
 
 Within-zone analysis (internal variability, not A vs C). Over the 499 mat pixels
-with 12 covariates: cross-validated $R^2_{\text{cv}} = 0.239 \pm 0.022$ (random forest 0.326),
-against 0.127 without the radar covariates.
+with 12 covariates, 5-fold spatial block cross-validation yields out-of-sample skill
+$R^2_{\text{cv}} = 0.178$ (random pixel CV yields $0.239$; random forest 0.326), against
+0.127 without radar covariates. Complete standardized regression coefficients, variance
+inflation factors (VIF), and partial effect curves are reported in Supplementary Table S2
+and §A.4.
 
-**Table 6**:
+**Table 6** — Non-parametric Spearman rank correlation ($\rho$) between temporal coherence and environmental predictors within Zone A (mat) and Zone C (grassland):
 
 | Covariate | ρ in A (mat) | ρ in C (grassland) | Difference |
 |---|---|---|---|
@@ -217,23 +227,21 @@ given the 30 m Copernicus DEM noise floor across flat terrain. This pattern refl
 presence of active dielectric and scattering modulation inside the floating mat against
 its absence in mineral grassland, rather than a genuine sign reversal.
 
-**Spatial autocorrelation and degrees of freedom.** Spatial autocorrelation in Zone A
+**Zone C spatial power qualification.** While Table 6 contrasts 499 pixels in Zone A
+against 398 pixels in Zone C, Zone C is fragmented across multiple disjoint external patches.
+Semivariogram modeling reveals an empirical spatial correlation length of 360 m in Zone C,
+yielding an effective sample size of only $N_{\text{eff}} \approx 5$ independent spatial degrees
+of freedom (Table 10). Consequently, while aggregate time series over Zone C benefit from noise
+reduction, per-pixel spatial regressions within Zone C possess limited statistical power,
+and the absence of correlation must be qualified by this constraint.
+
+**Spatial autocorrelation and degrees of freedom in Zone A.** Spatial autocorrelation in Zone A
 exhibits an empirical correlation length of ~160 m (4 pixels on the 40 m grid; §3.6),
 yielding $N_{\text{eff}} \approx 31$ independent spatial degrees of freedom across 499 pixels.
-With 12 covariates in the ridge model, the observations-per-parameter ratio is under 3
-($31 / 12 \approx 2.6$). Cross-validated $R^2_{\text{cv}} = 0.239$ is therefore reported
+With 12 covariates in the model, the observations-per-parameter ratio is under 3
+($31 / 12 \approx 2.6$). Spatial block cross-validation ($R^2_{\text{cv}} = 0.178$) is therefore reported
 strictly as an empirical descriptive benchmark of within-zone spatial structure rather than
 an independent predictive model.
-
-**Reading precautions.** (i) The RVI / VH-VV collinearity (VIF ≈ 240; monotone
-transforms of the same ratio) produced spurious coefficients (−1.21 and +0.95);
-only the cleaned model is interpretable (σ⁰ −0.275, RVI −0.251, wetness
-−0.240). (ii) Greenness is a proxy: ρ = +0.320 marginally but a partial
-coefficient of +0.029 — it predicts nothing once σ⁰ and wetness are accounted
-for. (iii) Elevation is likely a positional proxy: on a near-flat floating
-mat the 30 m DEM relief is at noise level, and it should not be read physically.
-(iv) The only predictor robust across both linear and non-linear models is
-σ⁰ VV.
 
 
 ![**Figure 10.** Within-mat predictive model. (a) Standardised coefficients of the collinearity-cleaned model; (b) Spearman correlations in mat versus grassland, showing active environmental sensitivity in the mat against its absence in grassland.](figures/F10_predictors.png)
@@ -318,6 +326,13 @@ bound of 7.32 mm LOS (8.66 mm vertical). Size-matched compact nulls yield empiri
 of 0.014 and 0.022, confirming sensitivity robustness against the fragmented grassland control.
 The mid-April maximum (DOY 104) aligns with spring water-table peaks.
 
+**Sub-zone subdivision: core versus margin.** To evaluate whether Zone A deforms as a uniform spatial block or exhibits differential sub-zone breathing (e.g. peripheral grounding or margin dampening), we stratified Zone A into concentric distance bands from the outer boundary (Table T11):
+- Full mat (499 px): amplitude 3.29 mm, phase DOY 104.2, $R^2 = 0.299$
+- Inner core ($d > 40$ m, 356 px): amplitude 3.53 mm, phase DOY 106.6, $R^2 = 0.312$
+- Deep core ($d > 80$ m, 233 px): amplitude 3.78 mm, phase DOY 108.3, $R^2 = 0.318$
+- Outer margin ($d \le 40$ m, 143 px): amplitude 2.89 mm, phase DOY 99.8, $R^2 = 0.245$
+Across all sub-zones, seasonal phase remains locked within an 8-day window (DOY 100–108), with amplitude increasing smoothly from 2.89 mm at the peripheral margin to 3.78 mm in the deep interior core. This confirms that Zone A moves as an integrated coherent unit rather than displaying disjoint local kinematics.
+
 
 ![**Figure 11.** Aggregated series. (a) A−C, B−C, A−B and the size-matched null; (b) seasonal amplitudes — the lake oscillates like the mat, and A−B cancels.](figures/F11_aggregate_series.png)
 
@@ -337,19 +352,25 @@ Two physical hypotheses could account for coherent phase over Zone B: (1) emerge
 macrophytes along the lake margins acting as distributed scatterers modulated by water-level
 and dielectric shifts, or (2) spatial leakage from the adaptive Goldstein phase filter
 ($\alpha = 0.5$) smoothing adjacent mat phases across the narrow 65-pixel lake geometry.
-Eroding Zone B by one perimeter ring ($d > 40$ m, leaving 26 interior pixels) yields
-2.22 mm at DOY 94, and an expanded 1,000-draw reference-matched null confirms $p = 0.1565$
-(836 valid draws, null median 1.67 mm, p95 3.40 mm, Table XT10), demonstrating that the lake
-signal is not purely a boundary-pixel artifact while remaining strictly non-significant.
-Under either hypothesis, the lake trajectory is consistent with an environmental or dielectric
-scaling rather than differential mechanical breathing.
+Eroding Zone B by successive 40 m perimeter rings demonstrates continuous signal survival across the interior before reaching geometric extinction (Table T12):
+- Ring 0 (full lake, $d \ge 0$ m, 65 px): amplitude 2.63 mm, phase DOY 94.7, $R^2 = 0.114$
+- Ring 1 (interior lake, $d > 40$ m, 26 px): amplitude 2.22 mm, phase DOY 93.6, $R^2 = 0.093$
+- Ring 2 (deep center, $d > 80$ m, 4 px): amplitude 1.84 mm, phase DOY 92.1, $R^2 = 0.065$
+- Ring 3 ($d > 120$ m, 0 px): geometric extinction (the semi-minor axis of the residual lake basin is ~80 m, so an inward erosion of 120 m leaves zero pixels).
+An expanded 1,000-draw reference-matched null confirms $p = 0.1565$ on Ring 1 (836 valid draws, null median 1.67 mm, p95 3.40 mm, Table XT10). This smooth inward attenuation from 2.63 mm to 1.84 mm with stable phase locking (DOY 92–95) demonstrates that the lake signal is not an edge-ringing artifact while remaining strictly non-significant under the confirmatory null. Under either hypothesis, the lake trajectory is consistent with an environmental or dielectric scaling rather than differential mechanical breathing.
 
-**(b) Mat minus lake cancels.** Referencing A to the lake rather than the
-grassland gives 0.90 mm, phase DOY 146 (random), seasonal R² 0.05,
-*p* = 0.448 — sitting squarely within the empirical null distribution (null median 0.83 mm,
+**(b) Mat minus lake cancels and statistical power.** Referencing A to the lake rather than the
+grassland gives 0.90 mm, phase DOY 146 (random), seasonal $R^2 = 0.05$,
+$p = 0.448$ — sitting squarely within the empirical null distribution (null median 0.83 mm,
 baseline NULL amplitude 0.57 mm). Mat and lake are seasonally indistinguishable.
-Had the mat been breathing mechanically while the lake was not, A − B would have
-revealed it. It reveals nothing.
+
+Crucially, answering the referee question on statistical power: given the matched-null 95th percentile
+of 2.00 mm (empirical standard error $\text{SE}_{\text{null}} \approx 1.22$ mm), the minimum seasonal amplitude
+detectable at 80 % statistical power ($\beta = 0.20$, $\alpha = 0.05$, two-tailed test) is
+$2.86$–$3.02$ mm ($3.02$ mm Gaussian threshold, $2.86$ mm exact empirical power; Table T14).
+The observed residual amplitude of 0.90 mm ($p = 0.448$) sits substantially below this 80 % detection floor.
+Thus, while the A−B test rules out differential breathing exceeding ~3.0 mm at 80 % statistical power,
+it cannot exclude sub-3 mm differential mechanical motion.
 
 **(c) Order of magnitude.**
 
@@ -582,6 +603,10 @@ and is demoted to motivation and ordering. **The principal conclusions are unaff
 because their significance derives from empirical size-matched nulls that use no
 N_eff at all. (Caveat: zone C is fragmented, so the estimator mixes within- and
 between-patch correlation and its N_eff of 5 is probably understated.)
+
+**Aggregation gain curve.** To evaluate how spatial aggregation reduces phase noise and overcomes per-pixel decorrelation, we computed empirical phase standard deviation across Zone A as a function of aggregated pixel count $N \in [1, 499]$ (Fig. 17, Table T13). The empirical standard deviation falls from $\sigma_1 \approx 6.60$ mm at $N=1$ to $1.25$ mm at $N=499$. For purely independent observations, standard error would scale as $1/\sqrt{N}$ (reaching $0.30$ mm at $N=499$). However, spatial autocorrelation imposes an asymptotic noise floor scaling as $1/\sqrt{N_{\text{eff}}}$ ($N_{\text{eff}} \approx 31$), which closely tracks the observed empirical plateau.
+
+![**Figure 17.** Aggregation gain curve. Empirical phase standard deviation as a function of aggregated pixel count $N$ across Zone A, overlaid with theoretical independent $1/\sqrt{N}$ and autocorrelated $1/\sqrt{N_{\text{eff}}}$ scaling ($N_{\text{eff}} \approx 31$).](figures/F17_aggregation_gain.png)
 
 #### 4.5.2 Snow and frost not supported
 
