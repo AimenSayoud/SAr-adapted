@@ -13,33 +13,38 @@ scattering** (higher RVI, higher σ⁰); the phase centre therefore becomes unst
 between passes, coherence falls (mean Δ = −0.081), and per-pixel inversion fails
 across six methods. Spatial aggregation divides the noise by √N_eff and reveals a
 3.3 mm seasonal signal, which correlates with moisture anomalies at near-zero lag
-— identifying it as **dielectric rather than mechanical** (the lake oscillates
-identically; mat minus lake cancels).
+— indicating a substantial dielectric/propagation contribution that cannot be uniquely
+interpreted as mechanical displacement (the lake oscillates with comparable amplitude and
+phase; mat minus lake cancels).
 
 Every observation points to a single mechanism. The remainder of this appendix
 tests whether another mechanism could produce the same observations.
 
 
-![**Figure A1.** Proposed mechanism as a causal chain, from water table to the measured dielectric signal.](figures/FA1_causal_chain.png)
+![**Figure A1.** Proposed mechanism as a causal chain, from water table to the measured phase signal.](figures/FA1_causal_chain.png)
 
 ### A.2 Summary
 
 | # | Alternative | Status | Evidence | Section |
 |---|---|---|---|---|
-| 1 | **Snow / frost** | **Excluded** | winter removed: 3.282 vs 3.286 mm (**0.1 %**), *p* = 0.022 | A.3 |
-| 2 | **Atmosphere** | Largely excluded | double difference + size-matched null | A.4 |
+| 1 | **Snow / frost** | Not supported | winter removed: 3.282 vs 3.286 mm (**0.1 %**), *p* = 0.022 | A.3 |
+| 2 | **Atmosphere** | Largely accounted for | double difference + empirical null absorbs common screen; unmeasured local topography caveat | A.4 |
 | 3 | **Geometry / incidence** | **Excluded** | Δ = **0.042°** between A and C → 0.06 % on the conversion | A.5 |
-| 4 | **Phenology alone** | Excluded | A and C are phenological twins | A.6 |
+| 4 | **Phenology alone** | Substantially reduced | A and C are phenological twins; soil-dielectric caveat noted | A.6 |
 | 5 | **Unwrapping errors** | Excluded | \|R\| on wrapped phase; baseline filter | A.7 |
 | 6 | **Spatial correlation (N_eff)** | **Measured — reduces the scope of §4.3.2** | L_corr = 160 m over A → N_eff 31, not 125 | A.8 |
 | 7 | **Mis-assigned land cover** | Excluded | WorldCover + S2 matching + area within 0.6 % | A.9 |
 | 8 | **Mat and lake moving together** | **Not excluded** | requires in-situ laser | A.10 |
 
-**Five of eight alternatives are strictly excluded**, one is largely excluded,
-one is quantitatively measured (reducing the scope of the |R| comparison, §4.3.2),
-and one remains open awaiting in-situ laser validation.
+Of eight alternatives evaluated, three represent direct geometric or processing exclusions
+(geometry/incidence, unwrapping errors, land-cover misassignment); two are substantively constrained
+with explicit caveats (atmospheric screens are absorbed by the empirical null but unmeasured local
+micro-topography cannot be independently verified; phenological matching controls canopy optical state
+but concedes soil-dielectric differences); snow and frost are not supported by the winter-exclusion test;
+spatial correlation is quantitatively measured ($N_{\text{eff}} \approx 31$); and coupled mat-and-lake
+motion remains open awaiting in-situ laser validation.
 
-### A.3 Snow and frost — excluded
+### A.3 Snow and frost — not supported
 
 **Why it is serious.** A snow cover strongly modifies backscatter and coherence,
 affects a saturated peatland differently from a drained grassland, and has a
@@ -52,8 +57,9 @@ realisation (the floor depends on the number of pairs).
 
 **Result.** Removing 30 % of pairs (108 of 356): amplitude **3.282 mm** against
 **3.286 mm** — a **0.1 %** change — with the seasonal R² *increasing*
-(0.299 → 0.309) and *p* = 0.022 against its own null. **Snow and frost are
-refuted**; the signal is carried entirely by the growing season.
+(0.299 → 0.309) and *p* = 0.022 against its own null. The seasonal result is robust
+to removal of all December–February pairs (0.1 % amplitude change); a residual snow/frost
+contribution is not supported, and the signal is carried by the growing season.
 
 *Corroborating evidence*: the freeze test showed the mat gaining **less**
 coherence on freezing (+0.028) than grassland (+0.078) — the mat does not freeze
@@ -81,9 +87,9 @@ LOS-to-vertical conversion.
 below the ≈ 39° that a nominal mid-swath value would suggest. The LOS-to-vertical
 factor is therefore **1.183**, not 1.29 — a 9 % difference that propagates
 directly into any displacement bound. The bounds of §4.3.7 use the measured
-value (8.7 mm on the propagated interval; the refined 2.4 mm bound is
-withdrawn, see §4.3.7). Reading the incidence from the
-product metadata rather than assuming it is worth the effort.
+value (8.7 mm on the propagated interval; the conditional 2.4 mm Level 2 calculation
+is retained strictly as an illustrative bound under an assumed stable lake, see §4.3.7).
+Reading the incidence from the product metadata rather than assuming it is worth the effort.
 
 ### A.6 Phenology alone — excluded
 
@@ -121,15 +127,10 @@ amplitude and the correlations rests on **size-matched empirical nulls** built o
 real terrain carrying the real spatial correlation. No N_eff value enters those
 *p*-values; the 1/√N factor is **motivation**, not a step in the computation.
 
-**(b) Where N_eff does enter** (the indicative |R| floor), measurement changes
-the picture:
-
-| Zone | L_corr | N_eff measured | N_eff assumed | \|R\| / floor |
-|---|---|---|---|---|
-| A | 160 m | 31 | *125* | **×1.3** |
-| B | 80 m | 16 | *16* | ×1.6 |
-| C | 360 m | 5 | *100* | **×1.3** |
-| D | 280 m | 219 | *2 688* | ×6.3 |
+**(b) Where $N_{\text{eff}}$ does enter** (the indicative $|R|$ floor), empirical measurement changes
+the picture (see **Table 10** in §4.5.1 for full parameters across zones): with $N_{\text{eff}} \approx 31$
+over Zone A ($L_{\text{corr}} \approx 160\text{ m}$), the circular mean resultant length $|R|$ sits only
+$\times 1.3$ above the measured floor.
 
 **Accepted consequence:** at ×1.3 above the floor, A and C do **not** constitute
 a detection. The **ranking** of zones — the only claim made — is unchanged, since
@@ -143,12 +144,12 @@ probably understated. A connectivity-aware estimator would refine this.
 ### A.9 Mis-assigned land cover — excluded
 
 Three convergent checks: ESA WorldCover class, matching on Sentinel-2 features,
-and above all the **area control** (A + B = 90.24 ha against 89.7 ha documented,
-**+0.6 %**), which validates geolocation numerically.
+and the **area control** (A + B = 90.24 ha against 89.7 ha documented, **+0.6 %**),
+which confirms grid scaling and rasterization while registration is anchored by the radial profile (Fig. 9).
 
 ### A.10 Mat and lake moving together — not excluded
 
-This is the principal weakness of the refined bound (§4.3.7, level 2). Lake and
+This is the principal weakness of the conditional bound (§4.3.7, Level 2). Lake and
 mat float on the same water table: a **common** motion would produce the same
 A − B cancellation as an **absence** of motion.
 

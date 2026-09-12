@@ -81,6 +81,7 @@ def scientific(dp: int = 2):
 # and also catches a copy-paste from the previous draft.
 SUPERSEDED = {
     "2.2 × 10⁻⁴⁹": "old Wilcoxon p, superseded by 4.84 × 10⁻⁴⁶",
+    "4.84 × 10⁻⁴⁶": "superseded Wilcoxon p, removed from prose per P-032",
     "−0.069": "old paired Δ; the mean is −0.081 and the median −0.050",
     "−0.0705": "old date-jackknife minimum, superseded by −0.0842",
     "−0.0652": "old date-jackknife maximum, superseded by −0.0774",
@@ -97,8 +98,6 @@ SUPERSEDED = {
 REGISTRY = [
     ("seasonal amplitude A - C p", "T07_seasonal_amplitudes.csv", "p_perm",
      {"series": "A−C"}, fixed(3)),
-    ("Wilcoxon p, A vs C", "T05_paired_test.csv", "wilcoxon_p", None,
-     scientific(2)),
     ("paired delta mean, A - C", "T05_paired_test.csv", "delta_mean", None,
      fixed(3)),
     ("date-jackknife minimum", "T05_paired_test.csv", "date_jackknife_min", None,
