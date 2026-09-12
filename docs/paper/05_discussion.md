@@ -164,12 +164,14 @@ Three rules, each of which invalidated an intermediate conclusion in this study:
    larger carries half the noise and **manufactures false detections**.
 2. **A null distribution, not a single realisation.** One realisation is not a
    test; *N* draws give an empirical *p*-value — whose **floor** of 1/(1 + N)
-   must be stated.
+   must be stated. Across our 10,750-pixel reservoir (Zone D), spatial autocorrelation
+   limits effective independent draws to $N_{\text{eff}} \approx 219$ (Table 10), which
+   remains fully adequate for establishing the empirical null distribution (§3.4).
 3. **Identical treatment of the null.** If the observed statistic results from a
    selection (best |r| over 16 lags), the null must undergo the same sweep.
 
-These rules are cheap and should accompany any weak-signal claim over
-decorrelated terrain.
+These rules are cheap, fully specified algorithmically (§3.4), and should accompany
+any weak-signal claim over decorrelated terrain.
 
 ### 5.4 Instrumental outlook
 

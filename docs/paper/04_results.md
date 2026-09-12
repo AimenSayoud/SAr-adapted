@@ -22,9 +22,12 @@ criterion without a reliability criterion is misleading.
 Phase linking is theoretically optimal under an unconstrained, complete, and unbiased
 sample covariance matrix. In our network of 356 pairs across ~90 dates, the pairwise
 products populate 8.89 % (356 of 4,005 off-diagonal pairs) of the full covariance
-structure. Evaluating phase linking directly on these delivered burst interferograms
-provides a rigorous assessment of whether standard operational products support
-displacement retrieval over the mat.
+structure, where unobserved entries are zero-filled and the dominant eigenvector
+maximizes coherence-weighted phase consensus across the sparse observation graph (§3.2).
+Evaluating phase linking directly on these delivered burst interferograms provides a
+rigorous assessment of whether standard operational products support displacement
+retrieval over the mat, with synthetic validation confirming that the sparse estimator
+faithfully recovers ground-truth phase histories on incomplete networks of this density (§3.8).
 
 **Table 2** — Temporal coherence by zone (356 pairs, ~90 dates):
 
@@ -344,7 +347,7 @@ Across all sub-zones, seasonal phase remains locked within an 8-day window (DOY 
 breathe mechanically, yet exhibits an annual trajectory consistent in amplitude and phase with
 the floating mat: 2.63 mm LOS, phase DOY 95 (*p* = 0.136 against the reference-matched null).
 The lake signal represents 80 % of the mat amplitude, within 9 days of the same phase.
-Because $p = 0.136$ falls short of confirmatory statistical significance under our pre-specified
+Because $p = 0.136$ falls short of confirmatory statistical significance under our designated confirmatory
 protocol, the lake trajectory cannot be claimed as an independent detection. However, its
 trajectory provides a consistent amplitude scale.
 

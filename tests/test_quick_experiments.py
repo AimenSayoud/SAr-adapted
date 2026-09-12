@@ -13,6 +13,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from insar_wetlands.inversion.phaselinking import evd_pixel
 from insar_wetlands.predict_failure import spatial_block_cv
 from insar_wetlands.referee import (
     aggregation_gain_curve,
@@ -95,3 +96,63 @@ def test_baseline_subset_amplitude_stability():
     assert abs(all_pairs["amplitude_mm"] - sub_48["amplitude_mm"]) < 0.5
     # Phase DOY should remain stable within DOY 100-110
     assert abs(all_pairs["phase_doy"] - sub_48["phase_doy"]) < 5.0
+
+
+def test_sparse_incomplete_network_phase_linking():
+    """Synthetic validation of EVD phase-linking on an incomplete network.
+
+    Matches the empirical parameters of the Rzecin Sentinel-1 stack:
+    - N = 90 acquisition dates
+    - M = 356 interferometric pairs (off-diagonal fill fraction 356 / 4005 = 8.89%)
+    - Mean coherence ~ 0.40
+    - Checks that dominant eigenvector EVD recovers ground-truth phase history
+      under realistic 8.89% sparsity.
+    """
+    n_dates = 90
+    n_pairs = 356
+    rng = np.random.default_rng(123)
+
+    def _wrap(x):
+        return np.angle(np.exp(1j * x))
+
+    # 1. Ground truth phase history: random walk / cumulative phase within [-pi, pi]
+    truth = np.cumsum(rng.normal(0, 0.15, n_dates))
+    truth = truth - truth[0]
+
+    # 2. Build incomplete baseline network (matching nearest temporal neighbours)
+    pairs = []
+    span = 1
+    while len(pairs) < n_pairs and span < n_dates:
+        for i in range(n_dates - span):
+            pairs.append((i, i + span))
+            if len(pairs) >= n_pairs:
+                break
+        span += 1
+    idx = np.array(pairs[:n_pairs])
+    assert len(idx) == n_pairs
+    total_possible = n_dates * (n_dates - 1) // 2
+    fill_fraction = len(idx) / total_possible
+    assert 0.088 <= fill_fraction <= 0.089
+
+    # 3. Simulate noisy interferometric observations
+    coh_val = 0.70
+    sigma_phi = np.sqrt((1 - coh_val**2) / (2 * coh_val**2))
+    phi_clean = np.array([_wrap(truth[j] - truth[i]) for (i, j) in idx])
+    phi_obs = _wrap(phi_clean + rng.normal(0, sigma_phi, n_pairs))
+    coh_obs = np.full(n_pairs, coh_val)
+
+    # 4. Invert using sparse EVD phase linking
+    theta_est, tcoh = evd_pixel(phi_obs, coh_obs, idx, n=n_dates)
+
+    # 5. Validation assertions
+    assert np.isfinite(theta_est).all()
+    assert np.isfinite(tcoh)
+    assert tcoh > 0.60
+
+    # Phase recovery: wrapped phase error across all dates
+    err = _wrap(theta_est - truth)
+    mean_abs_err = float(np.mean(np.abs(err)))
+    assert mean_abs_err < 0.50, f"Expected low wrapped error, got {mean_abs_err:.3f}"
+    # Circular coherence between truth and estimated phase history
+    circ_coh = float(np.abs(np.mean(np.exp(1j * err))))
+    assert circ_coh > 0.85, f"Expected high circular coherence, got {circ_coh:.3f}"
