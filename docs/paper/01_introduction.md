@@ -65,9 +65,13 @@ We therefore do not ask
 > **What does C-band Sentinel-1 InSAR actually measure over a floating
 > peatland, and why?**
 
+We investigate this question over the Rzecin peatland in west-central Poland
+(Figure 1; §2), where a near-permanently saturated floating root mat provides an
+exemplary test site.
+
 ### 1.5 Design
 
-The analysis is organised around four falsifiable, competing hypotheses (Fig. 1),
+The analysis is organised around a sequential falsification chain H1–H4 (Figure 2; §3.1),
 each paired with the test that could refute it:
 
 | | Hypothesis | Principal test | Section |
@@ -77,8 +81,6 @@ each paired with the test that could refute it:
 | **H3** | The residual signal is surface **motion** | spatial aggregation + lake, null and magnitude controls | §4.3 |
 | **H4** | The measured signal reflects **hydrological state** | correlation on deseasonalised anomalies | §4.4 |
 
-
-![**Figure 1.** Study design. Four competing hypotheses, the test applied to each, and the verdict reached.](figures/F01_hypotheses.png)
 
 ### 1.6 Contributions
 

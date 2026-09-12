@@ -163,9 +163,13 @@ We therefore do not ask
 > **What does C-band Sentinel-1 InSAR actually measure over a floating
 > peatland, and why?**
 
+We investigate this question over the Rzecin peatland in west-central Poland
+(Figure 1; §2), where a near-permanently saturated floating root mat provides an
+exemplary test site.
+
 ### 1.5 Design
 
-The analysis is organised around four falsifiable, competing hypotheses (Fig. 1),
+The analysis is organised around a sequential falsification chain H1–H4 (Figure 2; §3.1),
 each paired with the test that could refute it:
 
 | | Hypothesis | Principal test | Section |
@@ -175,8 +179,6 @@ each paired with the test that could refute it:
 | **H3** | The residual signal is surface **motion** | spatial aggregation + lake, null and magnitude controls | §4.3 |
 | **H4** | The measured signal reflects **hydrological state** | correlation on deseasonalised anomalies | §4.4 |
 
-
-![**Figure 1.** Study design. Four competing hypotheses, the test applied to each, and the verdict reached.](figures/F01_hypotheses.png)
 
 ### 1.6 Contributions
 
@@ -200,7 +202,7 @@ The **Rzecin peatland** (52.7632 °N, 16.3098 °E, Greater Poland; **89.7 ha** t
 reserve area, Milecka et al., 2017; Juszczak et al., 2013; Lamentowicz et al., 2008;
 Wojterska et al., 2001; Oświecimska-Piasko et al., 2006) is a transitional poor
 fen carrying a floating *Sphagnum* mat (*Schwingmoor*) with a residual lake undergoing
-terrestrialisation (Fig. 2; Barabach, 2012, 2015). Three properties govern its radar response:
+terrestrialisation (Figure 1; Barabach, 2012, 2015). Three properties govern its radar response:
 
 - **Near-surface water table**, 0–30 cm below the surface and hydrologically
   stable (Juszczak et al., 2013).
@@ -210,7 +212,7 @@ terrestrialisation (Fig. 2; Barabach, 2012, 2015). Three properties govern its r
   pronounced vertical motion.
 
 
-![**Figure 2.** Study area. (a) Rzecin peatland outline with the Sentinel-1 burst footprint; (b) zone stratification A–D on the radar grid; (c) zone outlines over mean interferometric coherence.](figures/F02_study_area.png)
+![**Figure 1.** Study area. (a) Rzecin peatland outline with the Sentinel-1 burst footprint; (b) zone stratification A–D on the radar grid; (c) zone outlines over mean interferometric coherence.](figures/F01_study_area.png)
 
 The site is therefore, a priori, the case where the geomorphological signal
 should be **largest**, which makes it a demanding test rather than a favourable
@@ -237,7 +239,7 @@ one.
 | Incidence angle (measured) | 32.26° over zone A → LOS-to-vertical factor 1.183 |
 
 
-![**Figure 3.** Interferometric network. (a) 356 pairs over ~90 acquisitions, 2022–2024; (b) temporal-baseline distribution, with the 60-day robustness filter marked.](figures/F03_network.png)
+![**Figure S1.** Interferometric network. (a) 356 pairs over ~90 acquisitions, 2022–2024; (b) temporal-baseline distribution, with the 60-day robustness filter marked.](figures/S01_network.png)
 
 > **Scope note.** The 2022–2024 window falls in the S1A-only era (12-day
 > revisit; ESA, 2024). The return to a two-satellite constellation (S1C, S1D) restores the
@@ -246,9 +248,9 @@ one.
 > (§5.4).
 
 
-![**Figure S1.** False-colour composite (R = σ⁰ VV, G = coherence, B = Sentinel-2 wetness) with zone outlines, and a zoom on the peatland.](figures/S01_rgb_composite.png)
+![**Figure S2.** False-colour composite (R = σ⁰ VV, G = coherence, B = Sentinel-2 wetness) with zone outlines, and a zoom on the peatland.](figures/S02_rgb_composite.png)
 
-![**Figure S2.** Inundated-time fraction from the water mask, with zones A and B outlined.](figures/S02_flooded_fraction.png)
+![**Figure S3.** Inundated-time fraction from the water mask, with zones A and B outlined.](figures/S03_flooded_fraction.png)
 
 ### 2.3 Auxiliary data
 
@@ -262,7 +264,7 @@ one.
 
 ### 2.4 Zone stratification
 
-Four zones are defined on the radar grid (Fig. 2, Table 1):
+Four zones are defined on the radar grid (Figure 1, Table 1):
 
 | Zone | Definition | *n* px | Area |
 |---|---|---|---|
@@ -302,7 +304,7 @@ coherence distributions, decorrelation rates, and seasonal amplitudes remain com
 Three independent checks, none of them visual:
 
 1. **Area and grid discretisation.** A + B = **90.24 ha** against **89.7 ha** documented → **+0.6 %**.
-   This confirms grid scaling and polygon rasterization (area is translation-invariant and cannot by itself prove geolocation; exact co-registration is independently verified by the sharp radial-profile step at signed distance zero in Fig. 9 and multi-sensor boundary coincidence in Fig. 8).
+   This confirms grid scaling and polygon rasterization (area is translation-invariant and cannot by itself prove geolocation; exact co-registration is independently verified by the sharp radial-profile step at signed distance zero in Figure S8 and multi-sensor boundary coincidence in Figure S7).
 2. **Phenological twinning.** Median Sentinel-2 wetness is **−0.513** (A) versus
    **−0.522** (C): the matching is effective, so any coherence difference is not
    a land-cover artefact.
@@ -319,17 +321,21 @@ Three independent checks, none of them visual:
 | D (other) | 0.438 | −9.28 | 1.045 | −0.440 | 0.639 |
 
 The polygon is expressed in five independent sensors, with disjoint per-zone
-distributions (Fig. 8) and a sharp step at the boundary in all radial
-profiles (Fig. 9).
+distributions (Figure S7) and a sharp step at the boundary in all radial
+profiles (Figure S8).
 
 
 ## 3. Methods
 
-Figure 4 summarises the processing logic: the change of observable and the
-weak-signal test protocol.
+The investigation is structured around a sequential falsification chain H1–H4 (Figure 2),
+distinguishing raw radar interactions from inferred geophysical quantities via a four-level
+observable hierarchy (Figure 7a; §5.6). Figure S4 summarizes the operational processing logic:
+the change of observable and the weak-signal test protocol.
 
 
-![**Figure 4.** Processing protocol: per-pixel versus aggregated observable, and the size-matched null test yielding an empirical p-value.](figures/F04_protocol.png)
+![**Figure 2.** Study design: sequential falsification chain H1–H4, testing protocols applied, and verdicts reached.](figures/F02_hypotheses.png)
+
+![**Figure S4.** Processing protocol: per-pixel versus aggregated observable, and the size-matched null test yielding an empirical p-value.](figures/S04_protocol.png)
 
 ### 3.1 Inversion estimators compared (H1)
 
@@ -442,7 +448,7 @@ evaluated directly on wrapped phase, remaining independent of unwrapping errors.
 
 **Sub-zone subdivision protocol.** To verify whether Zone A deforms as a single coherent unit or exhibits differential core-margin kinematics (e.g., peripheral grounding or edge attenuation), we partition Zone A by distance to the outer reserve boundary into concentric sub-zones: inner core ($d > 40$ m, 356 pixels), deep core ($d > 80$ m, 233 pixels), and outer margin ($d \le 40$ m, 143 pixels). Independent aggregate time-series inversion and harmonic regression are executed across each sub-zone against reference Zone C.
 
-![**Figure S3.** Synthetic validation. On identical simulated data, per-pixel inversion returns −13.7 mm yr⁻¹ (36 % usable pixels) whereas aggregation returns −19.8 mm yr⁻¹ against a ground truth of −20.](figures/S03_synthetic_validation.png)
+![**Figure S5.** Synthetic validation. On identical simulated data, per-pixel inversion returns −13.7 mm yr⁻¹ (36 % usable pixels) whereas aggregation returns −19.8 mm yr⁻¹ against a ground truth of −20.](figures/S05_synthetic_validation.png)
 
 ### 3.4 Weak-signal test protocol
 
@@ -461,7 +467,7 @@ To ensure strict replicability, the generation of empirical null realisations fo
 parameterised spatial sampling algorithm resolved across ten structural criteria:
 
 1. *Sampling reservoir definition*: The null reservoir is Zone D, comprising 10,750 pixels (1,720 ha)
-   across the surrounding non-wetland landscape (Fig. 2).
+   across the surrounding non-wetland landscape (Figure 1).
 2. *Topographic and land-cover screening*: Candidate reservoir pixels are pre-screened to exclude open water
    (Sentinel-2 MNDWI $< 0.10$), steep relief (slope $< 5^\circ$ via Copernicus 30 m DEM), and agricultural
    structures, restricting draws to flat, mineral soil cover.
@@ -599,8 +605,8 @@ faithfully recovers ground-truth phase histories on incomplete networks of this 
 | B — residual lake | 0.584 | 0.542–0.630 | 1.5 % |
 
 Read against the simulated network noise floor of ≈ 0.55 (empirical network
-distribution floor 0.488 with a 90 % interval of [0.448, 0.532]; §3.1; Fig. 5,
-Fig. 6). Because that floor is strongly topology-dependent, we express each zone
+distribution floor 0.488 with a 90 % interval of [0.448, 0.532]; §3.1; Figure 3).
+Because that floor is strongly topology-dependent, we express each zone
 as its excess above the floor, which requires no threshold:
 
 | Zone | Temporal coherence | Excess over floor |
@@ -619,13 +625,11 @@ per-pixel inversion is not supportable, while retaining measurable structure
 above the fully decorrelated case.
 
 
-![**Figure 5.** Phase-linking result. (a) Temporal-coherence distributions by zone, with the 0.55 noise floor and the 0.7 reliability threshold; (b) full multi-threshold curve.](figures/F05_temporal_coherence.png)
-
-![**Figure 6.** Map of temporal coherence from EVD phase linking, with zone outlines.](figures/F06_tcoh_map.png)
+![**Figure 3.** Phase-linking temporal coherence. (a) Temporal-coherence distributions by zone with the 0.55 noise floor and 0.7 reliability threshold; (b) multi-threshold usable fraction curve; (c) spatial map of temporal coherence from EVD phase linking with zone outlines.](figures/F03_temporal_coherence.png)
 
 #### 4.1.3 Multi-threshold analysis
 
-The 0.7 threshold is a convention; the full curve is more informative (Fig. 5b,
+The 0.7 threshold is a convention; the full curve is more informative (Figure 3b,
 Table T03). A and C are nearly indistinguishable at 0.50 (0.974 vs 0.995) and
 diverge in the upper tail (≥ 0.65). The mat is therefore not uniformly
 shifted downward — it is deprived of its best pixels, which is precisely
@@ -710,13 +714,13 @@ reflecting persistent decorrelation.
 
 The deficit therefore depends on no single acquisition and survives control for
 baseline, atmosphere (both by pairing), slope (DEM) and canopy optical wetness
-(Sentinel-2 features). Figure 7 and Figure S4 show the paired differences and the
-decay curves (with freeze response illustrated in Figure S6).
+(Sentinel-2 features). Figure 4 and Figure S6 show the paired differences and the
+decay curves (with freeze response illustrated in Figure S11).
 
 
-![**Figure 7.** Matched-cover paired test. (a) Distribution of coh(A) − coh(C) per interferogram; (b) scatter of A against C, points below the 1:1 line indicating lower mat coherence.](figures/F07_paired_test.png)
+![**Figure 4.** Matched-cover paired test. (a) Distribution of coh(A) − coh(C) per interferogram; (b) scatter of A against C, points below the 1:1 line indicating lower mat coherence.](figures/F04_paired_test.png)
 
-![**Figure S4.** Coherence decay with temporal baseline, with fitted decorrelation times per zone.](figures/S04_coherence_decay.png)
+![**Figure S6.** Coherence decay with temporal baseline, with fitted decorrelation times per zone.](figures/S06_coherence_decay.png)
 
 #### 4.2.2 The cover matching is effective
 
@@ -727,11 +731,11 @@ non-optical surface property at the radar scale.
 
 #### 4.2.3 A spatially delimited unit
 
-- **Radial profile** (Fig. 9): a low, flat plateau (≈ 0.40) throughout the
+- **Radial profile** (Figure S8): a low, flat plateau (≈ 0.40) throughout the
   interior, a sharp step at the boundary, and a peak just outside (≈ 0.47).
   The same discontinuity appears in σ⁰ and RVI.
 - **Five independent sensors** express the polygon: coherence, σ⁰ VV, RVI,
-  Sentinel-2 wetness, temporal coherence (Fig. 8, Fig. S1).
+  Sentinel-2 wetness, temporal coherence (Figure S7, Figure S2).
 - **Area**: A + B = 90.24 ha vs 89.7 ha documented (+0.6 %).
 
 This is not diffuse noise but a delimited physical unit, whose outline —
@@ -739,9 +743,9 @@ drawn from vector and optical sources — coincides with structure visible in
 independent radar fields.
 
 
-![**Figure 8.** Per-zone distributions across five independent sensors: coherence, σ⁰ VV, RVI, Sentinel-2 wetness and temporal coherence.](figures/F08_zone_distributions.png)
+![**Figure S7.** Per-zone distributions across five independent sensors: coherence, σ⁰ VV, RVI, Sentinel-2 wetness and temporal coherence.](figures/S07_zone_distributions.png)
 
-![**Figure 9.** Radial profiles of coherence, σ⁰ VV and RVI against signed distance to the peatland boundary. The step at distance zero marks a physical edge.](figures/F09_radial_profiles.png)
+![**Figure S8.** Radial profiles of coherence, σ⁰ VV and RVI against signed distance to the peatland boundary. The step at distance zero marks a physical edge.](figures/S08_radial_profiles.png)
 
 #### 4.2.4 Scattering signature
 
@@ -758,7 +762,7 @@ At C-band the mat behaves as a denser, wetter scattering volume than dry
 grassland despite identical optical phenology. The higher dual-pol RVI (Mandal et al.,
 2020) is inconsistent with a dominant simple open-water double-bounce signature. The 3.2-fold
 closure dispersion is a direct measurement of scatterer non-stationarity: mat triplets do not
-close, stable ground triplets do (Fig. 13, Fig. S5).
+close, stable ground triplets do (Figure S12, Figure S10).
 
 Importantly, A is not devoid of targets (59 % of pixels have D_A < 0.25).
 Its problem is not absent backscatter but an unstable phase — which is what
@@ -782,7 +786,7 @@ and §A.4.
 | Elevation | −0.168 | +0.430 | −0.598 |
 
 The radar and optical variables show active environmental sensitivity in the mat
-that is absent in the matched grassland (Fig. 10b). In Zone A, higher backscatter (σ⁰ VV)
+that is absent in the matched grassland (Figure S9b). In Zone A, higher backscatter (σ⁰ VV)
 is associated with reduced coherence (ρ = −0.379), and optical greenness correlates
 positively (ρ = +0.320). In Zone C, both coefficients are indistinguishable from zero
 (ρ = −0.008 and −0.009). The apparent elevation contrast (−0.168 vs +0.430) is uninterpretable
@@ -807,11 +811,11 @@ strictly as an empirical descriptive benchmark of within-zone spatial structure 
 an independent predictive model.
 
 
-![**Figure 10.** Within-mat predictive model. (a) Standardised coefficients of the collinearity-cleaned model; (b) Spearman correlations in mat versus grassland, showing active environmental sensitivity in the mat against its absence in grassland.](figures/F10_predictors.png)
+![**Figure S9.** Within-mat predictive model. (a) Standardised coefficients of the collinearity-cleaned model; (b) Spearman correlations in mat versus grassland, showing active environmental sensitivity in the mat against its absence in grassland.](figures/S09_predictors.png)
 
-![**Figure S5.** Amplitude dispersion D_A: map and per-zone distributions against the 0.25 persistent-scatterer threshold.](figures/S05_amplitude_dispersion.png)
+![**Figure S10.** Amplitude dispersion D_A: map and per-zone distributions against the 0.25 persistent-scatterer threshold.](figures/S10_amplitude_dispersion.png)
 
-![**Figure S6.** Coherence sensitivity to the water-table proxy, and coherence gain on freezing, by zone.](figures/S06_hydrology_freeze.png)
+![**Figure S11.** Coherence sensitivity to the water-table proxy, and coherence gain on freezing, by zone.](figures/S11_hydrology_freeze.png)
 
 #### 4.2.6 Verdict: H2 supported
 
@@ -827,7 +831,7 @@ an independent predictive model.
 
 #### 4.3.1 The change of observable works
 
-On identical simulated data (Fig. S3), per-pixel inversion returns
+On identical simulated data (Figure S5), per-pixel inversion returns
 **−13.7 mm yr⁻¹** with 36 % usable pixels, whereas aggregation returns
 **−19.8 mm yr⁻¹** against a ground truth of **−20**. The signal was not below the
 noise floor; it was below the **per-pixel** noise floor.
@@ -869,7 +873,7 @@ the peatland. The null control is what exposed the design error.
 #### 4.3.4 Seasonal amplitude: detection
 
 Annual-cycle fit on the aggregated A − C series against approximately 4 600
-reference-matched null realisations (Fig. 11, Fig. 12; Table 7):
+reference-matched null realisations (Figure 5; Table 7):
 
 **Table 7** — Seasonal amplitudes and permutation significance against empirical null realisations:
 
@@ -897,9 +901,7 @@ The mid-April maximum (DOY 104) aligns with spring water-table peaks.
 Across all sub-zones, seasonal phase remains locked within an 8-day window (DOY 100–108), with amplitude increasing smoothly from 2.89 mm at the peripheral margin to 3.78 mm in the deep interior core. This confirms that Zone A moves as an integrated coherent unit rather than displaying disjoint local kinematics.
 
 
-![**Figure 11.** Aggregated series. (a) A−C, B−C, A−B and the size-matched null; (b) seasonal amplitudes — the lake oscillates like the mat, and A−B cancels.](figures/F11_aggregate_series.png)
-
-![**Figure 12.** Significance of the seasonal amplitude against size-matched null distributions. (a) Full network; (b) winter pairs excluded.](figures/F12_significance.png)
+![**Figure 5.** Aggregated seasonal phase series and empirical significance against size-matched null distributions. (a) Time series for A−C, B−C, A−B and the size-matched null; (b) seasonal amplitudes across series; (c) null distribution and significance for the full network; (d) null distribution with winter pairs excluded.](figures/F05_aggregate_and_significance.png)
 
 #### 4.3.5 Three lines of evidence constrain a purely mechanical interpretation
 
@@ -955,7 +957,7 @@ amplitude.
 
 #### 4.3.6 Closure-phase bias does not discriminate
 
-Over the 518 closed triplets in the network (Fig. 13, Table 8):
+Over the 518 closed triplets in the network (Figure S12, Table 8):
 
 **Table 8** — Closure-phase bias and dispersion across zones (518 closed triplets):
 
@@ -978,7 +980,7 @@ moisture fluctuation and non-rigid micro-movement produce equally. This test
 measures the degree of non-stationarity, not its nature.
 
 
-![**Figure 13.** Closure phase by zone. (a) Mean bias with 2σ error bars — none significant; (b) median |closure| dispersion against the π/2 random reference.](figures/F13_closure_phase.png)
+![**Figure S12.** Closure phase by zone. (a) Mean bias with 2σ error bars — none significant; (b) median |closure| dispersion against the π/2 random reference.](figures/S12_closure_phase.png)
 
 #### 4.3.7 Upper bound on differential apparent phase-centre displacement, with stated assumptions
 
@@ -1044,7 +1046,7 @@ signals always correlate at *some* lag, the sweep merely aligning phases.
 #### 4.4.2 Anomaly analysis
 
 Removing the annual harmonic from both series leaves only inter-annual and
-event-scale anomalies. Against 92 size-matched nulls (Fig. 15, Table 9):
+event-scale anomalies. Against 92 size-matched nulls (Figure 6b, Table 9):
 
 **Table 9** — Sentinel-2 surface wetness and air temperature correlations with aggregated phase:
 
@@ -1088,9 +1090,7 @@ The sign is consistent: wetter → shallower penetration → phase centre higher
 mechanical swelling would give the same, but it is coherent.
 
 
-![**Figure 14.** Aggregated InSAR phase and Sentinel-2 optical wetness — two independent sensors.](figures/F14_phase_vs_wetness.png)
-
-![**Figure 15.** Correlation with each forcing, raw versus deseasonalised: temperature collapses while wetness survives.](figures/F15_seasonal_vs_anomalies.png)
+![**Figure 6.** InSAR phase and optical surface wetness relationship. (a) Aggregated InSAR phase and Sentinel-2 optical wetness anomaly series; (b) cross-correlation with hydro-climatic forcings, comparing raw seasonal cycles with deseasonalised anomalies.](figures/F06_wetness_anomaly_composite.png)
 
 #### 4.4.4 The mechanism: a sensitivity contrast
 
@@ -1167,9 +1167,9 @@ because their significance derives from empirical size-matched nulls that use no
 N_eff at all. (Caveat: zone C is fragmented, so the estimator mixes within- and
 between-patch correlation and its N_eff of 5 is probably understated.)
 
-**Aggregation gain curve.** To evaluate how spatial aggregation reduces phase noise and overcomes per-pixel decorrelation, we computed empirical phase standard deviation across Zone A as a function of aggregated pixel count $N \in [1, 499]$ (Fig. 17, Table T13). The empirical standard deviation falls from $\sigma_1 \approx 6.60$ mm at $N=1$ to $1.25$ mm at $N=499$. For purely independent observations, standard error would scale as $1/\sqrt{N}$ (reaching $0.30$ mm at $N=499$). However, spatial autocorrelation imposes an asymptotic noise floor scaling as $1/\sqrt{N_{\text{eff}}}$ ($N_{\text{eff}} \approx 31$), which closely tracks the observed empirical plateau.
+**Aggregation gain curve.** To evaluate how spatial aggregation reduces phase noise and overcomes per-pixel decorrelation, we computed empirical phase standard deviation across Zone A as a function of aggregated pixel count $N \in [1, 499]$ (Figure S13, Table T13). The empirical standard deviation falls from $\sigma_1 \approx 6.60$ mm at $N=1$ to $1.25$ mm at $N=499$. For purely independent observations, standard error would scale as $1/\sqrt{N}$ (reaching $0.30$ mm at $N=499$). However, spatial autocorrelation imposes an asymptotic noise floor scaling as $1/\sqrt{N_{\text{eff}}}$ ($N_{\text{eff}} \approx 31$), which closely tracks the observed empirical plateau.
 
-![**Figure 17.** Aggregation gain curve. Empirical phase standard deviation as a function of aggregated pixel count $N$ across Zone A, overlaid with theoretical independent $1/\sqrt{N}$ and autocorrelated $1/\sqrt{N_{\text{eff}}}$ scaling ($N_{\text{eff}} \approx 31$).](figures/F17_aggregation_gain.png)
+![**Figure S13.** Aggregation gain curve. Empirical phase standard deviation as a function of aggregated pixel count $N$ across Zone A, overlaid with theoretical independent $1/\sqrt{N}$ and autocorrelated $1/\sqrt{N_{\text{eff}}}$ scaling ($N_{\text{eff}} \approx 31$).](figures/S13_aggregation_gain.png)
 
 #### 4.5.2 Snow and frost not supported
 
@@ -1373,7 +1373,7 @@ all intermediate and full network configurations: the seasonal amplitude settles
 Harmonic inversion on aggregated multi-temporal networks is thus protected from the short-baseline
 fading bias that severely distorts linear deformation rates.
 
-![**Figure 16.** Our bound in context: raised-bog breathing, drained-fen subsidence, expected free flotation, and the value measured here.](figures/F16_literature_context.png)
+![**Figure S14.** Our bound in context: raised-bog breathing, drained-fen subsidence, expected free flotation, and the value measured here.](figures/S14_literature_context.png)
 
 ### 5.3 Two transferable methodological contributions
 
@@ -1483,7 +1483,23 @@ proxies (Sentinel-2 NDWI/NMDI) were utilized as the primary continuous empirical
 covariate. Direct in-situ water-table depth records remain the ideal validation
 target for future prospective campaigns.
 
-### 5.6 Limitations
+### 5.6 Scope of inference: instrumental limit versus capability
+
+Our results answer **two separate questions**, which must not be conflated (Table 12; Figure 7):
+
+| | Question | Answer | Primary evidence |
+|---|---|---|---|
+| **Q1** | Can Sentinel-1 measure vertical displacement of the floating mat? | **No**; apparent phase-centre displacement $\le 8.7$ mm, true mat motion unconstrained | §4.1, §4.2, §4.3 |
+| **Q2** | Can Sentinel-1 inform on seasonal wetland hydrological state? | **Possibly yes**, moderate but measurable association | §4.3.4, §4.4 |
+
+Q1 is an **instrumental-limit** result: across all six tested standard burst-product inversion families, per-pixel phase retrieval collapses, and the residual aggregate signal cannot be uniquely attributed to surface motion because the open-water lake exhibits a matched trajectory and differential mat-minus-lake phase cancels. Q2 is a **capability** result: spatial aggregation successfully recovers an annual phase cycle ($3.29$ mm, $p = 0.026$) that covaries with independent optical surface wetness anomalies at near-zero lag ($r \approx 0.45$).
+
+Conflating Q1 and Q2 would weaken both findings. Placing all claims into the four-level observable hierarchy (Figure 7a) clarifies that failure to invert Level 1 physical peat deformation from Level 3 InSAR observables does not preclude using Level 3 observables to track Level 2 moisture-induced phase-centre shifts.
+
+
+![**Figure 7.** Conceptual framework for wetland InSAR. (a) Four-level observable hierarchy distinguishing physical quantities, radar interactions, raw InSAR observables, and inferred quantities; (b) mechanistic causal chain at Rzecin, demonstrating how hydrologically driven phase-centre variability produces apparent displacement without requiring true mechanical peat breathing.](figures/F07_conceptual_framework.png)
+
+### 5.7 Limitations
 
 - **One site, one track, one polarisation** (VV): transferability of the
   predictive model (R²cv = 0.24) to other peatlands remains to be demonstrated.
@@ -1613,43 +1629,24 @@ The authors declare no competing interests.
 The authors thank the Alaska Satellite Facility DAAC for processing Sentinel-1 interferograms via HyP3, the European Space Agency and Copernicus Programme for Sentinel-1 and Sentinel-2 imagery, and ECMWF for ERA5 atmospheric reanalysis data. We thank Poznań University of Life Sciences and the Rzecin Wetland research station teams for long-term site stewardship and environmental monitoring data.
 
 
-## Appendix A. Alternative explanations tested
+## Appendix A. Robustness and analytical safeguards
 
 > For every major conclusion: *what observation would prove it wrong?* Each
 > alternative excluded strengthens the retained explanation; those that cannot
 > be excluded must be declared.
 
-### A.1 The proposed mechanism as a causal chain
+### A.1 Summary
 
-Figure A1 renders the chain graphically. In summary: a near-surface water table
-raises and modulates the dielectric constant of the canopy and surface peat;
-this produces both a **variable penetration depth** and **dominant volume
-scattering** (higher RVI, higher σ⁰); the phase centre therefore becomes unstable
-between passes, coherence falls (mean Δ = −0.081), and per-pixel inversion fails
-across six methods. Spatial aggregation divides the noise by √N_eff and reveals a
-3.3 mm seasonal signal, which correlates with moisture anomalies at near-zero lag
-— indicating a substantial dielectric/propagation contribution that cannot be uniquely
-interpreted as mechanical displacement (the lake oscillates with comparable amplitude and
-phase; mat minus lake cancels).
-
-Every observation points to a single mechanism. The remainder of this appendix
-tests whether another mechanism could produce the same observations.
-
-
-![**Figure A1.** Proposed mechanism as a causal chain, from water table to the measured phase signal.](figures/FA1_causal_chain.png)
-
-### A.2 Summary
-
-| # | Alternative | Status | Evidence | Section |
+| # | Safeguard / Alternative | Status | Evidence | Section |
 |---|---|---|---|---|
-| 1 | **Snow / frost** | Not supported | winter removed: 3.282 vs 3.286 mm (**0.1 %**), *p* = 0.022 | A.3 |
-| 2 | **Atmosphere** | Largely accounted for | double difference + empirical null absorbs common screen; unmeasured local topography caveat | A.4 |
-| 3 | **Geometry / incidence** | **Excluded** | Δ = **0.042°** between A and C → 0.06 % on the conversion | A.5 |
-| 4 | **Phenology alone** | Substantially reduced | A and C are phenological twins; soil-dielectric caveat noted | A.6 |
-| 5 | **Unwrapping errors** | Excluded | \|R\| on wrapped phase; baseline filter | A.7 |
-| 6 | **Spatial correlation (N_eff)** | **Measured — reduces the scope of §4.3.2** | L_corr = 160 m over A → N_eff 31, not 125 | A.8 |
-| 7 | **Mis-assigned land cover** | Excluded | WorldCover + S2 matching + area within 0.6 % | A.9 |
-| 8 | **Mat and lake moving together** | **Not excluded** | requires in-situ laser | A.10 |
+| 1 | **Snow / frost** | Not supported | winter removed: 3.282 vs 3.286 mm (**0.1 %**), *p* = 0.022 | A.2 |
+| 2 | **Atmosphere** | Largely accounted for | double difference + empirical null absorbs common screen; unmeasured local topography caveat | A.3 |
+| 3 | **Geometry / incidence** | **Excluded** | Δ = **0.042°** between A and C → 0.06 % on the conversion | A.4 |
+| 4 | **Phenology alone** | Substantially reduced | A and C are phenological twins; soil-dielectric caveat noted | A.5 |
+| 5 | **Unwrapping errors** | Excluded | \|R\| on wrapped phase; baseline filter | A.6 |
+| 6 | **Spatial correlation (N_eff)** | **Measured — reduces the scope of §4.3.2** | L_corr = 160 m over A → N_eff 31, not 125 | A.7 |
+| 7 | **Mis-assigned land cover** | Excluded | WorldCover + S2 matching + area within 0.6 % | A.8 |
+| 8 | **Mat and lake moving together** | **Not excluded** | requires in-situ laser | A.9 |
 
 Of eight alternatives evaluated, three represent direct geometric or processing exclusions
 (geometry/incidence, unwrapping errors, land-cover misassignment); two are substantively constrained
@@ -1659,7 +1656,7 @@ but concedes soil-dielectric differences); snow and frost are not supported by t
 spatial correlation is quantitatively measured ($N_{\text{eff}} \approx 31$); and coupled mat-and-lake
 motion remains open awaiting in-situ laser validation.
 
-### A.3 Snow and frost — not supported
+### A.2 Snow and frost — not supported
 
 **Why it is serious.** A snow cover strongly modifies backscatter and coherence,
 affects a saturated peatland differently from a drained grassland, and has a
@@ -1680,7 +1677,7 @@ contribution is not supported, and the signal is carried by the growing season.
 coherence on freezing (+0.028) than grassland (+0.078) — the mat does not freeze
 like stable ground.
 
-### A.4 Atmosphere — excluded by construction
+### A.3 Atmosphere — excluded by construction
 
 The observable is a **double difference** between two zones ≈ 1 km apart seen in
 **the same pair**: the atmospheric screen at that scale is common and cancels to
@@ -1692,7 +1689,7 @@ appears in the null distribution and is absorbed by the empirical *p*-value.
 perfectly. Relief here is very low (< a few metres), so the expected effect is
 negligible — though unmeasured.
 
-### A.5 Geometry and incidence angle — excluded
+### A.4 Geometry and incidence angle — excluded
 
 A and C lie in the **same burst**, ≈ 1 km apart in range. Measured incidence:
 A = 32.263°, C = 32.305° → **Δ = 0.042°**, i.e. **0.06 %** effect on the
@@ -1706,7 +1703,7 @@ value (8.7 mm on the propagated interval; the conditional 2.4 mm Level 2 calcula
 is retained strictly as an illustrative bound under an assumed stable lake, see §4.3.7).
 Reading the incidence from the product metadata rather than assuming it is worth the effort.
 
-### A.6 Phenology alone — excluded
+### A.5 Phenology alone — excluded
 
 A and C are **phenological twins**: median optical wetness −0.513 vs −0.522, same
 WorldCover class, matched greenness and seasonal amplitude. If phenology alone
@@ -1715,7 +1712,7 @@ drove the signal, the A − C double difference would cancel it.
 *Caveat*: matching constrains the **optical** wetness of the canopy, not the
 dielectric state of the **soil** — which is precisely the variable we invoke.
 
-### A.7 Unwrapping errors — excluded
+### A.6 Unwrapping errors — excluded
 
 |R| and the closure-phase bias are computed on **wrapped** phase and are
 therefore insensitive to 2π jumps. Filtering baselines > 60 days (annual pairs,
@@ -1732,7 +1729,7 @@ preserves the mid-April/May peak phase (Table XT12). The seasonal amplitude is
 thus robust to phase unwrapping pair exclusion and does not collapse unless
 extreme filtering breaks network connectivity (retaining only 14 % of pairs).
 
-### A.8 Spatial correlation and N_eff — measured, with a consequence for §4.3.2
+### A.7 Spatial correlation and N_eff — measured, with a consequence for §4.3.2
 
 **The criticism is well founded**: the 1/√N argument assumes independent pixels,
 which they are not.
@@ -1756,13 +1753,13 @@ proof.
 autocorrelation mixes within- and between-patch correlation; its N_eff of 5 is
 probably understated. A connectivity-aware estimator would refine this.
 
-### A.9 Mis-assigned land cover — excluded
+### A.8 Mis-assigned land cover — excluded
 
 Three convergent checks: ESA WorldCover class, matching on Sentinel-2 features,
 and the **area control** (A + B = 90.24 ha against 89.7 ha documented, **+0.6 %**),
-which confirms grid scaling and rasterization while registration is anchored by the radial profile (Fig. 9).
+which confirms grid scaling and rasterization while registration is anchored by the radial profile (Figure S8).
 
-### A.10 Mat and lake moving together — not excluded
+### A.9 Mat and lake moving together — not excluded
 
 This is the principal weakness of the conditional bound (§4.3.7, Level 2). Lake and
 mat float on the same water table: a **common** motion would produce the same
@@ -1777,14 +1774,14 @@ admits 17 mm at *f* = 0.5, within the published raised-bog range.
 observation of mat movement, analogous to the geometric levelling validation
 employed by Tampuu et al. (2023) over Estonian peatlands.
 
-### A.11 What the laser and UAV should test
+### A.10 What the laser and UAV should test
 
 Their role is not to validate a displacement we do not claim to measure, but
 to test the mechanism.
 
 | Instrument | Question | Outcome and reading |
 |---|---|---|
-| **Laser** | Does the mat move, and by how much? | > 5 mm → our bound is wrong, find the error; < 4 mm → bound confirmed and ambiguity A.10 resolved |
+| **Laser** | Does the mat move, and by how much? | > 5 mm → our bound is wrong, find the error; < 4 mm → bound confirmed and ambiguity A.9 resolved |
 | **Laser** | Is the motion in phase with our 3.3 mm signal? | in phase → a genuine mechanical component; out of phase or absent → confirms the dielectric reading |
 | **Laser + WTD** | Does motion follow the water table? | yes → partial flotation (anchored mat); no → constrained mat |
 | **UAV** | Hummock–hollow microtopography | directly tests the §4.2.5 model (high σ⁰ = wet hollows = failure) |
@@ -1796,37 +1793,20 @@ real motion while InSAR sees only 3.3 mm, most of it dielectric, that
 **quantifies directly the insensitivity of C-band** to this surface — a stronger
 result than any successful cross-validation.
 
-### A.12 Two distinct questions
+### A.11 Result-changing corrections during analysis
 
-Our results answer **two separate questions**, which deserve distinct figures and
-discussions:
-
-| | Question | Answer | Sections |
-|---|---|---|---|
-| **Q1** | Can Sentinel-1 measure vertical displacement? | **No**; apparent phase-centre displacement ≤ 8.7 mm, mat motion unconstrained | §4.1, §4.2, §4.3 |
-| **Q2** | Can Sentinel-1 inform on seasonal hydrological state? | **Possibly yes**, moderate but measurable | §4.3.4, §4.4 |
-
-Q1 is an **instrumental-limit** result; Q2 is a **capability** result. Conflating
-them would weaken both.
-
-### A.13 Errors corrected during the analysis
-
-Documented deliberately: they show that the protocol resisted the authors'
-expectations.
+Four errors corrected during the analysis altered a reported numerical result or bound.
+Documented deliberately, they show how analytical safeguards protected the inference from
+investigator expectations:
 
 | Error | Consequence avoided |
 |---|---|
-| Floor ratio compared across zones of differing N_eff | wrong zone ranking |
-| Null control not size-matched (2 200 px vs 499) | false seasonal detection |
-| Testing a **velocity** on a **periodic** signal | zero power on the physics sought |
-| RVI / VH-VV collinearity (VIF ≈ 240) | uninterpretable coefficients (−1.21 / +0.95) |
-| Naive correlation between two annual cycles | false attribution to moisture |
-| Incidence assumed at ≈ 39° instead of measured 32.3° | bounds overstated by 9 % |
-| **Prediction** "closure bias at ≈ 5σ" | **falsified** by the data (1.6σ) |
-| **Prediction** "no forcing will survive" | **falsified** (wetness survives) |
+| Null control not size-matched (2 200 px vs 499) | false seasonal detection (manufacturing significance by understating aggregate noise) |
+| Testing a **velocity** on a **periodic** signal | zero power on the physics sought (velocity set by calendar truncation rather than peat breathing) |
+| RVI / VH-VV collinearity (VIF ≈ 240) | uninterpretable regression coefficients (−1.21 / +0.95 across collinear radar terms) |
+| Incidence assumed at ≈ 39° instead of measured 32.26° | displacement bounds overstated by 9 % (conversion factor 1.183 vs 1.29) |
 
-Two explicit predictions were **refuted by our own data**, and one post-hoc
-explanation was subjected to a falsifiable test before being accepted.
+Additional developmental adjustments, parameter sensitivity sweeps, and internal testing logs are archived in the supplementary repository documentation.
 
 
 ## References
