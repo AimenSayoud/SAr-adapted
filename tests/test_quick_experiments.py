@@ -11,7 +11,6 @@ Covers:
 
 import numpy as np
 import pandas as pd
-import pytest
 
 from insar_wetlands.inversion.phaselinking import evd_pixel
 from insar_wetlands.predict_failure import spatial_block_cv
@@ -215,6 +214,7 @@ def test_birchak_peat_forward_model():
 def test_restructured_figures_exist():
     """Verify that all 7 main figures and 14 supplementary figures exist with valid sizes."""
     from pathlib import Path
+
     from PIL import Image
 
     fig_dir = Path("docs/paper/figures")

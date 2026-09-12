@@ -10,11 +10,13 @@ from __future__ import annotations
 
 import shutil
 from pathlib import Path
+
 import matplotlib
+
 matplotlib.use("Agg")
-import matplotlib.pyplot as plt
-import matplotlib.patches as patches
-from PIL import Image, ImageDraw, ImageFont
+import matplotlib.patches as patches  # noqa: E402
+import matplotlib.pyplot as plt  # noqa: E402
+from PIL import Image, ImageDraw, ImageFont  # noqa: E402
 
 
 def create_observable_hierarchy_and_mechanism_figure(out_path: Path) -> None:
