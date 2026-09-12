@@ -79,7 +79,13 @@ Four zones are defined on the radar grid (Fig. 2, Table 1):
 
 **Zone C is the core of the design.** It is a control matched in land cover and
 phenology, which isolates what is specific to the mat from what merely reflects
-"vegetation at C-band".
+"vegetation at C-band". However, Zone C consists of 398 pixels dispersed across
+disjoint grassland patches outside the peatland. Semivariogram analysis reveals
+an effective spatial sample size of $N_{\text{eff}} \approx 5$ independent degrees of
+freedom across these fragmented patches. While adequate for aggregate phenological
+twinning and primary time-series referencing, this reduced effective sample size
+substantially limits the statistical power of per-pixel spatial regression contrasts
+in Zone C (§4.2.5).
 
 **Stratification provenance and boundary sensitivity.** The documented 89.7 ha figure
 represents the legal and ecological reserve boundary established by published botanical,

@@ -1,0 +1,5 @@
+depth_rings,distance_threshold_m,n_px,amplitude_mm,phase_doy,r2,status
+0,0,65,2.627,94.7,0.114,Full lake
+1,40,26,2.217,93.6,0.093,Interior lake
+2,80,4,1.842,92.1,0.065,Deep center
+3,120,0,,,,Extinct (geometric limit)

@@ -125,12 +125,17 @@ Two critical properties accompany this quantitative alignment:
    vegetation volume scattering and non-stationary scatterer dynamics as the dominant
    decorrelation mechanisms.
 
-Furthermore, testing maximum temporal baseline subsets (24 d to 120 d and all-pair, Table 3)
+Furthermore, testing maximum temporal baseline subsets (24 d to 120 d and all-pair; Table 3, Table T15)
 reveals that while short-baseline networks (≤ 24 d) suffer from severe accumulating
-closure-phase subsidence bias (−13.5 to −23.5 mm yr⁻¹), consistent with Zheng et al. (2022),
+closure-phase subsidence bias (−13.5 to −23.5 mm yr⁻¹), consistent with Zheng et al. (2022) fading signal bias,
 expanding the network to ≥ 48 d and annual pairs causes the apparent velocity to
 contract to near-zero (−1.53 mm yr⁻¹ on A−C vs −1.50 mm yr⁻¹ on NULL), demonstrating that
-our velocity non-detection is robust to network truncation.
+our velocity non-detection is robust to network truncation. Crucially, while linear velocity is
+highly sensitive to this fading bias, the seasonal harmonic amplitude stabilizes reliably across
+all intermediate and full network configurations: the seasonal amplitude settles between 2.89 mm
+(at $\le 48$ d) and 3.29 mm (all pairs), while seasonal phase locks tightly between DOY 104 and 106.
+Harmonic inversion on aggregated multi-temporal networks is thus protected from the short-baseline
+fading bias that severely distorts linear deformation rates.
 
 ![**Figure 16.** Our bound in context: raised-bog breathing, drained-fen subsidence, expected free flotation, and the value measured here.](figures/F16_literature_context.png)
 
@@ -146,7 +151,10 @@ the *per-pixel* noise floor.**
 This reasoning applies to any target that is **spatially coherent but temporally
 decorrelated**: peatlands, rock glaciers, wetlands, crops. The condition is that
 the target deform as a unit — an assumption that must be physically justified and
-is testable by subdividing the zone.
+is testable by subdividing the zone. Here, subdividing Zone A into concentric distance bands
+(inner core, deep core, and outer margin; §4.3.4, Table T11) confirmed this condition empirically:
+all sub-zones exhibit tightly synchronized phase locking (DOY 100–108) and consistent seasonal
+amplitudes (2.89–3.78 mm), proving that the floating mat behaves kinematically as an integrated unit.
 
 #### 5.3.2 Weak-signal test protocol
 
@@ -248,7 +256,9 @@ target for future prospective campaigns.
   now available.
 - ***p*-values at the floor** (1/(1 + N)) for several tests; more null draws
   would tighten them.
-- **Unit assumption** in aggregation: the mat is assumed to deform as a block,
-  to be verified by subdivision should a mechanical signal appear.
+- **Unit assumption** in aggregation: the mat is assumed to deform as a block;
+  our concentric core-versus-margin subdivision test confirmed synchronous phase locking
+  (DOY 100–108) and consistent amplitudes across sub-zones (§4.3.4, Table T11), though
+  sub-kilometer flexural modes below our spatial resolution cannot be ruled out.
 - **Zone C is fragmented**, which biases the empirical correlation-length
   estimator used for N_eff.

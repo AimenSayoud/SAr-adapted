@@ -92,6 +92,8 @@ conducted in two steps:
 In addition, circular mean resultant length $|R| = |\sum w_k \exp(i\phi_k)| / \sum w_k$ is
 evaluated directly on wrapped phase, remaining independent of unwrapping errors.
 
+**Sub-zone subdivision protocol.** To verify whether Zone A deforms as a single coherent unit or exhibits differential core-margin kinematics (e.g., peripheral grounding or edge attenuation), we partition Zone A by distance to the outer reserve boundary into concentric sub-zones: inner core ($d > 40$ m, 356 pixels), deep core ($d > 80$ m, 233 pixels), and outer margin ($d \le 40$ m, 143 pixels). Independent aggregate time-series inversion and harmonic regression are executed across each sub-zone against reference Zone C.
+
 ![**Figure S3.** Synthetic validation. On identical simulated data, per-pixel inversion returns −13.7 mm yr⁻¹ (36 % usable pixels) whereas aggregation returns −19.8 mm yr⁻¹ against a ground truth of −20.](figures/S03_synthetic_validation.png)
 
 ### 3.4 Weak-signal test protocol
@@ -140,12 +142,16 @@ exploits variability inside zone A.
 - **Variance inflation factors** are mandatory before interpreting coefficients. RVI and VH/VV
   are monotone transforms of the same ratio (VIF ≈ 240), generating collinear sign artefacts
   if unregularised.
-- **Spatial autocorrelation and degrees of freedom.** Spatial autocorrelation in Zone A exhibits
-  an empirical correlation length of ~160 m (4 pixels on the 40 m grid), yielding an effective
+- **Spatial block cross-validation and degrees of freedom.** Spatial autocorrelation in Zone A
+  exhibits an empirical correlation length of ~160 m (4 pixels on the 40 m grid), yielding an effective
   sample size $N_{\text{eff}} \approx 31$ independent spatial degrees of freedom across 499 pixels.
-  In a 12-covariate model, the observations-per-parameter ratio is under 3 ($31 / 12 \approx 2.6$).
-  Cross-validated $R^2_{\text{cv}} = 0.239$ is therefore reported strictly as an empirical descriptive
-  benchmark of within-zone spatial structure rather than an independent predictive model.
+  Random pixel cross-validation leaks spatial autocorrelation across training and test folds,
+  overstating generalization. We therefore evaluate out-of-sample skill using 5-fold spatial block
+  cross-validation on contiguous spatial blocks. In a 12-covariate model, the observations-per-parameter
+  ratio is under 3 ($31 / 12 \approx 2.6$). Spatial block cross-validation yields $R^2_{\text{cv}} = 0.178$
+  (compared to random pixel CV $R^2_{\text{cv}} = 0.239$). Full regression parameter estimates, collinearity
+  diagnostics, and partial effect curves are reported in Supplementary Table S2, while the main text focuses
+  on robust Spearman rank contrasts.
 
 ### 3.7 Hydrological coupling (H4)
 

@@ -1,0 +1,5 @@
+subzone,n_px,amplitude_mm,phase_doy,r2_seasonal
+Full mat (Zone A),499,3.286,104.2,0.299
+Inner core (d > 40 m),356,3.528,106.6,0.312
+Deep core (d > 80 m),233,3.781,108.3,0.318
+Outer margin (d <= 40 m),143,2.894,99.8,0.245

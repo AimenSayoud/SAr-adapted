@@ -1,0 +1,5 @@
+subset,max_dt_days,n_pairs,velocity_mm_yr,amplitude_mm,phase_doy,stability
+<=24d,24,175,-13.471,9.496,116.8,Closure-phase contaminated
+<=36d,36,261,-8.495,4.937,103.6,Transitioning
+<=48d,48,346,-3.867,2.89,105.9,Stabilized
+All pairs,9999,356,-1.531,3.286,104.2,Full network constrained

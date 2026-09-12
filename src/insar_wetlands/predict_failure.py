@@ -172,6 +172,98 @@ def fit_failure_model(df: pd.DataFrame, target_col: str = "target",
             "n": int(len(df))}
 
 
+def spatial_block_cv(df: pd.DataFrame, target_col: str = "target",
+                     coords: np.ndarray | None = None,
+                     n_blocks: int = 5, seed: int = 0) -> dict:
+    """Spatial block cross-validation for multiple regression.
+
+    Instead of random pixel k-fold CV (which leaks autocorrelated spatial
+    information between training and validation folds and inflates apparent skill),
+    partitions pixels into contiguous spatial blocks larger than the ~160 m
+    spatial correlation length.
+
+    Parameters:
+        df: DataFrame containing features and target column.
+        target_col: Name of target column.
+        coords: Optional (N, 2) array of spatial coordinates (e.g. y, x).
+                If None, regular contiguous spatial index blocks are used.
+        n_blocks: Number of spatial evaluation blocks.
+        seed: Random seed for block assignment if spatial clustering is used.
+
+    Returns:
+        dict with:
+            r2_spatial_cv: Overall out-of-block cross-validated R²
+            r2_blocks_mean: Mean of individual block R² scores
+            r2_blocks: List of individual block R² scores
+            n_blocks: Number of evaluated blocks
+            n: Total pixel count
+            coefficients: Standardized model coefficients
+    """
+    cols = [c for c in df.columns if c not in (target_col, "y", "x", "row", "col")]
+    X = df[cols].values.astype(float)
+    y = df[target_col].values.astype(float)
+    mu, sd = X.mean(0), X.std(0)
+    sd[sd == 0] = 1.0
+    Xs = (X - mu) / sd
+    ys = (y - y.mean()) / (y.std() or 1.0)
+    A = np.column_stack([np.ones(len(Xs)), Xs])
+
+    beta, *_ = np.linalg.lstsq(A, ys, rcond=None)
+    pred_full = A @ beta
+    r2_in = 1.0 - ((ys - pred_full) ** 2).sum() / ((ys - ys.mean()) ** 2).sum()
+
+    if coords is not None and len(coords) == len(df):
+        cy, cx = coords[:, 0], coords[:, 1]
+        grid_dim = int(np.ceil(np.sqrt(n_blocks)))
+        y_bins = np.linspace(cy.min(), cy.max() + 1e-6, grid_dim + 1)
+        x_bins = np.linspace(cx.min(), cx.max() + 1e-6, grid_dim + 1)
+        y_idx = np.digitize(cy, y_bins) - 1
+        x_idx = np.digitize(cx, x_bins) - 1
+        raw_blocks = y_idx * grid_dim + x_idx
+        unique_blocks = np.unique(raw_blocks)
+        block_map = {b: i for i, b in enumerate(unique_blocks)}
+        block_ids = np.array([block_map[b] for b in raw_blocks])
+        actual_n_blocks = len(unique_blocks)
+    else:
+        chunk_size = int(np.ceil(len(df) / n_blocks))
+        block_ids = np.clip(np.arange(len(df)) // chunk_size, 0, n_blocks - 1)
+        actual_n_blocks = len(np.unique(block_ids))
+
+    scores = []
+    y_pred_cv = np.zeros_like(ys)
+    for b_id in np.unique(block_ids):
+        te = block_ids == b_id
+        tr = ~te
+        if te.sum() < 3 or tr.sum() < len(cols) + 2:
+            continue
+        b, *_ = np.linalg.lstsq(A[tr], ys[tr], rcond=None)
+        p = A[te] @ b
+        y_pred_cv[te] = p
+        ss_res = ((ys[te] - p) ** 2).sum()
+        ss_tot = ((ys[te] - ys[tr].mean()) ** 2).sum()
+        if ss_tot > 0:
+            scores.append(1.0 - ss_res / ss_tot)
+
+    ss_res_tot = ((ys - y_pred_cv) ** 2).sum()
+    ss_tot_tot = ((ys - ys.mean()) ** 2).sum()
+    r2_spatial_cv = 1.0 - ss_res_tot / ss_tot_tot if ss_tot_tot > 0 else 0.0
+
+    coefs = (pd.DataFrame({"covariate": cols, "std_coef": beta[1:].round(4)})
+             .assign(abs_coef=lambda d: d.std_coef.abs())
+             .sort_values("abs_coef", ascending=False)
+             .drop(columns="abs_coef").reset_index(drop=True))
+
+    return {
+        "coefficients": coefs,
+        "r2_in_sample": round(float(r2_in), 4),
+        "r2_spatial_cv": round(float(r2_spatial_cv), 4),
+        "r2_blocks_mean": round(float(np.mean(scores)), 4) if scores else np.nan,
+        "r2_blocks": [round(float(s), 4) for s in scores],
+        "n_blocks": int(actual_n_blocks),
+        "n": int(len(df))
+    }
+
+
 def random_forest_importance(df: pd.DataFrame, target_col: str = "target",
                              seed: int = 0) -> pd.DataFrame | None:
     """Importance de permutation (forêt aléatoire) — COMPLÉMENT non linéaire.
