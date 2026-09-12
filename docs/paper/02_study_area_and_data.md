@@ -6,7 +6,7 @@ The **Rzecin peatland** (52.7632 °N, 16.3098 °E, Greater Poland; **89.7 ha** t
 reserve area, Milecka et al., 2017; Juszczak et al., 2013; Lamentowicz et al., 2008;
 Wojterska et al., 2001; Oświecimska-Piasko et al., 2006) is a transitional poor
 fen carrying a floating *Sphagnum* mat (*Schwingmoor*) with a residual lake undergoing
-terrestrialisation (Fig. 2; Barabach, 2012, 2015). Three properties govern its radar response:
+terrestrialisation (Figure 1; Barabach, 2012, 2015). Three properties govern its radar response:
 
 - **Near-surface water table**, 0–30 cm below the surface and hydrologically
   stable (Juszczak et al., 2013).
@@ -16,7 +16,7 @@ terrestrialisation (Fig. 2; Barabach, 2012, 2015). Three properties govern its r
   pronounced vertical motion.
 
 
-![**Figure 2.** Study area. (a) Rzecin peatland outline with the Sentinel-1 burst footprint; (b) zone stratification A–D on the radar grid; (c) zone outlines over mean interferometric coherence.](figures/F02_study_area.png)
+![**Figure 1.** Study area. (a) Rzecin peatland outline with the Sentinel-1 burst footprint; (b) zone stratification A–D on the radar grid; (c) zone outlines over mean interferometric coherence.](figures/F01_study_area.png)
 
 The site is therefore, a priori, the case where the geomorphological signal
 should be **largest**, which makes it a demanding test rather than a favourable
@@ -43,7 +43,7 @@ one.
 | Incidence angle (measured) | 32.26° over zone A → LOS-to-vertical factor 1.183 |
 
 
-![**Figure 3.** Interferometric network. (a) 356 pairs over ~90 acquisitions, 2022–2024; (b) temporal-baseline distribution, with the 60-day robustness filter marked.](figures/F03_network.png)
+![**Figure S1.** Interferometric network. (a) 356 pairs over ~90 acquisitions, 2022–2024; (b) temporal-baseline distribution, with the 60-day robustness filter marked.](figures/S01_network.png)
 
 > **Scope note.** The 2022–2024 window falls in the S1A-only era (12-day
 > revisit; ESA, 2024). The return to a two-satellite constellation (S1C, S1D) restores the
@@ -52,9 +52,9 @@ one.
 > (§5.4).
 
 
-![**Figure S1.** False-colour composite (R = σ⁰ VV, G = coherence, B = Sentinel-2 wetness) with zone outlines, and a zoom on the peatland.](figures/S01_rgb_composite.png)
+![**Figure S2.** False-colour composite (R = σ⁰ VV, G = coherence, B = Sentinel-2 wetness) with zone outlines, and a zoom on the peatland.](figures/S02_rgb_composite.png)
 
-![**Figure S2.** Inundated-time fraction from the water mask, with zones A and B outlined.](figures/S02_flooded_fraction.png)
+![**Figure S3.** Inundated-time fraction from the water mask, with zones A and B outlined.](figures/S03_flooded_fraction.png)
 
 ### 2.3 Auxiliary data
 
@@ -68,7 +68,7 @@ one.
 
 ### 2.4 Zone stratification
 
-Four zones are defined on the radar grid (Fig. 2, Table 1):
+Four zones are defined on the radar grid (Figure 1, Table 1):
 
 | Zone | Definition | *n* px | Area |
 |---|---|---|---|
@@ -108,7 +108,7 @@ coherence distributions, decorrelation rates, and seasonal amplitudes remain com
 Three independent checks, none of them visual:
 
 1. **Area and grid discretisation.** A + B = **90.24 ha** against **89.7 ha** documented → **+0.6 %**.
-   This confirms grid scaling and polygon rasterization (area is translation-invariant and cannot by itself prove geolocation; exact co-registration is independently verified by the sharp radial-profile step at signed distance zero in Fig. 9 and multi-sensor boundary coincidence in Fig. 8).
+   This confirms grid scaling and polygon rasterization (area is translation-invariant and cannot by itself prove geolocation; exact co-registration is independently verified by the sharp radial-profile step at signed distance zero in Figure S8 and multi-sensor boundary coincidence in Figure S7).
 2. **Phenological twinning.** Median Sentinel-2 wetness is **−0.513** (A) versus
    **−0.522** (C): the matching is effective, so any coherence difference is not
    a land-cover artefact.
@@ -125,5 +125,5 @@ Three independent checks, none of them visual:
 | D (other) | 0.438 | −9.28 | 1.045 | −0.440 | 0.639 |
 
 The polygon is expressed in five independent sensors, with disjoint per-zone
-distributions (Fig. 8) and a sharp step at the boundary in all radial
-profiles (Fig. 9).
+distributions (Figure S7) and a sharp step at the boundary in all radial
+profiles (Figure S8).

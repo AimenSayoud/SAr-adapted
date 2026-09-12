@@ -211,3 +211,51 @@ def test_birchak_peat_forward_model():
     # Complete desiccation ceiling should be approx 6.13 mm
     assert 6.00 <= res["asymptotic_ceiling_mm"] <= 6.25
 
+
+def test_restructured_figures_exist():
+    """Verify that all 7 main figures and 14 supplementary figures exist with valid sizes."""
+    from pathlib import Path
+    from PIL import Image
+
+    fig_dir = Path("docs/paper/figures")
+
+    main_figs = [
+        "F01_study_area.png",
+        "F02_hypotheses.png",
+        "F03_temporal_coherence.png",
+        "F04_paired_test.png",
+        "F05_aggregate_and_significance.png",
+        "F06_wetness_anomaly_composite.png",
+        "F07_conceptual_framework.png",
+    ]
+    for mf in main_figs:
+        p = fig_dir / mf
+        assert p.exists(), f"Main figure missing: {mf}"
+        assert p.stat().st_size > 50_000, f"Main figure too small: {mf}"
+        im = Image.open(p)
+        assert im.width > 1000 and im.height > 800
+
+    supp_figs = [
+        "S01_network.png",
+        "S02_rgb_composite.png",
+        "S03_flooded_fraction.png",
+        "S04_protocol.png",
+        "S05_synthetic_validation.png",
+        "S06_coherence_decay.png",
+        "S07_zone_distributions.png",
+        "S08_radial_profiles.png",
+        "S09_predictors.png",
+        "S10_amplitude_dispersion.png",
+        "S11_hydrology_freeze.png",
+        "S12_closure_phase.png",
+        "S13_aggregation_gain.png",
+        "S14_literature_context.png",
+    ]
+    for sf in supp_figs:
+        p = fig_dir / sf
+        assert p.exists(), f"Supplementary figure missing: {sf}"
+        assert p.stat().st_size > 50_000, f"Supplementary figure too small: {sf}"
+        im = Image.open(p)
+        assert im.width > 1000 and im.height > 800
+
+

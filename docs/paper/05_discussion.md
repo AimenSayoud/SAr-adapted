@@ -183,7 +183,7 @@ all intermediate and full network configurations: the seasonal amplitude settles
 Harmonic inversion on aggregated multi-temporal networks is thus protected from the short-baseline
 fading bias that severely distorts linear deformation rates.
 
-![**Figure 16.** Our bound in context: raised-bog breathing, drained-fen subsidence, expected free flotation, and the value measured here.](figures/F16_literature_context.png)
+![**Figure S14.** Our bound in context: raised-bog breathing, drained-fen subsidence, expected free flotation, and the value measured here.](figures/S14_literature_context.png)
 
 ### 5.3 Two transferable methodological contributions
 
@@ -293,7 +293,23 @@ proxies (Sentinel-2 NDWI/NMDI) were utilized as the primary continuous empirical
 covariate. Direct in-situ water-table depth records remain the ideal validation
 target for future prospective campaigns.
 
-### 5.6 Limitations
+### 5.6 Scope of inference: instrumental limit versus capability
+
+Our results answer **two separate questions**, which must not be conflated (Table 12; Figure 7):
+
+| | Question | Answer | Primary evidence |
+|---|---|---|---|
+| **Q1** | Can Sentinel-1 measure vertical displacement of the floating mat? | **No**; apparent phase-centre displacement $\le 8.7$ mm, true mat motion unconstrained | §4.1, §4.2, §4.3 |
+| **Q2** | Can Sentinel-1 inform on seasonal wetland hydrological state? | **Possibly yes**, moderate but measurable association | §4.3.4, §4.4 |
+
+Q1 is an **instrumental-limit** result: across all six tested standard burst-product inversion families, per-pixel phase retrieval collapses, and the residual aggregate signal cannot be uniquely attributed to surface motion because the open-water lake exhibits a matched trajectory and differential mat-minus-lake phase cancels. Q2 is a **capability** result: spatial aggregation successfully recovers an annual phase cycle ($3.29$ mm, $p = 0.026$) that covaries with independent optical surface wetness anomalies at near-zero lag ($r \approx 0.45$).
+
+Conflating Q1 and Q2 would weaken both findings. Placing all claims into the four-level observable hierarchy (Figure 7a) clarifies that failure to invert Level 1 physical peat deformation from Level 3 InSAR observables does not preclude using Level 3 observables to track Level 2 moisture-induced phase-centre shifts.
+
+
+![**Figure 7.** Conceptual framework for wetland InSAR. (a) Four-level observable hierarchy distinguishing physical quantities, radar interactions, raw InSAR observables, and inferred quantities; (b) mechanistic causal chain at Rzecin, demonstrating how hydrologically driven phase-centre variability produces apparent displacement without requiring true mechanical peat breathing.](figures/F07_conceptual_framework.png)
+
+### 5.7 Limitations
 
 - **One site, one track, one polarisation** (VV): transferability of the
   predictive model (R²cv = 0.24) to other peatlands remains to be demonstrated.
@@ -310,3 +326,4 @@ target for future prospective campaigns.
   sub-kilometer flexural modes below our spatial resolution cannot be ruled out.
 - **Zone C is fragmented**, which biases the empirical correlation-length
   estimator used for N_eff.
+

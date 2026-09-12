@@ -1,10 +1,14 @@
 ## 3. Methods
 
-Figure 4 summarises the processing logic: the change of observable and the
-weak-signal test protocol.
+The investigation is structured around a sequential falsification chain H1–H4 (Figure 2),
+distinguishing raw radar interactions from inferred geophysical quantities via a four-level
+observable hierarchy (Figure 7a; §5.6). Figure S4 summarizes the operational processing logic:
+the change of observable and the weak-signal test protocol.
 
 
-![**Figure 4.** Processing protocol: per-pixel versus aggregated observable, and the size-matched null test yielding an empirical p-value.](figures/F04_protocol.png)
+![**Figure 2.** Study design: sequential falsification chain H1–H4, testing protocols applied, and verdicts reached.](figures/F02_hypotheses.png)
+
+![**Figure S4.** Processing protocol: per-pixel versus aggregated observable, and the size-matched null test yielding an empirical p-value.](figures/S04_protocol.png)
 
 ### 3.1 Inversion estimators compared (H1)
 
@@ -117,7 +121,7 @@ evaluated directly on wrapped phase, remaining independent of unwrapping errors.
 
 **Sub-zone subdivision protocol.** To verify whether Zone A deforms as a single coherent unit or exhibits differential core-margin kinematics (e.g., peripheral grounding or edge attenuation), we partition Zone A by distance to the outer reserve boundary into concentric sub-zones: inner core ($d > 40$ m, 356 pixels), deep core ($d > 80$ m, 233 pixels), and outer margin ($d \le 40$ m, 143 pixels). Independent aggregate time-series inversion and harmonic regression are executed across each sub-zone against reference Zone C.
 
-![**Figure S3.** Synthetic validation. On identical simulated data, per-pixel inversion returns −13.7 mm yr⁻¹ (36 % usable pixels) whereas aggregation returns −19.8 mm yr⁻¹ against a ground truth of −20.](figures/S03_synthetic_validation.png)
+![**Figure S5.** Synthetic validation. On identical simulated data, per-pixel inversion returns −13.7 mm yr⁻¹ (36 % usable pixels) whereas aggregation returns −19.8 mm yr⁻¹ against a ground truth of −20.](figures/S05_synthetic_validation.png)
 
 ### 3.4 Weak-signal test protocol
 
@@ -136,7 +140,7 @@ To ensure strict replicability, the generation of empirical null realisations fo
 parameterised spatial sampling algorithm resolved across ten structural criteria:
 
 1. *Sampling reservoir definition*: The null reservoir is Zone D, comprising 10,750 pixels (1,720 ha)
-   across the surrounding non-wetland landscape (Fig. 2).
+   across the surrounding non-wetland landscape (Figure 1).
 2. *Topographic and land-cover screening*: Candidate reservoir pixels are pre-screened to exclude open water
    (Sentinel-2 MNDWI $< 0.10$), steep relief (slope $< 5^\circ$ via Copernicus 30 m DEM), and agricultural
    structures, restricting draws to flat, mineral soil cover.
