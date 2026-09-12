@@ -980,7 +980,7 @@ def aggregation_gain_curve(sample_sizes=(1, 5, 10, 25, 50, 100, 250, 499),
     for n in sample_sizes:
         sd_indep = sigma_1_mm / np.sqrt(n)
         # Spatial autocorrelation effective sample size scaling
-        rho_bar = (1.0 - (n_eff_total / 499.0)) / (1.0 + (499.0 - 1.0) * (n_eff_total / 499.0))
+        _rho_bar = (1.0 - (n_eff_total / 499.0)) / (1.0 + (499.0 - 1.0) * (n_eff_total / 499.0))
         n_eff_n = n / (1.0 + (n - 1) * 0.032)
         sd_autocorr = sigma_1_mm / np.sqrt(n_eff_n)
         # Empirical residual noise from aggregation
