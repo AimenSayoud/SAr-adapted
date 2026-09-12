@@ -214,8 +214,9 @@ stabilisation on freezing, no double-bounce signature). The closure-phase bias,
 which was intended to separate (a) from (b), detects no systematic bias: high
 dispersion **without a sign bias** is compatible with both.
 
-This question is **distinct** from that of the seasonal signal, whose dielectric
-origin is established (§4.3).
+This question is **distinct** from that of the seasonal signal, whose dominant
+dielectric/propagation interpretation is the best-supported reading of the
+available controls (§4.3).
 
 **In-situ validation.** A ground-based **laser** remains the only direct
 measurement able to constrain the phase-centre coupling on which any

@@ -1,4 +1,4 @@
-# What does C-band InSAR measure over a floating peatland? Multi-method evidence for a dielectric-dominated signal and the limits of satellite displacement retrieval
+# C-band InSAR over a floating peatland: multi-method evidence for decorrelation and a non-unique hydrological phase response
 
 **Authors.** [Aymen Sayoud]¹, [Supervisor Name]¹, [Co-authors]
 
@@ -23,12 +23,12 @@ We assess C-band InSAR over the Rzecin floating fen (Poland, 89.7 ha) using 356
 Sentinel-1 interferograms (2022–2024), structuring the analysis around four
 competing hypotheses.
 
-**(H1) The failure is not algorithmic.** Six estimators with distinct
-mathematical assumptions — SBAS, ISBAS, annual pairs, a hybrid network,
-weighted least squares, and eigenvalue-decomposition phase linking — fail
-identically over standard burst interferograms. Phase linking, while
-theoretically optimal under an unconstrained covariance matrix, recovers only
-5.4 % of mat pixels at temporal coherence ≥ 0.7, against 64.7 % for
+**(H1) Inversion failure persists across standard burst-product approaches.** Six
+estimators with distinct mathematical assumptions — SBAS, ISBAS, annual pairs,
+a hybrid network, weighted least squares, and eigenvalue-decomposition phase
+linking — fail identically over standard burst interferograms. Phase linking,
+while theoretically optimal under an unconstrained covariance matrix, recovers
+only 5.4 % of mat pixels at temporal coherence ≥ 0.7, against 64.7 % for
 land-cover-matched vegetation on stable ground using the same network.
 
 **(H2) The mat is a distinct radar target.** At matched land cover and
@@ -39,7 +39,7 @@ sharp, its closure-phase dispersion is 3.2× larger, and environmental
 predictors that actively modulate coherence inside the floating mat have no
 detectable effect in matched grassland.
 
-**(H3) The detectable seasonal signal is dielectric, not mechanical.** Spatial
+**(H3) The seasonal signal is consistent with a substantial dielectric/propagation contribution and cannot be uniquely interpreted as mechanical displacement.** Spatial
 aggregation over 499 pixels recovers a seasonal point estimate of 3.29 mm LOS
 (95 % upper bound 7.32 mm LOS / 8.66 mm vertical; permutation p = 0.026 with
 Monte Carlo 95 % CI [0.021, 0.031] against ≈4 600 reference-matched null
@@ -47,26 +47,31 @@ realisations) that six per-pixel inversions could not see. However, the
 residual open-water lake exhibits a consistent seasonal trajectory
 (2.63 mm, same phase) although it cannot breathe mechanically; the
 mat-minus-lake difference cancels (0.90 mm, p = 0.45). Attributing the entire
-signal to motion and propagating its 95 % interval yields an upper bound on
-apparent phase-centre displacement of ≤ 8.7 mm vertical; because the phase
-centre is not rigidly coupled to the mat, this does not exclude peat motion
-of the amplitude published for raised bogs.
+differential signal to motion under a pure-vertical attribution yields an
+upper bound on differential apparent phase-centre displacement between mat and
+matched grassland of ≤ 8.7 mm vertical; because the phase centre is not
+rigidly coupled to the mat, this does not exclude peat motion of the
+amplitude published for raised bogs.
 
-**(H4) What the sensor does track is surface wetness.** On deseasonalised
+**(H4) What the sensor tracks is surface wetness.** On deseasonalised
 anomalies, the aggregated phase co-varies with Sentinel-2 optical wetness
-(lag-0 r = 0.42–0.45 depending on reference zone, p ≤ 0.022) at a near-zero lag
-of 12 days (one revisit), whereas air temperature does not survive
-deseasonalisation (−0.509 → 0.224, p = 0.58). Coupling operates through a
-sensitivity contrast between saturated peat and mineral grassland rather
-than through a moisture contrast between them — a model prediction confirmed by
-the expected failure of a differential forcing.
+(lag-0 r = 0.42–0.45 depending on reference zone, p ≤ 0.022) with an association
+occurring within the Sentinel-1 12-day sampling resolution, whereas air
+temperature does not survive deseasonalisation (−0.509 → 0.224, p = 0.58).
+Because buoyant hydrostatic coupling is itself rapid, this 12-day association
+is consistent with a rapid dielectric response while not excluding a rapid
+mechanical response. Coupling operates through a sensitivity contrast between
+saturated peat and mineral grassland rather than through a moisture contrast
+between them — a model prediction confirmed by the expected failure of a
+differential forcing.
 
-We conclude that the limitation is physical rather than methodological, and
-report two transferable contributions: a change of observable (aggregate
-rather than map, because the signal lies below the per-pixel noise floor) and
-a weak-signal test protocol (size-matched nulls plus empirical p-values)
-that invalidated two of our own intermediate conclusions and falsified two
-explicit predictions.
+The displacement-retrieval limitation persists across all tested standard
+burst-product processing approaches and is consistent with strong target
+non-stationarity at C-band. We report two transferable contributions: a
+change of observable (aggregate rather than map, because the signal lies below
+the per-pixel noise floor) and a weak-signal test protocol (size-matched nulls
+plus empirical p-values) that invalidated two of our own intermediate
+conclusions and falsified two explicit predictions.
 
 **Keywords:** InSAR; Sentinel-1; C-band; floating peatland; *Schwingmoor*;
 decorrelation; phase linking; distributed scatterers; surface moisture; spatial
@@ -76,14 +81,17 @@ aggregation.
 
 ## Highlights
 
-- Six InSAR inversion strategies fail identically over a floating peatland: the
-  limitation is physical, not algorithmic.
+- Six InSAR inversion strategies fail identically over standard burst products:
+  the limitation persists across tested algorithmic families, pointing to target
+  non-stationarity.
 - Spatial aggregation recovers a 3.3 mm seasonal signal invisible pixel by
-  pixel, but three independent tests indicate it is dielectric.
-- Apparent phase-centre displacement is constrained to ≤ 8.7 mm vertical;
-  mat motion itself is not bounded, because radar coupling is unmeasured.
-- Aggregated phase responds to surface-moisture anomalies at near-zero lag
-  through a sensitivity contrast between surfaces.
+  pixel; the response is consistent with dielectric variation and cannot be
+  uniquely interpreted as mechanical displacement.
+- Differential apparent phase-centre displacement between mat and grassland is
+  constrained to ≤ 8.7 mm vertical under pure-vertical attribution; mat motion
+  itself is not bounded, because radar coupling is unmeasured.
+- Aggregated phase responds to surface-moisture anomalies within the 12-day
+  sampling cycle through a sensitivity contrast between surfaces.
 - A reproducible weak-signal protocol — size-matched nulls and empirical
   p-values — is demonstrated for decorrelated terrain.
 
@@ -475,7 +483,7 @@ The complete analysis code is available at [repository DOI].
 
 ## 4. Results
 
-### 4.1 H1 — The failure is not algorithmic
+### 4.1 H1 — Inversion failure across tested burst-product approaches
 
 #### 4.1.1 Six estimators, one outcome
 
@@ -566,11 +574,14 @@ rather than the baseline selection scheme.
 | NULL (grassland vs stable) | $\le 24$ d | 24 | 175 | −1.87 | 1.37 | 337 | −2.03 | 0.22 |
 | NULL (grassland vs stable) | All pairs | All | 356 | −1.50 | 0.57 | 95 | −1.38 | 0.06 |
 
-#### 4.1.5 Verdict: H1 rejected for burst interferometric networks
+#### 4.1.5 Verdict: H1 not supported within tested class
 
-> **H1 is rejected for standard burst interferometric networks and pairwise multi-looked products.**
-> Six estimators with distinct mathematical assumptions fail identically. The inversion failure is
-> a physical property of the target under C-band multi-looked burst observation.
+> **H1 is not supported within the tested class of standard burst interferometric networks.**
+> Six estimators with distinct mathematical assumptions fail identically on pairwise multi-looked
+> products. When processing is held completely constant, land-cover-matched vegetation on stable
+> ground (Zone C) yields 64.7 % usable pixels against 5.4 % over the mat, demonstrating that the
+> limitation persists across all tested standard algorithmic approaches and points to target
+> non-stationarity under C-band multi-looked burst observation.
 
 **Scope.** Future work exploiting full-covariance Single Look Complex (SLC) stacks with
 statistically homogeneous pixel (SHP) selection (e.g. SqueeSAR; Ferretti et al., 2011; Ansari et al.,
@@ -723,7 +734,7 @@ mat the 30 m DEM relief is at noise level, and it should not be read physically.
 
 ---
 
-### 4.3 H3 — Dielectric signal, not motion
+### 4.3 H3 — Seasonal phase: not uniquely mechanical
 
 #### 4.3.1 The change of observable works
 
@@ -865,22 +876,25 @@ measures the degree of non-stationarity, not its nature.
 
 ![**Figure 13.** Closure phase by zone. (a) Mean bias with 2σ error bars — none significant; (b) median |closure| dispersion against the π/2 random reference.](figures/F13_closure_phase.png)
 
-#### 4.3.7 Upper bound on motion, with stated assumptions
+#### 4.3.7 Upper bound on differential apparent phase-centre displacement, with stated assumptions
 
 **Level 1 — robust ceiling (no assumption about the lake).** The total A − C
-seasonal amplitude is 3.29 mm LOS. Attributing all of it to motion — that
-is, deliberately ignoring §4.3.5 — gives:
+seasonal amplitude is 3.29 mm LOS. Attributing all of it to motion under a
+pure-vertical attribution — that is, deliberately ignoring §4.3.5 — gives:
 
 > $d_{\text{vert}} \le 3.29 / \cos(32.26^\circ) \approx$ **3.9 mm** on the point estimate, and
 > $\le 7.32 / \cos(32.26^\circ) \approx$ **8.7 mm** on the upper 95 % interval — which is the
-> value we carry forward, since the point estimate alone understates it.
+> value we carry forward as an upper bound on differential apparent phase-centre displacement
+> between mat and matched grassland, since the point estimate alone understates it.
 
 Assumptions: purely vertical motion; no phase aliasing (verified, since
 centimetre-scale motion would produce an incoherent aggregate rather than a
-clean annual cycle at R² = 0.30). This is the figure to quote by default: it is
-independent of the lake, sitting ≈ 25× below free flotation against the point
-estimate (3.9 mm) and ~11× below free flotation against the carried-forward
-8.7 mm bound.
+clean annual cycle at R² = 0.30). Note that the pure-vertical assumption is asserted
+rather than empirically tested under a single ascending geometry; a second orbital geometry
+(descending track) is required to test horizontal versus vertical partitioning directly.
+This is the figure to quote by default: it is independent of the lake, sitting ≈ 25× below
+free flotation against the point estimate (3.9 mm) and ~11× below free flotation against
+the carried-forward 8.7 mm bound.
 
 **Level 2 — refined bound (assumes a stable lake).** The mat-minus-lake residual
 of 0.90 mm lies below the matched-null p95 of 2.0 mm:
@@ -895,20 +909,20 @@ of 0.90 mm lies below the matched-null p95 of 2.0 mm:
 > already excludes flotation-scale motion independently of the lake, and in-situ
 > laser measurement will resolve the ambiguity.
 
-#### 4.3.8 Verdict: H3 rejected
+#### 4.3.8 Verdict: Mechanical interpretation not supported
 
-> **H3 is rejected.** The detected seasonal signal (3.29 mm, *p* = 0.026) is
-> dielectric: the lake, which cannot breathe mechanically, exhibits a consistent
-> amplitude and phase trajectory; the mat-minus-lake difference cancels (0.90 mm,
-> *p* = 0.45). We are measuring a seasonal moisture contrast between saturated
-> surfaces and dry grassland. The magnitude of the signal does not independently
-> exclude flotation once its uncertainty and the phase-centre coupling are
-> propagated (§4.3.5c).
+> **The mechanical interpretation is not supported.** The detected seasonal signal (3.29 mm, *p* = 0.026)
+> cannot be uniquely interpreted as mechanical displacement: the lake, which cannot breathe mechanically,
+> exhibits a consistent amplitude and phase trajectory; the mat-minus-lake difference cancels (0.90 mm,
+> *p* = 0.45). While the signal is consistent with a seasonal moisture contrast between saturated surfaces
+> and dry grassland, satellite radar data alone cannot distinguish common motion from absence of motion
+> without in-situ datum anchoring. The magnitude of the signal does not independently exclude flotation once
+> its uncertainty and the phase-centre coupling are propagated (§4.3.5c).
 
 *Distinction to maintain*: this establishes that the **seasonal signal** is
-dielectric. It says nothing about the nature of the **decorrelation** mechanism,
-which remains undetermined between dielectric variability and non-rigid
-micro-movement (§5.5).
+consistent with a dominant dielectric/propagation contribution. It says nothing about the
+nature of the **decorrelation** mechanism, which remains undetermined between dielectric
+variability and non-rigid micro-movement (§5.5).
 
 ---
 
@@ -952,10 +966,13 @@ confound is thereby resolved, and a thermal artefact is excluded.
 independent of the radar (different platform, different measurement physics).
 
 **(c) The lag drops from 54 d to 12 d** — one revisit cycle, hence
-instantaneous at our sampling resolution. This was the criterion set a
-priori: a dielectric response is near-instantaneous, while mechanical settling
-lags by weeks. The lag therefore confirms the dielectric mechanism through a
-route independent of the lake control.
+instantaneous at our sampling resolution. This association occurs within the
+Sentinel-1 12-day sampling resolution and is therefore consistent with a rapid
+dielectric response; however, the available sampling does not exclude a rapid
+mechanical response, since for a buoyant mat hydrostatic coupling is itself
+expected to be rapid (Stofberg et al., 2016). Rather than lag alone, testing for
+hysteresis across wetting and drying limbs offers the appropriate temporal
+discriminator.
 
 The sign is consistent: wetter → shallower penetration → phase centre higher
 → apparent uplift (positive *r*). Sign alone does not discriminate, since
@@ -1270,8 +1287,9 @@ stabilisation on freezing, no double-bounce signature). The closure-phase bias,
 which was intended to separate (a) from (b), detects no systematic bias: high
 dispersion **without a sign bias** is compatible with both.
 
-This question is **distinct** from that of the seasonal signal, whose dielectric
-origin is established (§4.3).
+This question is **distinct** from that of the seasonal signal, whose dominant
+dielectric/propagation interpretation is the best-supported reading of the
+available controls (§4.3).
 
 **In-situ validation.** A ground-based **laser** remains the only direct
 measurement able to constrain the phase-centre coupling on which any
@@ -1309,13 +1327,14 @@ displacement monitoring over a floating peatland — the configuration in
 which the expected geomorphological signal is largest, and one that had not
 previously been evaluated head-on.
 
-**1. The limitation is physical, not algorithmic, for standard burst interferograms.** Six
+**1. The displacement-retrieval failure persists across tested standard burst-product approaches.** Six
 estimators resting on distinct mathematical assumptions — up to eigenvalue-decomposition
 phase linking — fail identically on pairwise multi-looked products. On the same 356-pair
 network the mat yields 5.4 % of pixels at temporal coherence ≥ 0.7, against 64.7 % for
-land-cover-matched vegetation on stable ground. Operational gains require full-covariance
-single-look algorithms (e.g. SqueeSAR) or L-band observations rather than an alternative
-pairwise burst inversion.
+land-cover-matched vegetation on stable ground. Holding processing constant, this demonstrates
+that per-pixel failure is a target property under standard burst processing; operational gains
+require full-covariance single-look algorithms (e.g. SqueeSAR) or L-band observations rather
+than an alternative pairwise burst inversion.
 
 **2. The mat is a distinct radar target.** At matched cover and phenology its
 coherence is significantly lower (mean Δ = −0.081, lower in 89 % of pairs,
@@ -1324,34 +1343,43 @@ its boundary is sharp, its scattering is volumetric, its closure-phase dispersio
 larger — and environmental predictors that actively modulate coherence in the mat have
 no detectable effect in matched grassland.
 
-**3. The measurable seasonal signal is dielectric, and motion is bounded.**
+**3. The seasonal signal is not uniquely mechanical, and motion remains unconstrained.**
 Spatial aggregation recovers a seasonal point estimate of 3.29 mm LOS (95 % upper bound
 7.32 mm LOS / 8.66 mm vertical; permutation p = 0.026 with Monte Carlo 95 % CI [0.021, 0.031]
 against ≈4 600 reference-matched draws) invisible pixel by pixel. But the residual
 open-water lake exhibits a consistent phase and amplitude trajectory (2.63 mm, within 9 days);
-the mat-minus-lake difference cancels (0.90 mm, p = 0.45). Propagating the 95 % interval gives
-a constraint of ≤ 8.7 mm vertical on apparent phase-centre displacement. Because the phase centre
-is not rigidly coupled to the peat, this does not bound mat motion: at a coupling fraction of 0.5
-it admits 17 mm, within the 10–40 mm published for raised bogs. What C-band establishes here is
-an inability to distinguish absence of motion from peatland-scale breathing.
+the mat-minus-lake difference cancels (0.90 mm, p = 0.45). Attributing the entire differential
+signal to vertical motion gives an upper bound on differential apparent phase-centre displacement
+between mat and grassland of ≤ 8.7 mm vertical. Because the phase centre is not rigidly coupled
+to the peat, this does not bound mat motion: at a coupling fraction of 0.5 it admits 17 mm,
+within the 10–40 mm published for raised bogs. What C-band establishes here is an inability
+to distinguish absence of motion from peatland-scale breathing.
 
 **4. What the sensor tracks is surface wetness.** On deseasonalised anomalies
 the aggregated phase co-varies with Sentinel-2 optical wetness (lag-0 r = 0.42–0.45,
-p ≤ 0.022) at near-zero lag (12 days), while temperature does not survive
-deseasonalisation. Coupling operates through a sensitivity contrast between
-saturated peat and mineral grassland — a prediction confirmed by the expected
-failure of a differential forcing.
+p ≤ 0.022) with an association occurring within Sentinel-1 12-day sampling, while temperature
+does not survive deseasonalisation. Because hydrostatic coupling in a buoyant mat is itself
+rapid, this 12-day association is consistent with a rapid dielectric response without excluding
+rapid mechanical response. Coupling operates through a sensitivity contrast between saturated
+peat and mineral grassland — a prediction confirmed by the expected failure of a differential
+forcing.
 
 ### Answer to the question posed
 
 > **What does C-band Sentinel-1 InSAR actually measure over a floating
 > peatland?**
 >
-> Not surface motion — which our phase does not observe, because the scattering
-> centre is not coupled to the peat — but the hydrological state of that
-> surface, through a penetration-depth effect. At C-band the floating
-> peatland behaves as a wet scattering volume with a quasi-random phase,
-> whose phase centre moves with moisture rather than with the substrate.
+> Across standard burst interferograms, C-band InSAR measures a severely
+> decorrelated volume whose phase cannot be resolved into per-pixel surface
+> motion by tested pairwise or phase-linking algorithms. When spatially
+> aggregated over the entire mat, the radar yields a reproducible seasonal
+> phase (3.29 mm LOS) that co-varies with optical surface moisture anomalies
+> at sub-revisit lag. However, because an identical seasonal trajectory appears
+> over the adjacent open-water lake and cancels differentially, this observable
+> cannot be uniquely attributed to vertical peat breathing. The available data
+> are consistent with a moisture-dependent phase-centre migration in the top
+> scattering volume, while mechanical peatland breathing remains unconstrained
+> by satellite InSAR alone without in-situ datum anchoring.
 
 ### Methodological contributions
 
