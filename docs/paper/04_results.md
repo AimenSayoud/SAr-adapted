@@ -1,6 +1,6 @@
 ## 4. Results
 
-### 4.1 H1 — The failure is not algorithmic
+### 4.1 H1 — Inversion failure across tested burst-product approaches
 
 #### 4.1.1 Six estimators, one outcome
 
@@ -91,11 +91,14 @@ rather than the baseline selection scheme.
 | NULL (grassland vs stable) | $\le 24$ d | 24 | 175 | −1.87 | 1.37 | 337 | −2.03 | 0.22 |
 | NULL (grassland vs stable) | All pairs | All | 356 | −1.50 | 0.57 | 95 | −1.38 | 0.06 |
 
-#### 4.1.5 Verdict: H1 rejected for burst interferometric networks
+#### 4.1.5 Verdict: H1 not supported within tested class
 
-> **H1 is rejected for standard burst interferometric networks and pairwise multi-looked products.**
-> Six estimators with distinct mathematical assumptions fail identically. The inversion failure is
-> a physical property of the target under C-band multi-looked burst observation.
+> **H1 is not supported within the tested class of standard burst interferometric networks.**
+> Six estimators with distinct mathematical assumptions fail identically on pairwise multi-looked
+> products. When processing is held completely constant, land-cover-matched vegetation on stable
+> ground (Zone C) yields 64.7 % usable pixels against 5.4 % over the mat, demonstrating that the
+> limitation persists across all tested standard algorithmic approaches and points to target
+> non-stationarity under C-band multi-looked burst observation.
 
 **Scope.** Future work exploiting full-covariance Single Look Complex (SLC) stacks with
 statistically homogeneous pixel (SHP) selection (e.g. SqueeSAR; Ferretti et al., 2011; Ansari et al.,
@@ -248,7 +251,7 @@ mat the 30 m DEM relief is at noise level, and it should not be read physically.
 
 ---
 
-### 4.3 H3 — Dielectric signal, not motion
+### 4.3 H3 — Seasonal phase: not uniquely mechanical
 
 #### 4.3.1 The change of observable works
 
@@ -390,22 +393,25 @@ measures the degree of non-stationarity, not its nature.
 
 ![**Figure 13.** Closure phase by zone. (a) Mean bias with 2σ error bars — none significant; (b) median |closure| dispersion against the π/2 random reference.](figures/F13_closure_phase.png)
 
-#### 4.3.7 Upper bound on motion, with stated assumptions
+#### 4.3.7 Upper bound on differential apparent phase-centre displacement, with stated assumptions
 
 **Level 1 — robust ceiling (no assumption about the lake).** The total A − C
-seasonal amplitude is 3.29 mm LOS. Attributing all of it to motion — that
-is, deliberately ignoring §4.3.5 — gives:
+seasonal amplitude is 3.29 mm LOS. Attributing all of it to motion under a
+pure-vertical attribution — that is, deliberately ignoring §4.3.5 — gives:
 
 > $d_{\text{vert}} \le 3.29 / \cos(32.26^\circ) \approx$ **3.9 mm** on the point estimate, and
 > $\le 7.32 / \cos(32.26^\circ) \approx$ **8.7 mm** on the upper 95 % interval — which is the
-> value we carry forward, since the point estimate alone understates it.
+> value we carry forward as an upper bound on differential apparent phase-centre displacement
+> between mat and matched grassland, since the point estimate alone understates it.
 
 Assumptions: purely vertical motion; no phase aliasing (verified, since
 centimetre-scale motion would produce an incoherent aggregate rather than a
-clean annual cycle at R² = 0.30). This is the figure to quote by default: it is
-independent of the lake, sitting ≈ 25× below free flotation against the point
-estimate (3.9 mm) and ~11× below free flotation against the carried-forward
-8.7 mm bound.
+clean annual cycle at R² = 0.30). Note that the pure-vertical assumption is asserted
+rather than empirically tested under a single ascending geometry; a second orbital geometry
+(descending track) is required to test horizontal versus vertical partitioning directly.
+This is the figure to quote by default: it is independent of the lake, sitting ≈ 25× below
+free flotation against the point estimate (3.9 mm) and ~11× below free flotation against
+the carried-forward 8.7 mm bound.
 
 **Level 2 — refined bound (assumes a stable lake).** The mat-minus-lake residual
 of 0.90 mm lies below the matched-null p95 of 2.0 mm:
@@ -420,20 +426,20 @@ of 0.90 mm lies below the matched-null p95 of 2.0 mm:
 > already excludes flotation-scale motion independently of the lake, and in-situ
 > laser measurement will resolve the ambiguity.
 
-#### 4.3.8 Verdict: H3 rejected
+#### 4.3.8 Verdict: Mechanical interpretation not supported
 
-> **H3 is rejected.** The detected seasonal signal (3.29 mm, *p* = 0.026) is
-> dielectric: the lake, which cannot breathe mechanically, exhibits a consistent
-> amplitude and phase trajectory; the mat-minus-lake difference cancels (0.90 mm,
-> *p* = 0.45). We are measuring a seasonal moisture contrast between saturated
-> surfaces and dry grassland. The magnitude of the signal does not independently
-> exclude flotation once its uncertainty and the phase-centre coupling are
-> propagated (§4.3.5c).
+> **The mechanical interpretation is not supported.** The detected seasonal signal (3.29 mm, *p* = 0.026)
+> cannot be uniquely interpreted as mechanical displacement: the lake, which cannot breathe mechanically,
+> exhibits a consistent amplitude and phase trajectory; the mat-minus-lake difference cancels (0.90 mm,
+> *p* = 0.45). While the signal is consistent with a seasonal moisture contrast between saturated surfaces
+> and dry grassland, satellite radar data alone cannot distinguish common motion from absence of motion
+> without in-situ datum anchoring. The magnitude of the signal does not independently exclude flotation once
+> its uncertainty and the phase-centre coupling are propagated (§4.3.5c).
 
 *Distinction to maintain*: this establishes that the **seasonal signal** is
-dielectric. It says nothing about the nature of the **decorrelation** mechanism,
-which remains undetermined between dielectric variability and non-rigid
-micro-movement (§5.5).
+consistent with a dominant dielectric/propagation contribution. It says nothing about the
+nature of the **decorrelation** mechanism, which remains undetermined between dielectric
+variability and non-rigid micro-movement (§5.5).
 
 ---
 
@@ -477,10 +483,13 @@ confound is thereby resolved, and a thermal artefact is excluded.
 independent of the radar (different platform, different measurement physics).
 
 **(c) The lag drops from 54 d to 12 d** — one revisit cycle, hence
-instantaneous at our sampling resolution. This was the criterion set a
-priori: a dielectric response is near-instantaneous, while mechanical settling
-lags by weeks. The lag therefore confirms the dielectric mechanism through a
-route independent of the lake control.
+instantaneous at our sampling resolution. This association occurs within the
+Sentinel-1 12-day sampling resolution and is therefore consistent with a rapid
+dielectric response; however, the available sampling does not exclude a rapid
+mechanical response, since for a buoyant mat hydrostatic coupling is itself
+expected to be rapid (Stofberg et al., 2016). Rather than lag alone, testing for
+hysteresis across wetting and drying limbs offers the appropriate temporal
+discriminator.
 
 The sign is consistent: wetter → shallower penetration → phase centre higher
 → apparent uplift (positive *r*). Sign alone does not discriminate, since

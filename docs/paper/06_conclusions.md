@@ -5,13 +5,14 @@ displacement monitoring over a floating peatland — the configuration in
 which the expected geomorphological signal is largest, and one that had not
 previously been evaluated head-on.
 
-**1. The limitation is physical, not algorithmic, for standard burst interferograms.** Six
+**1. The displacement-retrieval failure persists across tested standard burst-product approaches.** Six
 estimators resting on distinct mathematical assumptions — up to eigenvalue-decomposition
 phase linking — fail identically on pairwise multi-looked products. On the same 356-pair
 network the mat yields 5.4 % of pixels at temporal coherence ≥ 0.7, against 64.7 % for
-land-cover-matched vegetation on stable ground. Operational gains require full-covariance
-single-look algorithms (e.g. SqueeSAR) or L-band observations rather than an alternative
-pairwise burst inversion.
+land-cover-matched vegetation on stable ground. Holding processing constant, this demonstrates
+that per-pixel failure is a target property under standard burst processing; operational gains
+require full-covariance single-look algorithms (e.g. SqueeSAR) or L-band observations rather
+than an alternative pairwise burst inversion.
 
 **2. The mat is a distinct radar target.** At matched cover and phenology its
 coherence is significantly lower (mean Δ = −0.081, lower in 89 % of pairs,
@@ -20,34 +21,43 @@ its boundary is sharp, its scattering is volumetric, its closure-phase dispersio
 larger — and environmental predictors that actively modulate coherence in the mat have
 no detectable effect in matched grassland.
 
-**3. The measurable seasonal signal is dielectric, and motion is bounded.**
+**3. The seasonal signal is not uniquely mechanical, and motion remains unconstrained.**
 Spatial aggregation recovers a seasonal point estimate of 3.29 mm LOS (95 % upper bound
 7.32 mm LOS / 8.66 mm vertical; permutation p = 0.026 with Monte Carlo 95 % CI [0.021, 0.031]
 against ≈4 600 reference-matched draws) invisible pixel by pixel. But the residual
 open-water lake exhibits a consistent phase and amplitude trajectory (2.63 mm, within 9 days);
-the mat-minus-lake difference cancels (0.90 mm, p = 0.45). Propagating the 95 % interval gives
-a constraint of ≤ 8.7 mm vertical on apparent phase-centre displacement. Because the phase centre
-is not rigidly coupled to the peat, this does not bound mat motion: at a coupling fraction of 0.5
-it admits 17 mm, within the 10–40 mm published for raised bogs. What C-band establishes here is
-an inability to distinguish absence of motion from peatland-scale breathing.
+the mat-minus-lake difference cancels (0.90 mm, p = 0.45). Attributing the entire differential
+signal to vertical motion gives an upper bound on differential apparent phase-centre displacement
+between mat and grassland of ≤ 8.7 mm vertical. Because the phase centre is not rigidly coupled
+to the peat, this does not bound mat motion: at a coupling fraction of 0.5 it admits 17 mm,
+within the 10–40 mm published for raised bogs. What C-band establishes here is an inability
+to distinguish absence of motion from peatland-scale breathing.
 
 **4. What the sensor tracks is surface wetness.** On deseasonalised anomalies
 the aggregated phase co-varies with Sentinel-2 optical wetness (lag-0 r = 0.42–0.45,
-p ≤ 0.022) at near-zero lag (12 days), while temperature does not survive
-deseasonalisation. Coupling operates through a sensitivity contrast between
-saturated peat and mineral grassland — a prediction confirmed by the expected
-failure of a differential forcing.
+p ≤ 0.022) with an association occurring within Sentinel-1 12-day sampling, while temperature
+does not survive deseasonalisation. Because hydrostatic coupling in a buoyant mat is itself
+rapid, this 12-day association is consistent with a rapid dielectric response without excluding
+rapid mechanical response. Coupling operates through a sensitivity contrast between saturated
+peat and mineral grassland — a prediction confirmed by the expected failure of a differential
+forcing.
 
 ### Answer to the question posed
 
 > **What does C-band Sentinel-1 InSAR actually measure over a floating
 > peatland?**
 >
-> Not surface motion — which our phase does not observe, because the scattering
-> centre is not coupled to the peat — but the hydrological state of that
-> surface, through a penetration-depth effect. At C-band the floating
-> peatland behaves as a wet scattering volume with a quasi-random phase,
-> whose phase centre moves with moisture rather than with the substrate.
+> Across standard burst interferograms, C-band InSAR measures a severely
+> decorrelated volume whose phase cannot be resolved into per-pixel surface
+> motion by tested pairwise or phase-linking algorithms. When spatially
+> aggregated over the entire mat, the radar yields a reproducible seasonal
+> phase (3.29 mm LOS) that co-varies with optical surface moisture anomalies
+> at sub-revisit lag. However, because an identical seasonal trajectory appears
+> over the adjacent open-water lake and cancels differentially, this observable
+> cannot be uniquely attributed to vertical peat breathing. The available data
+> are consistent with a moisture-dependent phase-centre migration in the top
+> scattering volume, while mechanical peatland breathing remains unconstrained
+> by satellite InSAR alone without in-situ datum anchoring.
 
 ### Methodological contributions
 
