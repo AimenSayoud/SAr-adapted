@@ -74,11 +74,12 @@ forcing.
 ### Outlook
 
 The most direct route is L-band. At λ = 24 cm the radar penetrates the canopy
-and reaches the mat surface. NISAR data are now global and free, and their
-GUNW product is the direct analogue of our interferograms, so the chain developed
-here applies without modification. The return of Sentinel-1 to a 6-day revisit
-will reduce temporal decorrelation but will not change the wavelength, on
-which volumetric decorrelation depends.
+and reaches the mat surface. NISAR provides global, open L-band observations.
+The conceptual analysis is adaptable to NISAR GUNW products, although differences
+in product geometry, spatial resolution, pairing strategy and processing require
+validation before the chain transfers. The return of Sentinel-1 to a 6-day revisit
+(ESA, 2024) will reduce temporal decorrelation but will not change the wavelength,
+on which volumetric decorrelation depends.
 
 **In-situ validation** — surface laser and measured water table — is now the
 only route to constraining the phase-centre coupling on which any statement
@@ -97,7 +98,7 @@ Copernicus DEM data are openly available from their respective providers.
 
 ## Author contributions
 
-[CRediT statement]
+**A. Sayoud:** Conceptualization, Methodology, Software, Validation, Formal analysis, Data Curation, Writing – original draft, Visualization. Co-authors to be credited for supervision, resources, and review & editing upon final manuscript submission.
 
 ## Declaration of competing interests
 
@@ -105,4 +106,4 @@ The authors declare no competing interests.
 
 ## Acknowledgements
 
-[Funding, field support, data providers]
+The authors thank the Alaska Satellite Facility DAAC for processing Sentinel-1 interferograms via HyP3, the European Space Agency and Copernicus Programme for Sentinel-1 and Sentinel-2 imagery, and ECMWF for ERA5 atmospheric reanalysis data. We thank Poznań University of Life Sciences and the Rzecin Wetland research station teams for long-term site stewardship and environmental monitoring data.

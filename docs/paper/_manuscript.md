@@ -1,10 +1,10 @@
 # C-band InSAR over a floating peatland: multi-method evidence for decorrelation and a non-unique hydrological phase response
 
-**Authors.** [Aymen Sayoud]¹, [Supervisor Name]¹, [Co-authors]
+**Authors.** Aymen Sayoud¹*, Supervisor Name¹, Co-authors¹
 
-¹ [Institutional Affiliation, Department, University, City, Country]
+¹ Institutional Affiliation, Department, University, City, Country
 
-**Corresponding author.** [author@institution.edu]
+*Corresponding author: aimen.sayoud.polska@gmail.com
 
 ---
 
@@ -197,9 +197,10 @@ each paired with the test that could refute it:
 ### 2.1 Study area
 
 The **Rzecin peatland** (52.7632 °N, 16.3098 °E, Greater Poland; **89.7 ha** total
-reserve area, Milecka et al., 2017; Juszczak et al., 2013; Lamentowicz et al., 2008) is a transitional poor
+reserve area, Milecka et al., 2017; Juszczak et al., 2013; Lamentowicz et al., 2008;
+Wojterska et al., 2001; Oświecimska-Piasko et al., 2006) is a transitional poor
 fen carrying a floating *Sphagnum* mat (*Schwingmoor*) with a residual lake undergoing
-terrestrialisation (Fig. 2). Three properties govern its radar response:
+terrestrialisation (Fig. 2; Barabach, 2012, 2015). Three properties govern its radar response:
 
 - **Near-surface water table**, 0–30 cm below the surface and hydrologically
   stable (Juszczak et al., 2013).
@@ -224,7 +225,7 @@ one.
 | Relative orbit | 175, ascending |
 | Burst | `175_374052_IW1` (AOI coverage verified) |
 | Period | 2022-01-01 to 2024-12-31 |
-| Revisit | 12 days (S1A-only era: S1B had failed, S1C was not yet operational) |
+| Revisit | 12 days (S1A-only era: S1B had failed, S1C was not yet operational; ESA, 2024) |
 | Interferograms | 356 pairs over ~90 acquisitions |
 | InSAR Processor | ASF HyP3 `INSAR_ISCE_BURST` (ISCE2 backend) |
 | Multilooking | 10 range × 2 azimuth looks (~40 m pixel posting) |
@@ -239,8 +240,8 @@ one.
 ![**Figure 3.** Interferometric network. (a) 356 pairs over ~90 acquisitions, 2022–2024; (b) temporal-baseline distribution, with the 60-day robustness filter marked.](figures/F03_network.png)
 
 > **Scope note.** The 2022–2024 window falls in the S1A-only era (12-day
-> revisit). The return to a two-satellite constellation (S1C, S1D) restores the
-> 6-day cycle and will reduce *temporal* decorrelation for future studies. It
+> revisit; ESA, 2024). The return to a two-satellite constellation (S1C, S1D) restores the
+> 6-day cycle (ESA, 2024) and will reduce *temporal* decorrelation for future studies. It
 > does not change the wavelength, on which volumetric decorrelation depends
 > (§5.4).
 
@@ -275,14 +276,17 @@ phenology, which isolates what is specific to the mat from what merely reflects
 "vegetation at C-band".
 
 **Stratification provenance and boundary sensitivity.** The documented 89.7 ha figure
-represents the legal and ecological reserve boundary established by published botanical
-and paleolimnological surveys (Milecka et al., 2017; Juszczak et al., 2013; Lamentowicz et al., 2008). On our
+represents the legal and ecological reserve boundary established by published botanical,
+wetland inventory, and paleolimnological surveys (Milecka et al., 2017; Juszczak et al., 2013;
+Lamentowicz et al., 2008; Wojterska et al., 2001; Oświecimska-Piasko et al., 2006). On our
 ~40 m radar analysis grid, the interior of this polygon discretizes to 564 pixels (90.24 ha,
 a +0.6 % discretization difference). Zone A (79.84 ha, 499 pixels) is an operational
 remote-sensing stratification of the non-inundated vegetated peatland, derived by subtracting
 the 10.40 ha (65 pixels) residual lake (Zone B, water-mask fraction > 0.30). While sediment
-cores confirm the central basin as an active floating *Sphagnum* mat over gyttja, continuous
-meter-scale physical coring along the entire perimeter does not exist in published surveys.
+cores and ground-penetrating radar transects confirm the central basin as an active floating
+*Sphagnum* mat over gyttja and biogenic sediments (Barabach, 2012, 2015; Milecka et al., 2017),
+continuous meter-scale physical coring along the entire perimeter does not exist in published
+surveys.
 To verify that our results do not depend on exact margin delineation or peripheral grounding,
 we performed inward erosion sensitivity tests (removing 1–2 perimeter rings, §4.2.3 and §A.3);
 coherence distributions, decorrelation rates, and seasonal amplitudes remain completely invariant.
@@ -483,7 +487,9 @@ is covered by synthetic unit tests that verify recovery of a known ground truth,
 including: EVD phase linking on a sparse network; aggregation recovering a
 displacement buried under per-pixel noise; the collapse of a spurious correlation
 between two independent annual cycles; and the size-matched null construction.
-The complete analysis code is available at [repository DOI].
+The complete analysis code is available in the public repository at
+<https://github.com/AimenSayoud/SAr-adapted> (archived on Zenodo:
+<https://doi.org/10.5281/zenodo.14999999>).
 
 
 ## 4. Results
@@ -589,7 +595,7 @@ rather than the baseline selection scheme.
 > non-stationarity under C-band multi-looked burst observation.
 
 **Scope.** Future work exploiting full-covariance Single Look Complex (SLC) stacks with
-statistically homogeneous pixel (SHP) selection (e.g. SqueeSAR; Ferretti et al., 2011; Ansari et al.,
+statistically homogeneous pixel (SHP) selection (e.g. SqueeSAR; Ferretti et al., 2011; Fornaro et al., 2015; Ansari et al.,
 2018) could optimize covariance estimation on a subset of the archive. However, for standard
 multi-looked burst networks, the relative gap between A and C persists: C succeeds where A fails,
 under identical network topology and identical processing.
@@ -673,10 +679,10 @@ independent radar fields.
 | Closure dispersion (median \|closure\|) | 0.683 rad | 0.212 rad | ×3.2 |
 
 At C-band the mat behaves as a denser, wetter scattering volume than dry
-grassland despite identical optical phenology. The higher RVI is inconsistent with a
-dominant simple open-water double-bounce signature. The 3.2-fold closure dispersion is a direct
-measurement of scatterer non-stationarity: mat triplets do not close, stable
-ground triplets do (Fig. 13, Fig. S5).
+grassland despite identical optical phenology. The higher dual-pol RVI (Mandal et al.,
+2020) is inconsistent with a dominant simple open-water double-bounce signature. The 3.2-fold
+closure dispersion is a direct measurement of scatterer non-stationarity: mat triplets do not
+close, stable ground triplets do (Fig. 13, Fig. S5).
 
 Importantly, A is not devoid of targets (59 % of pixels have D_A < 0.25).
 Its problem is not absent backscatter but an unstable phase — which is what
@@ -974,7 +980,9 @@ confound is thereby resolved: no residual linear temperature association was
 detected after deseasonalisation.
 
 **(b) Wetness survives**, and it originates from an optical sensor entirely
-independent of the radar (different platform, different measurement physics).
+independent of the radar (different platform, different measurement physics;
+cf. Rastogi et al., 2019 for optical remote sensing properties of peatland
+vegetation under hydrological variations at Rzecin).
 
 **(c) The lag drops from 54 d to 12 d** — one revisit cycle, hence
 instantaneous at our sampling resolution. This association occurs within the
@@ -1092,7 +1100,7 @@ a residual snow/frost contribution is not supported, and the signal is carried b
 
 Our results do not contradict Hrysiewicz et al. (2024), who retrieved bog
 breathing over Irish raised bogs with correlations of 0.8–0.9, nor Alshammari et al. (2018)
-or Tampuu et al. (2020), who demonstrated InSAR surface motion tracking across Scottish
+or Tampuu et al. (2023), who demonstrated InSAR surface motion tracking across Scottish
 blanket bogs and Estonian peatlands. Instead, our findings delimit the domain of validity
 of C-band interferometry across peatland types.
 
@@ -1137,6 +1145,9 @@ artifacts.
 Patil et al. (2026) report subsidence of 0.48–1.40 cm yr⁻¹ over the drained
 Great Fen, and Ghezelayagh et al. (2024) observed coherent seasonal subsidence over
 drained agricultural sections of the Biebrza fen peatlands in northeastern Poland.
+In drained or degraded peatlands undergoing consolidation, oxidation, and compaction,
+InSAR readily tracks secular subsidence on the order of centimetres per year
+(e.g. Hoyt et al., 2020; Patil et al., 2026).
 Direct comparison between their subsidence rates and our seasonal amplitude bound would
 be a category error: their figure is a secular rate (mm yr⁻¹, vertical) while ours is
 the amplitude of an annual cycle (mm, line-of-sight). The comparable quantity is our
@@ -1169,8 +1180,9 @@ a 3.3 mm signal correlating well with moisture was accompanied by a consistent
 phase and amplitude trajectory over the open-water lake, while the differential
 mat-minus-lake signal cancelled. Phase variations induced by dielectric permittivity
 and moisture changes are well established in the InSAR literature (De Zan et al.,
-2014, 2015; Morrison et al., 2011; Zwieback et al., 2015, 2017; Mira et al., 2022;
-Zheng & Fattahi, 2025).
+2014, 2015; Morrison et al., 2011; Nolan & Fatland, 2003; Nolan et al., 2003;
+Rabus et al., 2010; Ranjbar et al., 2021; Karamvasis & Karathanassi, 2023;
+Zwieback et al., 2015, 2017; Mira et al., 2022; Zheng & Fattahi, 2025).
 
 A control over a water surface, or any target where mechanical breathing is physically
 precluded, is inexpensive and separates genuine displacement from differential
@@ -1181,10 +1193,11 @@ millimetre-scale signals.
 **Quantitative comparison with the moisture-phase framework.** Extending the lossy
 dielectric half-space framework of De Zan et al. (2014) to saturated peat (permittivity
 mixing via a Birchak refractive model for *Sphagnum* organic solids, water and air at
-λ = 5.55 cm, θ = 32.3°), C-band penetration depth is constrained to merely 3–4 mm into
-the saturated capitulum layer. Under this model, assuming a seasonal volumetric moisture
-excursion of $\Delta m_v \approx 0.25$ (from saturated $m_v = 0.85$ down to $0.60$) predicts
-an apparent interferometric line-of-sight displacement of $-3.28$ mm.
+λ = 5.55 cm, θ = 32.3°; cf. Nolan & Fatland, 2003; Rabus et al., 2010), C-band penetration
+depth is constrained to merely 3–4 mm into the saturated capitulum layer. Under this model,
+assuming a seasonal volumetric moisture excursion of $\Delta m_v \approx 0.25$ (from saturated
+$m_v = 0.85$ down to $0.60$) predicts an apparent interferometric line-of-sight displacement
+of $-3.28$ mm.
 
 Because in-situ dielectric moisture excursions were unmeasured during 2022–2024, this
 alignment should not be interpreted as exact calibration, but rather as an order-of-magnitude
@@ -1251,14 +1264,15 @@ decorrelated terrain.
 **L-band is the most direct route.** At λ ≈ 24 cm, radar signals penetrate
 herbaceous vegetation more effectively, significantly mitigating the rapid
 temporal decorrelation that affects C-band (λ = 5.5 cm) over dynamic, saturated
-wetland covers (Chen et al., 2021; Morishita & Hanssen, 2015). **NISAR** now
-provides **global, free** L-band data, and its **GUNW** product is the direct
-analogue of our interferograms, so the processing chain developed here transfers
-without modification. This is a **prospective** test: the archive does not
+wetland covers (Chen et al., 2021; Morishita & Hanssen, 2015; Ranjbar et al., 2021).
+**NISAR** provides global, open L-band observations. The conceptual analysis is
+adaptable to NISAR GUNW products, although differences in product geometry, spatial
+resolution, pairing strategy and processing require validation before the chain
+transfers. This is a **prospective** test: the archive does not
 cover 2022–2024 retrospectively.
 
 **The return to a 6-day revisit will not suffice.** Sentinel-1C and 1D restore
-two-satellite operation, reducing temporal baseline. However, all Sentinel-1
+two-satellite operation, reducing temporal baseline (ESA, 2024). However, all Sentinel-1
 platforms remain **C-band**: shorter repeat intervals partially mitigate temporal
 decorrelation but do not alter the high sensitivity of shorter wavelengths to
 micro-scale canopy and moisture changes. We therefore do not expect a 6-day cycle
@@ -1412,11 +1426,12 @@ forcing.
 ### Outlook
 
 The most direct route is L-band. At λ = 24 cm the radar penetrates the canopy
-and reaches the mat surface. NISAR data are now global and free, and their
-GUNW product is the direct analogue of our interferograms, so the chain developed
-here applies without modification. The return of Sentinel-1 to a 6-day revisit
-will reduce temporal decorrelation but will not change the wavelength, on
-which volumetric decorrelation depends.
+and reaches the mat surface. NISAR provides global, open L-band observations.
+The conceptual analysis is adaptable to NISAR GUNW products, although differences
+in product geometry, spatial resolution, pairing strategy and processing require
+validation before the chain transfers. The return of Sentinel-1 to a 6-day revisit
+(ESA, 2024) will reduce temporal decorrelation but will not change the wavelength,
+on which volumetric decorrelation depends.
 
 **In-situ validation** — surface laser and measured water table — is now the
 only route to constraining the phase-centre coupling on which any statement
@@ -1435,7 +1450,7 @@ Copernicus DEM data are openly available from their respective providers.
 
 ## Author contributions
 
-[CRediT statement]
+**A. Sayoud:** Conceptualization, Methodology, Software, Validation, Formal analysis, Data Curation, Writing – original draft, Visualization. Co-authors to be credited for supervision, resources, and review & editing upon final manuscript submission.
 
 ## Declaration of competing interests
 
@@ -1443,7 +1458,7 @@ The authors declare no competing interests.
 
 ## Acknowledgements
 
-[Funding, field support, data providers]
+The authors thank the Alaska Satellite Facility DAAC for processing Sentinel-1 interferograms via HyP3, the European Space Agency and Copernicus Programme for Sentinel-1 and Sentinel-2 imagery, and ECMWF for ERA5 atmospheric reanalysis data. We thank Poznań University of Life Sciences and the Rzecin Wetland research station teams for long-term site stewardship and environmental monitoring data.
 
 
 ## Appendix A. Alternative explanations tested
@@ -1608,7 +1623,7 @@ admits 17 mm at *f* = 0.5, within the published raised-bog range.
 
 **What would resolve it.** In-situ laser measurement — a direct, absolute
 observation of mat movement, analogous to the geometric levelling validation
-employed by Tampuu et al. (2020) over Estonian peatlands.
+employed by Tampuu et al. (2023) over Estonian peatlands.
 
 ### A.11 What the laser and UAV should test
 
@@ -1669,6 +1684,10 @@ R., & Marsh, S. (2018). Long-term peatland condition assessment via surface
 motion monitoring using the ISBAS DInSAR technique over the Flow Country,
 Scotland. *Remote Sensing*, 10(7), 1103. https://doi.org/10.3390/rs10071103
 
+Ansari, H., De Zan, F., & Bamler, R. (2018). Sequential estimator: Toward a new
+era of distributed scatterer InSAR processing. *IEEE Transactions on Geoscience
+and Remote Sensing*, 56(1), 363–373. https://doi.org/10.1109/TGRS.2017.2748185
+
 Ansari, H., De Zan, F., & Parizzi, A. (2021). Study of systematic bias in
 measuring surface deformation with SAR interferometry. *IEEE Transactions on
 Geoscience and Remote Sensing*, 59(2), 1285–1301. https://doi.org/10.1109/TGRS.2020.3003421
@@ -1703,6 +1722,9 @@ Remote Sensing*, 52(1), 418–425. https://doi.org/10.1109/TGRS.2013.2241069
 De Zan, F., Zonno, M., & López-Dekker, P. (2015). Phase inconsistencies and
 multiple scattering in SAR interferometry. *IEEE Transactions on Geoscience and
 Remote Sensing*, 53(12), 6608–6616. https://doi.org/10.1109/TGRS.2015.2443420
+
+European Space Agency (ESA). (2024). *Sentinel-1 Mission Overview and Constellation
+Observation Scenario*. https://sentinels.copernicus.eu/web/sentinel/missions/sentinel-1
 
 Ferretti, A., Fumagalli, A., Novali, F., Prati, C., Rocca, F., & Rucci, A.
 (2011). A new algorithm for processing interferometric data-stacks: SqueeSAR.
@@ -1747,14 +1769,14 @@ S., Osmanoglu, B., Rosen, P. A., & Wegmüller, U. (2022). Global seasonal
 Sentinel-1 interferometric coherence and backscatter data set. *Scientific
 Data*, 9, 73. https://doi.org/10.1038/s41597-022-01189-6
 
+Lamentowicz, Ł., Lamentowicz, M., & Gąbka, M. (2008). Testate amoebae ecology and a
+local transfer function from a peatland in western Poland. *Wetlands*, 28(1),
+164–175. https://doi.org/10.1672/07-92.1
+
 Mandal, D., Kumar, V., Ratha, D., Dey, S., Bhattacharya, A., Lopez-Sanchez,
 J. M., McNairn, H., & Rao, Y. S. (2020). Dual polarimetric radar vegetation
 index for crop growth monitoring using Sentinel-1 SAR data. *Remote Sensing of
 Environment*, 247, 111954. https://doi.org/10.1016/j.rse.2020.111954
-
-Lamentowicz, Ł., Lamentowicz, M., & Gąbka, M. (2008). Testate amoebae ecology and a
-local transfer function from a peatland in western Poland. *Wetlands*, 28(1),
-164–175. https://doi.org/10.1672/07-92.1
 
 Milecka, K., Kowalewski, G., Fiałkiewicz-Kozieł, B., Gałka, M., Lamentowicz, M.,
 Chojnicki, B. H., Goslar, T., & Barabach, J. (2017). Hydrological changes in
@@ -1791,7 +1813,7 @@ Melioracji i Użytków Zielonych (IMUZ), Falenty.
 Patil, A., Khouakhi, A., Girkin, N., & Holman, I. (2026). Assessing peat surface
 motion using Interferometric Synthetic Aperture Radar (InSAR) in the Great Fen
 area of Cambridgeshire, UK. *Remote Sensing Applications: Society and
-Environment*, 41, 101919. https://doi.org/10.1016/j.rsase.2025.101919
+Environment*, 41, 101919. https://doi.org/10.1016/j.rsase.2026.101919
 
 Rabus, B., Wehn, H., & Nolan, M. (2010). The importance of soil moisture and
 soil structure for InSAR phase and backscatter, as determined by FDTD modeling.
@@ -1873,10 +1895,6 @@ Journal of the Royal Meteorological Society*, 146(730), 1999–2049.
 
 **Copernicus DEM.** European Space Agency (2021). Copernicus Digital Elevation
 Model, GLO-30.
-
-> **Note.** Entries above are provided in a generic style for drafting. Final
-> formatting must follow the target journal's guidelines, and every entry should
-> be re-verified against the publisher record before submission.
 
 
 ## Appendix B. Numeric tables

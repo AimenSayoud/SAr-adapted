@@ -4,7 +4,7 @@
 
 Our results do not contradict Hrysiewicz et al. (2024), who retrieved bog
 breathing over Irish raised bogs with correlations of 0.8–0.9, nor Alshammari et al. (2018)
-or Tampuu et al. (2020), who demonstrated InSAR surface motion tracking across Scottish
+or Tampuu et al. (2023), who demonstrated InSAR surface motion tracking across Scottish
 blanket bogs and Estonian peatlands. Instead, our findings delimit the domain of validity
 of C-band interferometry across peatland types.
 
@@ -49,6 +49,9 @@ artifacts.
 Patil et al. (2026) report subsidence of 0.48–1.40 cm yr⁻¹ over the drained
 Great Fen, and Ghezelayagh et al. (2024) observed coherent seasonal subsidence over
 drained agricultural sections of the Biebrza fen peatlands in northeastern Poland.
+In drained or degraded peatlands undergoing consolidation, oxidation, and compaction,
+InSAR readily tracks secular subsidence on the order of centimetres per year
+(e.g. Hoyt et al., 2020; Patil et al., 2026).
 Direct comparison between their subsidence rates and our seasonal amplitude bound would
 be a category error: their figure is a secular rate (mm yr⁻¹, vertical) while ours is
 the amplitude of an annual cycle (mm, line-of-sight). The comparable quantity is our
@@ -81,8 +84,9 @@ a 3.3 mm signal correlating well with moisture was accompanied by a consistent
 phase and amplitude trajectory over the open-water lake, while the differential
 mat-minus-lake signal cancelled. Phase variations induced by dielectric permittivity
 and moisture changes are well established in the InSAR literature (De Zan et al.,
-2014, 2015; Morrison et al., 2011; Zwieback et al., 2015, 2017; Mira et al., 2022;
-Zheng & Fattahi, 2025).
+2014, 2015; Morrison et al., 2011; Nolan & Fatland, 2003; Nolan et al., 2003;
+Rabus et al., 2010; Ranjbar et al., 2021; Karamvasis & Karathanassi, 2023;
+Zwieback et al., 2015, 2017; Mira et al., 2022; Zheng & Fattahi, 2025).
 
 A control over a water surface, or any target where mechanical breathing is physically
 precluded, is inexpensive and separates genuine displacement from differential
@@ -93,10 +97,11 @@ millimetre-scale signals.
 **Quantitative comparison with the moisture-phase framework.** Extending the lossy
 dielectric half-space framework of De Zan et al. (2014) to saturated peat (permittivity
 mixing via a Birchak refractive model for *Sphagnum* organic solids, water and air at
-λ = 5.55 cm, θ = 32.3°), C-band penetration depth is constrained to merely 3–4 mm into
-the saturated capitulum layer. Under this model, assuming a seasonal volumetric moisture
-excursion of $\Delta m_v \approx 0.25$ (from saturated $m_v = 0.85$ down to $0.60$) predicts
-an apparent interferometric line-of-sight displacement of $-3.28$ mm.
+λ = 5.55 cm, θ = 32.3°; cf. Nolan & Fatland, 2003; Rabus et al., 2010), C-band penetration
+depth is constrained to merely 3–4 mm into the saturated capitulum layer. Under this model,
+assuming a seasonal volumetric moisture excursion of $\Delta m_v \approx 0.25$ (from saturated
+$m_v = 0.85$ down to $0.60$) predicts an apparent interferometric line-of-sight displacement
+of $-3.28$ mm.
 
 Because in-situ dielectric moisture excursions were unmeasured during 2022–2024, this
 alignment should not be interpreted as exact calibration, but rather as an order-of-magnitude
@@ -163,14 +168,15 @@ decorrelated terrain.
 **L-band is the most direct route.** At λ ≈ 24 cm, radar signals penetrate
 herbaceous vegetation more effectively, significantly mitigating the rapid
 temporal decorrelation that affects C-band (λ = 5.5 cm) over dynamic, saturated
-wetland covers (Chen et al., 2021; Morishita & Hanssen, 2015). **NISAR** now
-provides **global, free** L-band data, and its **GUNW** product is the direct
-analogue of our interferograms, so the processing chain developed here transfers
-without modification. This is a **prospective** test: the archive does not
+wetland covers (Chen et al., 2021; Morishita & Hanssen, 2015; Ranjbar et al., 2021).
+**NISAR** provides global, open L-band observations. The conceptual analysis is
+adaptable to NISAR GUNW products, although differences in product geometry, spatial
+resolution, pairing strategy and processing require validation before the chain
+transfers. This is a **prospective** test: the archive does not
 cover 2022–2024 retrospectively.
 
 **The return to a 6-day revisit will not suffice.** Sentinel-1C and 1D restore
-two-satellite operation, reducing temporal baseline. However, all Sentinel-1
+two-satellite operation, reducing temporal baseline (ESA, 2024). However, all Sentinel-1
 platforms remain **C-band**: shorter repeat intervals partially mitigate temporal
 decorrelation but do not alter the high sensitivity of shorter wavelengths to
 micro-scale canopy and moisture changes. We therefore do not expect a 6-day cycle
