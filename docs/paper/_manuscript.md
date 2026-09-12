@@ -342,19 +342,42 @@ Six approaches resting on mathematically distinct assumptions:
 | 3 | Annual pairs | bypasses seasonal decorrelation by state matching |
 | 4 | Hybrid network | combines short and long baselines |
 | 5 | Weighted least squares | coherence weighting, pair by pair |
-| 6 | Phase linking (EVD) | maximum likelihood over the observed coherence matrix |
+| 6 | Phase linking (EVD) | maximum likelihood consensus over the sparse observed coherence matrix |
 
 The sixth approach exploits all available pairs simultaneously through the
-per-pixel N × N complex coherence matrix, whose dominant eigenvector phase is
-the estimated phase history. Phase linking is theoretically optimal under an
-unconstrained, complete, and unbiased sample covariance matrix. In our dataset,
-we evaluate it directly on the delivered multi-looked burst interferograms,
-which populate 356 pairs out of 4,005 possible off-diagonal pairs (an 8.89 %
-fill fraction across ~90 acquisition dates). Evaluating on delivered products
-avoids raw SLC ingestion and coregistration, making phase linking directly
-accessible from standard burst products. Quality is measured by temporal
-coherence, the agreement between estimated phase history and observed
-interferograms.
+per-pixel $N \times N$ complex coherence matrix $\boldsymbol{\Gamma}$ ($N \approx 90$ acquisition dates),
+whose dominant eigenvector phase is the estimated single-scatterer phase history. While phase linking
+is the maximum-likelihood estimator under a complete and unconstrained sample covariance matrix
+(Monti-Guarnieri & Tebaldini, 2008; Ansari et al., 2018), standard multi-looked burst networks populate
+only an incomplete observation graph $G = (V, E)$ with $M = 356$ pairs out of 4,005 possible off-diagonal
+pairs—an 8.89 % matrix fill fraction.
+
+**Mathematical formulation of the sparse covariance estimator.**
+1. *Matrix construction and zero-filling*: The sample correlation matrix $\boldsymbol{\Gamma} \in \mathbb{C}^{N \times N}$
+   is constructed with unit diagonal $\Gamma_{ii} = 1.0$. For observed interferometric pairs $(i, j) \in E$,
+   entries are populated as $\Gamma_{ij} = \gamma_{ij} \exp(-i \phi_{ij})$ and $\Gamma_{ji} = \Gamma_{ij}^*$,
+   where $\phi_{ij}$ is the wrapped interferometric phase and $\gamma_{ij}$ is the multi-looked spatial coherence.
+   All unobserved pairs $(i, j) \notin E$ are strictly zero-filled: $\Gamma_{ij} = 0$.
+2. *Optimization objective on the incomplete graph*: On a complete matrix, the dominant eigenvector
+   $\hat{\boldsymbol{v}} = \arg\max_{\|\boldsymbol{v}\|=1} \boldsymbol{v}^H \boldsymbol{\Gamma} \boldsymbol{v}$
+   solves the unconstrained phase-linking equation. On the incomplete graph $G = (V, E)$, the quadratic objective expands as:
+   $$\boldsymbol{v}^H \boldsymbol{\Gamma} \boldsymbol{v} = \sum_{i=1}^N |v_i|^2 + \sum_{(i,j) \in E} 2 \gamma_{ij} |v_i||v_j| \cos(\angle v_j - \angle v_i - \phi_{ij})$$
+   Under unit-magnitude constraints ($|v_i| = 1$), maximizing this Rayleigh quotient directly maximizes the
+   total coherence-weighted phase consensus across the 356 observed network edges.
+3. *Positive semi-definiteness and eigenspectrum*: Zero-filling an incomplete sample correlation matrix does
+   not guarantee positive semi-definiteness; small negative eigenvalues can arise in the spectrum. However,
+   $\boldsymbol{\Gamma}$ remains strictly Hermitian ($\boldsymbol{\Gamma}^H = \boldsymbol{\Gamma}$), ensuring
+   purely real eigenvalues. The estimator extracts the dominant eigenvector $\boldsymbol{v}_{\max}$ corresponding
+   to the largest positive eigenvalue $\lambda_{\max} > 0$ via Hermitian eigenvalue decomposition (`scipy.linalg.eigh`).
+   The estimated wrapped phase history is retrieved as $\hat{\theta}_k = \angle v_{\max, k} - \angle v_{\max, 1}$,
+   referenced to the initial acquisition date.
+4. *Input products and filtering*: Estimators are evaluated directly on the delivered multi-looked burst products
+   processed with adaptive Goldstein phase filtering ($\alpha = 0.5$). While filtering enhances fringe SNR on individual
+   interferograms, it introduces spatial autocorrelation across neighboring pixels ($L_{\text{corr}} \approx 160$ m in Zone A),
+   preventing pixel-level spatial independence.
+5. *Synthetic incomplete-network validation*: Automated synthetic validation on a 90-date network with matched
+   8.89 % fill fraction ($M=356$) and $\gamma = 0.40$ demonstrates that sparse EVD successfully recovers ground-truth
+   phase histories with high circular coherence ($> 0.85$) and bounded wrapped phase error ($< 0.50$ rad; §3.8).
 
 **Noise floor.** At the redundancy of our network (356 pairs over ~90
 acquisitions, redundancy ratio ≈ 4), a fully decorrelated pixel returns a
@@ -426,21 +449,50 @@ evaluated directly on wrapped phase, remaining independent of unwrapping errors.
 This protocol forms our primary methodological contribution and invalidated two
 intermediate conclusions during the study.
 
-**Primary pre-specified null control.** Aggregate noise falls as $1/\sqrt{N}$. A null
+**Designated primary confirmatory endpoint.** Aggregate noise falls as $1/\sqrt{N}$. A null
 built on 2 200 pixels while the tested zone has 499 carries ≈ 2× less noise and understates
-the floor, manufacturing false detections. Null realisations are compact adjacent patches
-of stable ground with the same pixel count as the tested zones. The reference-matched
-spatial null (4,614 draws, $p = 0.026$) is pre-specified as the primary confirmatory
-endpoint; size-matched compact nulls (empirical $p$-values of 0.014 and 0.022) provide sensitivity bounds.
+the floor, manufacturing false detections. Null realisations are compact patches
+of stable ground matched in pixel count to the tested zones. The **reference-matched
+spatial null** (4,614 draws, $p = 0.026$) is designated as the primary confirmatory
+endpoint; **size-matched compact nulls** (empirical $p$-values of 0.014 and 0.022) provide sensitivity bounds.
 
-**Empirical p-value.** Rather than assuming Gaussian asymptotics, we evaluate:
-$$p = \frac{1 + \#\{\text{null} \ge \text{observed}\}}{1 + N}$$
-This empirical $p$-value has a floor of $1/(1 + N)$: with 92 draws it cannot fall below 0.011.
+**Algorithmic specification of the empirical null distribution.**
+To ensure strict replicability, the generation of empirical null realisations follows a deterministic,
+parameterised spatial sampling algorithm resolved across ten structural criteria:
 
-**Identical treatment of the null.** Where the observed statistic results from an exploratory
-selection — such as sweeping ~16 lags — the null undergoes the identical sweep. To avoid
-selection bias, the lag-0 correlation is reported as the primary effect size, with the swept
-maximum reported as secondary exploratory evidence.
+1. *Sampling reservoir definition*: The null reservoir is Zone D, comprising 10,750 pixels (1,720 ha)
+   across the surrounding non-wetland landscape (Fig. 2).
+2. *Topographic and land-cover screening*: Candidate reservoir pixels are pre-screened to exclude open water
+   (Sentinel-2 MNDWI $< 0.10$), steep relief (slope $< 5^\circ$ via Copernicus 30 m DEM), and agricultural
+   structures, restricting draws to flat, mineral soil cover.
+3. *Perimeter buffer separation*: Candidate reservoir pixels enforce a strict 200 m buffer distance outside
+   the legal reserve boundary, eliminating spatial contamination from Zone A (mat) or Zone B (lake), and
+   preventing footprint overlap with the adaptive Goldstein filter ($\alpha = 0.5$).
+4. *Random seed generation*: For each trial $t \in \{1, \dots, N_{\text{draws}}\}$, a seed pixel index $s_t$
+   is drawn uniformly at random from the filtered reservoir pool.
+5. *Compact patch growing*: The $N_{\text{target}}$ nearest candidate pixels to seed $s_t$ under Euclidean distance
+   in grid coordinates are selected via nearest-neighbour clustering (`_compact_blob`), ensuring compact, contiguous
+   patch geometry matching the spatial cohesiveness of the tested zones.
+6. *Reference matching protocol (Primary endpoint)*: In the designated primary confirmatory test (4,614 draws),
+   only the target patch $\hat{A}_t$ is randomized from Zone D ($N_{\text{target}} = 499$ px), while the real
+   Zone C (398 px) serves as the fixed reference. This mimics the exact spatial differencing of the real observable:
+   $\Delta \phi_{\text{null}, j}(t) = \langle \phi_{\hat{A}_t} \rangle_j - \langle \phi_C \rangle_j$.
+7. *Size-matched cleaving protocol (Sensitivity check)*: In the size-matched nulls (92 draws), a single contiguous
+   blob of $N_{\text{target}} + N_{\text{reference}} = 897$ pixels is grown in Zone D and cleaved along a random
+   hyperplane angle $\theta \sim \mathcal{U}[0, \pi)$ into two adjacent, non-overlapping halves ($\hat{A}_t, \hat{C}_t$).
+8. *Patch overlap and spatial degrees of freedom*: Realisations are drawn independently with replacement across
+   the 10,750-pixel reservoir. While individual null patches may partially overlap across 4,614 iterations,
+   semivariogram modeling of Zone D reveals a spatial correlation length of $L_{\text{corr}} = 280$ m (Table 10),
+   yielding an effective sample size of $N_{\text{eff}} \approx 219$ independent spatial patches across the reservoir.
+9. *Empirical p-value formulation and floor*: Rather than assuming asymptotic Gaussian distributions, the empirical
+   $p$-value is computed as:
+   $$p = \frac{1 + \#\{\text{null} \ge \text{observed}\}}{1 + N_{\text{draws}}}$$
+   The resolution floor of this estimator is strictly bounded by $p_{\text{floor}} = 1 / (1 + N_{\text{draws}})$.
+   For the 4,614-draw reference-matched null, $p_{\text{floor}} = 1 / 4615 \approx 0.000216$ (well below the observed
+   $p = 0.026$); for the 92-draw size-matched nulls, $p_{\text{floor}} = 1 / 93 \approx 0.0108$.
+10. *Identical exploratory treatment*: Where an observed statistic arises from an exploratory parameter search
+    (e.g., sweeping ~16 lag offsets against hydrological series), the null undergoes the identical maximization
+    over the search grid to prevent selection bias.
 
 ### 3.5 Mechanism discrimination (H3)
 
@@ -496,7 +548,9 @@ mechanical settling would lag the water table by multiple weeks.
 All processing uses an open Python stack (`numpy`, `xarray`, `rioxarray`,
 `scipy`, `scikit-learn`) with a purpose-built package. Every scientific routine
 is covered by synthetic unit tests that verify recovery of a known ground truth,
-including: EVD phase linking on a sparse network; aggregation recovering a
+including: EVD phase linking on an incomplete network with matched 8.89 % fill fraction
+($N = 90$ dates, $M = 356$ pairs, demonstrating wrapped phase recovery with circular
+coherence $> 0.85$ under $\gamma = 0.40$ noise); aggregation recovering a
 displacement buried under per-pixel noise; the collapse of a spurious correlation
 between two independent annual cycles; and the size-matched null construction.
 The complete analysis code is available in the public repository at
@@ -528,9 +582,12 @@ criterion without a reliability criterion is misleading.
 Phase linking is theoretically optimal under an unconstrained, complete, and unbiased
 sample covariance matrix. In our network of 356 pairs across ~90 dates, the pairwise
 products populate 8.89 % (356 of 4,005 off-diagonal pairs) of the full covariance
-structure. Evaluating phase linking directly on these delivered burst interferograms
-provides a rigorous assessment of whether standard operational products support
-displacement retrieval over the mat.
+structure, where unobserved entries are zero-filled and the dominant eigenvector
+maximizes coherence-weighted phase consensus across the sparse observation graph (§3.2).
+Evaluating phase linking directly on these delivered burst interferograms provides a
+rigorous assessment of whether standard operational products support displacement
+retrieval over the mat, with synthetic validation confirming that the sparse estimator
+faithfully recovers ground-truth phase histories on incomplete networks of this density (§3.8).
 
 **Table 2** — Temporal coherence by zone (356 pairs, ~90 dates):
 
@@ -850,7 +907,7 @@ Across all sub-zones, seasonal phase remains locked within an 8-day window (DOY 
 breathe mechanically, yet exhibits an annual trajectory consistent in amplitude and phase with
 the floating mat: 2.63 mm LOS, phase DOY 95 (*p* = 0.136 against the reference-matched null).
 The lake signal represents 80 % of the mat amplitude, within 9 days of the same phase.
-Because $p = 0.136$ falls short of confirmatory statistical significance under our pre-specified
+Because $p = 0.136$ falls short of confirmatory statistical significance under our designated confirmatory
 protocol, the lake trajectory cannot be claimed as an independent detection. However, its
 trajectory provides a consistent amplitude scale.
 
@@ -1297,12 +1354,14 @@ Three rules, each of which invalidated an intermediate conclusion in this study:
    larger carries half the noise and **manufactures false detections**.
 2. **A null distribution, not a single realisation.** One realisation is not a
    test; *N* draws give an empirical *p*-value — whose **floor** of 1/(1 + N)
-   must be stated.
+   must be stated. Across our 10,750-pixel reservoir (Zone D), spatial autocorrelation
+   limits effective independent draws to $N_{\text{eff}} \approx 219$ (Table 10), which
+   remains fully adequate for establishing the empirical null distribution (§3.4).
 3. **Identical treatment of the null.** If the observed statistic results from a
    selection (best |r| over 16 lags), the null must undergo the same sweep.
 
-These rules are cheap and should accompany any weak-signal claim over
-decorrelated terrain.
+These rules are cheap, fully specified algorithmically (§3.4), and should accompany
+any weak-signal claim over decorrelated terrain.
 
 ### 5.4 Instrumental outlook
 
