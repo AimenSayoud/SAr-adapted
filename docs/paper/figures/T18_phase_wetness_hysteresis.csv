@@ -1,0 +1,4 @@
+limb,n_dates,slope_mm_per_unit,intercept_mm,r2,status
+Wetting / rising limb (DOY 1-104),42,14.82,1.15,0.342,Spring recharge (rising limb)
+Drying / falling limb (DOY 105-260),48,13.95,0.94,0.318,Summer drawdown (falling limb)
+Limb difference (Wetting - Drying),90,0.87,0.21,,"Offset: 0.21 mm [-0.38, 0.80], p = 0.52 (single-valued; no hysteresis)"

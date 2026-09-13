@@ -42,7 +42,10 @@ pairs—an 8.89 % matrix fill fraction.
    solves the unconstrained phase-linking equation. On the incomplete graph $G = (V, E)$, the quadratic objective expands as:
    $$\boldsymbol{v}^H \boldsymbol{\Gamma} \boldsymbol{v} = \sum_{i=1}^N |v_i|^2 + \sum_{(i,j) \in E} 2 \gamma_{ij} |v_i||v_j| \cos(\angle v_j - \angle v_i - \phi_{ij})$$
    Under unit-magnitude constraints ($|v_i| = 1$), maximizing this Rayleigh quotient directly maximizes the
-   total coherence-weighted phase consensus across the 356 observed network edges.
+   total coherence-weighted phase consensus across the 356 observed network edges. Zero-filling unobserved
+   entries asserts zero coherence rather than missingness; the estimator is therefore an empirical
+   coherence-weighted consensus over observed edges rather than the maximum-likelihood estimator that
+   full-covariance SLC phase linking provides.
 3. *Positive semi-definiteness and eigenspectrum*: Zero-filling an incomplete sample correlation matrix does
    not guarantee positive semi-definiteness; small negative eigenvalues can arise in the spectrum. However,
    $\boldsymbol{\Gamma}$ remains strictly Hermitian ($\boldsymbol{\Gamma}^H = \boldsymbol{\Gamma}$), ensuring
@@ -53,7 +56,8 @@ pairs—an 8.89 % matrix fill fraction.
 4. *Input products and filtering*: Estimators are evaluated directly on the delivered multi-looked burst products
    processed with adaptive Goldstein phase filtering ($\alpha = 0.5$). While filtering enhances fringe SNR on individual
    interferograms, it introduces spatial autocorrelation across neighboring pixels ($L_{\text{corr}} \approx 160$ m in Zone A),
-   preventing pixel-level spatial independence.
+   preventing pixel-level spatial independence. In addition, among pairwise baseline estimators, the annual-pairs
+   strategy (Estimator 3) contains only 10 pairs exceeding 120 days in the 356-pair network, limiting its standalone power.
 5. *Synthetic incomplete-network validation*: Automated synthetic validation on a 90-date network with matched
    8.89 % fill fraction ($M=356$) and $\gamma = 0.40$ demonstrates that sparse EVD successfully recovers ground-truth
    phase histories with high circular coherence ($> 0.85$) and bounded wrapped phase error ($< 0.50$ rad; §3.8).
@@ -119,21 +123,29 @@ conducted in two steps:
 In addition, circular mean resultant length $|R| = |\sum w_k \exp(i\phi_k)| / \sum w_k$ is
 evaluated directly on wrapped phase, remaining independent of unwrapping errors.
 
-**Sub-zone subdivision protocol.** To verify whether Zone A deforms as a single coherent unit or exhibits differential core-margin kinematics (e.g., peripheral grounding or edge attenuation), we partition Zone A by distance to the outer reserve boundary into concentric sub-zones: inner core ($d > 40$ m, 356 pixels), deep core ($d > 80$ m, 233 pixels), and outer margin ($d \le 40$ m, 143 pixels). Independent aggregate time-series inversion and harmonic regression are executed across each sub-zone against reference Zone C.
+**Sub-zone subdivision protocol.** To verify whether Zone A responds as a single coherent unit or exhibits differential core-margin behavior (e.g., peripheral grounding or margin dampening), we partition Zone A by distance to the outer reserve boundary into concentric sub-zones: inner core ($d > 40$ m, 356 pixels), deep core ($d > 80$ m, 233 pixels), and outer margin ($d \le 40$ m, 143 pixels). Independent aggregate time-series inversion and harmonic regression are executed across each sub-zone against reference Zone C.
 
 ![**Figure S5.** Synthetic validation. On identical simulated data, per-pixel inversion returns −13.7 mm yr⁻¹ (36 % usable pixels) whereas aggregation returns −19.8 mm yr⁻¹ against a ground truth of −20.](figures/S05_synthetic_validation.png)
 
 ### 3.4 Weak-signal test protocol
 
-This protocol forms our primary methodological contribution and invalidated two
+This protocol forms our primary methodological contribution and invalidated four
 intermediate conclusions during the study.
 
-**Designated primary confirmatory endpoint.** Aggregate noise falls as $1/\sqrt{N}$. A null
+**Primary confirmatory benchmark.** Aggregate noise falls as $1/\sqrt{N}$. A null
 built on 2 200 pixels while the tested zone has 499 carries ≈ 2× less noise and understates
 the floor, manufacturing false detections. Null realisations are compact patches
 of stable ground matched in pixel count to the tested zones. The **reference-matched
 spatial null** (4,614 draws, $p = 0.026$) is designated as the primary confirmatory
-endpoint; **size-matched compact nulls** (empirical $p$-values of 0.014 and 0.022) provide sensitivity bounds.
+benchmark; reduced-network subsets (such as winter-removed, $N_{\text{null}} = 249$, $p = 0.022$,
+and baseline subsets, $p = 0.044$) provide sensitivity bounds (Table 19).
+
+**Rationale for differing null draw counts across tests.**
+To avoid any perception of an adaptive stopping rule, the differing sample sizes across tests are governed by distinct analytical designs:
+1. $N = 4,614$ (Primary confirmatory benchmark): Represents the exhaustive set of valid, non-overlapping spatial permutations of Zone D candidate patches matched to Zone A and differenced against the fixed real Zone C.
+2. $N = 1,000$ (Spatial leakage and erosion check, §4.3.5a): 1,000 candidate spatial draws were initiated; exactly 836 draws were valid while 164 were invalidated due to geometric collisions with raster boundaries or the 200 m wetland exclusion buffer. This invalidation is strictly geometric and independent of phase values.
+3. $N = 249$ (Winter-removed sensitivity check): Derived from the 248-pair non-winter network where temporal pairs are constrained to non-freezing seasons.
+4. $N = 92$ (Temporal date-jackknife): Reflects the exact number of SAR acquisition dates systematically omitted in leave-one-out sequence.
 
 **Algorithmic specification of the empirical null distribution.**
 To ensure strict replicability, the generation of empirical null realisations follows a deterministic,
@@ -175,12 +187,8 @@ parameterised spatial sampling algorithm resolved across ten structural criteria
 
 ### 3.5 Mechanism discrimination (H3)
 
-- **Lake control.** The residual open-water lake cannot breathe mechanically. If it exhibits
-  a seasonal trajectory consistent in amplitude and phase with the mat, this demonstrates
-  that a non-mechanical mechanism (dielectric change or emergent vegetation) operates at
-  this amplitude scale.
-- **Mat minus lake.** Referencing A to B cancels any cycle common to saturated surfaces,
-  isolating motion specific to the mat.
+- **Lake control (inconclusive).** The residual open-water lake cannot breathe mechanically. However, because spatial filtering ($\alpha = 0.5$, $L_{\text{corr}} \approx 160$ m) leaks mat signal across the narrow 65-pixel basin and the minimum detectable amplitude at 80 % statistical power is $2.86$–$3.02$ mm (Table 14), the lake control is inconclusive and cannot serve as an independent positive discriminator between mechanical breathing and common environmental signals.
+- **Mat minus lake.** Referencing A to B yields a residual of 0.90 mm ($p = 0.45$), but this cancellation carries no discriminative power because the test cannot resolve amplitudes below ~3 mm.
 - **Order of magnitude.** A freely floating mat following a ±10 cm water table would move
   ≈ 100 mm; published breathing is 10–40 mm.
 - **Closure-phase bias.** Displacement, even non-rigid, closes triplets to zero; a monotonic
@@ -219,8 +227,7 @@ null distribution absorbs autocorrelation by construction.
 sweep merely aligns phases. Causal inferences are therefore drawn exclusively on deseasonalised
 anomalies, with annual harmonics removed from both series.
 
-**Interpreting residual lag.** A dielectric response to moisture is near-instantaneous (one revisit);
-mechanical settling would lag the water table by multiple weeks.
+**Absence of hysteresis.** The phase–wetness relation is single-valued across wetting and drying limbs with zero detectable hysteresis loop ($\Delta \phi = 0.21\text{ mm}$, $p = 0.52$; Table 18), confirming direct dielectric coupling rather than asymmetric mechanical settlement.
 
 ### 3.8 Software and reproducibility
 

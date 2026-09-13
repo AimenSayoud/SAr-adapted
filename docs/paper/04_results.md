@@ -1,33 +1,10 @@
 ## 4. Results
 
-### 4.1 H1 — Inversion failure across tested burst-product approaches
+### 4.1 H1 — Target-specific decorrelation and inversion failure across burst-product estimators
 
-#### 4.1.1 Six estimators, one outcome
+#### 4.1.1 Controlled contrast: Zone A vs Zone C under identical processing
 
-| Method | Outcome over the mat |
-|---|---|
-| SBAS (MintPy) | no usable pixel |
-| ISBAS (Alshammari et al., 2018) | idem; intermittent pixels not recovered |
-| Annual pairs | idem |
-| Hybrid network | 14 238 pixels "resolved" scene-wide, 0 reliable over the AOI (median residual 2.5 rad) |
-| Weighted least squares | median residual 2.46 rad (A) vs 1.92 rad (C), at comparable numbers of valid pairs |
-| Phase linking (EVD) | see §4.1.2 |
-
-The hybrid-network case is instructive: the apparent 78-fold scene-wide coverage
-gain did not yield reliable pixels over the wetland area of interest. A coverage
-criterion without a reliability criterion is misleading.
-
-#### 4.1.2 The decisive test
-
-Phase linking is theoretically optimal under an unconstrained, complete, and unbiased
-sample covariance matrix. In our network of 356 pairs across ~90 dates, the pairwise
-products populate 8.89 % (356 of 4,005 off-diagonal pairs) of the full covariance
-structure, where unobserved entries are zero-filled and the dominant eigenvector
-maximizes coherence-weighted phase consensus across the sparse observation graph (§3.2).
-Evaluating phase linking directly on these delivered burst interferograms provides a
-rigorous assessment of whether standard operational products support displacement
-retrieval over the mat, with synthetic validation confirming that the sparse estimator
-faithfully recovers ground-truth phase histories on incomplete networks of this density (§3.8).
+The primary finding of the per-pixel analysis is a stark controlled contrast: under identical Sentinel-1 burst products, identical 10×2 multilooking, identical Goldstein adaptive filtering ($\alpha = 0.5$), and identical network topology (356 pairs across ~90 dates), land-cover-matched mineral grassland on stable ground (Zone C) yields **64.7 % usable pixels** at temporal coherence $\ge 0.7$, whereas the floating mat (Zone A) collapses to **5.4 %** (Table 2, Figure 3). Because both zones are processed under the identical algorithmic chain, this eleven-fold disparity demonstrates that unwrapping failure is target-specific rather than a failure of the processing pipeline or atmospheric screening.
 
 **Table 2** — Temporal coherence by zone (356 pairs, ~90 dates):
 
@@ -38,10 +15,7 @@ faithfully recovers ground-truth phase histories on incomplete networks of this 
 | A — floating mat | 0.604 | 0.566–0.647 | 5.4 % |
 | B — residual lake | 0.584 | 0.542–0.630 | 1.5 % |
 
-Read against the simulated network noise floor of ≈ 0.55 (empirical network
-distribution floor 0.488 with a 90 % interval of [0.448, 0.532]; §3.1; Figure 3).
-Because that floor is strongly topology-dependent, we express each zone
-as its excess above the floor, which requires no threshold:
+Read against the simulated network noise floor of ≈ 0.55 (empirical network distribution floor 0.488 with a 90 % interval of [0.448, 0.532]; §3.1; Figure 3). Because that floor is strongly topology-dependent, we express each zone as its excess above the floor:
 
 | Zone | Temporal coherence | Excess over floor |
 |---|---|---|
@@ -50,39 +24,36 @@ as its excess above the floor, which requires no threshold:
 | A — floating mat | 0.604 | 0.116 |
 | B — residual lake | 0.584 | 0.096 |
 
-The mat retains 47 % of the matched grassland's excess coherence above the
-floor. Every zone, including the lake, lies above the 95th percentile of the
-null, so the lake is not at the floor and cannot serve as an internal
-validation of the chain. The mat is low, and intermediate between the lake and
-external cover — deprived of its high-coherence tail to the point where
-per-pixel inversion is not supportable, while retaining measurable structure
-above the fully decorrelated case.
-
+The mat retains 47 % of the matched grassland's excess coherence above the floor. Zone B sits at 0.584, above the empirical noise floor of 0.488. Open water over a 12-day repeat at C-band is expected to sit at the decorrelation floor; this elevated coherence reflects spatial smoothing from the adjacent mat across the narrow 65-pixel basin via the 160 m Goldstein filter footprint, or an understated network floor. Consequently, the lake cannot serve as an internal validation baseline. The mat is deprived of its high-coherence tail to the point where per-pixel inversion is unsupportable, while retaining measurable structure above the fully decorrelated case.
 
 ![**Figure 3.** Phase-linking temporal coherence. (a) Temporal-coherence distributions by zone with the 0.55 noise floor and 0.7 reliability threshold; (b) multi-threshold usable fraction curve; (c) spatial map of temporal coherence from EVD phase linking with zone outlines.](figures/F03_temporal_coherence.png)
 
-#### 4.1.3 Multi-threshold analysis
+#### 4.1.2 Persistence across pairwise baseline estimators
 
-The 0.7 threshold is a convention; the full curve is more informative (Figure 3b,
-Table T03). A and C are nearly indistinguishable at 0.50 (0.974 vs 0.995) and
-diverge in the upper tail (≥ 0.65). The mat is therefore not uniformly
-shifted downward — it is deprived of its best pixels, which is precisely
-what prevents inversion.
+To determine whether alternative weighting or network architectures could rescue the inversion, we tested five pairwise baseline strategies alongside sparse phase linking on these burst products. No reweighting scheme overcomes the loss of coherence:
 
-#### 4.1.4 Baseline subsets and closure-phase accumulation
+| Method | Formulation / Weighting | Outcome over the mat |
+|---|---|---|
+| SBAS (MintPy) | Short-baseline subset ($B_t \le 48$ d) | No usable pixel at temporal coherence $\ge 0.7$ |
+| ISBAS (Alshammari et al., 2018) | Intermittent thresholding | Idem; intermittent pixels not recovered |
+| Annual pairs | Long-baseline pairs ($B_t > 120$ d) | Idem (only 10 of 356 pairs exceed 120 d; standalone power limited) |
+| Hybrid network | Short baselines + multi-year connections | 14,238 pixels "resolved" scene-wide, 0 reliable over mat (median residual 2.5 rad) |
+| Weighted least squares | Coherence-variance weights $(\gamma^2/(1-\gamma^2))$ | Median residual 2.46 rad (A) vs 1.92 rad (C), at comparable pair counts |
+| Sparse EVD consensus | Dominant eigenvector of zero-filled $\boldsymbol{\Gamma}$ | 5.4 % usable pixels (§4.1.3; consensus over observed edges) |
 
-Testing maximum temporal baseline subsets ($B_{t,\max} \in [24, 36, 48\text{–}120, \text{All}]$ days;
-Table 3, Table T15) confirms that this inversion failure is not an artifact of network connectivity. While short
-baselines ($\le 24\text{ d}$) suffer severe closure-phase accumulation bias (Zheng et al., 2022), the
-full network stabilizes reliably, demonstrating that per-pixel decoherence is intrinsic to the target
-rather than the baseline selection scheme.
+The hybrid-network case is instructive: an apparent 78-fold scene-wide coverage gain yielded zero reliable pixels over the wetland area of interest. A coverage criterion without a reliability criterion is misleading.
 
-Crucially, while the linear velocity estimate is severely corrupted by fading signal bias in short-baseline networks
-($-13.47$ mm yr⁻¹ at $\le 24$ d, attenuating toward $-1.53$ mm yr⁻¹ on all pairs), the harmonic seasonal amplitude
-stabilizes cleanly once intermediate baselines are included: amplitude settles to 2.89 mm at $\le 48$ d and 3.29 mm
-on all pairs, with seasonal phase locking tightly to DOY 104–106 across all non-truncated subsets. This demonstrates
-that the seasonal harmonic observable is robust against fading signal bias, whereas linear velocity on periodic signals
-merely reflects calendar truncation and closure-phase accumulation.
+#### 4.1.3 Sparse-network phase linking consensus
+
+Phase linking on our network operates over an incomplete observation graph populated by 356 pairwise burst products (8.89 % of off-diagonal pairs). Unobserved entries are zero-filled, asserting zero coherence rather than true missingness; the dominant eigenvector of $\boldsymbol{\Gamma}$ maximizes coherence-weighted phase consensus across observed edges (§3.1). Synthetic validation confirms that this sparse estimator recovers ground-truth phase histories on stationary synthetic benchmarks (§3.8). Over the real mat, however, the sparse EVD consensus confirms the same result: only 5.4 % of pixels achieve temporal coherence $\ge 0.7$.
+
+#### 4.1.4 Multi-threshold analysis and baseline subsets
+
+The 0.7 threshold is an operational convention; the full curve is more informative (Figure 3b, Table T03). A and C are nearly indistinguishable at 0.50 (0.974 vs 0.995) and diverge in the upper tail (≥ 0.65). The mat is therefore not uniformly shifted downward — it is deprived of its best pixels, which is precisely what prevents inversion.
+
+Testing maximum temporal baseline subsets ($B_{t,\max} \in [24, 36, 48\text{–}120, \text{All}]$ days; Table 3, Table T15) confirms that this inversion failure is not an artifact of network connectivity. While short baselines ($\le 24\text{ d}$) suffer severe closure-phase accumulation bias (Zheng et al., 2022), the full network stabilizes reliably, demonstrating that per-pixel decoherence is intrinsic to the target rather than the baseline selection scheme.
+
+While the linear velocity estimate is severely corrupted by fading signal bias in short-baseline networks ($-13.47$ mm yr⁻¹ at $\le 24$ d, attenuating toward $-1.53$ mm yr⁻¹ on all pairs), the harmonic seasonal amplitude settles to 2.89 mm at $\le 48$ d and 3.29 mm on all pairs (Table 3, Table T15), with seasonal phase locking tightly to DOY 104–106 across non-truncated subsets. Recomputing the reference-matched empirical null for the reduced 346-pair network yields a 95th percentile of 2.85 mm and an empirical $p = 0.044$ ($N_{\text{null}} = 4,614$; Table 19). The point estimate lands on the detection threshold, showing that the 10 long-baseline pairs ($B_t > 120$ d) contribute approximately 0.40 mm to the headline amplitude and that the seasonal detection across temporal subsets is marginal ($p \approx 0.026$ to $0.044$).
 
 **Table 3** — Baseline subset analysis and closure-phase accumulation test ($B_{t,\max} \in [24, 120]$ days and All pairs; cf. Zheng et al., 2022):
 
@@ -99,14 +70,10 @@ merely reflects calendar truncation and closure-phase accumulation.
 
 \*Note on baselines: All pairs with $B_t \le 120$ days in the network happen to satisfy $B_t \le 48$ days (346 pairs), leaving identical subsets for $B_{t,\max} \in [48, 60, 120]$ days; exactly 10 pairs have temporal baselines exceeding 120 days (up to 348 days) in the 356-pair full network.
 
-#### 4.1.5 Verdict: H1 not supported within tested class
+#### 4.1.5 Verdict: H1 (Inversion failure originates in algorithm) — Rejected
 
-> **H1 is not supported within the tested class of standard burst interferometric networks.**
-> Six estimators with distinct mathematical assumptions fail identically on pairwise multi-looked
-> products. When processing is held completely constant, land-cover-matched vegetation on stable
-> ground (Zone C) yields 64.7 % usable pixels against 5.4 % over the mat, demonstrating that the
-> limitation persists across all tested standard algorithmic approaches and points to target
-> non-stationarity under C-band multi-looked burst observation.
+> **H1 Proposition**: *The inversion failure over the floating mat originates in the choice of phase retrieval algorithm.*  
+> **Verdict: Rejected.** The stark controlled contrast between Zone A (5.4 % recovery) and Zone C (64.7 % recovery) under identical processing proves that failure is governed by target-specific physical decorrelation rather than algorithmic inadequacy. No pairwise reweighting, baseline subsetting, or sparse consensus scheme rescues the inversion on standard burst products. Full-covariance Single Look Complex (SLC) phase linking with adaptive homogeneous pixel selection remains untested on this archive (§3.1 scope note).
 
 **Scope.** Future work exploiting full-covariance Single Look Complex (SLC) stacks with
 statistically homogeneous pixel (SHP) selection (e.g. SqueeSAR; Ferretti et al., 2011; Fornaro et al., 2015; Ansari et al.,
@@ -209,7 +176,7 @@ with 12 covariates, 5-fold spatial block cross-validation yields out-of-sample s
 $R^2_{\text{cv}} = 0.178$ (random pixel CV yields $0.239$; random forest 0.326), against
 0.127 without radar covariates. Complete standardized regression coefficients, variance
 inflation factors (VIF), and partial effect curves are reported in Supplementary Table S2
-and §A.4.
+and §3.6.
 
 **Table 6** — Non-parametric Spearman rank correlation ($\rho$) between temporal coherence and environmental predictors within Zone A (mat) and Zone C (grassland):
 
@@ -222,19 +189,20 @@ and §A.4.
 The radar and optical variables show active environmental sensitivity in the mat
 that is absent in the matched grassland (Figure S9b). In Zone A, higher backscatter (σ⁰ VV)
 is associated with reduced coherence (ρ = −0.379), and optical greenness correlates
-positively (ρ = +0.320). In Zone C, both coefficients are indistinguishable from zero
-(ρ = −0.008 and −0.009). The apparent elevation contrast (−0.168 vs +0.430) is uninterpretable
-given the 30 m Copernicus DEM noise floor across flat terrain. This pattern reflects the
-presence of active dielectric and scattering modulation inside the floating mat against
-its absence in mineral grassland, rather than a genuine sign reversal.
+positively (ρ = +0.320). In Zone C, both radar and greenness coefficients are indistinguishable
+from zero (ρ = −0.008 and −0.009). However, because Zone C has an effective sample size
+of only $N_{\text{eff}} \approx 5$ (Table 10), rank correlations in grassland carry wide
+estimation uncertainty; the elevation correlation (+0.430) and the near-zero radar/greenness
+correlations are equally constrained by this low degree of freedom. The defensible finding is
+therefore the active within-mat sensitivity in Zone A ($N_{\text{eff}} \approx 31$), which
+documents internal environmental modulation.
 
-**Zone C spatial power qualification.** While Table 6 contrasts 499 pixels in Zone A
-against 398 pixels in Zone C, Zone C is fragmented across multiple disjoint external patches.
-Semivariogram modeling reveals an empirical spatial correlation length of 360 m in Zone C,
-yielding an effective sample size of only $N_{\text{eff}} \approx 5$ independent spatial degrees
-of freedom (Table 10). Consequently, while aggregate time series over Zone C benefit from noise
-reduction, per-pixel spatial regressions within Zone C possess limited statistical power,
-and the absence of correlation must be qualified by this constraint.
+**Note on instrumental effects.** In multi-looked SAR processing, sample coherence estimates
+can exhibit positive SNR bias at low backscatter. In Zone A, however, the observed relation
+between σ⁰ and coherence is negative ($\rho = -0.379$): brighter backscatter corresponds to
+lower coherence. This negative association is the opposite of an SNR artifact (which would
+produce higher apparent coherence at higher backscatter) and reflects a physical mechanism
+whereby enhanced canopy scattering volume accelerates decorrelation.
 
 **Spatial autocorrelation and degrees of freedom in Zone A.** Spatial autocorrelation in Zone A
 exhibits an empirical correlation length of ~160 m (4 pixels on the 40 m grid; §3.6),
@@ -254,10 +222,11 @@ an independent predictive model.
 #### 4.2.6 Verdict: H2 supported
 
 > **H2 is supported.** At matched cover and after controlling baseline,
-> atmosphere, slope and optical wetness, the mat shows significantly lower
-> coherence, a sharp boundary, a volumetric scattering signature and 3.2-fold
-> non-stationarity — and environmental predictors modulating its coherence have
-> no detectable effect in grassland. It is a distinct radar unit, not "vegetation at C-band".
+> atmosphere, slope and optical wetness, the mat shows lower coherence
+> (date-jackknife SE-based 95 % CI [−0.109, −0.052]), a sharp boundary, a
+> volumetric scattering signature and 3.2-fold non-stationarity — and environmental
+> predictors modulating its coherence have no detectable effect in grassland. It
+> is a distinct radar unit, not "vegetation at C-band".
 
 ---
 
@@ -319,57 +288,67 @@ reference-matched null realisations (Figure 5; Table 7):
 | NULL (grassland vs stable) | 0.57 | 95 | 0.06 | — | — | — |
 
 The reference-matched spatial null distribution has a median of 1.69 mm and a 95th percentile
-of 2.93 mm; 119 of 4 614 null realisations exceed the observed value. This yields an empirical
-permutation $p = (119 + 1)/(4 614 + 1) = 0.026$ (raw frequency ratio $119 / 4 614 = 0.0258$,
-with a Monte Carlo 95 % confidence interval on $p$ of [0.021, 0.031]). The point estimate of
-the seasonal amplitude is 3.29 mm LOS (3.89 mm vertical equivalent), with a formal 95 % upper
-bound of 7.32 mm LOS (8.66 mm vertical). Size-matched compact nulls yield empirical $p$-values
-of 0.014 and 0.022, confirming sensitivity robustness against the fragmented grassland control.
+of 2.93 mm; 119 of 4 614 null realisations exceed the observed value. This yields the canonical empirical
+permutation $p = (119 + 1)/(4 614 + 1) = 0.026$ (Monte Carlo 95 % confidence interval on $p$ of [0.021, 0.031]).
+The point estimate of the seasonal amplitude is 3.29 mm LOS (3.89 mm vertical equivalent), with a formal 95 % upper
+bound of 7.32 mm LOS (8.66 mm vertical; see derivation below). Recomputing the reference-matched null across
+processing perturbations (Table 19) demonstrates that the seasonal signal is a defensible but marginal detection
+spanning 2.8–3.3 mm ($p = 0.022$ without winter pairs, $p = 0.044$ for baselines $\le 48$ d, and $p = 0.047$ with
+unwrap-suspect pairs removed), landing close to the null 95th percentile threshold under temporal and unwrapping subsets.
 The mid-April maximum (DOY 104) aligns with spring water-table peaks.
 
-**Sub-zone subdivision: core versus margin.** To evaluate whether Zone A deforms as a uniform spatial block or exhibits differential sub-zone breathing (e.g. peripheral grounding or margin dampening), we stratified Zone A into concentric distance bands from the outer boundary (Table T11):
+**Sub-zone subdivision: core versus margin.** To evaluate whether Zone A exhibits detectable spatial heterogeneity
+(e.g. peripheral grounding or margin dampening), we stratified Zone A into concentric distance bands from the outer
+boundary (Table T11):
 - Full mat (499 px): amplitude 3.29 mm, phase DOY 104.2, $R^2 = 0.299$
 - Inner core ($d > 40$ m, 356 px): amplitude 3.53 mm, phase DOY 106.6, $R^2 = 0.312$
 - Deep core ($d > 80$ m, 233 px): amplitude 3.78 mm, phase DOY 108.3, $R^2 = 0.318$
 - Outer margin ($d \le 40$ m, 143 px): amplitude 2.89 mm, phase DOY 99.8, $R^2 = 0.245$
-Across all sub-zones, seasonal phase remains locked within an 8-day window (DOY 100–108), with amplitude increasing smoothly from 2.89 mm at the peripheral margin to 3.78 mm in the deep interior core. This confirms that Zone A moves as an integrated coherent unit rather than displaying disjoint local kinematics.
+Across all sub-zones, seasonal phase remains locked within an 8-day window (DOY 100–108). However, because concentric
+sub-zones are nested samples, co-movement is structurally favored. Between the two disjoint samples (outer margin, 143 px,
+vs deep core, 233 px), the amplitude difference (2.89 vs 3.78 mm) is within aggregate noise. Concentric subdivision
+therefore detects no differential behaviour at the resolvable scale, which is consistent with an integrated response
+but does not establish unit kinematics.
 
 
 ![**Figure 5.** Aggregated seasonal phase series and empirical significance against size-matched null distributions. (a) Time series for A−C, B−C, A−B and the size-matched null; (b) seasonal amplitudes across series; (c) null distribution and significance for the full network; (d) null distribution with winter pairs excluded.](figures/F05_aggregate_and_significance.png)
 
 #### 4.3.5 Three lines of evidence constrain a purely mechanical interpretation
 
-**(a) Lake seasonal amplitude and consistent trajectory.** The residual open-water lake cannot
-breathe mechanically, yet exhibits an annual trajectory consistent in amplitude and phase with
-the floating mat: 2.63 mm LOS, phase DOY 95 (*p* = 0.136 against the reference-matched null).
-The lake signal represents 80 % of the mat amplitude, within 9 days of the same phase.
-Because $p = 0.136$ falls short of confirmatory statistical significance under our designated confirmatory
-protocol, the lake trajectory cannot be claimed as an independent detection. However, its
-trajectory provides a consistent amplitude scale.
+**(a) Lake control is inconclusive due to filter leakage and null result.** The residual open-water
+lake (Zone B) cannot breathe mechanically. Differencing Zone B against reference Zone C yields
+an apparent seasonal amplitude of 2.63 mm LOS (DOY 95), but this yields $p = 0.136$ against its
+reference-matched null (Table 7)—a strictly non-significant result that cannot be asserted as an
+independent observation.
 
-Two physical hypotheses could account for coherent phase over Zone B: (1) emergent and submerged
-macrophytes along the lake margins acting as distributed scatterers modulated by water-level
-and dielectric shifts, or (2) spatial leakage from the adaptive Goldstein phase filter
-($\alpha = 0.5$) smoothing adjacent mat phases across the narrow 65-pixel lake geometry.
-Eroding Zone B by successive 40 m perimeter rings demonstrates continuous signal survival across the interior before reaching geometric extinction (Table T12):
+More fundamentally, spatial filter leakage cannot be geometrically excluded at this site. With an
+adaptive Goldstein phase filter ($\alpha = 0.5$) exhibiting a measured correlation length of
+$L_{\text{corr}} \approx 160$ m in Zone A (Table 10), the 65-pixel lake sits entirely within the filter
+footprint of the surrounding mat. While inward erosion of Zone B by successive 40 m perimeter rings was
+evaluated (Table 12), Ring 2 (80 m erosion) retains only 4 pixels and Ring 3 (120 m) retains zero
+pixels due to basin geometry (semi-minor axis $\approx 80$ m):
 - Ring 0 (full lake, $d \ge 0$ m, 65 px): amplitude 2.63 mm, phase DOY 94.7, $R^2 = 0.114$
 - Ring 1 (interior lake, $d > 40$ m, 26 px): amplitude 2.22 mm, phase DOY 93.6, $R^2 = 0.093$
 - Ring 2 (deep center, $d > 80$ m, 4 px): amplitude 1.84 mm, phase DOY 92.1, $R^2 = 0.065$
-- Ring 3 ($d > 120$ m, 0 px): geometric extinction (the semi-minor axis of the residual lake basin is ~80 m, so an inward erosion of 120 m leaves zero pixels).
-An expanded 1,000-draw reference-matched null confirms $p = 0.1565$ on Ring 1 (836 valid draws, null median 1.67 mm, p95 3.40 mm, Table XT10). This smooth inward attenuation from 2.63 mm to 1.84 mm with stable phase locking (DOY 92–95) demonstrates that the lake signal is not an edge-ringing artifact while remaining strictly non-significant under the confirmatory null. Under either hypothesis, the lake trajectory is consistent with an environmental or dielectric scaling rather than differential mechanical breathing.
+- Ring 3 ($d > 120$ m, 0 px): geometric extinction.
+Escaping the 160 m filter footprint is geometrically impossible within this basin. Furthermore, an
+expanded 1,000-draw reference-matched null on Ring 1 yielded 836 valid draws ($p = 0.1565$, null median
+1.67 mm, p95 3.40 mm; Table 12), where exactly 164 draws were invalidated strictly due to geometric
+boundary collisions with raster edges or the 200 m wetland exclusion buffer (purely spatial exclusions
+independent of phase values). The lake signal is therefore structurally ambiguous and inconclusive: it
+cannot serve as an empirical discriminator between mechanical and non-mechanical mechanisms.
 
-**(b) Mat minus lake cancels and statistical power.** Referencing A to the lake rather than the
-grassland gives 0.90 mm, phase DOY 146 (random), seasonal $R^2 = 0.05$,
-$p = 0.448$ — sitting squarely within the empirical null distribution (null median 0.83 mm,
-baseline NULL amplitude 0.57 mm). Mat and lake are seasonally indistinguishable.
+**(b) Mat-minus-lake difference and statistical power limits.** Referencing A to the lake rather than
+the grassland gives 0.90 mm, phase DOY 146, seasonal $R^2 = 0.05$, $p = 0.448$ (sitting squarely within
+the null distribution; baseline NULL amplitude 0.57 mm).
 
-Crucially, answering the referee question on statistical power: given the matched-null 95th percentile
-of 2.00 mm (empirical standard error $\text{SE}_{\text{null}} \approx 1.22$ mm), the minimum seasonal amplitude
-detectable at 80 % statistical power ($\beta = 0.20$, $\alpha = 0.05$, two-tailed test) is
-$2.86$–$3.02$ mm ($3.02$ mm Gaussian threshold, $2.86$ mm exact empirical power; Table T14).
-The observed residual amplitude of 0.90 mm ($p = 0.448$) sits substantially below this 80 % detection floor.
-Thus, while the A−B test rules out differential breathing exceeding ~3.0 mm at 80 % statistical power,
-it cannot exclude sub-3 mm differential mechanical motion.
+Crucially, statistical power analysis reveals that given the matched-null standard deviation
+($\text{SE}_{\text{null}} \approx 1.22$ mm), the minimum seasonal amplitude detectable at 80 %
+statistical power ($\beta = 0.20$, $\alpha = 0.05$, two-tailed test) is $2.86$–$3.02$ mm ($3.02$ mm
+Gaussian threshold, $2.86$ mm exact empirical power; Table 14). The observed residual amplitude of
+0.90 mm sits substantially below this 80 % detection floor. Because the test has no power to resolve
+anything below ~3 mm—the entire magnitude of the signal under discussion—the observed 0.90 mm difference
+cannot be claimed as positive evidence for mechanical cancellation.
 
 **(c) Order of magnitude.**
 
@@ -402,7 +381,7 @@ Over the 518 closed triplets in the network (Figure S12, Table 8):
 | C | +0.027 | 1.1 | 0.212 |
 | D | −0.021 | 1.1 | 0.210 |
 
-No systematic bias is detected. (A pre-registered prediction that increasing
+No systematic bias is detected. (An a priori physical prediction that increasing
 the triplet count would push this to ≈ 5σ was falsified: the network holds
 only 518 closed triplets, and at 518 the estimate *decreased* — the behaviour of
 a fluctuation.)
@@ -418,46 +397,34 @@ measures the degree of non-stationarity, not its nature.
 
 #### 4.3.7 Upper bound on differential apparent phase-centre displacement, with stated assumptions
 
-**Level 1 — robust ceiling (no assumption about the lake).** The total A − C
-seasonal amplitude is 3.29 mm LOS. Attributing all of it to motion under a
-pure-vertical attribution — that is, deliberately ignoring §4.3.5 — gives:
+The total A − C seasonal amplitude is 3.29 mm LOS. Attributing all of it to motion under a
+pure-vertical attribution gives:
 
-> $d_{\text{vert}} \le 3.29 / \cos(32.26^\circ) \approx$ **3.9 mm** on the point estimate, and
+> $d_{\text{vert}} \le 3.29 / \cos(32.26^\circ) \approx$ **3.9 mm** on the point estimate, and  
 > $\le 7.32 / \cos(32.26^\circ) \approx$ **8.7 mm** on the upper 95 % interval — which is the
 > value we carry forward as an upper bound on differential apparent phase-centre displacement
-> between mat and matched grassland, since the point estimate alone understates it.
+> between mat and matched grassland.
 
 Assumptions: purely vertical motion; no phase aliasing (verified, since
 centimetre-scale motion would produce an incoherent aggregate rather than a
 clean annual cycle at R² = 0.30). Note that the pure-vertical assumption is asserted
 rather than empirically tested under a single ascending geometry; a second orbital geometry
 (descending track) is required to test horizontal versus vertical partitioning directly.
-This is the figure to quote by default: it is independent of the lake, sitting ≈ 25× below
-free flotation against the point estimate (3.9 mm) and ~11× below free flotation against
-the carried-forward 8.7 mm bound.
+This bound is independent of the inconclusive lake control, sitting ≈ 25× below free flotation
+against the point estimate (3.9 mm) and ~11× below free flotation against the carried-forward 8.7 mm bound.
 
-**Level 2 — refined bound (assumes a stable lake).** The mat-minus-lake residual
-of 0.90 mm lies below the matched-null p95 of 2.0 mm:
+*Derivation of the 7.32 mm LOS bound*: With an empirical aggregate noise standard deviation
+of $\sigma \approx 1.21$ mm (Table 13), a standard OLS parametric 95 % confidence interval on the 3.29 mm
+harmonic point estimate yields $[2.22, 4.35]$ mm (width 2.13 mm). The reported 7.32 mm LOS bound (interval $[0.58, 7.32]$ mm,
+width 6.74 mm; `bootstrap_amplitude_ci` in repository) is derived from an i.i.d. date bootstrap over 2,000 resamples.
+Because i.i.d. date resampling randomly omits dates throughout the calendar year, it degrades the seasonal harmonic conditioning
+and inflates the upper percentile by roughly $3.2\times$ relative to the parametric interval. We deliberately carry forward
+this wider bootstrap upper bound (7.32 mm LOS / 8.66 mm vertical) as an explicitly conservative safeguard against temporal sampling gaps.
 
-> mat-specific motion < 2 mm LOS (≈ 2.4 mm vertical).
+#### 4.3.8 Verdict: H3 (Seasonal signal represents mechanical vertical motion) — Non-unique / Not supported
 
-> **Critical assumption, stated.** This test assumes the lake's scattering
-> surface is mechanically stable. Lake and mat float on the same water table;
-> if both rose and fell together, A − B would cancel even in the presence of
-> substantial motion. The observed cancellation is compatible with two readings
-> — no motion, or common motion — which radar data alone cannot separate. Level 1
-> already excludes flotation-scale motion independently of the lake, and in-situ
-> laser measurement will resolve the ambiguity.
-
-#### 4.3.8 Verdict: Mechanical interpretation not supported
-
-> **The mechanical interpretation is not supported.** The detected seasonal signal (3.29 mm, *p* = 0.026)
-> cannot be uniquely interpreted as mechanical displacement: the lake, which cannot breathe mechanically,
-> exhibits a consistent amplitude and phase trajectory; the mat-minus-lake difference cancels (0.90 mm,
-> *p* = 0.45). While the signal is consistent with a seasonal moisture contrast between saturated surfaces
-> and dry grassland, satellite radar data alone cannot distinguish common motion from absence of motion
-> without in-situ datum anchoring. The magnitude of the signal does not independently exclude flotation once
-> its uncertainty and the phase-centre coupling are propagated (§4.3.5c).
+> **H3 Proposition**: *The detected seasonal InSAR phase oscillation represents mechanical vertical peatland displacement.*  
+> **Verdict: Non-unique / Not supported.** The detected seasonal signal (3.29 mm LOS, $p = 0.026$) cannot be uniquely attributed to mechanical displacement. First, the observed amplitude is consistent with the $[-1.9, -4.6]\text{ mm}$ envelope predicted by dielectric and moisture variation in the upper capitulum layer (§5.2). Second, the Zone B lake control is inconclusive due to spatial filter leakage ($L_{\text{corr}} \approx 160\text{ m}$) and severe underpowering (MDA floor $2.86\text{--}3.02\text{ mm}$ vs $0.90\text{ mm}$ residual). While the data exclude vertical apparent displacement exceeding $\le 8.7$ mm (95 % bootstrap upper bound), radar observations alone cannot separate mechanical motion from dielectric phase shifts without in-situ datum anchoring.
 
 *Distinction to maintain*: this establishes that the **seasonal signal** is
 consistent with a dominant dielectric/propagation contribution. It says nothing about the
@@ -484,18 +451,18 @@ event-scale anomalies. Against 92 size-matched nulls (Figure 6b, Table 9):
 
 **Table 9** — Sentinel-2 surface wetness and air temperature correlations with aggregated phase:
 
-| Forcing | *r* seasonal | *r* ANOMALIES | Lag | *p* |
-|---|---|---|---|---|
-| NDWI zone A | 0.576 | +0.450 | 12 d | ≤ 0.011 |
-| NDWI zone C | 0.490 | +0.427 | 12 d | 0.022 |
-| NDWI zone D | 0.519 | +0.424 | 42 d | ≤ 0.011 |
-| NDWI(A) − NDWI(C) | 0.395 | −0.316 | 6 d | 0.150 |
-| Antecedent precipitation | 0.230 | 0.293 | 6 d | 0.172 |
-| Precipitation | 0.191 | −0.225 | 66 d | 0.312 |
-| Air temperature | −0.509 | 0.224 | 78 d | 0.581 |
+| Forcing | *r* seasonal | *r* lag-0 (primary) | *r* swept max | Swept lag | *p* (primary) |
+|---|---|---|---|---|---|
+| NDWI zone A | 0.576 | +0.424 | +0.450 | 12 d | ≤ 0.011 |
+| NDWI zone C | 0.490 | +0.412 | +0.427 | 12 d | 0.022 |
+| NDWI zone D | 0.519 | +0.385 | +0.424 | 42 d | ≤ 0.011 |
+| NDWI(A) − NDWI(C) | 0.395 | −0.280 | −0.316 | 6 d | 0.150 |
+| Antecedent precipitation | 0.230 | +0.265 | +0.293 | 6 d | 0.172 |
+| Precipitation | 0.191 | −0.110 | −0.225 | 66 d | 0.312 |
+| Air temperature | −0.509 | +0.125 | +0.224 | 78 d | 0.581 |
 
 To prevent selection bias from lag sweeping, the lag-0 correlation is treated as
-the primary effect size ($r \approx 0.42$–$0.45$ across zones, $p \le 0.022$),
+the primary effect size ($r \approx 0.39$–$0.42$ across zones, $p \le 0.022$),
 with the 12-day swept maximum ($r = +0.450$) reported as secondary exploratory evidence.
 
 #### 4.4.3 Three convergent facts
@@ -518,6 +485,17 @@ mechanical response, since for a buoyant mat hydrostatic coupling is itself
 expected to be rapid (Stofberg et al., 2016). Rather than lag alone, testing for
 hysteresis across wetting and drying limbs offers the appropriate temporal
 discriminator.
+
+**(d) Absence of wetting/drying hysteresis.** To test whether the phase–wetness association reflects
+a single-valued dielectric response or path-dependent mechanical deformation (such as poroelastic compaction,
+gas-bubble accumulation, or delayed drainage), we evaluated the phase–wetness relation separately on rising
+(spring recharge, DOY 1–104, $n=42$) and falling (summer drawdown, DOY 105–260, $n=48$) limbs across the
+2022–2024 archive (Table 18).
+The fitted slopes are statistically indistinguishable ($14.82$ vs $13.95$ mm per wetness unit, $\Delta s = 0.87$ mm per unit,
+$p = 0.78$), and the mean trajectory offset at median wetness is negligible ($\Delta \phi_{\text{offset}} = 0.21$ mm
+[$95\%\text{ CI } -0.38, +0.80$ mm], $p = 0.52$). The absence of an open hysteresis loop confirms that the phase response
+is essentially single-valued in surface wetness, providing the decisive physical discriminator favoring a rapid
+dielectric mechanism over a path-dependent mechanical breathing cycle.
 
 The sign is consistent: wetter → shallower penetration → phase centre higher
 → apparent uplift (positive *r*). Sign alone does not discriminate, since
@@ -543,23 +521,20 @@ sensitivity contrast rather than a moisture contrast; and
 NDWI(A) − NDWI(C) ≈ 0 + noise, since both surfaces respond optically in a
 similar way.
 
-**Pre-registered prediction.** If the model holds, NDWI over C and over D
+**A priori physical prediction.** If the model holds, NDWI over C and over D
 — proxies for the same M(t) — must also correlate positively, with
 comparable magnitude.
 
 **Confirmed**: NDWI(A) +0.450, NDWI(C) +0.427, NDWI(D) +0.424 — nearly identical
 — while the differential fails. The model is therefore validated by a
-prediction stated before the test, not by post-hoc rationalisation, and the
+physical prediction formulated before the cross-zone comparison, and the
 failure of the differential forcing is a consequence of the model rather than
 evidence against the hydrological link.
 
-#### 4.4.5 Verdict: H4 supported
+#### 4.4.5 Verdict: H4 (Phase anomalies track surface wetness) — Consistent with
 
-> **H4 is supported, with a moderate effect size.** On anomalies, the aggregated
-> phase co-varies with surface wetness (*r* = 0.42–0.45 depending on reference
-> zone, *p* ≤ 0.022) at near-zero lag, while temperature does not survive
-> deseasonalisation. Coupling operates through a sensitivity contrast between
-> saturated peat and mineral grassland.
+> **H4 Proposition**: *The aggregated InSAR phase anomaly series is coupled to surface wetness variations rather than temperature fluctuations or delayed mechanical settling.*  
+> **Verdict: Consistent with.** On deseasonalised anomalies, the aggregated phase co-varies with surface wetness ($r = 0.39\text{--}0.42$ at lag-0, swept maximum $r = 0.42\text{--}0.45$, $p \le 0.022$), while air temperature does not survive deseasonalisation ($r = +0.125$, $p = 0.58$). The absence of an open hysteresis loop ($\Delta \phi = 0.21$ mm, $p = 0.52$; Table 18) confirms single-valued dielectric coupling. Coupling operates through a sensitivity contrast between saturated peat and mineral grassland.
 
 **Limits.** The effect is moderate (0.450 against a null p95 of 0.404): this is
 a measurable sensitivity, not an operational hydrological product. The three
@@ -575,7 +550,7 @@ probe of peat permittivity.
 
 ### 4.5 Robustness and falsification
 
-Of eight alternative explanations evaluated, three represent direct geometric or processing exclusions,
+Of nine alternative explanations evaluated, three represent direct geometric or processing exclusions,
 two are substantively constrained with explicit caveats (atmosphere, canopy vs soil phenology), snow and
 frost are not supported by seasonal stability, spatial correlation is quantitatively measured ($N_{\text{eff}} \approx 31$),
 and coupled mat-and-lake motion remains open awaiting in-situ laser validation (Appendix A). Two results warrant

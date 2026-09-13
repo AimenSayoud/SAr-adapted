@@ -100,7 +100,7 @@ cores and ground-penetrating radar transects confirm the central basin as an act
 continuous meter-scale physical coring along the entire perimeter does not exist in published
 surveys.
 To verify that our results do not depend on exact margin delineation or peripheral grounding,
-we performed inward erosion sensitivity tests (removing 1–2 perimeter rings, §4.2.3 and §A.3);
+we performed inward erosion sensitivity tests (removing 1–2 perimeter rings, §4.3.5a and §A.8);
 coherence distributions, decorrelation rates, and seasonal amplitudes remain completely invariant.
 
 ### 2.5 Objective validation of the masks

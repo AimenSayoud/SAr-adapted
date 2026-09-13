@@ -15,7 +15,7 @@ require full-covariance single-look algorithms (e.g. SqueeSAR) or L-band observa
 than an alternative pairwise burst inversion.
 
 **2. The mat is a distinct radar target.** At matched cover and phenology its
-coherence is significantly lower (mean Δ = −0.081, lower in 89 % of pairs,
+coherence is lower (mean Δ = −0.081, lower in 89 % of pairs,
 date-jackknife leave-one-out range [−0.0842, −0.0774] sign invariant; 95 % CI [−0.109, −0.052]),
 its boundary is sharp, its scattering is volumetric, its closure-phase dispersion is 3.2×
 larger — and environmental predictors that actively modulate coherence in the mat have
@@ -24,17 +24,19 @@ no detectable effect in matched grassland.
 **3. The seasonal signal is not uniquely mechanical, and motion remains unconstrained.**
 Spatial aggregation recovers a seasonal point estimate of 3.29 mm LOS (95 % upper bound
 7.32 mm LOS / 8.66 mm vertical; permutation p = 0.026 with Monte Carlo 95 % CI [0.021, 0.031]
-against ≈4 600 reference-matched draws) invisible pixel by pixel. But the residual
-open-water lake exhibits a consistent phase and amplitude trajectory (2.63 mm, within 9 days);
-the mat-minus-lake difference cancels (0.90 mm, p = 0.45). Attributing the entire differential
-signal to vertical motion gives an upper bound on differential apparent phase-centre displacement
-between mat and grassland of ≤ 8.7 mm vertical. Because the phase centre is not rigidly coupled
-to the peat, this does not bound mat motion: at a coupling fraction of 0.5 it admits 17 mm,
-within the 10–40 mm published for raised bogs. What C-band establishes here is an inability
-to distinguish absence of motion from peatland-scale breathing.
+against 4,614 reference-matched draws) invisible pixel by pixel. Forward dielectric modeling
+demonstrates that this phase variation can arise entirely from seasonal moss moisture fluctuations
+without vertical displacement. The adjacent open-water lake control is inconclusive due to
+spatial filter leakage ($L_{\text{corr}} \approx 160\text{ m}$) across its 65-pixel basin and
+an elevated minimum detectable amplitude floor ($2.86\text{--}3.02\text{ mm}$). Attributing
+the entire differential signal to vertical motion gives an upper bound on differential apparent
+phase-centre displacement between mat and grassland of ≤ 8.7 mm vertical. Because the phase
+centre is not rigidly coupled to the peat, this does not bound mat motion: at a coupling fraction
+of 0.5 it admits 17 mm, within the 10–40 mm published for raised bogs. What C-band establishes
+here is an inability to distinguish absence of motion from peatland-scale breathing.
 
 **4. What the sensor tracks is surface wetness.** On deseasonalised anomalies
-the aggregated phase co-varies with Sentinel-2 optical wetness (lag-0 r = 0.42–0.45,
+the aggregated phase co-varies with Sentinel-2 optical wetness (lag-0 r = 0.39–0.42,
 p ≤ 0.022) with an association occurring within Sentinel-1 12-day sampling, while temperature
 does not survive deseasonalisation. Because hydrostatic coupling in a buoyant mat is itself
 rapid, this 12-day association is consistent with a rapid dielectric response without excluding
@@ -52,12 +54,14 @@ forcing.
 > motion by tested pairwise or phase-linking algorithms. When spatially
 > aggregated over the entire mat, the radar yields a reproducible seasonal
 > phase (3.29 mm LOS) that co-varies with optical surface moisture anomalies
-> at sub-revisit lag. However, because an identical seasonal trajectory appears
-> over the adjacent open-water lake and cancels differentially, this observable
-> cannot be uniquely attributed to vertical peat breathing. The available data
-> are consistent with a moisture-dependent phase-centre migration in the top
-> scattering volume, while mechanical peatland breathing remains unconstrained
-> by satellite InSAR alone without in-situ datum anchoring.
+> at sub-revisit lag. However, because the adjacent open-water lake control is
+> inconclusive due to filter leakage and high detection thresholds, and forward
+> dielectric modeling demonstrates that moss moisture fluctuations alone
+> reproduce the 3.3 mm signal, this observable cannot be uniquely attributed
+> to vertical peat breathing. The available data are consistent with a
+> moisture-dependent phase-centre migration in the top scattering volume,
+> while mechanical peatland breathing remains unconstrained by satellite InSAR
+> alone without in-situ datum anchoring.
 
 ### Methodological contributions
 
@@ -66,7 +70,7 @@ forcing.
   pixel.
 - A weak-signal test protocol — size-matched nulls, a null distribution
   rather than a single realisation, identical treatment of the null — which
-  invalidated two intermediate conclusions and falsified two explicit
+  invalidated four intermediate conclusions and falsified two explicit
   predictions of our own.
 - A lightweight phase-linking implementation applicable directly to standard
   interferometric products without an SLC processing chain.

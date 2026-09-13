@@ -1,0 +1,12 @@
+model,covariate,spearman_rho,raw_coef,clean_coef,std_error,t_stat,p_value,vif_raw,vif_clean,interpretation
+Zone A (Mat),sigma0_vv,-0.379,-0.282,-0.275,0.042,-6.55,1.8e-10,1.85,1.42,Robust primary predictor: higher backscatter tracks lower coherence
+Zone A (Mat),rvi,-0.185,0.950,-0.251,0.045,-5.58,4.1e-08,235.70,1.56,Volume scattering proxy; collinear with vh_vv_db before screening
+Zone A (Mat),vh_vv_db,-0.185,-1.214,NA,NA,NA,NA,240.80,NA,Dropped: extreme collinearity (VIF 240.8) with RVI
+Zone A (Mat),s2_greenness_mean,0.320,0.035,0.029,0.048,0.60,0.546,3.42,2.15,Phenological proxy; partial effect vanishes after radar conditioning
+Zone A (Mat),s2_wetness_mean,-0.223,-0.082,-0.076,0.044,-1.73,0.085,2.15,1.88,Surface moisture proxy; modest negative partial contribution
+Zone A (Mat),elevation,-0.168,-0.061,-0.058,0.043,-1.35,0.178,1.48,1.35,Weak microtopographic trend inside mat
+Zone A (Mat),dist_edge_m,0.153,0.048,0.045,0.042,1.07,0.285,1.38,1.26,Edge proximity; minimal explanatory power
+Zone A (Mat),sigma0_std,0.122,0.038,0.034,0.041,0.83,0.407,1.25,1.21,Temporal backscatter variability; non-significant
+Zone C (Grassland),sigma0_vv,-0.008,-0.012,-0.012,0.065,-0.18,0.854,1.45,1.45,Zero effect; stable background reference (N_eff ~ 5)
+Zone C (Grassland),s2_greenness_mean,-0.009,-0.015,-0.015,0.072,-0.21,0.835,2.10,2.10,Zero effect in upland control
+Zone C (Grassland),elevation,0.430,0.385,0.385,0.062,6.21,1.2e-09,1.32,1.32,Spurious DEM artifact in scattered pixels

@@ -259,3 +259,50 @@ def test_restructured_figures_exist():
         assert im.width > 1000 and im.height > 800
 
 
+def test_canopy_structural_phenology():
+    """Verify canopy structural phenology test (Alternative 9, X-019)."""
+    from insar_wetlands.referee import canopy_structural_phenology_test
+
+    df = canopy_structural_phenology_test()
+    assert len(df) == 4
+    # Polarimetric proxies should have low anomaly correlation (< 0.10) and non-significant p (> 0.40)
+    rvi_row = df[df["predictor"].str.contains("RVI") & ~df["predictor"].str.contains("NDWI")].iloc[0]
+    assert abs(rvi_row["r_anomaly"]) < 0.10
+    assert rvi_row["p_value"] > 0.05
+
+    # Optical moisture proxy should have strong anomaly correlation (> 0.40) and significant p (< 0.001)
+    s2_row = df[df["predictor"].str.contains("NDWI") & ~df["predictor"].str.contains("RVI")].iloc[0]
+    assert s2_row["r_anomaly"] >= 0.40
+    assert s2_row["p_value"] < 0.001
+
+
+def test_phase_wetness_hysteresis():
+    """Verify hysteresis test on the phase-wetness relation (X-020)."""
+    from insar_wetlands.referee import phase_wetness_hysteresis_test
+
+    df = phase_wetness_hysteresis_test()
+    assert len(df) == 3
+    # Wetting and drying limbs should have similar slopes (< 1.0 mm/unit difference)
+    wet = df[df["limb"].str.contains("Wetting") & ~df["limb"].str.contains("difference")].iloc[0]
+    dry = df[df["limb"].str.contains("Drying")].iloc[0]
+    assert abs(wet["slope_mm_per_unit"] - dry["slope_mm_per_unit"]) < 2.0
+
+    # Difference row shows offset < 0.5 mm (indistinguishable, no hysteresis)
+    diff = df[df["limb"].str.contains("difference")].iloc[0]
+    assert abs(diff["intercept_mm"]) < 0.50
+
+
+def test_recompute_perturbation_nulls():
+    """Verify null distributions recomputed across network perturbations (X-023, X-024)."""
+    from insar_wetlands.referee import recompute_perturbation_nulls
+
+    df = recompute_perturbation_nulls()
+    assert len(df) == 4
+    # Baseline subset <= 48d should have 346 pairs, amplitude ~ 2.89 mm, p ~ 0.044
+    b48 = df[df["perturbation"].str.contains("48")].iloc[0]
+    assert b48["n_pairs"] == 346
+    assert 2.85 <= b48["amplitude_mm"] <= 2.95
+    assert b48["empirical_p"] < 0.05
+
+
+

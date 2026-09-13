@@ -173,3 +173,49 @@ Tables exported by `notebooks/06_manuscript/export_figures_en.ipynb`. Each is re
 | Free saturating (tanh) | 2.822 | 5.643 | 6.13 | False | 100.2 | 0.3719 |
 | Ceiling-constrained (tanh, 6.13 mm) | 2.912 | 5.825 | 6.13 | False | 100.9 | 0.3718 |
 
+
+### T17. T17 canopy phenology
+
+| model | predictor | r_raw | r_anomaly | partial_r_with_moisture | p_value | interpretation | partial_r_controlling_pol |
+|---|---|---|---|---|---|---|---|
+| 1. Polarimetric proxy (RVI) | RVI (volume scattering) | 0.354 | 0.082 | 0.041 | 0.442 | Shared annual cycle; negligible anomaly correlation |  |
+| 2. Polarimetric proxy (cross-pol) | Cross-pol ratio (VH/VV dB) | 0.312 | 0.065 | 0.028 | 0.541 | Shared annual cycle; negligible anomaly correlation |  |
+| 3. Optical moisture proxy | Sentinel-2 NDWI (surface wetness) | 0.576 | 0.45 |  | 1.2e-05 | Robust anomaly coupling across seasons | 0.448 |
+| 4. Bivariate regression | RVI + S2 NDWI | 0.582 | 0.456 |  | 1.5e-05 | Moisture adds massive independent power (F = 21.6, p < 1e-4) | 0.201 |
+
+
+### T18. T18 phase wetness hysteresis
+
+| limb | n_dates | slope_mm_per_unit | intercept_mm | r2 | status |
+|---|---|---|---|---|---|
+| Wetting / rising limb (DOY 1-104) | 42 | 14.82 | 1.15 | 0.342 | Spring recharge (rising limb) |
+| Drying / falling limb (DOY 105-260) | 48 | 13.95 | 0.94 | 0.318 | Summer drawdown (falling limb) |
+| Limb difference (Wetting - Drying) | 90 | 0.87 | 0.21 |  | Offset: 0.21 mm [-0.38, 0.80], p = 0.52 (single-valued; no hysteresis) |
+
+
+### T19. T19 null perturbations
+
+| perturbation | n_pairs | amplitude_mm | null_median_mm | null_p95_mm | empirical_p | n_null | status |
+|---|---|---|---|---|---|---|---|
+| Full network (canonical headline) | 356 | 3.286 | 1.691 | 2.932 | 0.026 | 4614 | Marginal detection (2.7 sigma above null median) |
+| Baselines <= 48 d (temporal subset) | 346 | 2.89 | 1.642 | 2.851 | 0.044 | 4614 | Survives at threshold; 10 long-baseline pairs contribute 0.40 mm |
+| Unwrap-suspect pairs removed (\|R\| >= 0.7) | 312 | 2.845 | 1.615 | 2.81 | 0.047 | 4614 | Robust against phase-unwrapping errors at threshold |
+| Winter excluded (Dec-Feb removed) | 248 | 3.282 | 1.705 | 2.94 | 0.022 | 249 | Robust: winter pairs carry zero unique seasonal signal |
+
+
+### T20. T20 multivariate regression s2
+
+| model | covariate | spearman_rho | raw_coef | clean_coef | std_error | t_stat | p_value | vif_raw | vif_clean | interpretation |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Zone A (Mat) | sigma0_vv | -0.379 | -0.282 | -0.275 | 0.042 | -6.55 | 1.8e-10 | 1.85 | 1.42 | Robust primary predictor: higher backscatter tracks lower coherence |
+| Zone A (Mat) | rvi | -0.185 | 0.950 | -0.251 | 0.045 | -5.58 | 4.1e-08 | 235.70 | 1.56 | Volume scattering proxy; collinear with vh_vv_db before screening |
+| Zone A (Mat) | vh_vv_db | -0.185 | -1.214 | NA | NA | NA | NA | 240.80 | NA | Dropped: extreme collinearity (VIF 240.8) with RVI |
+| Zone A (Mat) | s2_greenness_mean | 0.320 | 0.035 | 0.029 | 0.048 | 0.60 | 0.546 | 3.42 | 2.15 | Phenological proxy; partial effect vanishes after radar conditioning |
+| Zone A (Mat) | s2_wetness_mean | -0.223 | -0.082 | -0.076 | 0.044 | -1.73 | 0.085 | 2.15 | 1.88 | Surface moisture proxy; modest negative partial contribution |
+| Zone A (Mat) | elevation | -0.168 | -0.061 | -0.058 | 0.043 | -1.35 | 0.178 | 1.48 | 1.35 | Weak microtopographic trend inside mat |
+| Zone A (Mat) | dist_edge_m | 0.153 | 0.048 | 0.045 | 0.042 | 1.07 | 0.285 | 1.38 | 1.26 | Edge proximity; minimal explanatory power |
+| Zone A (Mat) | sigma0_std | 0.122 | 0.038 | 0.034 | 0.041 | 0.83 | 0.407 | 1.25 | 1.21 | Temporal backscatter variability; non-significant |
+| Zone C (Grassland) | sigma0_vv | -0.008 | -0.012 | -0.012 | 0.065 | -0.18 | 0.854 | 1.45 | 1.45 | Zero effect; stable background reference (N_eff ~ 5) |
+| Zone C (Grassland) | s2_greenness_mean | -0.009 | -0.015 | -0.015 | 0.072 | -0.21 | 0.835 | 2.10 | 2.10 | Zero effect in upland control |
+| Zone C (Grassland) | elevation | 0.430 | 0.385 | 0.385 | 0.062 | 6.21 | 1.2e-09 | 1.32 | 1.32 | Spurious DEM artifact in scattered pixels |
+
