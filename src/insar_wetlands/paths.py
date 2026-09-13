@@ -75,11 +75,14 @@ class Paths:
     repo: Path
     drive: Path
     phase: str | None = None
+    track: str | None = None
 
     # --- inputs -------------------------------------------------------------
     @property
     def cropped(self) -> Path:
         """Cropped HyP3 burst interferograms — the pipeline's main input."""
+        if self.track and self.track.lower() != "ascending":
+            return self.drive / f"hyp3_cropped_{self.track.lower()}"
         return self.drive / "hyp3_cropped"
 
     @property
@@ -93,13 +96,18 @@ class Paths:
     # --- outputs ------------------------------------------------------------
     @property
     def outputs(self) -> Path:
-        """``outputs/<phase>/`` in the repo, or ``outputs/`` with no phase set."""
+        """``outputs/<phase>/`` in the repo, or ``outputs/<phase>_<track>/`` when non-default."""
         base = self.repo / "outputs"
-        return self._made(base / self.phase if self.phase else base)
+        if self.phase:
+            suffix = f"_{self.track.lower()}" if (self.track and self.track.lower() != "ascending") else ""
+            return self._made(base / f"{self.phase}{suffix}")
+        return self._made(base)
 
     @property
     def runs(self) -> Path:
         """Archived executions, on the Drive so they outlive the session."""
+        if self.track and self.track.lower() != "ascending":
+            return self._made(self.drive / f"runs_{self.track.lower()}")
         return self._made(self.drive / "runs")
 
     @property
@@ -124,8 +132,9 @@ class Paths:
         """A named artefact at the Drive root, e.g. ``water_mask.nc``."""
         return self.drive / name
 
-    def for_phase(self, phase: str) -> Paths:
-        return Paths(repo=self.repo, drive=self.drive, phase=phase)
+    def for_phase(self, phase: str, track: str | None = None) -> Paths:
+        return Paths(repo=self.repo, drive=self.drive, phase=phase,
+                     track=track or self.track)
 
     @staticmethod
     def _made(p: Path) -> Path:
@@ -139,6 +148,7 @@ class Paths:
             "repo": str(self.repo),
             "drive": str(self.drive),
             "phase": self.phase,
+            "track": self.track or "ascending",
             "on_colab": self.on_colab,
             "drive_exists": self.drive.is_dir(),
             "cropped_exists": self.cropped.is_dir(),
@@ -147,7 +157,8 @@ class Paths:
 
 def make_paths(phase: str | None = None, cfg: dict | None = None,
                root: str | Path | None = None,
-               repo: str | Path | None = None) -> Paths:
-    """Build the `Paths` for a phase."""
+               repo: str | Path | None = None,
+               track: str | None = None) -> Paths:
+    """Build the `Paths` for a phase and optional track."""
     r = Path(repo) if repo else repo_root()
-    return Paths(repo=r, drive=resolve_drive(root, cfg, r), phase=phase)
+    return Paths(repo=r, drive=resolve_drive(root, cfg, r), phase=phase, track=track)

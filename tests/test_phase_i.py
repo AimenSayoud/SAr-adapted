@@ -265,6 +265,47 @@ def test_hydro_accepts_the_pair_key_as_index_or_column():
     print("  hydro functions accept pair as index or column, reject a lost key")
 
 
+def test_dielectric_suspect_epochs_ground_truth():
+    """Ground-truth test: plants known subsidence steps and NDWI drops, asserts recovery."""
+    from insar_wetlands.hydro import dielectric_suspect_epochs
+
+    dates = pd.date_range("2022-01-01", periods=60, freq="12D")
+    rng = np.random.default_rng(42)
+
+    # Base signals: smooth series with minor noise
+    base_disp = np.cumsum(rng.normal(0, 0.5, len(dates)))
+    base_ndwi = 0.5 + 0.05 * np.sin(np.linspace(0, 4 * np.pi, len(dates)))
+
+    # Plant 2 suspect events:
+    # Event 1 at index 15: subsidence of -8.0 mm (<= -5.0) and ndwi drop of -0.18 (<= -0.10)
+    # Event 2 at index 35: subsidence of -6.0 mm and ndwi drop of -0.12
+    base_disp[15] = base_disp[14] - 8.0
+    base_ndwi[15] = base_ndwi[14] - 0.18
+
+    base_disp[35] = base_disp[34] - 6.0
+    base_ndwi[35] = base_ndwi[34] - 0.12
+
+    # Plant decoy 1: subsidence of -7.0 mm, but NDWI INCREASES (+0.05) -> NOT suspect
+    base_disp[25] = base_disp[24] - 7.0
+    base_ndwi[25] = base_ndwi[24] + 0.05
+
+    # Plant decoy 2: NDWI drops by -0.20, but disp UPLIFTS (+4.0 mm) -> NOT suspect
+    base_disp[45] = base_disp[44] + 4.0
+    base_ndwi[45] = base_ndwi[44] - 0.20
+
+    insar_s = pd.Series(base_disp, index=dates)
+    ndwi_s = pd.Series(base_ndwi, index=dates)
+
+    res = dielectric_suspect_epochs(insar_s, ndwi_s, subsidence_mm=-5.0, ndwi_drop=-0.10)
+    suspect_dates = res.index[res["dielectric_suspect"]].tolist()
+
+    expected_dates = [dates[15], dates[35]]
+    assert suspect_dates == expected_dates, f"Expected {expected_dates}, got {suspect_dates}"
+    assert not res.loc[dates[25], "dielectric_suspect"], "Decoy 1 falsely flagged"
+    assert not res.loc[dates[45], "dielectric_suspect"], "Decoy 2 falsely flagged"
+    print("  dielectric_suspect_epochs recovered planted events and rejected decoys")
+
+
 if __name__ == "__main__":
     test_lag_scan_finds_driver_and_lag()
     test_detrend_kills_spurious_trend_correlation()
@@ -278,4 +319,6 @@ if __name__ == "__main__":
     test_hydro_tables_keep_their_columns_when_no_zone_qualifies()
     test_pair_hydro_index_survives_a_csv_round_trip()
     test_hydro_accepts_the_pair_key_as_index_or_column()
+    test_dielectric_suspect_epochs_ground_truth()
     print("ALL PHASE-I TESTS PASSED")
+

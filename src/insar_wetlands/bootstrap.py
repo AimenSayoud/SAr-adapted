@@ -73,7 +73,14 @@ class Context:
     cfg: dict
     paths: Paths
     log: logging.Logger
+    track: str | None = None
     _extra: dict[str, Any] = field(default_factory=dict)
+
+    @property
+    def track_cfg(self) -> dict:
+        """Active track configuration (burst, relative_orbit, flight_direction, angles)."""
+        from .config import get_track_config
+        return get_track_config(self.cfg, self.track)
 
     # --- inputs -------------------------------------------------------------
     @cached_property
@@ -189,6 +196,7 @@ def cache_df(cache_dir: str | Path, tag: str, fn, index_col=None, **kw):
 
 def start(phase: str,
           *,
+          track: str | None = None,
           mount: bool = True,
           git: bool = True,
           config_path: str | Path | None = None,
@@ -201,6 +209,9 @@ def start(phase: str,
     phase
         Label such as ``"phaseG"``. Names the output directory, the logger and
         the archived run.
+    track
+        Optional track identifier (e.g. ``"ascending"`` or ``"descending"``).
+        When specified, namespaces inputs and outputs to keep geometries isolated.
     mount, git
         Colab-only steps. Both are skipped silently off Colab, so the same
         notebook runs locally.
@@ -223,10 +234,10 @@ def start(phase: str,
     # exactly what a test caught.
     root = Path(repo) if repo else repo_root()
     cfg = load_config(config_path or root / "config" / "config.yaml")
-    paths = make_paths(phase, cfg=cfg, root=drive_root, repo=root)
+    paths = make_paths(phase, cfg=cfg, root=drive_root, repo=root, track=track)
     log = _configure_logging(phase, paths.log_file)
 
-    log.info("phase %s starting", phase)
+    log.info("phase %s starting (track=%s)", phase, track or "default")
     for k, v in paths.describe().items():
         log.info("  %-16s %s", k, v)
 
@@ -241,4 +252,5 @@ def start(phase: str,
         except Exception as e:                          # noqa: BLE001
             log.warning("git setup skipped: %s", e)
 
-    return Context(phase=phase, cfg=cfg, paths=paths, log=log)
+    return Context(phase=phase, cfg=cfg, paths=paths, log=log, track=track)
+

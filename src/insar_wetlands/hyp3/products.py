@@ -76,17 +76,19 @@ def _crop_is_complete(pair_dir: Path, required_layers=("conncomp",)) -> bool:
 
 def download_and_crop(jobs, cfg: dict, drive_root: str | Path,
                       pair_of_job: dict | None = None,
-                      required_layers=("conncomp",)) -> list[str]:
+                      required_layers=("conncomp",),
+                      cropped_root: str | Path | None = None) -> list[str]:
     """Telecharge chaque job reussi, extrait, croppe, nettoie. Idempotent.
 
     pair_of_job : mapping job_id -> nom de paire (sinon deduit du nom de zip).
     required_layers : couches dont l'absence declenche un re-telechargement
     du produit (rattrapage des crops incomplets).
+    cropped_root : dossier cible des crops (defaut: drive_root / 'hyp3_cropped').
     Retourne la liste des paires traitees.
     """
     drive_root = Path(drive_root)
     tmp = drive_root / "_tmp_zips"
-    cropped_root = drive_root / "hyp3_cropped"
+    cropped_root = Path(cropped_root) if cropped_root is not None else drive_root / "hyp3_cropped"
     tmp.mkdir(parents=True, exist_ok=True)
     done = []
     for job in jobs:
