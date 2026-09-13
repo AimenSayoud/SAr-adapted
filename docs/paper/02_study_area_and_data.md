@@ -43,7 +43,7 @@ one.
 | Incidence angle (measured) | 32.26° over zone A → LOS-to-vertical factor 1.183 |
 
 
-![**Figure S1.** Interferometric network. (a) 356 pairs over ~90 acquisitions, 2022–2024; (b) temporal-baseline distribution, with the 60-day robustness filter marked.](figures/S01_network.png)
+The complete 356-pair interferometric network configuration and its baseline distribution are detailed in Supplementary Information (Figure S1).
 
 > **Scope note.** The 2022–2024 window falls in the S1A-only era (12-day
 > revisit; ESA, 2024). The return to a two-satellite constellation (S1C, S1D) restores the
@@ -51,10 +51,7 @@ one.
 > does not change the wavelength, on which volumetric decorrelation depends
 > (§5.4).
 
-
-![**Figure S2.** False-colour composite (R = σ⁰ VV, G = coherence, B = Sentinel-2 wetness) with zone outlines, and a zoom on the peatland.](figures/S02_rgb_composite.png)
-
-![**Figure S3.** Inundated-time fraction from the water mask, with zones A and B outlined.](figures/S03_flooded_fraction.png)
+Multi-sensor zone characteristics are illustrated in false colour (Figure S2), and the multi-temporal inundated fraction derived from the water mask across zones A and B is documented in Figure S3.
 
 ### 2.3 Auxiliary data
 
