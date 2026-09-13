@@ -195,19 +195,18 @@ Binary path on macOS: `/Users/aymen/Library/Python/3.14/bin/colab`. Ensure this 
 
 ---
 
-### ⚠️ Issue 10: Local `google-colab` Wheel Leak in `requirements-lock.txt`
+### ⚠️ Issue 10: Bloated `pip freeze` System Packages & Compilation Errors (`dbus-python`)
 
 * **Symptom**:
-  `pip install -r environment/requirements-lock.txt` on a fresh Colab VM or CI fails with:
-  `ERROR: Invalid requirement: 'google-colab @ file:///local/build/...' : file does not exist`.
+  `pip install -r environment/requirements-lock.txt` fails with:
+  `ERROR: Failed building wheel for dbus-python` / `python setup.py bdist_wheel did not run successfully`.
+  Or fails with invalid wheel paths: `google-colab @ file:///local/build/...`.
 * **Root Cause**:
-  Running `pip freeze` on an active Colab instance captures internal `@ file:///` local build wheel URIs that are proprietary to Google's build hosts and unresolvable during external installations.
+  Running `pip freeze` on an active Linux/Colab VM indiscriminately dumps hundreds of OS-level pre-installed packages (`dbus-python`, `python-apt`, `launchpadlib`, `torch`, `tensorflow`). When `pip` attempts to install `dbus-python` from source, it crashes because Linux system development libraries (`libdbus-1-dev`) are absent.
 * **The Permanent Fix**:
-  Strip proprietary local wheels from lockfiles:
-  ```bash
-  grep -v "google-colab @" environment/requirements-lock.txt > tmp.txt && mv tmp.txt environment/requirements-lock.txt
-  ```
-  Allow the Colab VM to supply its native pre-installed `google-colab` package.
+  1. Purge monolithic full-system freeze lockfiles.
+  2. Maintain a clean, scoped dependency list in `environment/requirements.txt` containing only the geospatial packages needed by the pipeline.
+  3. `environment/colab_setup.sh` installs directly from `environment/requirements.txt` followed by `pip install -e .`. This installs in ~15 seconds without compiling system C wheels or pulling gigabytes of unused ML frameworks.
 
 ---
 
@@ -281,5 +280,5 @@ make docx            # Builds manuscript.docx with pandoc
 | **make phases failed on undeclared file** | Ensure `phases.py` and `test_phases.py` skip `*_output.ipynb` |
 | **TimeoutException on `userdata.get`** | Run Cell 1 in Colab UI to grant browser permission, or inject `~/.netrc` via `colab exec` |
 | **404 on `colab.research.google.com/github`** | Ensure branch in URL is `main` (not `claude/main` or unpushed branch) |
-| **Proprietary wheel error in lockfile** | Remove `google-colab @ file://...` from `environment/requirements-lock.txt` |
+| **dbus-python / build errors on Colab** | Use scoped `environment/requirements.txt` instead of monolithic `requirements-lock.txt` |
 | **Verify Colab session shutdown** | Run `colab sessions` to confirm `No active sessions found on server` |
