@@ -1,0 +1,5 @@
+model,predictor,r_raw,r_anomaly,partial_r_with_moisture,p_value,interpretation,partial_r_controlling_pol
+1. Polarimetric proxy (RVI),RVI (volume scattering),0.354,0.082,0.041,0.442,Shared annual cycle; negligible anomaly correlation,
+2. Polarimetric proxy (cross-pol),Cross-pol ratio (VH/VV dB),0.312,0.065,0.028,0.541,Shared annual cycle; negligible anomaly correlation,
+3. Optical moisture proxy,Sentinel-2 NDWI (surface wetness),0.576,0.45,,1.2e-05,Robust anomaly coupling across seasons,0.448
+4. Bivariate regression,RVI + S2 NDWI,0.582,0.456,,1.5e-05,"Moisture adds massive independent power (F = 21.6, p < 1e-4)",0.201

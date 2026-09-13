@@ -16,13 +16,14 @@
 | 6 | **Spatial correlation (N_eff)** | **Measured — reduces the scope of §4.3.2** | L_corr = 160 m over A → N_eff 31, not 125 | A.7 |
 | 7 | **Mis-assigned land cover** | Excluded | WorldCover + S2 matching + area within 0.6 % | A.8 |
 | 8 | **Mat and lake moving together** | **Not excluded** | requires in-situ laser | A.9 |
+| 9 | **Canopy structural phenology** | **Excluded as primary driver** | polarimetric anomaly r = 0.082 vs wetness anomaly r = 0.450 (p < 1e-4) | A.10 |
 
-Of eight alternatives evaluated, three represent direct geometric or processing exclusions
-(geometry/incidence, unwrapping errors, land-cover misassignment); two are substantively constrained
-with explicit caveats (atmospheric screens are absorbed by the empirical null but unmeasured local
-micro-topography cannot be independently verified; phenological matching controls canopy optical state
-but concedes soil-dielectric differences); snow and frost are not supported by the winter-exclusion test;
-spatial correlation is quantitatively measured ($N_{\text{eff}} \approx 31$); and coupled mat-and-lake
+Of nine alternatives evaluated, four represent direct geometric, processing, or polarimetric exclusions
+(geometry/incidence, unwrapping errors, land-cover misassignment, canopy structural phenology); two are
+substantively constrained with explicit caveats (atmospheric screens are absorbed by the empirical null but
+unmeasured local micro-topography cannot be independently verified; phenological matching controls canopy
+optical state but concedes soil-dielectric differences); snow and frost are not supported by the winter-exclusion
+test; spatial correlation is quantitatively measured ($N_{\text{eff}} \approx 31$); and coupled mat-and-lake
 motion remains open awaiting in-situ laser validation.
 
 ### A.2 Snow and frost — not supported
@@ -94,7 +95,7 @@ triplet closure phase errors across all 518 closed loops in the 356-pair network
 over Zone A. Filtering out pairs with significant unwrapping errors (excluding
 pairs with maximum loop closure error $> 2\pi$, or excluding the worst 10 % to
 20 % RMS closure pairs) yields seasonal amplitudes of 2.80 to 2.97 mm and
-preserves the mid-April/May peak phase (Table XT12). The seasonal amplitude is
+preserves the mid-April/May peak phase (Table 19). The seasonal amplitude is
 thus robust to phase unwrapping pair exclusion and does not collapse unless
 extreme filtering breaks network connectivity (retaining only 14 % of pairs).
 
@@ -143,7 +144,33 @@ admits 17 mm at *f* = 0.5, within the published raised-bog range.
 observation of mat movement, analogous to the geometric levelling validation
 employed by Tampuu et al. (2023) over Estonian peatlands.
 
-### A.10 What the laser and UAV should test
+### A.10 Canopy structural phenology (Alternative 9) — excluded as primary driver
+
+**Why it is serious.** The seasonal maximum at DOY 104 coincides with both the spring
+water-table peak and canopy green-up. A seasonal change in canopy biomass, moisture,
+and geometry moves the effective scattering-centre height within a volume scatterer,
+producing an apparent LOS phase displacement with no mechanical peat deformation and no
+deep soil moisture change. Because NDWI and vegetation greenness both follow phenology,
+canopy structural phenology represents a complete alternative mechanism for the observed
+phase trajectory.
+
+**Test.** Deseasonalised anomalies of polarimetric volume-scattering descriptors (dual-pol
+cross-pol ratio $\text{VH}/\text{VV}$ and Radar Vegetation Index $\text{RVI} = 4\text{VH}/(\text{VV}+\text{VH})$)
+were confronted with InSAR phase anomalies and optical surface wetness (NDWI) anomalies
+across the 2022–2024 archive (Table 17). If canopy structural phenology drives the phase,
+polarimetric structural anomalies should carry the anomaly variance and surface wetness
+anomalies should add no independent explanatory power.
+
+**Result.** While polarimetric descriptors show raw seasonal correlations ($r = 0.312\text{ to }0.354$),
+their **deseasonalised anomaly correlations with phase collapse** to $r = 0.065$ (cross-pol ratio)
+and $r = 0.082$ (RVI, $p = 0.442$). In contrast, Sentinel-2 surface wetness anomalies remain
+strongly predictive ($r = 0.450$, $p = 1.2 \times 10^{-5}$). In a bivariate regression ($\Delta \phi \sim \Delta \text{RVI} + \Delta \text{NDWI}$),
+adding moisture yields an $R^2$ gain of $0.201$ ($F = 21.6$, $p < 10^{-4}$), while RVI adds no
+significant power ($p = 0.44$). Canopy structural phenology alone is therefore excluded as the
+primary driver of the anomalous phase, leaving surface wetness and dielectric variation as the
+supported mechanism.
+
+### A.11 What the laser and UAV should test
 
 Their role is not to validate a displacement we do not claim to measure, but
 to test the mechanism.
@@ -162,7 +189,7 @@ real motion while InSAR sees only 3.3 mm, most of it dielectric, that
 **quantifies directly the insensitivity of C-band** to this surface — a stronger
 result than any successful cross-validation.
 
-### A.11 Result-changing corrections during analysis
+### A.12 Result-changing corrections during analysis
 
 Four errors corrected during the analysis altered a reported numerical result or bound.
 Documented deliberately, they show how analytical safeguards protected the inference from

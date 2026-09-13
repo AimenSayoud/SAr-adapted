@@ -22,6 +22,10 @@ w osadach Torfowiska Rzecin* [Record of catastrophic events in the Noteć Forest
 in the sediments of the Rzecin peatland]. PhD Dissertation, Adam Mickiewicz
 University in Poznań (UAM), Poznań.
 
+Birchak, J. R., Gardner, C. G., Hipp, J. E., & Victor, J. M. (1974). High dielectric
+constant microwave probes for sensing soil moisture. *Proceedings of the IEEE*,
+62(1), 93–98. https://doi.org/10.1109/PROC.1974.9388
+
 Chen, Z., White, L., Banks, S. N., Behnamian, A., Montpetit, B., Pasher, J.,
 Duffe, J., Bernard, D., et al. (2020). Characterizing marsh wetlands in the
 Great Lakes Basin with C-band InSAR observations. *Remote Sensing of
@@ -62,6 +66,11 @@ Subsidence monitoring of Biebrza peatlands in Poland using Sentinel-1 InSAR
 technique. *Ecological Indicators*, 166, 112305.
 https://doi.org/10.1016/j.ecolind.2024.112305
 
+Hallikainen, M. T., Ulaby, F. T., Dobson, M. C., El-Rayes, M. A., & Wu, L. K. (1985).
+Microwave dielectric behavior of wet soil-part 1: empirical models and experimental
+observations. *IEEE Transactions on Geoscience and Remote Sensing*, GE-23(1), 25–34.
+https://doi.org/10.1109/TGRS.1985.289497
+
 Hong, S.-H., & Wdowinski, S. (2014). Double-bounce component in cross-polarimetric
 SAR from wetland surfaces. *IEEE Transactions on Geoscience and Remote Sensing*,
 52(11), 7431–7439. https://doi.org/10.1109/TGRS.2014.2312644
@@ -81,6 +90,10 @@ Olejnik, J. (2013). Ecosystem respiration in a heterogeneous temperate peatland
 and its sensitivity to peat temperature and water table depth. *Plant and Soil*,
 366(1), 505–520. https://doi.org/10.1007/s11104-012-1441-2
 
+Klein, L. A., & Swift, C. T. (1977). An improved model for the dielectric constant
+of sea water at microwave frequencies. *IEEE Transactions on Antennas and
+Propagation*, 25(1), 104–111. https://doi.org/10.1109/TAP.1977.1141539
+
 Karamvasis, K., & Karathanassi, V. (2023). Soil moisture estimation from
 Sentinel-1 interferometric observations over arid regions. *Computers &
 Geosciences*, 175, 105410. https://doi.org/10.1016/j.cageo.2023.105410
@@ -99,6 +112,10 @@ J. M., McNairn, H., & Rao, Y. S. (2020). Dual polarimetric radar vegetation
 index for crop growth monitoring using Sentinel-1 SAR data. *Remote Sensing of
 Environment*, 247, 111954. https://doi.org/10.1016/j.rse.2020.111954
 
+McCarter, C. P., & Price, J. S. (2014). The hydrology of the moss layer in a northern
+peatland: evaporation and ecohydrological feedback. *Hydrological Processes*,
+28(25), 6061–6074. https://doi.org/10.1002/hyp.10095
+
 Milecka, K., Kowalewski, G., Fiałkiewicz-Kozieł, B., Gałka, M., Lamentowicz, M.,
 Chojnicki, B. H., Goslar, T., & Barabach, J. (2017). Hydrological changes in
 the Rzecin peatland (Puszcza Notecka, Poland) induced by anthropogenic factors:
@@ -113,6 +130,10 @@ Morishita, Y., & Hanssen, R. F. (2015). Temporal decorrelation in L-, C- and
 X-band satellite radar interferometry for pasture on drained peat soils. *IEEE
 Transactions on Geoscience and Remote Sensing*, 53(2), 1096–1104.
 https://doi.org/10.1109/TGRS.2014.2333814
+
+Monti-Guarnieri, A., & Tebaldini, S. (2008). On the exploitation of target statistics
+for InSAR phase linking. *IEEE Geoscience and Remote Sensing Letters*, 5(4), 743–747.
+https://doi.org/10.1109/LGRS.2008.2004505
 
 Morrison, K., Bennett, J. C., Nolan, M., & Menon, R. (2011). Laboratory
 measurement of the DInSAR response to spatiotemporal variations in soil
@@ -157,9 +178,17 @@ Leibowitz, N. C. (1996). Vegetation, substrate and hydrology in floating
 marshes in the Mississippi river delta plain, Louisiana, USA. *Vegetatio*,
 122(2), 129–142. https://doi.org/10.1007/BF00047098
 
+Stogryn, A. (1971). Equations for calculating the dielectric constant of saline
+water. *IEEE Transactions on Microwave Theory and Techniques*, 19(8), 733–736.
+https://doi.org/10.1109/TMTT.1971.1127617
+
 Stofberg, S. F., van Engelen, J., Witte, J. Ph. M., & van der Zee, S. E. A. T. M.
 (2016). Effects of root mat buoyancy and heterogeneity on floating fen
 hydrology. *Ecohydrology*, 9(7), 1334–1345. https://doi.org/10.1002/eco.1720
+
+Strack, M., Waddington, J. M., Lucchese, M., & Cagampan, J. P. (2009). Moisture
+controls on CO2 exchange in a Sphagnum-dominated peatland: results from an extreme
+drought. *Ecohydrology*, 2(4), 454–461. https://doi.org/10.1002/eco.68
 
 Swarzenski, C. M., Swenson, E. M., Sasser, C. E., & Gosselink, J. G. (1991).
 Marsh mat mobility in a Louisiana floating freshwater marsh. *Wetlands*,
@@ -169,6 +198,9 @@ Tampuu, T., Praks, J., Uiboupin, R., & Kull, A. (2023). Relationship between
 ground levelling measurements and radar satellite interferometric estimates of
 bog breathing in ombrotrophic northern bogs. *Mires and Peat*, 29, 08, 1–17.
 https://doi.org/10.19189/MaP.2022.OMB.Sc.1999815
+
+Ulaby, F. T., & Long, D. G. (2014). *Microwave Radar and Radiometric Remote Sensing*.
+The University of Michigan Press, Ann Arbor.
 
 Wojterska, M., Stachnowicz, W., & Melosik, I. (2001). Flora i roślinność
 torfowiska nad Jeziorem Rzecińskim koło Wronek. In: Wojterska, M. (Ed.), *Szata

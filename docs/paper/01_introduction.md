@@ -76,16 +76,15 @@ each paired with the test that could refute it:
 
 | | Hypothesis | Principal test | Section |
 |---|---|---|---|
-| **H1** | The failure originates in the **inversion algorithm** | six independent estimators on one network | §4.1 |
+| **H1** | The failure originates in the **inversion algorithm** | controlled contrast (mat vs grassland) and six distinct estimators | §4.1 |
 | **H2** | The **mat** is a distinct radar target | matched-cover comparison + multi-sensor validation | §4.2 |
-| **H3** | The residual signal is surface **motion** | spatial aggregation + lake, null and magnitude controls | §4.3 |
+| **H3** | The residual signal is surface **motion** | spatial aggregation + forward dielectric model and size-matched nulls | §4.3 |
 | **H4** | The measured signal reflects **hydrological state** | correlation on deseasonalised anomalies | §4.4 |
 
 
 ### 1.6 Contributions
 
-1. A **multi-method demonstration** that the limitation is physical rather than
-   algorithmic, at a site where the expected signal is maximal.
+1. A **controlled contrast** demonstrating that standard burst InSAR phase unwrapping collapses over floating peat (5.4 % recovery) compared to mineral grassland (64.7 %) under identical processing, confirming that the limitation is physical rather than algorithmic.
 2. A **quantitative constraint on apparent phase-centre displacement**
    (≤ 8.7 mm seasonal vertical amplitude), together with an explicit statement
    of why it does not transfer to the peat surface.

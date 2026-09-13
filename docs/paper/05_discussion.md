@@ -68,21 +68,21 @@ Read that way, the comparison is informative:
 | Biebrza fens (Ghezelayagh et al., 2024) | drained/managed fen sections | seasonal subsidence detected |
 | Rzecin (this study) | natural, saturated, never drained | not detected |
 
-The gradient follows hydrological state. Rzecin, never drained and with a
-near-surface water table, sits below the least-subsiding sites of those series
-— the ecologically expected outcome rather than a measurement failure. Our
-non-detection is therefore consistent with that literature, and the
-comparison delimits where C-band peatland subsidence monitoring applies: drained
-peat (agricultural surfaces, high coherence, centimetre-scale signal) rather than
-saturated floating mats (wet canopy, low coherence, millimetre-scale signal).
+Given our aggregate velocity detection floor of $\approx 1.5\text{--}5\text{ mm yr}^{-1}$ (§4.3.3),
+our data exclude multi-year linear subsidence exceeding $\approx 5\text{ mm yr}^{-1}$ over Rzecin,
+but cannot distinguish slower subsidence from zero motion. The comparison is therefore informative
+not as a demonstration of 'lower subsidence', but as an empirical boundary delimiting where C-band
+peatland interferometry succeeds: drained peat (agricultural surfaces, high coherence, centimetre-scale signal)
+rather than near-permanently saturated floating mats (wet canopy, low coherence, millimetre-scale signal).
 
 **A methodological caution our results support.** Patil et al. interpret
 seasonal fluctuations aligned with soil moisture as hydrological control of peat
 surface motion. Our results counsel care with that inference: a seasonal
 oscillation correlated with moisture is not automatically motion. At our site,
-a 3.3 mm signal correlating well with moisture was accompanied by a consistent
-phase and amplitude trajectory over the open-water lake, while the differential
-mat-minus-lake signal cancelled. Phase variations induced by dielectric permittivity
+a 3.3 mm signal correlating with surface wetness can be reproduced entirely by
+seasonal dielectric permittivity variations in the moss layer (forward modeling in §5.2),
+demonstrating that moisture variations induce substantial apparent LOS motion without
+mechanical displacement. Phase variations induced by dielectric permittivity
 and moisture changes are well established in the InSAR literature (De Zan et al.,
 2014, 2015; Morrison et al., 2011; Nolan & Fatland, 2003; Nolan et al., 2003;
 Rabus et al., 2010; Ranjbar et al., 2021; Karamvasis & Karathanassi, 2023;
@@ -119,11 +119,17 @@ $\tan \delta = \epsilon'' / \epsilon' \approx 0.25 - 0.35$.
 $\lambda = 5.5466\text{ cm}$, measured local incidence angle $\theta = 32.26^\circ$ from HyP3 burst
 metadata, VV polarization), the complex vertical wavenumber is $k_z(\epsilon) = \sqrt{k_0^2 \epsilon_{\text{eff}} - (k_0 \sin \theta)^2}$.
 The resulting power penetration depth ($1/e$) is $\delta_p = 1 / (2 |\text{Im}(k_z)|) \approx 3.4 - 4.4\text{ mm}$
-across saturated conditions ($m_v \in [0.70, 0.90]$; $3.6\text{ mm}$ at $m_v = 0.85$). Because the radar
-senses only the uppermost 3–4 mm of the canopy surface (the living *Sphagnum* capitulum layer) and the
-in-medium wavelength is compressed to $\lambda_m = \lambda / \text{Re}(\sqrt{\epsilon_{\text{eff}}}) \approx 8\text{ mm}$
-with severe attenuation, a lossy half-space formulation accurately isolates the apparent two-way
-propagation phase shift of this boundary layer without requiring deep multi-layer stratification.
+across saturated conditions ($m_v \in [0.70, 0.90]$; $3.6\text{ mm}$ at $m_v = 0.85$). This shallow skin depth
+justifies treating the living moss carpet as an effective lossy dielectric half-space for coherent propagation:
+the tightly packed *Sphagnum* capitula form a continuous, near-saturated matrix whose element spacing
+($\sim 1\text{--}5\text{ mm}$) is much smaller than the radar wavelength ($\lambda_0 = 55.5\text{ mm}$),
+fixing the coherent reflection boundary within the topmost 3–4 mm. Concurrently, the sparse, emergent sedge
+canopy (*Carex limosa*, *Eriophorum*) extending above this carpet lacks sufficient bulk permittivity to form
+a distinct dielectric boundary, but its non-stationary geometric reconfiguration and branch-scale scattering
+induce significant volume scattering and wave depolarisation (RVI = 0.914). Coherent propagation phase and
+interferometric coherence therefore probe distinct physical processes of the same target: phase tracks the
+dielectric moisture shift of the capitulum skin layer, whereas canopy volume scattering and microstructural
+rearrangement drive the severe temporal decorrelation.
 
 *Moisture excursion in a saturated fen.* A volumetric moisture change of $\Delta m_v \approx 0.25$
 (from near-saturated $m_v = 0.85$ in spring down to $0.60$ in late summer) in the uppermost 3–4 mm
@@ -140,25 +146,23 @@ waterlogged.
 near-surface moisture excursions $\Delta m_v \in [0.15, 0.35]$, the model predicts an apparent
 interferometric line-of-sight displacement spanning $-1.9\text{ mm}$ to $-4.6\text{ mm}$ (incorporating
 temperature sensitivity across $2^\circ\text{C}$ to $25^\circ\text{C}$; $-2.1\text{ mm}$ to $-4.2\text{ mm}$
-at $15^\circ\text{C}$). The $-3.28\text{ mm}$ point estimate for $\Delta m_v = 0.25$ falls centrally within
-this envelope. Crucially, this agreement demonstrates order-of-magnitude physical consistency with the
-observed 3.29 mm point estimate (Table 7) rather than a calibrated parameter alignment.
+at $15^\circ\text{C}$). The observed 3.29 mm point estimate (Table 7) falls comfortably within this predicted
+envelope. Rather than claiming a fine-tuned parameter alignment, the defensible physical conclusion is that
+the observed amplitude is indistinguishable from the dielectric prediction, which is all the non-mechanical
+hypothesis requires.
 
 Two critical properties accompany this forward-model consistency analysis:
 
-1. *Resolution of the asymptotic ceiling violation (Table T16)*: The theoretical maximum apparent LOS
+1. *Asymptotic ceiling and model limitations (Table T16)*: The theoretical maximum apparent LOS
    displacement under complete desiccation ($m_v \to 0$) converges asymptotically to $6.13\text{ mm}$ LOS.
    While our observed semi-amplitude ($3.29\text{ mm}$) falls safely below this ceiling, the full
-   peak-to-peak swing under a linear sinusoidal fit ($2 \times 3.286 = 6.57\text{ mm}$) slightly exceeds
-   it. To test whether this reflects the limitation of sinusoidal fitting on a non-linear bounded physical
-   process, we fit a non-linear saturating seasonal model ($y(t) = c + d\cdot t + S \tanh(A \cos(2\pi(t-\phi))/S)$)
-   to the observed differential phase series (Table T16). Under the saturating fit, the peak-to-peak
-   excursion contracts to $5.64\text{ mm}$ (unconstrained, $S = 2.91\text{ mm}$) and $5.83\text{ mm}$
-   (ceiling-constrained, $S = 3.065\text{ mm}$), yielding semi-amplitudes of $2.82 - 2.91\text{ mm}$ that
-   fall strictly below the $6.13\text{ mm}$ ceiling, while the fit quality actually improves from
-   $R^2 = 0.364$ to $R^2 = 0.372$. This confirms that the nominal ceiling violation is an artefact of
-   forcing a pure sinusoid onto a saturating response, fully reconciling the observed seasonal amplitude
-   with the physical bounds of the dielectric forward model.
+   peak-to-peak swing under an unconstrained linear sinusoidal fit ($2 \times 3.286 = 6.57\text{ mm}$) slightly
+   exceeds it. This exceedance represents an honest limitation of applying an unstratified half-space model
+   with a simple sinusoid to a non-linear physical system: true capillary drying saturates. Fitting an empirical
+   saturating seasonal model (Table T16) contracts the peak-to-peak excursion to $5.64\text{--}5.83\text{ mm}$
+   (semi-amplitudes of $2.82\text{--}2.91\text{ mm}$), below the $6.13\text{ mm}$ ceiling. *(Note on $R^2$ values)*:
+   Table T11 reports $R^2 = 0.299$ for the harmonic fit evaluated directly on the pairwise baseline series (356 pairs),
+   whereas Table T16 reports $R^2 = 0.364$ for the harmonic fit on the inverted cumulative time series (90 dates).
 2. *Separation of phase and coherence mechanisms*: The dielectric propagation model is sufficient to explain
    a phase perturbation of the observed order of magnitude (predicting apparent LOS displacements of $-1.9$
    to $-4.6$ mm), but a propagation model alone does not account for the observed coherence loss; additional
@@ -198,13 +202,14 @@ This reasoning applies to any target that is **spatially coherent but temporally
 decorrelated**: peatlands, rock glaciers, wetlands, crops. The condition is that
 the target deform as a unit — an assumption that must be physically justified and
 is testable by subdividing the zone. Here, subdividing Zone A into concentric distance bands
-(inner core, deep core, and outer margin; §4.3.4, Table T11) confirmed this condition empirically:
-all sub-zones exhibit tightly synchronized phase locking (DOY 100–108) and consistent seasonal
-amplitudes (2.89–3.78 mm), proving that the floating mat behaves kinematically as an integrated unit.
+(inner core, deep core, and outer margin; §4.3.4, Table T11) revealed no differential behaviour
+at the resolvable scale: all sub-zones exhibit synchronized phase locking (DOY 100–108) and
+consistent seasonal amplitudes (2.89–3.78 mm), which is consistent with spatially coherent seasonal
+moisture variation across the mat without asserting proven kinematic rigidity.
 
 #### 5.3.2 Weak-signal test protocol
 
-Three rules, each of which invalidated an intermediate conclusion in this study:
+A protocol structured around four analytical safeguards that invalidated intermediate conclusions or corrected numerical bounds during this study (Appendix A.12), distilled into three operational rules:
 
 1. **Size-matched nulls.** Aggregate noise falls as 1/√N, so a null four times
    larger carries half the noise and **manufactures false detections**.
@@ -302,7 +307,7 @@ Our results answer **two separate questions**, which must not be conflated (Tabl
 | **Q1** | Can Sentinel-1 measure vertical displacement of the floating mat? | **No**; apparent phase-centre displacement $\le 8.7$ mm, true mat motion unconstrained | §4.1, §4.2, §4.3 |
 | **Q2** | Can Sentinel-1 inform on seasonal wetland hydrological state? | **Possibly yes**, moderate but measurable association | §4.3.4, §4.4 |
 
-Q1 is an **instrumental-limit** result: across all six tested standard burst-product inversion families, per-pixel phase retrieval collapses, and the residual aggregate signal cannot be uniquely attributed to surface motion because the open-water lake exhibits a matched trajectory and differential mat-minus-lake phase cancels. Q2 is a **capability** result: spatial aggregation successfully recovers an annual phase cycle ($3.29$ mm, $p = 0.026$) that covaries with independent optical surface wetness anomalies at near-zero lag ($r \approx 0.45$).
+Q1 is an **instrumental-limit** result: across all six tested standard burst-product inversion families, per-pixel phase retrieval collapses, and the residual aggregate signal cannot be uniquely attributed to surface motion because forward dielectric modeling demonstrates that upper-moss moisture fluctuations alone reproduce the 3.3 mm seasonal amplitude. Q2 is a **capability** result: spatial aggregation successfully recovers an annual phase cycle ($3.29$ mm, $p = 0.026$) that covaries with independent optical surface wetness anomalies at near-zero lag ($r \approx 0.45$).
 
 Conflating Q1 and Q2 would weaken both findings. Placing all claims into the four-level observable hierarchy (Figure 7a) clarifies that failure to invert Level 1 physical peat deformation from Level 3 InSAR observables does not preclude using Level 3 observables to track Level 2 moisture-induced phase-centre shifts.
 
