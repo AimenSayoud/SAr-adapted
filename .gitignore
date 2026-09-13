@@ -3,6 +3,7 @@
 outputs/
 
 # Donnees lourdes (restent sur Google Drive)
+data/_local/
 *.nc
 *.tif
 !data/gis/*.tif

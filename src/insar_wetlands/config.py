@@ -87,3 +87,22 @@ def setup_git(repo_dir: str | Path | None = None) -> None:
     if "@" not in url and url.startswith("https://"):
         run("remote", "set-url", "origin",
             url.replace("https://", f"https://x-access-token:{token}@"))
+
+
+def get_track_config(cfg: dict, track: str | None = None) -> dict:
+    """Retrieve the Sentinel-1 configuration for a specific track.
+
+    If track is None or not found, falls back to default_track or top-level sentinel1 config.
+    """
+    s1 = cfg.get("sentinel1", {})
+    tracks = s1.get("tracks", {})
+    target = (track or s1.get("default_track", "ascending")).lower()
+    if target in tracks:
+        res = dict(tracks[target])
+        res["track_name"] = target
+        return res
+    # Fallback to top-level flat config
+    res = {k: v for k, v in s1.items() if k not in ("tracks", "default_track")}
+    res["track_name"] = "ascending"
+    return res
+

@@ -74,6 +74,17 @@ phase02b:
   outputs: [hyp3_cropped/]
   paper: "-"
 
+phase02_descending_pilot:
+  title: Descending Orbit 22 pilot batch submission and coherence gate
+  notebook: notebooks/01_data/phase02_descending_pilot.ipynb
+  group: data
+  question: Does Descending Orbit 22 (05:09 UTC) achieve >= 0.30 coherence over Rzecin across all seasons?
+  status: exploratory
+  inputs: []
+  outputs: [test_batch_descending.csv]
+  paper: "Paper 2 (Diurnal Test), Gate X-030"
+
+
 phase03:
   title: Network quality control and topology
   notebook: notebooks/01_data/phase03_network_qc.ipynb
@@ -360,6 +371,17 @@ phaseI:
   inputs: [phaseG.phaseG_aggregate_series.csv, phase04.s2_stack.nc, era5_rzecin.nc]
   outputs: [pair_hydro.csv, pair_hydro_v2.csv]
   paper: "§4.4, H4 — Table 18, Fig. 14, Fig. 15"
+
+phaseM:
+  title: Mechanical vs. dielectric discrimination and forward simulation
+  notebook: notebooks/04_hypotheses/phaseM_mechanical_vs_dielectric.ipynb
+  group: hypotheses
+  question: Can the observed seasonal InSAR signal be separated into mechanical displacement and dielectric phase shift?
+  status: exploratory
+  inputs: [phaseG.phaseG_aggregate_series.csv, T15_subset_stability.csv, T09_forcings.csv]
+  outputs: [mechanical_vs_dielectric_summary.csv]
+  paper: "§4.3, §5.2, Table T16"
+
 
 phaseJ:
   title: Falsification — trying to demolish our own conclusion

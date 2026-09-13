@@ -17,6 +17,26 @@ sentinel1:
   relative_orbit: 175
   burst_id: 175_374052_IW1
   polarization: VV
+  default_track: ascending
+  tracks:
+    ascending:
+      flight_direction: ASCENDING
+      relative_orbit: 175
+      burst_id: '175_374052_IW1'
+      subswath: IW1
+      polarization: VV
+      incidence_angle_deg: 32.26
+      heading_deg: 346.4
+      overpass_utc: '16:36'
+    descending:
+      flight_direction: DESCENDING
+      relative_orbit: 22
+      burst_id: '022_045867_IW2'
+      subswath: IW2
+      polarization: VV
+      incidence_angle_deg: 34.10
+      heading_deg: 193.6
+      overpass_utc: '05:09'
 sentinel2:
   collection: sentinel-2-l2a
   stac_url: https://earth-search.aws.element84.com/v1

@@ -13,7 +13,8 @@ import pytest
 import yaml
 
 from insar_wetlands.bootstrap import Context, start
-from insar_wetlands.paths import COLAB_DRIVE, Paths, repo_root, resolve_drive
+from insar_wetlands.config import get_track_config
+from insar_wetlands.paths import COLAB_DRIVE, Paths, make_paths, repo_root, resolve_drive
 
 
 @pytest.fixture()
@@ -24,6 +25,13 @@ def fake_repo(tmp_path: Path) -> Path:
         "site": {"name": "Test", "centroid": [16.3098, 52.7632]},
         "paths": {"outputs": "outputs",
                   "drive_data_root": "/content/drive/MyDrive/insar_rzecin"},
+        "sentinel1": {
+            "default_track": "ascending",
+            "tracks": {
+                "ascending": {"relative_orbit": 175, "burst_id": "175_037286_IW2"},
+                "descending": {"relative_orbit": 22, "burst_id": "022_045867_IW2"},
+            },
+        },
     }))
     return tmp_path
 
@@ -182,3 +190,76 @@ def test_two_phases_do_not_share_an_output_directory(fake_repo, tmp_path):
     a = start("phaseA", mount=False, git=False, repo=fake_repo, drive_root=drive)
     b = start("phaseB", mount=False, git=False, repo=fake_repo, drive_root=drive)
     assert a.outdir != b.outdir
+
+
+# --- track parameterization (dual geometry) --------------------------------
+
+def test_paths_track_parameterization(fake_repo, tmp_path):
+    drive = tmp_path / "drive"
+    p_asc = Paths(repo=fake_repo, drive=drive, phase="phase01", track="ascending")
+    assert p_asc.outputs == fake_repo / "outputs" / "phase01"
+    assert p_asc.cropped == drive / "hyp3_cropped"
+    assert p_asc.runs == drive / "runs"
+    assert p_asc.describe()["track"] == "ascending"
+
+    p_desc = Paths(repo=fake_repo, drive=drive, phase="phase01", track="descending")
+    assert p_desc.outputs == fake_repo / "outputs" / "phase01_descending"
+    assert p_desc.cropped == drive / "hyp3_cropped_descending"
+    assert p_desc.runs == drive / "runs_descending"
+    assert p_desc.describe()["track"] == "descending"
+
+
+def test_paths_for_phase_preserves_track(fake_repo, tmp_path):
+    drive = tmp_path / "drive"
+    base = Paths(repo=fake_repo, drive=drive, track="descending")
+    sub = base.for_phase("phase02")
+    assert sub.phase == "phase02"
+    assert sub.track == "descending"
+    assert sub.outputs == fake_repo / "outputs" / "phase02_descending"
+
+
+def test_make_paths_with_track(fake_repo, tmp_path):
+    p = make_paths("phase01", repo=fake_repo, root=tmp_path / "drive", track="descending")
+    assert p.track == "descending"
+    assert p.outputs == fake_repo / "outputs" / "phase01_descending"
+
+
+def test_start_with_track_namespaces_outputs(fake_repo, tmp_path):
+    drive = tmp_path / "drive"
+    ctx = start("phase01", track="descending", mount=False, git=False,
+                repo=fake_repo, drive_root=drive)
+    assert ctx.track == "descending"
+    assert ctx.outdir == fake_repo / "outputs" / "phase01_descending"
+    assert ctx.track_cfg["burst_id"] == "022_045867_IW2"
+    assert ctx.track_cfg["relative_orbit"] == 22
+
+
+def test_get_track_config_behavior():
+    cfg = {
+        "sentinel1": {
+            "default_track": "ascending",
+            "tracks": {
+                "ascending": {"relative_orbit": 175, "burst_id": "175_037286_IW2"},
+                "descending": {"relative_orbit": 22, "burst_id": "022_045867_IW2"},
+            },
+        },
+    }
+    asc = get_track_config(cfg, "ascending")
+    assert asc["relative_orbit"] == 175
+    assert asc["track_name"] == "ascending"
+
+    desc = get_track_config(cfg, "descending")
+    assert desc["relative_orbit"] == 22
+    assert desc["track_name"] == "descending"
+
+    # Default fallback when track is None
+    default = get_track_config(cfg, None)
+    assert default["relative_orbit"] == 175
+    assert default["track_name"] == "ascending"
+
+    # Fallback to flat top-level config if tracks key is missing
+    flat_cfg = {"sentinel1": {"burst_id": "175_037286_IW2", "relative_orbit": 175}}
+    flat = get_track_config(flat_cfg, "descending")
+    assert flat["relative_orbit"] == 175
+    assert flat["track_name"] == "ascending"
+
