@@ -21,7 +21,7 @@ Binary path on macOS: `/Users/aymen/Library/Python/3.14/bin/colab`. Ensure this 
 
 ---
 
-## 2. Seven Real Failure Modes & How to Prevent Them
+## 2. Ten Real Failure Modes & How to Prevent Them
 
 ### ⚠️ Issue 1: Short Timeout During Large Stack Streaming (`colab_request timeout`)
 
@@ -161,6 +161,56 @@ Binary path on macOS: `/Users/aymen/Library/Python/3.14/bin/colab`. Ensure this 
 
 ---
 
+### ⚠️ Issue 8: Headless Secret Access Restriction (`userdata.get` Timeout in CLI)
+
+* **Symptom**:
+  Calling `from google.colab import userdata; userdata.get('SECRET_NAME')` inside a headless command (`colab exec -s <session>`) raises:
+  `TimeoutException: Requesting secret <SECRET_NAME> timed out. Secrets can only be fetched when running from the Colab UI.`
+* **Root Cause**:
+  Google Colab's Secrets store (the 🔑 panel) enforces interactive user confirmation in the browser UI the first time a notebook session accesses a secret. Because this authorization modal is rendered strictly in the web frontend, background WebSocket execution cannot answer or bypass it, causing requests to time out.
+* **The Permanent Fix**:
+  1. **Interactive Bootstrap in UI**: If running a notebook in the browser, execute Cell 0 & Cell 1 in the UI once. When the Colab pop-up asks *"Grant notebook access to secret..."*, click **Allow / Grant**.
+  2. **Headless Netrc / Credential Injection**: For purely headless CLI sessions where no browser UI is active, bypass `userdata` completely by writing configuration files directly onto the VM via terminal piping:
+     ```bash
+     printf "Enter EARTHDATA_USERNAME: " && read u && printf "Enter EARTHDATA_PASSWORD: " && read -s p && echo && colab exec -s s1 -- "bash -c 'cat << EOF > ~/.netrc
+     machine urs.earthdata.nasa.gov login $u password $p
+     EOF
+     chmod 600 ~/.netrc'"
+     ```
+  3. **Robust Fallback in Code**: `src/insar_wetlands/config.py` `get_secret()` gracefully catches exceptions from `userdata.get()` and falls back to environment variables (`os.environ`) and local files (`~/.netrc`, `~/.cdsapirc`).
+
+---
+
+### ⚠️ Issue 9: Colab GitHub Open URL Format & Branch Alignment
+
+* **Symptom**:
+  Opening a notebook via `colab.research.google.com/github/...` returns a `404: Not Found` error or loads a stale, non-existent branch.
+* **Root Cause**:
+  Colab GitHub links follow the strict scheme `colab.research.google.com/github/<org>/<repo>/blob/<branch>/<path>`. If the link includes a local or non-existent branch prefix (such as `claude/main` instead of `main`), Colab's proxy fetch from GitHub fails.
+* **The Permanent Fix**:
+  Always verify remote tracking with `git log -n 1 origin/<branch>` before sharing Colab links, and format URLs strictly as:
+  ```text
+  https://colab.research.google.com/github/AimenSayoud/SAr-adapted/blob/main/notebooks/<subfolder>/<notebook>.ipynb
+  ```
+
+---
+
+### ⚠️ Issue 10: Local `google-colab` Wheel Leak in `requirements-lock.txt`
+
+* **Symptom**:
+  `pip install -r environment/requirements-lock.txt` on a fresh Colab VM or CI fails with:
+  `ERROR: Invalid requirement: 'google-colab @ file:///local/build/...' : file does not exist`.
+* **Root Cause**:
+  Running `pip freeze` on an active Colab instance captures internal `@ file:///` local build wheel URIs that are proprietary to Google's build hosts and unresolvable during external installations.
+* **The Permanent Fix**:
+  Strip proprietary local wheels from lockfiles:
+  ```bash
+  grep -v "google-colab @" environment/requirements-lock.txt > tmp.txt && mv tmp.txt environment/requirements-lock.txt
+  ```
+  Allow the Colab VM to supply its native pre-installed `google-colab` package.
+
+---
+
 ## 3. Standard Operating Procedure (SOP) Step-by-Step
 
 Follow these exact terminal commands for any future Colab session:
@@ -210,7 +260,7 @@ Back on your Mac:
 ```bash
 cd ~/Documents/Research_Hub/05_code/SAr-adapted
 git pull origin main
-make test            # 236 tests must pass
+make test            # 251 tests must pass
 make phases          # Pipeline declaration must be sound
 make check           # Manuscript numbers must match CSVs
 make check-generated # Zero drift between appendix and CSVs
@@ -229,3 +279,7 @@ make docx            # Builds manuscript.docx with pandoc
 | **Timeout during cell execution** | Set `export REQUEST_TIMEOUT=3600` and pass `--timeout 3600` |
 | **Git commit failed on VM** | Run `git config --global user.email ...` on the VM via `colab exec` |
 | **make phases failed on undeclared file** | Ensure `phases.py` and `test_phases.py` skip `*_output.ipynb` |
+| **TimeoutException on `userdata.get`** | Run Cell 1 in Colab UI to grant browser permission, or inject `~/.netrc` via `colab exec` |
+| **404 on `colab.research.google.com/github`** | Ensure branch in URL is `main` (not `claude/main` or unpushed branch) |
+| **Proprietary wheel error in lockfile** | Remove `google-colab @ file://...` from `environment/requirements-lock.txt` |
+| **Verify Colab session shutdown** | Run `colab sessions` to confirm `No active sessions found on server` |
