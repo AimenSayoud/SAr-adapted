@@ -133,8 +133,7 @@ built on 2 200 pixels while the tested zone has 499 carries ≈ 2× less noise a
 the floor, manufacturing false detections. Null realisations are compact patches
 of stable ground matched in pixel count to the tested zones. The **reference-matched
 spatial null** (4,614 draws, $p = 0.026$) is designated as the primary confirmatory
-benchmark; reduced-network subsets (such as winter-removed, $N_{\text{null}} = 249$, $p = 0.022$,
-and baseline subsets, $p = 0.044$) provide sensitivity bounds (Table 19).
+benchmark; **size-matched compact nulls** (empirical $p$-values of 0.014 and 0.022) provide sensitivity bounds.
 
 **Rationale for differing null draw counts across tests.**
 To avoid any perception of an adaptive stopping rule, the differing sample sizes across tests are governed by distinct analytical designs:
@@ -223,7 +222,8 @@ null distribution absorbs autocorrelation by construction.
 sweep merely aligns phases. Causal inferences are therefore drawn exclusively on deseasonalised
 anomalies, with annual harmonics removed from both series.
 
-**Absence of hysteresis.** The phase–wetness relation is single-valued across wetting and drying limbs with zero detectable hysteresis loop ($\Delta \phi = 0.21\text{ mm}$, $p = 0.52$; Table 18), confirming direct dielectric coupling rather than asymmetric mechanical settlement.
+**Interpreting residual lag.** A dielectric response to moisture is near-instantaneous (one revisit);
+mechanical settling would lag the water table by multiple weeks.
 
 ### 3.8 Software and reproducibility
 

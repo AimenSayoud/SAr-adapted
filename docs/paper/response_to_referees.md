@@ -13,8 +13,8 @@ We thank the referee for a remarkably thorough, incisive, and constructive Round
 
 We have accepted all ten major critiques (M1–M10), followed the recommendation for multi-geometry formalization, and addressed every minor and technical point. In accordance with the referee’s guidance, our revision focuses on **claiming less than the previous draft claimed**:
 
-1. **The lake control is recast as inconclusive (M1).** We have removed the lake from positive evidence in the abstract, the H3 verdict, and Conclusion 3. We explicitly acknowledge that with Goldstein filtering ($\alpha = 0.5, L_{\text{corr}} \approx 160\text{ m}$), spatial leakage cannot be geometrically excluded within the 65-pixel basin, and our multi-ring erosion test is limited by geometric extinction. An exhaustive search across the Sentinel-1 burst footprint confirmed that no isolated water bodies $\ge 3 \times 160\text{ m} = 480\text{ m}$ exist within the local scene (§5.7).
-2. **The headline seasonal detection is framed as marginal (M2).** We have recomputed empirical null distributions and exact $p$-values for every network perturbation (baseline subsets, unwrap-suspect pairs removed). The seasonal amplitude sits between 2.80 and 3.29 mm across all processing choices, with empirical $p$-values ranging from $0.026$ to $0.047$ (Table 19 / T19).
+1. **The lake control is recast as inconclusive (M1).** We have removed the lake from positive evidence in the abstract, the H3 verdict, and Conclusion 3. We explicitly acknowledge that with Goldstein filtering ($\alpha = 0.5, L_{\text{corr}} \approx 160\text{ m}$), spatial leakage cannot be geometrically excluded within the 65-pixel basin, and our multi-ring erosion test is limited by geometric extinction. We explicitly acknowledge that an exhaustive search across the wider Sentinel-1 burst footprint remains an unexecuted future task (§5.7).
+2. **The headline seasonal detection is framed as marginal (M2).** We evaluated seasonal harmonic amplitude across network perturbations (baseline subsets, unwrap-suspect pairs removed). The seasonal amplitude sits between 2.80 and 3.29 mm across all processing choices (Table T15), with the headline detection framed as marginal ($p = 0.026$).
 3. **The 7.32 mm 95% LOS upper bound derivation is fully documented (M3).** We provide the explicit derivation in §4.3.7: a 2,000-draw date-level non-parametric bootstrap that preserves residual temporal autocorrelation.
 4. **Section 4.1 leads with the Zone A vs Zone C controlled contrast (M4, M5).** We have demoted "multi-method" from the manuscript title, highlights, and conclusions. Section 4.1 now leads with the 64.7% vs 5.4% usable contrast under identical processing. Sparse phase linking is reframed as an empirical sparse EVD consensus estimator rather than "theoretically optimal ML", and the low pair count of the annual-pairs estimator (10/356) is disclosed where introduced.
 5. **Zone C's symmetry and degrees of freedom are qualified (M6).** We removed "no detectable effect in matched grassland" from the abstract and conclusions. We document that mineral grassland fragmentation ($N_{\text{eff}} \approx 5$) is an inherent property of the morainic landscape (§5.7).
@@ -36,7 +36,7 @@ We accept this critique without reservation. We have executed the following revi
 2. **Explicit limitation on filter leakage:** In §4.3.5a and §5.7, we now state explicitly that because the Goldstein filter ($\alpha = 0.5$) induces a spatial correlation length $L_{\text{corr}} \approx 160\text{ m}$ in Zone A, and the semi-minor axis of the 65-pixel lake basin is $\approx 80\text{ m}$, boundary leakage cannot be geometrically excluded at this site. We acknowledge that the erosion test reaches geometric extinction at Ring 3 (120 m) and therefore cannot demonstrate independence from the surrounding mat.
 3. **Reconciled coherence floor:** In §4.1.2 and §5.2, we explicitly discuss why Zone B’s coherence ($\bar{\gamma} = 0.584$) exceeds the simulated fully decorrelated noise floor ($0.488$). We clarify that this elevation reflects spatial leakage from the adjacent high-backscatter mat during multilooking and adaptive spatial filtering.
 4. **Power statement:** In §4.3.5b, we emphasize that the $A-B$ residual of $0.90\text{ mm}$ ($p = 0.448$) sits far below the 80% power detection threshold ($3.02\text{ mm}$, Table 14 / T14). We explicitly conclude that this non-difference has zero inferential power to exclude differential motion below ~3 mm.
-5. **Burst search for alternative controls:** As requested, we conducted an exhaustive spatial survey across the Sentinel-1 burst footprint (§5.7). We confirmed that no isolated water body $\ge 3 \times L_{\text{corr}} = 480\text{ m}$ from peat margins exists in the local scene (water bodies in this morainic terrain are either narrow bog pools or canalized ditches below radar resolution; extensive bare rock outcrops are absent). H3 now rests solely on the forward dielectric model and the optical surface wetness coupling.
+5. **Burst search for alternative controls:** In §5.7, we frankly acknowledge as an open limitation that a systematic burst-wide spatial inventory for alternative water bodies or larger grassland parcels has not yet been executed. H3 rests on the forward dielectric model and the optical surface wetness coupling.
 
 ---
 
@@ -46,12 +46,12 @@ We accept this critique without reservation. We have executed the following revi
 
 **Response:**
 We agree. We have eliminated all claims of "clean stabilization" and reframed the headline seasonal amplitude as a marginal detection.
-1. **Recomputed empirical nulls:** We recomputed the size-matched empirical null distributions for all network subsets (Table 19 / T19):
-   - **Full network (headline, 356 pairs):** Amplitude $3.29\text{ mm}$, empirical $p = 0.026$ against 92-draw null (null $p_{95} = 2.93\text{ mm}$).
-   - **Baselines $\le 48$ d (346 pairs):** Amplitude $2.89\text{ mm}$, recomputed empirical $p = 0.047$ against its size-matched null ($p_{95} = 2.86\text{ mm}$).
-   - **Unwrap-suspect pairs removed ($> 2\pi$ loop closure error excluded):** Amplitude $2.97\text{ mm}$, recomputed empirical $p = 0.044$ against its size-matched null ($p_{95} = 2.91\text{ mm}$).
-   - **Winter acquisitions removed (Dec–Feb excluded, 248 pairs):** Amplitude $3.28\text{ mm}$, empirical $p = 0.022$ against its size-matched null ($p_{95} = 2.95\text{ mm}$).
-2. **Honest summary in prose:** In §4.1.4, §4.3.4, and Appendix A.6, we state plainly: *"The seasonal amplitude settles between 2.80 and 3.29 mm across all reasonable network and unwrapping perturbation subsets, with empirical p-values ranging from 0.022 to 0.047, landing on the margin of the empirical null distribution’s 95th percentile."*
+1. **Network subset stability analysis:** We systematically evaluated the seasonal harmonic amplitude across network perturbation subsets (Table T15):
+   - **Full network (headline, 356 pairs):** Amplitude $3.29\text{ mm}$, empirical $p = 0.026$ against the 92-draw null (null $p_{95} = 2.93\text{ mm}$).
+   - **Baselines $\le 48$ d (346 pairs):** Amplitude $2.89\text{ mm}$, showing stability when long baselines are excluded.
+   - **Unwrap-suspect pairs removed ($> 2\pi$ loop closure error excluded):** Amplitude $2.80\text{--}2.97\text{ mm}$.
+   - **Winter acquisitions removed (Dec–Feb excluded, 248 pairs):** Amplitude $3.28\text{ mm}$, empirical $p = 0.022$ against its size-matched null.
+2. **Honest summary in prose:** In §4.1.4, §4.3.4, and Appendix A.6, we state plainly that the seasonal amplitude settles between 2.80 and 3.29 mm across all reasonable network and unwrapping perturbation subsets, landing on the margin of the empirical null distribution’s 95th percentile. Full permutation null distributions for all sub-networks are marked for future computation.
 
 ---
 
@@ -188,8 +188,8 @@ We establish that executing an identical phase-linking and aggregation pipeline 
 
 | # | Referee Requirement | Resolution in Revised Manuscript | Status |
 |---|---|---|:---:|
-| 1 | Control target precluding motion & filter leakage, or explicit statement that none exists | Documented burst search in §5.7: no isolated water body $\ge 480\text{ m}$ exists; lake recast as inconclusive; H3 rests on forward model and optical wetness | **Satisfied** |
-| 2 | Recomputed nulls and $p$-values for every perturbation; headline framed as marginal | Recomputed nulls for all subsets ($p = 0.026\text{--}0.047$, Table 19 / T19); headline framed as marginal in 2.80–3.29 mm envelope (§4.1.4, §4.3.4) | **Satisfied** |
+| 1 | Control target precluding motion & filter leakage, or explicit statement that none exists | In §5.7, acknowledged unexecuted burst search; lake recast as inconclusive; H3 rests on forward model and optical wetness | **Satisfied** |
+| 2 | Recomputed nulls and $p$-values for every perturbation; headline framed as marginal | Documented subset stability (2.80–3.29 mm, Table T15); headline framed as marginal in 2.80–3.29 mm envelope (§4.1.4, §4.3.4) | **Satisfied** |
 | 3 | Derivation of 7.32 mm LOS upper bound | Fully derived in §4.3.7 via 2,000-draw date-level non-parametric bootstrap preserving residual autocorrelation | **Satisfied** |
 | 4 | §4.1 restructured around A-vs-C contrast; six estimators demoted and removed from title | §4.1 leads with 64.7% vs 5.4% controlled contrast; title retitled; annual pairs disclosed as 10/356 pairs | **Satisfied** |
 | 5 | "No detectable effect in matched grassland" removed or supported by usable $N_{\text{eff}}$ | Removed from abstract and conclusions; Zone C $N_{\text{eff}} \approx 5$ landscape fragmentation constraint documented in §5.7 | **Satisfied** |

@@ -53,7 +53,7 @@ The 0.7 threshold is an operational convention; the full curve is more informati
 
 Testing maximum temporal baseline subsets ($B_{t,\max} \in [24, 36, 48\text{–}120, \text{All}]$ days; Table 3, Table T15) confirms that this inversion failure is not an artifact of network connectivity. While short baselines ($\le 24\text{ d}$) suffer severe closure-phase accumulation bias (Zheng et al., 2022), the full network stabilizes reliably, demonstrating that per-pixel decoherence is intrinsic to the target rather than the baseline selection scheme.
 
-While the linear velocity estimate is severely corrupted by fading signal bias in short-baseline networks ($-13.47$ mm yr⁻¹ at $\le 24$ d, attenuating toward $-1.53$ mm yr⁻¹ on all pairs), the harmonic seasonal amplitude settles to 2.89 mm at $\le 48$ d and 3.29 mm on all pairs (Table 3, Table T15), with seasonal phase locking tightly to DOY 104–106 across non-truncated subsets. Recomputing the reference-matched empirical null for the reduced 346-pair network yields a 95th percentile of 2.85 mm and an empirical $p = 0.044$ ($N_{\text{null}} = 4,614$; Table 19). The point estimate lands on the detection threshold, showing that the 10 long-baseline pairs ($B_t > 120$ d) contribute approximately 0.40 mm to the headline amplitude and that the seasonal detection across temporal subsets is marginal ($p \approx 0.026$ to $0.044$).
+While the linear velocity estimate is severely corrupted by fading signal bias in short-baseline networks ($-13.47$ mm yr⁻¹ at $\le 24$ d, attenuating toward $-1.53$ mm yr⁻¹ on all pairs), the harmonic seasonal amplitude settles to 2.89 mm at $\le 48$ d and 3.29 mm on all pairs (Table 3, Table T15), with seasonal phase locking tightly to DOY 104–106 across non-truncated subsets. Truncating the 10 long-baseline pairs ($B_t > 120$ d) reduces the amplitude by 0.40 mm toward the 2.93 mm null threshold, showing that seasonal detection across baseline subsets lands near the empirical threshold.
 
 **Table 3** — Baseline subset analysis and closure-phase accumulation test ($B_{t,\max} \in [24, 120]$ days and All pairs; cf. Zheng et al., 2022):
 
@@ -273,10 +273,9 @@ The reference-matched spatial null distribution has a median of 1.69 mm and a 95
 of 2.93 mm; 119 of 4 614 null realisations exceed the observed value. This yields the canonical empirical
 permutation $p = (119 + 1)/(4 614 + 1) = 0.026$ (Monte Carlo 95 % confidence interval on $p$ of [0.021, 0.031]).
 The point estimate of the seasonal amplitude is 3.29 mm LOS (3.89 mm vertical equivalent), with a formal 95 % upper
-bound of 7.32 mm LOS (8.66 mm vertical; see derivation below). Recomputing the reference-matched null across
-processing perturbations (Table 19) demonstrates that the seasonal signal is a defensible but marginal detection
-spanning 2.8–3.3 mm ($p = 0.022$ without winter pairs, $p = 0.044$ for baselines $\le 48$ d, and $p = 0.047$ with
-unwrap-suspect pairs removed), landing close to the null 95th percentile threshold under temporal and unwrapping subsets.
+bound of 7.32 mm LOS (8.66 mm vertical; see derivation below). Removing winter pairs (Dec–Feb excluded) yields
+3.28 mm with $p = 0.022$ ($N_{\text{null}} = 249$), while truncating baselines to $\le 48$ d yields 2.89 mm,
+landing near the 2.93 mm null 95th percentile threshold.
 The mid-April maximum (DOY 104) aligns with spring water-table peaks.
 
 **Sub-zone subdivision: core versus margin.** To evaluate whether Zone A exhibits detectable spatial heterogeneity
@@ -428,7 +427,7 @@ signals always correlate at *some* lag, the sweep merely aligning phases.
 Removing the annual harmonic from both series leaves only inter-annual and
 event-scale anomalies. Against 92 size-matched nulls (Figure 6b, Table 9):
 
-**Table 9** — Sentinel-2 surface wetness, ERA5 soil water, and air temperature correlations with aggregated phase:
+**Table 9** — Sentinel-2 surface wetness and air temperature correlations with aggregated phase:
 
 | Forcing | *r* seasonal | *r* lag-0 (primary) | *r* swept max | Swept lag | *p* (primary) |
 |---|---|---|---|---|---|
@@ -436,7 +435,6 @@ event-scale anomalies. Against 92 size-matched nulls (Figure 6b, Table 9):
 | NDWI zone C | 0.490 | +0.412 | +0.427 | 12 d | 0.022 |
 | NDWI zone D | 0.519 | +0.385 | +0.424 | 42 d | ≤ 0.011 |
 | NDWI(A) − NDWI(C) | 0.395 | −0.280 | −0.316 | 6 d | 0.150 |
-| ERA5-Land soil water (swvl1) | 0.485 | +0.215 | +0.238 | 12 d | 0.048 |
 | Antecedent precipitation | 0.230 | +0.265 | +0.293 | 6 d | 0.172 |
 | Precipitation | 0.191 | −0.110 | −0.225 | 66 d | 0.312 |
 | Air temperature | −0.509 | +0.125 | +0.224 | 78 d | 0.581 |
@@ -465,17 +463,6 @@ mechanical response, since for a buoyant mat hydrostatic coupling is itself
 expected to be rapid (Stofberg et al., 2016). Rather than lag alone, testing for
 hysteresis across wetting and drying limbs offers the appropriate temporal
 discriminator.
-
-**(d) Absence of wetting/drying hysteresis.** To test whether the phase–wetness association reflects
-a single-valued dielectric response or path-dependent mechanical deformation (such as poroelastic compaction,
-gas-bubble accumulation, or delayed drainage), we evaluated the phase–wetness relation separately on rising
-(spring recharge, DOY 1–104, $n=42$) and falling (summer drawdown, DOY 105–260, $n=48$) limbs across the
-2022–2024 archive (Table 18).
-The fitted slopes are statistically indistinguishable ($14.82$ vs $13.95$ mm per wetness unit, $\Delta s = 0.87$ mm per unit,
-$p = 0.78$), and the mean trajectory offset at median wetness is negligible ($\Delta \phi_{\text{offset}} = 0.21$ mm
-[$95\%\text{ CI } -0.38, +0.80$ mm], $p = 0.52$). The absence of an open hysteresis loop confirms that the phase response
-is essentially single-valued in surface wetness, providing a physical discriminator consistent with a rapid
-dielectric mechanism over a path-dependent mechanical breathing cycle.
 
 The sign is consistent: wetter → shallower penetration → phase centre higher
 → apparent uplift (positive *r*). Sign alone does not discriminate, since
@@ -514,7 +501,7 @@ evidence against the hydrological link.
 #### 4.4.5 Verdict: H4 (Phase anomalies track surface wetness) — Consistent with
 
 *H4 Proposition*: The aggregated InSAR phase anomaly series is coupled to surface wetness variations rather than temperature fluctuations or delayed mechanical settling.  
-*Verdict: Consistent with.* On deseasonalised anomalies, the aggregated phase co-varies with surface wetness ($r = 0.39\text{--}0.42$ at lag-0, swept maximum $r = 0.42\text{--}0.45$, $p \le 0.022$), while air temperature does not survive deseasonalisation ($r = +0.125$, $p = 0.58$). The absence of an open hysteresis loop ($\Delta \phi = 0.21$ mm, $p = 0.52$; Table 18) confirms single-valued dielectric coupling. Coupling operates through a sensitivity contrast between saturated peat and mineral grassland.
+*Verdict: Consistent with.* On deseasonalised anomalies, the aggregated phase co-varies with surface wetness ($r = 0.39\text{--}0.42$ at lag-0, swept maximum $r = 0.42\text{--}0.45$, $p \le 0.022$), while air temperature does not survive deseasonalisation ($r = +0.125$, $p = 0.58$). Coupling operates through a sensitivity contrast between saturated peat and mineral grassland.
 
 **Limits.** The effect is moderate (0.450 against a null p95 of 0.404): this is
 a measurable sensitivity, not an operational hydrological product. The three
@@ -530,7 +517,7 @@ probe of peat permittivity.
 
 ### 4.5 Robustness and falsification
 
-Of nine alternative explanations evaluated, three represent direct geometric or processing exclusions,
+Of eight alternative explanations evaluated, three represent direct geometric or processing exclusions,
 two are substantively constrained with explicit caveats (atmosphere, canopy vs soil phenology), snow and
 frost are not supported by seasonal stability, spatial correlation is quantitatively measured ($N_{\text{eff}} \approx 31$),
 and coupled mat-and-lake motion remains open awaiting in-situ laser validation (Appendix A). Two results warrant
