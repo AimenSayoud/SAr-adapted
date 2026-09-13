@@ -101,8 +101,7 @@ extreme filtering breaks network connectivity (retaining only 14 % of pairs).
 
 ### A.7 Spatial correlation and N_eff — measured, with a consequence for §4.3.2
 
-**The criticism is well founded**: the 1/√N argument assumes independent pixels,
-which they are not.
+The $1/\sqrt{N}$ analytical noise model assumes spatially uncorrelated pixels. Over real terrain, spatial autocorrelation ($L_{\text{corr}} \approx 160$ m) reduces the number of independent samples.
 
 **(a) The principal results do not depend on it.** Significance for the seasonal
 amplitude and the correlations rests on **size-matched empirical nulls** built on
@@ -114,10 +113,7 @@ the picture (see **Table 10** in §4.5.1 for full parameters across zones): with
 over Zone A ($L_{\text{corr}} \approx 160\text{ m}$), the circular mean resultant length $|R|$ sits only
 $\times 1.3$ above the measured floor.
 
-**Accepted consequence:** at ×1.3 above the floor, A and C do **not** constitute
-a detection. The **ranking** of zones — the only claim made — is unchanged, since
-it uses raw |R|. That comparison is demoted to **motivation and ordering**, not
-proof.
+Consequently, with $|R|$ sitting only $\times 1.3$ above the empirical floor, the Zone A vs Zone C contrast does not constitute a detection of significant coherence separation. The zone ranking is maintained strictly as an ordering observation to motivate subsequent controlled tests, not as statistical proof of coherence separation.
 
 *Estimator caveat*: zone C is fragmented (398 scattered pixels), so the
 autocorrelation mixes within- and between-patch correlation; its N_eff of 5 is
@@ -203,3 +199,33 @@ investigator expectations:
 | Incidence assumed at ≈ 39° instead of measured 32.26° | displacement bounds overstated by 9 % (conversion factor 1.183 vs 1.29) |
 
 Additional developmental adjustments, parameter sensitivity sweeps, and internal testing logs are archived in the supplementary repository documentation.
+
+## Supplementary Figures
+
+![**Figure S1.** Interferometric network. (a) 356 pairs over ~90 acquisitions, 2022–2024; (b) temporal-baseline distribution, with the 60-day robustness filter marked.](figures/S01_network.png)
+
+![**Figure S2.** False-colour composite (R = σ⁰ VV, G = coherence, B = Sentinel-2 wetness) with zone outlines, and a zoom on the peatland.](figures/S02_rgb_composite.png)
+
+![**Figure S3.** Inundated-time fraction from the water mask, with zones A and B outlined.](figures/S03_flooded_fraction.png)
+
+![**Figure S4.** Processing protocol: per-pixel versus aggregated observable, and the size-matched null test yielding an empirical p-value.](figures/S04_protocol.png)
+
+![**Figure S5.** Synthetic validation. On identical simulated data, per-pixel inversion returns −13.7 mm yr⁻¹ (36 % usable pixels) whereas aggregation returns −19.8 mm yr⁻¹ against a ground truth of −20.](figures/S05_synthetic_validation.png)
+
+![**Figure S6.** Coherence decay with temporal baseline, with fitted decorrelation times per zone.](figures/S06_coherence_decay.png)
+
+![**Figure S7.** Per-zone distributions across five independent sensors: coherence, σ⁰ VV, RVI, Sentinel-2 wetness and temporal coherence.](figures/S07_zone_distributions.png)
+
+![**Figure S8.** Radial profiles of coherence, σ⁰ VV and RVI against signed distance to the peatland boundary. The step at distance zero marks a physical edge.](figures/S08_radial_profiles.png)
+
+![**Figure S9.** Within-mat predictive model. (a) Standardised coefficients of the collinearity-cleaned model; (b) Spearman correlations in mat versus grassland, showing active environmental sensitivity in the mat against its absence in grassland.](figures/S09_predictors.png)
+
+![**Figure S10.** Amplitude dispersion D_A: map and per-zone distributions against the 0.25 persistent-scatterer threshold.](figures/S10_amplitude_dispersion.png)
+
+![**Figure S11.** Coherence sensitivity to the water-table proxy, and coherence gain on freezing, by zone.](figures/S11_hydrology_freeze.png)
+
+![**Figure S12.** Closure phase by zone. (a) Mean bias with 2σ error bars — none significant; (b) median |closure| dispersion against the π/2 random reference.](figures/S12_closure_phase.png)
+
+![**Figure S13.** Aggregation gain curve. Empirical phase standard deviation as a function of aggregated pixel count $N$ across Zone A, overlaid with theoretical independent $1/\sqrt{N}$ and autocorrelated $1/\sqrt{N_{\text{eff}}}$ scaling ($N_{\text{eff}} \approx 31$).](figures/S13_aggregation_gain.png)
+
+![**Figure S14.** Our bound in context: raised-bog breathing, drained-fen subsidence, expected free flotation, and the value measured here.](figures/S14_literature_context.png)

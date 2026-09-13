@@ -180,14 +180,14 @@ reveals that while short-baseline networks (≤ 24 d) suffer from severe accumul
 closure-phase subsidence bias (−13.5 to −23.5 mm yr⁻¹), consistent with Zheng et al. (2022) fading signal bias,
 expanding the network to ≥ 48 d and annual pairs causes the apparent velocity to
 contract to near-zero (−1.53 mm yr⁻¹ on A−C vs −1.50 mm yr⁻¹ on NULL), demonstrating that
-our velocity non-detection is robust to network truncation. Crucially, while linear velocity is
+our velocity non-detection is robust to network truncation. Notably, while linear velocity is
 highly sensitive to this fading bias, the seasonal harmonic amplitude stabilizes reliably across
 all intermediate and full network configurations: the seasonal amplitude settles between 2.89 mm
 (at $\le 48$ d) and 3.29 mm (all pairs), while seasonal phase locks tightly between DOY 104 and 106.
 Harmonic inversion on aggregated multi-temporal networks is thus protected from the short-baseline
 fading bias that severely distorts linear deformation rates.
 
-![**Figure S14.** Our bound in context: raised-bog breathing, drained-fen subsidence, expected free flotation, and the value measured here.](figures/S14_literature_context.png)
+Our estimated displacement bound sits in stark contrast with both raised-bog breathing and drained-fen subsidence scales documented in the literature (Figure S14).
 
 ### 5.3 Two transferable methodological contributions
 
@@ -255,6 +255,16 @@ Pixel (SHP) selection (e.g., SqueeSAR; Ferretti et al., 2011) and phase bias mit
 (Ansari et al., 2021) represent an important prospective avenue. While out of scope
 for standard burst products, they offer a methodological benchmark for future high-performance
 computing implementations.
+
+#### Multi-geometry replication protocol and 2-LOS decomposition
+
+A fundamental geometric constraint of single-geometry InSAR is the one-dimensional line-of-sight (LOS) projection. The displacement bound derived in §4.3.7 assumes purely vertical displacement ($d_{\text{LOS}} = d_{\text{vert}} \cos \theta$). However, apparent LOS phase shifts can theoretically arise from horizontal displacement components or non-isotropic scattering perturbations.
+
+To resolve vertical deformation ($d_{\text{vert}}$) from east-west horizontal motion ($d_{\text{east}}$) without unverified geometric assumptions, an independent descending-track acquisition geometry is required. For ascending and descending LOS measurements ($d_{\text{LOS}}^{\text{asc}}, d_{\text{LOS}}^{\text{desc}}$) with local incidence angles $\theta_{\text{asc}}, \theta_{\text{desc}}$ and satellite track heading angles $\alpha_{\text{asc}}, \alpha_{\text{desc}}$:
+
+$$\begin{pmatrix} d_{\text{LOS}}^{\text{asc}} \\ d_{\text{LOS}}^{\text{desc}} \end{pmatrix} = \begin{pmatrix} \cos \theta_{\text{asc}} & -\sin \theta_{\text{asc}} \cos \alpha_{\text{asc}} \\ \cos \theta_{\text{desc}} & \sin \theta_{\text{desc}} \cos \alpha_{\text{desc}} \end{pmatrix} \begin{pmatrix} d_{\text{vert}} \\ d_{\text{east}} \end{pmatrix}$$
+
+Solving this system uncouples vertical peat breathing from potential lateral drift. Furthermore, because a genuine seasonal mechanical deformation must reproduce in phase across orbits and scale rigorously with incidence-angle projection ($\Delta \phi \propto \cos \theta$), whereas processing artifacts, local multipath, and orbit-specific atmospheric screens do not, executing the identical phase-linking and aggregation pipeline over the Sentinel-1 descending track represents the most direct and cost-effective empirical replication test available.
 
 #### Literature synthesis: moisture-induced phase and peatland InSAR
 
@@ -331,4 +341,15 @@ Conflating Q1 and Q2 would weaken both findings. Placing all claims into the fou
   sub-kilometer flexural modes below our spatial resolution cannot be ruled out.
 - **Zone C is fragmented**, which biases the empirical correlation-length
   estimator used for N_eff.
+- **Absence of alternative water controls in the burst footprint**: An exhaustive search across
+  the Sentinel-1 burst frame confirmed that no alternative isolated water body $\ge 3 \times L_{\text{corr}} = 480\text{ m}$
+  from peat margins exists within the scene. Open water bodies in this morainic terrain are either
+  narrow bog pools subject to boundary-filter leakage or drainage ditches below radar resolution.
+  Stable non-vegetated surfaces (such as rock outcrops or bare mineral soil parcels) are likewise
+  absent in this forested wetland basin.
+- **Grassland reference zone fragmentation**: A burst-wide survey confirmed that non-mat mineral
+  grasslands in this region are physically fragmented into small agricultural clearings interspersed
+  among pine plantations. The effective sample size ($N_{\text{eff}} \approx 5$) of Zone C is thus an
+  inherent constraint of the post-glacial landscape rather than a sampling artifact, justifying reliance
+  on the regional multi-zone null reservoir (Zone D, $N_{\text{eff}} \approx 219$).
 

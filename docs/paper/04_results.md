@@ -72,8 +72,8 @@ While the linear velocity estimate is severely corrupted by fading signal bias i
 
 #### 4.1.5 Verdict: H1 (Inversion failure originates in algorithm) — Rejected
 
-> **H1 Proposition**: *The inversion failure over the floating mat originates in the choice of phase retrieval algorithm.*  
-> **Verdict: Rejected.** The stark controlled contrast between Zone A (5.4 % recovery) and Zone C (64.7 % recovery) under identical processing proves that failure is governed by target-specific physical decorrelation rather than algorithmic inadequacy. No pairwise reweighting, baseline subsetting, or sparse consensus scheme rescues the inversion on standard burst products. Full-covariance Single Look Complex (SLC) phase linking with adaptive homogeneous pixel selection remains untested on this archive (§3.1 scope note).
+*H1 Proposition*: The inversion failure over the floating mat originates in the choice of phase retrieval algorithm.  
+*Verdict: Rejected.* The controlled contrast between Zone A (5.4 % recovery) and Zone C (64.7 % recovery) under identical processing indicates that failure is governed by target-specific physical decorrelation rather than algorithmic inadequacy. No pairwise reweighting, baseline subsetting, or sparse consensus scheme rescues the inversion on standard burst products. Full-covariance Single Look Complex (SLC) phase linking with adaptive homogeneous pixel selection remains untested on this archive (§3.1 scope note).
 
 **Scope.** Future work exploiting full-covariance Single Look Complex (SLC) stacks with
 statistically homogeneous pixel (SHP) selection (e.g. SqueeSAR; Ferretti et al., 2011; Fornaro et al., 2015; Ansari et al.,
@@ -115,13 +115,11 @@ reflecting persistent decorrelation.
 
 The deficit therefore depends on no single acquisition and survives control for
 baseline, atmosphere (both by pairing), slope (DEM) and canopy optical wetness
-(Sentinel-2 features). Figure 4 and Figure S6 show the paired differences and the
-decay curves (with freeze response illustrated in Figure S11).
+(Sentinel-2 features). Figure 4 shows the paired differences, with the fitted decorrelation
+decay curves detailed in Supplementary Information (Figure S6; freeze response in Figure S11).
 
 
 ![**Figure 4.** Matched-cover paired test. (a) Distribution of coh(A) − coh(C) per interferogram; (b) scatter of A against C, points below the 1:1 line indicating lower mat coherence.](figures/F04_paired_test.png)
-
-![**Figure S6.** Coherence decay with temporal baseline, with fitted decorrelation times per zone.](figures/S06_coherence_decay.png)
 
 #### 4.2.2 The cover matching is effective
 
@@ -133,20 +131,15 @@ non-optical surface property at the radar scale.
 #### 4.2.3 A spatially delimited unit
 
 - **Radial profile** (Figure S8): a low, flat plateau (≈ 0.40) throughout the
-  interior, a sharp step at the boundary, and a peak just outside (≈ 0.47).
-  The same discontinuity appears in σ⁰ and RVI.
-- **Five independent sensors** express the polygon: coherence, σ⁰ VV, RVI,
-  Sentinel-2 wetness, temporal coherence (Figure S7, Figure S2).
+  mat, a sharp step of +0.08 at the boundary, and a rising ramp in mineral soil.
+  The contrast is localized to the boundary.
+- **Sensor agreement** (Figure S7): all four radar observables (coherence,
+  σ⁰, RVI, amplitude dispersion) jump at the edge.
 - **Area**: A + B = 90.24 ha vs 89.7 ha documented (+0.6 %).
 
 This is not diffuse noise but a delimited physical unit, whose outline —
 drawn from vector and optical sources — coincides with structure visible in
-independent radar fields.
-
-
-![**Figure S7.** Per-zone distributions across five independent sensors: coherence, σ⁰ VV, RVI, Sentinel-2 wetness and temporal coherence.](figures/S07_zone_distributions.png)
-
-![**Figure S8.** Radial profiles of coherence, σ⁰ VV and RVI against signed distance to the peatland boundary. The step at distance zero marks a physical edge.](figures/S08_radial_profiles.png)
+independent radar fields (multi-sensor distributions in Figure S7; radial profiles in Figure S8).
 
 #### 4.2.4 Scattering signature
 
@@ -165,7 +158,7 @@ grassland despite identical optical phenology. The higher dual-pol RVI (Mandal e
 closure dispersion is a direct measurement of scatterer non-stationarity: mat triplets do not
 close, stable ground triplets do (Figure S12, Figure S10).
 
-Importantly, A is not devoid of targets (59 % of pixels have D_A < 0.25).
+Zone A is not devoid of targets (59 % of pixels have $D_A < 0.25$).
 Its problem is not absent backscatter but an unstable phase — which is what
 justified attempting phase linking in the first place (§4.1).
 
@@ -210,23 +203,12 @@ yielding $N_{\text{eff}} \approx 31$ independent spatial degrees of freedom acro
 With 12 covariates in the model, the observations-per-parameter ratio is under 3
 ($31 / 12 \approx 2.6$). Spatial block cross-validation ($R^2_{\text{cv}} = 0.178$) is therefore reported
 strictly as an empirical descriptive benchmark of within-zone spatial structure rather than
-an independent predictive model.
-
-
-![**Figure S9.** Within-mat predictive model. (a) Standardised coefficients of the collinearity-cleaned model; (b) Spearman correlations in mat versus grassland, showing active environmental sensitivity in the mat against its absence in grassland.](figures/S09_predictors.png)
-
-![**Figure S10.** Amplitude dispersion D_A: map and per-zone distributions against the 0.25 persistent-scatterer threshold.](figures/S10_amplitude_dispersion.png)
-
-![**Figure S11.** Coherence sensitivity to the water-table proxy, and coherence gain on freezing, by zone.](figures/S11_hydrology_freeze.png)
+an independent predictive model (Figure S9a; amplitude dispersion in Figure S10; hydrological and freeze sensitivity in Figure S11).
 
 #### 4.2.6 Verdict: H2 supported
 
-> **H2 is supported.** At matched cover and after controlling baseline,
-> atmosphere, slope and optical wetness, the mat shows lower coherence
-> (date-jackknife SE-based 95 % CI [−0.109, −0.052]), a sharp boundary, a
-> volumetric scattering signature and 3.2-fold non-stationarity — and environmental
-> predictors modulating its coherence have no detectable effect in grassland. It
-> is a distinct radar unit, not "vegetation at C-band".
+*H2 Proposition*: The floating mat constitutes an electromagnetically distinct radar target from mineral grassland.  
+*Verdict: Supported.* At matched cover and after controlling baseline, atmosphere, slope and optical wetness, the mat exhibits lower coherence (date-jackknife SE-based 95 % CI [−0.109, −0.052]), a sharp boundary, a volumetric scattering signature and 3.2-fold non-stationarity—with environmental predictors modulating its coherence having no detectable effect in matched grassland (qualified by $N_{\text{eff}} \approx 5$). The floating mat is an electromagnetically distinct radar target.
 
 ---
 
@@ -390,10 +372,7 @@ What is robust is the dispersion (×3.2; π/2 ≈ 1.57 would correspond to
 purely random triplets, so A remains partially coherent). But high dispersion
 without a sign bias indicates random scatterer reconfiguration, which
 moisture fluctuation and non-rigid micro-movement produce equally. This test
-measures the degree of non-stationarity, not its nature.
-
-
-![**Figure S12.** Closure phase by zone. (a) Mean bias with 2σ error bars — none significant; (b) median |closure| dispersion against the π/2 random reference.](figures/S12_closure_phase.png)
+measures the degree of non-stationarity, not its nature (triplet bias and dispersion in Figure S12).
 
 #### 4.3.7 Upper bound on differential apparent phase-centre displacement, with stated assumptions
 
@@ -423,8 +402,8 @@ this wider bootstrap upper bound (7.32 mm LOS / 8.66 mm vertical) as an explicit
 
 #### 4.3.8 Verdict: H3 (Seasonal signal represents mechanical vertical motion) — Non-unique / Not supported
 
-> **H3 Proposition**: *The detected seasonal InSAR phase oscillation represents mechanical vertical peatland displacement.*  
-> **Verdict: Non-unique / Not supported.** The detected seasonal signal (3.29 mm LOS, $p = 0.026$) cannot be uniquely attributed to mechanical displacement. First, the observed amplitude is consistent with the $[-1.9, -4.6]\text{ mm}$ envelope predicted by dielectric and moisture variation in the upper capitulum layer (§5.2). Second, the Zone B lake control is inconclusive due to spatial filter leakage ($L_{\text{corr}} \approx 160\text{ m}$) and severe underpowering (MDA floor $2.86\text{--}3.02\text{ mm}$ vs $0.90\text{ mm}$ residual). While the data exclude vertical apparent displacement exceeding $\le 8.7$ mm (95 % bootstrap upper bound), radar observations alone cannot separate mechanical motion from dielectric phase shifts without in-situ datum anchoring.
+*H3 Proposition*: The detected seasonal InSAR phase oscillation represents mechanical vertical peatland displacement.  
+*Verdict: Non-unique / Not supported.* The detected seasonal signal (3.29 mm LOS, $p = 0.026$) cannot be uniquely attributed to mechanical displacement. First, the observed amplitude is consistent with the $[-1.9, -4.6]\text{ mm}$ envelope predicted by dielectric and moisture variation in the upper capitulum layer (§5.2). Second, the Zone B lake control is inconclusive due to spatial filter leakage ($L_{\text{corr}} \approx 160\text{ m}$) and severe underpowering (MDA floor $2.86\text{--}3.02\text{ mm}$ vs $0.90\text{ mm}$ residual). While the data exclude vertical apparent displacement exceeding $\le 8.7$ mm (95 % bootstrap upper bound), radar observations alone cannot separate mechanical motion from dielectric phase shifts without in-situ datum anchoring.
 
 *Distinction to maintain*: this establishes that the **seasonal signal** is
 consistent with a dominant dielectric/propagation contribution. It says nothing about the
@@ -449,7 +428,7 @@ signals always correlate at *some* lag, the sweep merely aligning phases.
 Removing the annual harmonic from both series leaves only inter-annual and
 event-scale anomalies. Against 92 size-matched nulls (Figure 6b, Table 9):
 
-**Table 9** — Sentinel-2 surface wetness and air temperature correlations with aggregated phase:
+**Table 9** — Sentinel-2 surface wetness, ERA5 soil water, and air temperature correlations with aggregated phase:
 
 | Forcing | *r* seasonal | *r* lag-0 (primary) | *r* swept max | Swept lag | *p* (primary) |
 |---|---|---|---|---|---|
@@ -457,6 +436,7 @@ event-scale anomalies. Against 92 size-matched nulls (Figure 6b, Table 9):
 | NDWI zone C | 0.490 | +0.412 | +0.427 | 12 d | 0.022 |
 | NDWI zone D | 0.519 | +0.385 | +0.424 | 42 d | ≤ 0.011 |
 | NDWI(A) − NDWI(C) | 0.395 | −0.280 | −0.316 | 6 d | 0.150 |
+| ERA5-Land soil water (swvl1) | 0.485 | +0.215 | +0.238 | 12 d | 0.048 |
 | Antecedent precipitation | 0.230 | +0.265 | +0.293 | 6 d | 0.172 |
 | Precipitation | 0.191 | −0.110 | −0.225 | 66 d | 0.312 |
 | Air temperature | −0.509 | +0.125 | +0.224 | 78 d | 0.581 |
@@ -494,7 +474,7 @@ gas-bubble accumulation, or delayed drainage), we evaluated the phase–wetness 
 The fitted slopes are statistically indistinguishable ($14.82$ vs $13.95$ mm per wetness unit, $\Delta s = 0.87$ mm per unit,
 $p = 0.78$), and the mean trajectory offset at median wetness is negligible ($\Delta \phi_{\text{offset}} = 0.21$ mm
 [$95\%\text{ CI } -0.38, +0.80$ mm], $p = 0.52$). The absence of an open hysteresis loop confirms that the phase response
-is essentially single-valued in surface wetness, providing the decisive physical discriminator favoring a rapid
+is essentially single-valued in surface wetness, providing a physical discriminator consistent with a rapid
 dielectric mechanism over a path-dependent mechanical breathing cycle.
 
 The sign is consistent: wetter → shallower penetration → phase centre higher
@@ -533,8 +513,8 @@ evidence against the hydrological link.
 
 #### 4.4.5 Verdict: H4 (Phase anomalies track surface wetness) — Consistent with
 
-> **H4 Proposition**: *The aggregated InSAR phase anomaly series is coupled to surface wetness variations rather than temperature fluctuations or delayed mechanical settling.*  
-> **Verdict: Consistent with.** On deseasonalised anomalies, the aggregated phase co-varies with surface wetness ($r = 0.39\text{--}0.42$ at lag-0, swept maximum $r = 0.42\text{--}0.45$, $p \le 0.022$), while air temperature does not survive deseasonalisation ($r = +0.125$, $p = 0.58$). The absence of an open hysteresis loop ($\Delta \phi = 0.21$ mm, $p = 0.52$; Table 18) confirms single-valued dielectric coupling. Coupling operates through a sensitivity contrast between saturated peat and mineral grassland.
+*H4 Proposition*: The aggregated InSAR phase anomaly series is coupled to surface wetness variations rather than temperature fluctuations or delayed mechanical settling.  
+*Verdict: Consistent with.* On deseasonalised anomalies, the aggregated phase co-varies with surface wetness ($r = 0.39\text{--}0.42$ at lag-0, swept maximum $r = 0.42\text{--}0.45$, $p \le 0.022$), while air temperature does not survive deseasonalisation ($r = +0.125$, $p = 0.58$). The absence of an open hysteresis loop ($\Delta \phi = 0.21$ mm, $p = 0.52$; Table 18) confirms single-valued dielectric coupling. Coupling operates through a sensitivity contrast between saturated peat and mineral grassland.
 
 **Limits.** The effect is moderate (0.450 against a null p95 of 0.404): this is
 a measurable sensitivity, not an operational hydrological product. The three
@@ -577,8 +557,6 @@ N_eff at all. (Caveat: zone C is fragmented, so the estimator mixes within- and
 between-patch correlation and its N_eff of 5 is probably understated.)
 
 **Aggregation gain curve.** To evaluate how spatial aggregation reduces phase noise and overcomes per-pixel decorrelation, we computed empirical phase standard deviation across Zone A as a function of aggregated pixel count $N \in [1, 499]$ (Figure S13, Table T13). The empirical standard deviation falls from $\sigma_1 \approx 6.60$ mm at $N=1$ to $1.25$ mm at $N=499$. For purely independent observations, standard error would scale as $1/\sqrt{N}$ (reaching $0.30$ mm at $N=499$). However, spatial autocorrelation imposes an asymptotic noise floor scaling as $1/\sqrt{N_{\text{eff}}}$ ($N_{\text{eff}} \approx 31$), which closely tracks the observed empirical plateau.
-
-![**Figure S13.** Aggregation gain curve. Empirical phase standard deviation as a function of aggregated pixel count $N$ across Zone A, overlaid with theoretical independent $1/\sqrt{N}$ and autocorrelated $1/\sqrt{N_{\text{eff}}}$ scaling ($N_{\text{eff}} \approx 31$).](figures/S13_aggregation_gain.png)
 
 #### 4.5.2 Snow and frost not supported
 

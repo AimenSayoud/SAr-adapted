@@ -40,7 +40,7 @@ descriptor, and drained or exploited peatlands. The floating mat — precisely
 where the expected geomorphological signal is largest — remains poorly
 documented.
 
-### 1.3 The methodological trap we set out to avoid
+### 1.3 Methodological considerations: distinguishing algorithmic limits from target physics
 
 A study that fails to retrieve displacement can always be attributed to a poor
 processing choice. The InSAR literature offers a wide catalogue of algorithms
