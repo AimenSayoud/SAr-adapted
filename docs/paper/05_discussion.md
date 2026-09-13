@@ -209,7 +209,7 @@ moisture variation across the mat without asserting proven kinematic rigidity.
 
 #### 5.3.2 Weak-signal test protocol
 
-A protocol structured around four analytical safeguards that invalidated intermediate conclusions or corrected numerical bounds during this study (Appendix A.12), distilled into three operational rules:
+A protocol structured around four analytical safeguards that invalidated intermediate conclusions or corrected numerical bounds during this study (Appendix A.11), distilled into three operational rules:
 
 1. **Size-matched nulls.** Aggregate noise falls as 1/√N, so a null four times
    larger carries half the noise and **manufactures false detections**.
@@ -341,15 +341,11 @@ Conflating Q1 and Q2 would weaken both findings. Placing all claims into the fou
   sub-kilometer flexural modes below our spatial resolution cannot be ruled out.
 - **Zone C is fragmented**, which biases the empirical correlation-length
   estimator used for N_eff.
-- **Absence of alternative water controls in the burst footprint**: An exhaustive search across
-  the Sentinel-1 burst frame confirmed that no alternative isolated water body $\ge 3 \times L_{\text{corr}} = 480\text{ m}$
-  from peat margins exists within the scene. Open water bodies in this morainic terrain are either
-  narrow bog pools subject to boundary-filter leakage or drainage ditches below radar resolution.
-  Stable non-vegetated surfaces (such as rock outcrops or bare mineral soil parcels) are likewise
-  absent in this forested wetland basin.
-- **Grassland reference zone fragmentation**: A burst-wide survey confirmed that non-mat mineral
-  grasslands in this region are physically fragmented into small agricultural clearings interspersed
-  among pine plantations. The effective sample size ($N_{\text{eff}} \approx 5$) of Zone C is thus an
-  inherent constraint of the post-glacial landscape rather than a sampling artifact, justifying reliance
-  on the regional multi-zone null reservoir (Zone D, $N_{\text{eff}} \approx 219$).
+- **Alternative water controls and expanded grassland unsearched**: We did not execute a systematic
+  search across the Sentinel-1 burst footprint for alternative isolated water bodies ($\ge 3 \times L_{\text{corr}} = 480\text{ m}$
+  from peat margins) or larger contiguous mineral grassland zones beyond the designated local sites.
+  While local exploration indicates open water bodies in this morainic terrain are either narrow bog pools
+  subject to boundary-filter leakage or small ditches, a formal burst-wide spatial inventory remains an unexecuted
+  investigation; Zone C's small effective sample size ($N_{\text{eff}} \approx 5$) remains an acknowledged limitation
+  motivating reliance on the multi-zone null reservoir (Zone D).
 

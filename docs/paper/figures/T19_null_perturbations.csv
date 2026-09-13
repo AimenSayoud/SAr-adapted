@@ -1,5 +1,0 @@
-perturbation,n_pairs,amplitude_mm,null_median_mm,null_p95_mm,empirical_p,n_null,status
-Full network (canonical headline),356,3.286,1.691,2.932,0.026,4614,Marginal detection (2.7 sigma above null median)
-Baselines <= 48 d (temporal subset),346,2.89,1.642,2.851,0.044,4614,Survives at threshold; 10 long-baseline pairs contribute 0.40 mm
-Unwrap-suspect pairs removed (|R| >= 0.7),312,2.845,1.615,2.81,0.047,4614,Robust against phase-unwrapping errors at threshold
-Winter excluded (Dec-Feb removed),248,3.282,1.705,2.94,0.022,249,Robust: winter pairs carry zero unique seasonal signal
