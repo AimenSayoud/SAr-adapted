@@ -105,6 +105,12 @@ class Context:
         return load_static_layer(self.paths.cropped, "dem")
 
     @cached_property
+    def aoi(self):
+        """Boolean mask DataArray (y, x): True inside Rzecin polygon."""
+        from .stack import aoi_mask
+        return aoi_mask(self.template, self.cfg)
+
+    @cached_property
     def flooded_fraction(self):
         import xarray as xr
 
@@ -148,13 +154,14 @@ class Context:
         from .stack import load_layer
         return load_layer(self.paths.cropped, name, pairs or self.pairs)
 
-    def to_grid(self, obj):
+    def to_grid(self, obj, template=None):
         """Align anything to the template grid, reprojecting when necessary.
 
         The plain `align_grid` fails when the CRS is not written on the object;
         the reproject_match fallback handles that case."""
         from .stack import to_grid
-        return to_grid(obj, self.template)
+        target = template if template is not None else self.template
+        return to_grid(obj, target)
 
     def cache_df(self, tag: str, fn, index_col=None, **kw):
         """Cache a DataFrame under <drive>/figures_cache/."""
@@ -260,9 +267,11 @@ def start(phase: str,
             import matplotlib.pyplot as _plt
             import numpy as _np
             import pandas as _pd
+            import xarray as _xr
             frame.f_globals.setdefault("np", _np)
             frame.f_globals.setdefault("pd", _pd)
             frame.f_globals.setdefault("plt", _plt)
+            frame.f_globals.setdefault("xr", _xr)
     except Exception:
         pass
 

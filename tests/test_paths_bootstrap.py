@@ -295,13 +295,73 @@ def test_get_track_config_behavior():
 
 
 def test_start_injects_caller_globals(fake_repo, tmp_path):
-    # Ensure caller globals receive np, pd, plt after calling start
+    # Ensure caller globals receive np, pd, plt, xr after calling start
     ctx = start("phase03", mount=False, git=False, repo=fake_repo, drive_root=tmp_path / "drive")
     assert "np" in globals()
     assert "pd" in globals()
     assert "plt" in globals()
+    assert "xr" in globals()
     assert globals()["np"].__name__ == "numpy"
     assert globals()["pd"].__name__ == "pandas"
+    assert globals()["xr"].__name__ == "xarray"
     assert ctx.phase == "phase03"
+
+
+def test_context_to_grid_accepts_one_or_two_arguments(fake_repo, tmp_path, monkeypatch):
+    import xarray as xr
+    ctx = start("phaseD", mount=False, git=False, repo=fake_repo, drive_root=tmp_path / "drive")
+
+    # Mock template on ctx
+    tmpl = xr.DataArray([[1.0, 2.0]], dims=("y", "x"), coords={"y": [0], "x": [0, 1]})
+    tmpl2 = xr.DataArray([[3.0, 4.0]], dims=("y", "x"), coords={"y": [0], "x": [0, 1]})
+    ctx.__dict__["template"] = tmpl
+
+    recorded_targets = []
+    def mock_to_grid(obj, target):
+        recorded_targets.append(target)
+        return obj
+
+    monkeypatch.setattr("insar_wetlands.stack.to_grid", mock_to_grid)
+
+    data = xr.DataArray([10, 20])
+
+    # 1. Single argument call on method
+    res1 = ctx.to_grid(data)
+    assert recorded_targets[-1] is tmpl
+
+    # 2. Two argument call on method
+    res2 = ctx.to_grid(data, tmpl2)
+    assert recorded_targets[-1] is tmpl2
+
+    # 3. Bound method assigned to alias (as done in notebooks: to_grid = ctx.to_grid)
+    to_grid_fn = ctx.to_grid
+    res3 = to_grid_fn(data)
+    assert recorded_targets[-1] is tmpl
+
+    res4 = to_grid_fn(data, tmpl2)
+    assert recorded_targets[-1] is tmpl2
+
+
+def test_context_aoi_property(fake_repo, tmp_path, monkeypatch):
+    import xarray as xr
+    ctx = start("phaseD", mount=False, git=False, repo=fake_repo, drive_root=tmp_path / "drive")
+
+    tmpl = xr.DataArray([[1.0]], dims=("y", "x"), coords={"y": [0], "x": [0]})
+    ctx.__dict__["template"] = tmpl
+
+    mask_called = []
+    def mock_aoi_mask(template, cfg):
+        mask_called.append((template, cfg))
+        return xr.DataArray([[True]], dims=("y", "x"))
+
+    monkeypatch.setattr("insar_wetlands.stack.aoi_mask", mock_aoi_mask)
+
+    aoi = ctx.aoi
+    assert bool(aoi.values[0, 0]) is True
+    assert len(mask_called) == 1
+    # Check cached property
+    aoi_cached = ctx.aoi
+    assert len(mask_called) == 1
+
 
 
