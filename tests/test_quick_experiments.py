@@ -257,3 +257,24 @@ def test_restructured_figures_exist():
         assert p.stat().st_size > 50_000, f"Supplementary figure too small: {sf}"
         im = Image.open(p)
         assert im.width > 1000 and im.height > 800
+
+
+def test_paired_zone_diff_returns_ci95_and_ci95_pairs():
+    from insar_wetlands.stratify import paired_zone_diff
+
+    # Create synthetic coherence data for zones A and C across 10 pairs
+    pairs = [f"20220101_202201{d:02d}" for d in range(13, 23)]
+    rows = []
+    for p in pairs:
+        rows.append({"pair": p, "zone": "A", "mean_coh": 0.40})
+        rows.append({"pair": p, "zone": "C", "mean_coh": 0.50})
+    df = pd.DataFrame(rows)
+
+    res = paired_zone_diff(df, "A", "C", n_boot=100)
+    assert "ci95" in res
+    assert "ci95_pairs" in res
+    assert res["ci95"] == res["ci95_pairs"]
+    assert len(res["ci95"]) == 2
+    assert res["delta_mean"] < 0
+    assert res["n_pairs"] == 10
+

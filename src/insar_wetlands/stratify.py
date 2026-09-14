@@ -364,6 +364,8 @@ def paired_zone_diff(df: pd.DataFrame, a: str = "A", b: str = "C",
         "delta_median": float(np.median(dv)),
         "frac_a_lower": float((dv < 0).mean()),          # descriptif, PAS un test
         "wilcoxon_stat": float(wstat), "wilcoxon_p": float(wp),
+        "ci95": [float(np.percentile(boots, 2.5)),
+                 float(np.percentile(boots, 97.5))],
         "ci95_pairs": [float(np.percentile(boots, 2.5)),
                        float(np.percentile(boots, 97.5))],  # optimiste
         "date_jackknife_min": float(jack.min()) if jack.size else np.nan,
