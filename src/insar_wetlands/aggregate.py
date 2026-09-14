@@ -306,7 +306,8 @@ def adjacent_null_zones(zones: xr.DataArray | dict, template: xr.DataArray,
 
 
 def seasonal_amplitude(series: pd.DataFrame, date_col: str = "date",
-                       value_col: str = "disp_mm") -> dict:
+                       value_col: str = "disp_mm",
+                       epoch: pd.Timestamp | None = None) -> dict:
     """Amplitude du cycle ANNUEL d'une série agrégée (+ tendance).
 
     **Pourquoi c'est LA bonne observable.** La « respiration » d'une tourbière
@@ -319,15 +320,25 @@ def seasonal_amplitude(series: pd.DataFrame, date_col: str = "date",
     amplitude = sqrt(a^2+b^2), sa phase (jour du maximum), la tendance d, et le
     R^2 du terme saisonnier. À comparer a la même quantité sur le CONTRÔLE NUL :
     l'amplitude n'est un signal que si elle dépasse celle du nul.
+
+    `epoch` fixes t=0 to a given date instead of the series' own first
+    observation (the default, and every existing call site's behaviour —
+    unaffected unless passed). Two series with different first dates (e.g.
+    ascending vs descending, different satellite calendars) fit `a`/`b`
+    against *different* cos/sin phase origins otherwise, silently making them
+    incomparable — pass the same `epoch` to both calls before combining their
+    `a_cos_mm`/`b_sin_mm` in `geometry.two_los_decompose` (`phase16`).
     """
     d = pd.to_datetime(series[date_col])
-    t = (d - d.iloc[0]).dt.days.values / 365.25
+    t0 = pd.Timestamp(epoch) if epoch is not None else d.iloc[0]
+    t = (d - t0).dt.days.values / 365.25
     y = series[value_col].values.astype(float)
     ok = np.isfinite(y)
     t, y = t[ok], y[ok]
     if t.size < 6:
         return {"amplitude_mm": np.nan, "phase_doy": np.nan,
-                "trend_mm_yr": np.nan, "r2_seasonal": np.nan, "n": int(t.size)}
+                "trend_mm_yr": np.nan, "r2_seasonal": np.nan, "n": int(t.size),
+                "a_cos_mm": np.nan, "b_sin_mm": np.nan}
     M = np.column_stack([np.ones_like(t), t,
                          np.cos(2 * np.pi * t), np.sin(2 * np.pi * t)])
     beta, *_ = np.linalg.lstsq(M, y, rcond=None)
@@ -339,13 +350,20 @@ def seasonal_amplitude(series: pd.DataFrame, date_col: str = "date",
     amp = float(np.hypot(beta[2], beta[3]))
     # jour de l'année du maximum du cosinus ajusté
     phase = float((np.arctan2(beta[3], beta[2]) / (2 * np.pi)) % 1.0 * 365.25)
-    doy0 = int(pd.Timestamp(d.iloc[0]).dayofyear)
+    doy0 = int(pd.Timestamp(t0).dayofyear)
     return {"amplitude_mm": round(amp, 3),
             "phase_doy": round((doy0 + phase) % 365.25, 1),
             "trend_mm_yr": round(float(beta[1]), 3),
             "r2_seasonal": round(1.0 - float((resid ** 2).sum()) / ss0, 4)
             if ss0 > 0 else np.nan,
-            "n": int(t.size)}
+            "n": int(t.size),
+            # Raw cos/sin coefficients (a, b in the docstring above), not just
+            # their magnitude+phase — a 2-geometry LOS decomposition
+            # (`geometry.two_los_decompose`) is a linear solve on these
+            # directly, not on amplitude/phase, which would need re-deriving
+            # them anyway and loses nothing by being returned here instead.
+            "a_cos_mm": round(float(beta[2]), 4),
+            "b_sin_mm": round(float(beta[3]), 4)}
 
 
 def _compact_blob(cand_yx: np.ndarray, seed_i: int, n: int) -> np.ndarray:
