@@ -328,6 +328,13 @@ def seasonal_amplitude(series: pd.DataFrame, date_col: str = "date",
     against *different* cos/sin phase origins otherwise, silently making them
     incomparable — pass the same `epoch` to both calls before combining their
     `a_cos_mm`/`b_sin_mm` in `geometry.two_los_decompose` (`phase16`).
+
+    `cov_a_b` is the OLS parameter covariance of `(a_cos_mm, b_sin_mm)` —
+    `sigma^2 (M^T M)^-1`, sigma^2 from the residual sum of squares. A fit
+    through mostly noise (low `r2_seasonal`) has a large `cov_a_b`; feeding
+    `a_cos_mm`/`b_sin_mm` alone into a downstream decomposition without this
+    would make an unreliable fit look exactly as precise as a good one.
+    `geometry.two_los_amplitude_uncertainty` consumes this directly.
     """
     d = pd.to_datetime(series[date_col])
     t0 = pd.Timestamp(epoch) if epoch is not None else d.iloc[0]
@@ -338,11 +345,21 @@ def seasonal_amplitude(series: pd.DataFrame, date_col: str = "date",
     if t.size < 6:
         return {"amplitude_mm": np.nan, "phase_doy": np.nan,
                 "trend_mm_yr": np.nan, "r2_seasonal": np.nan, "n": int(t.size),
-                "a_cos_mm": np.nan, "b_sin_mm": np.nan}
+                "a_cos_mm": np.nan, "b_sin_mm": np.nan,
+                "cov_a_b": [[np.nan, np.nan], [np.nan, np.nan]]}
     M = np.column_stack([np.ones_like(t), t,
                          np.cos(2 * np.pi * t), np.sin(2 * np.pi * t)])
     beta, *_ = np.linalg.lstsq(M, y, rcond=None)
     resid = y - M @ beta
+    # OLS parameter covariance: sigma^2 (M^T M)^-1. This is what makes a/b
+    # (and everything downstream that is linear in them, like a 2-LOS
+    # decomposition) honest about how well-determined they are, rather than
+    # just point estimates -- a fit through mostly noise (low r2_seasonal)
+    # should propagate as *wide*, not silently look as precise as a good fit.
+    dof = max(t.size - M.shape[1], 1)
+    sigma2 = float((resid ** 2).sum()) / dof
+    cov_beta = sigma2 * np.linalg.inv(M.T @ M)
+    cov_a_b = cov_beta[2:4, 2:4]
     # R^2 du SEUL terme saisonnier : gain par rapport au modèle constante+tendance
     M0 = M[:, :2]
     r0 = y - M0 @ np.linalg.lstsq(M0, y, rcond=None)[0]
@@ -363,7 +380,8 @@ def seasonal_amplitude(series: pd.DataFrame, date_col: str = "date",
             # directly, not on amplitude/phase, which would need re-deriving
             # them anyway and loses nothing by being returned here instead.
             "a_cos_mm": round(float(beta[2]), 4),
-            "b_sin_mm": round(float(beta[3]), 4)}
+            "b_sin_mm": round(float(beta[3]), 4),
+            "cov_a_b": cov_a_b.tolist()}
 
 
 def _compact_blob(cand_yx: np.ndarray, seed_i: int, n: int) -> np.ndarray:
