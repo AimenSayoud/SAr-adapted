@@ -293,3 +293,15 @@ def test_get_track_config_behavior():
     assert flat["relative_orbit"] == 175
     assert flat["track_name"] == "ascending"
 
+
+def test_start_injects_caller_globals(fake_repo, tmp_path):
+    # Ensure caller globals receive np, pd, plt after calling start
+    ctx = start("phase03", mount=False, git=False, repo=fake_repo, drive_root=tmp_path / "drive")
+    assert "np" in globals()
+    assert "pd" in globals()
+    assert "plt" in globals()
+    assert globals()["np"].__name__ == "numpy"
+    assert globals()["pd"].__name__ == "pandas"
+    assert ctx.phase == "phase03"
+
+
