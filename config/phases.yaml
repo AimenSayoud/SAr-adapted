@@ -216,6 +216,16 @@ phase12:
   outputs: [hybrid_vertical_ts.nc]
   paper: "§A.5 — the measured 32.26 deg, factor 1.183"
 
+phase16:
+  title: Two-geometry (ascending + descending) LOS decomposition
+  notebook: notebooks/03_corrections/phase16_two_los_decomposition.ipynb
+  group: corrections
+  question: Does combining ascending and descending resolve vertical from east-west motion, removing phase12's untested pure-vertical assumption?
+  status: exploratory
+  inputs: [phaseG.phaseG_aggregate_series.csv, phaseG.phaseG_aggregate_series_descending.csv]
+  outputs: [phase16_two_los_decomposition.json]
+  paper: "Paper 2 (Diurnal Test), Ticket X-032"
+
 phase13:
   title: Hydrological analysis and dielectric separation
   notebook: notebooks/04_hypotheses/phase13_hydrology.ipynb

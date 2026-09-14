@@ -53,7 +53,9 @@ phase superseded, cycle, fichier absent.
 | Phase | Question | Status | Paper |
 |---|---|---|---|
 | [`phase01`](notebooks/01_data/phase01_acquisition.ipynb) — Multi-source acquisition inventory | What Sentinel-1, Sentinel-2 and ERA5 data exist over the AOI and period? | ✅ | §2.2, Table 2 |
+| [`phase02_descending_pilot`](notebooks/01_data/phase02_descending_pilot.ipynb) — Descending Orbit 22 pilot batch submission and coherence gate | Does Descending Orbit 22 (05:09 UTC) achieve >= 0.30 coherence over Rzecin across all seasons? | ✅ | Paper 2 (Diurnal Test), Gate X-030 |
 | [`phase01b`](notebooks/01_data/phase01b_selection.ipynb) — Pair selection — the paper's method, improved | Which interferometric pairs should the network contain? | ✅ | §2.2, Fig. 3 |
+| [`phase02_descending_full`](notebooks/01_data/phase02_descending_full.ipynb) — Full 2022–2024 Descending Orbit 22 SBAS network harvest (340 pairs) | Does the 340-pair descending network provide continuous connectivity for 2-LOS decomposition? | ✅ | Paper 2 (Diurnal Test), Ticket X-031 |
 | [`phase02`](notebooks/01_data/phase02_hyp3_jobs.ipynb) — HyP3 burst interferograms — SBAS network | Can the planned network be produced as burst interferograms in the cloud? | ✅ | §2.2, Table 2 |
 | [`phase02b`](notebooks/01_data/phase02b_hyp3.ipynb) — HyP3 submission and download | Same, for the alternative pair set. | ✅ | - |
 | [`phase03`](notebooks/01_data/phase03_network_qc.ipynb) — Network quality control and topology | Is C-band coherence over the mat sufficient to proceed at all? | ✅ | §2.2, Fig. 3 |
@@ -85,6 +87,7 @@ phase superseded, cycle, fichier absent.
 |---|---|---|---|
 | [`phase12`](notebooks/03_corrections/phase12_los_vertical.ipynb) — LOS to vertical decomposition | What is the measured incidence angle, and the conversion factor? | ✅ | §A.5 — the measured 32.26 deg, factor 1.183 |
 | [`phase11`](notebooks/03_corrections/phase11_atmosphere.ipynb) — Comparative atmospheric correction — double-blind test | Does ERA5 correction beat a local reference zone? | ✅ | §A.4 |
+| [`phase16`](notebooks/03_corrections/phase16_two_los_decomposition.ipynb) — Two-geometry (ascending + descending) LOS decomposition | Does combining ascending and descending resolve vertical from east-west motion, removing phase12's untested pure-vertical assumption? | 🔍 exploratory | Paper 2 (Diurnal Test), Ticket X-032 |
 
 ### 04_hypotheses — Hypothesis tests — zone contrast, aggregation, hydrology (H2–H4)
 
@@ -97,6 +100,7 @@ phase superseded, cycle, fichier absent.
 | [`phaseDter`](notebooks/04_hypotheses/phaseDter_scattering_scatterers.ipynb) — Scattering mechanism and DS-InSAR feasibility | Is the mat radar-dark, or bright with unstable phase? | ✅ | §4.2.4, Table 10 |
 | [`phaseG`](notebooks/04_hypotheses/phaseG_aggregation.ipynb) — Spatial aggregation — the change of observable | Does aggregating 499 pixels reveal a signal invisible pixel by pixel? | ✅ | §4.3, H3 — Table 14, Fig. 11 |
 | [`phaseI`](notebooks/04_hypotheses/phaseI_hydro_sensor.ipynb) — Is the dielectric signal a hydrological sensor? | On deseasonalised anomalies, does the aggregated phase track surface wetness? | ✅ | §4.4, H4 — Table 18, Fig. 14, Fig. 15 |
+| [`phaseM`](notebooks/04_hypotheses/phaseM_mechanical_vs_dielectric.ipynb) — Mechanical vs. dielectric discrimination and forward simulation | Can the observed seasonal InSAR signal be separated into mechanical displacement and dielectric phase shift? | 🔍 exploratory | §4.3, §5.2, Table T16 |
 
 ### 05_robustness — Robustness — falsification, external controls, referee rounds
 
@@ -113,8 +117,7 @@ phase superseded, cycle, fichier absent.
 | Phase | Question | Status | Paper |
 |---|---|---|---|
 | [`build_manuscript_docx`](notebooks/06_manuscript/build_manuscript_docx.ipynb) — Manuscript assembly to .docx | — | 🔧 tooling | the manuscript itself |
-| [`export_figures_en`](notebooks/06_manuscript/export_figures_en.ipynb) — Manuscript figure export (English), 300 dpi | — | 🔧 tooling | all figures and T*.csv |
-| [`phaseZ`](notebooks/06_manuscript/phaseZ_export_figures.ipynb) — Full figure and table export | — | 🔧 tooling | all figures and T*.csv |
+| [`export_figures_en`](notebooks/06_manuscript/export_figures_en.ipynb) — Manuscript figure and table export (English), 300 dpi | — | 🔧 tooling | all figures and T*.csv |
 <!-- PHASES:END -->
 
 Le cœur scientifique (matrice de design, inversion ISBAS, récupération des
