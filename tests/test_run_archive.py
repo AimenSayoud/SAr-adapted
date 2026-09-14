@@ -65,6 +65,15 @@ def test_a_missing_product_is_recorded_rather_than_raising(workspace):
     assert load_manifest(run)["products"]["absent"]["exists"] is False
 
 
+def test_scalar_products_do_not_crash(workspace):
+    outdir, drive = workspace
+    run = archive_run("phaseX", outdir, root=drive,
+                      products={"count": 12, "ratio": 0.75, "active": True})
+    manifest = load_manifest(run)
+    assert manifest["products"]["count"]["value"] == 12
+    assert manifest["products"]["count"]["is_scalar"] is True
+
+
 def test_runs_accumulate_and_are_never_overwritten(workspace, monkeypatch):
     outdir, drive = workspace
     import insar_wetlands.run_archive as ra
