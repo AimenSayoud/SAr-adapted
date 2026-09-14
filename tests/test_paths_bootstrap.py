@@ -326,19 +326,19 @@ def test_context_to_grid_accepts_one_or_two_arguments(fake_repo, tmp_path, monke
     data = xr.DataArray([10, 20])
 
     # 1. Single argument call on method
-    res1 = ctx.to_grid(data)
+    ctx.to_grid(data)
     assert recorded_targets[-1] is tmpl
 
     # 2. Two argument call on method
-    res2 = ctx.to_grid(data, tmpl2)
+    ctx.to_grid(data, tmpl2)
     assert recorded_targets[-1] is tmpl2
 
     # 3. Bound method assigned to alias (as done in notebooks: to_grid = ctx.to_grid)
     to_grid_fn = ctx.to_grid
-    res3 = to_grid_fn(data)
+    to_grid_fn(data)
     assert recorded_targets[-1] is tmpl
 
-    res4 = to_grid_fn(data, tmpl2)
+    to_grid_fn(data, tmpl2)
     assert recorded_targets[-1] is tmpl2
 
 
@@ -360,7 +360,7 @@ def test_context_aoi_property(fake_repo, tmp_path, monkeypatch):
     assert bool(aoi.values[0, 0]) is True
     assert len(mask_called) == 1
     # Check cached property
-    aoi_cached = ctx.aoi
+    _ = ctx.aoi
     assert len(mask_called) == 1
 
 
