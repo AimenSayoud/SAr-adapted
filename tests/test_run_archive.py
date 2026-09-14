@@ -13,11 +13,31 @@ from insar_wetlands.run_archive import (
     archive_run,
     compare_runs,
     drive_root,
+    extract_notebook_images,
     latest_run,
     list_runs,
     load_manifest,
     run_id,
 )
+
+# A real, minimal 1x1 transparent PNG, base64-encoded -- exactly the shape a
+# `colab exec`-produced `_output.ipynb` embeds for a `plt.show()`ed figure.
+ONE_PIXEL_PNG_B64 = (
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk"
+    "+A8AAQUBAScY42YAAAAASUVORK5CYII="
+)
+
+
+def _notebook_with_outputs(cell_outputs: list[list[dict]]) -> dict:
+    """A minimal nbformat structure with the given per-cell outputs."""
+    return {
+        "cells": [
+            {"cell_type": "code", "source": [], "outputs": outputs}
+            for outputs in cell_outputs
+        ],
+        "nbformat": 4,
+        "nbformat_minor": 5,
+    }
 
 
 @pytest.fixture()
@@ -143,3 +163,85 @@ def test_describe_file_flags_a_large_light_file_as_heavy(tmp_path):
         assert ra.describe_file(big)["heavy"] is True
     finally:
         ra.MAX_COPY_BYTES = original
+
+
+# --- extracting images from an executed notebook ---------------------------
+
+def test_extract_notebook_images_pulls_embedded_png(tmp_path: Path):
+    import base64
+    import json
+
+    nb = _notebook_with_outputs([
+        [{"output_type": "display_data",
+          "data": {"image/png": ONE_PIXEL_PNG_B64}}],
+    ])
+    nb_path = tmp_path / "phaseX_output.ipynb"
+    nb_path.write_text(json.dumps(nb))
+
+    out_dir = tmp_path / "images"
+    written = extract_notebook_images(nb_path, out_dir)
+
+    assert len(written) == 1
+    assert written[0] == out_dir / "cell000_output00.png"
+    assert written[0].read_bytes() == base64.b64decode(ONE_PIXEL_PNG_B64)
+
+
+def test_extract_notebook_images_ignores_text_only_outputs(tmp_path: Path):
+    import json
+
+    nb = _notebook_with_outputs([
+        [{"output_type": "stream", "name": "stdout", "text": ["356 pairs\n"]}],
+        [{"output_type": "execute_result",
+          "data": {"text/plain": ["<DataFrame>"]}}],
+    ])
+    nb_path = tmp_path / "phaseX_output.ipynb"
+    nb_path.write_text(json.dumps(nb))
+
+    assert extract_notebook_images(nb_path, tmp_path / "images") == []
+
+
+def test_extract_notebook_images_numbers_multiple_figures_in_order(tmp_path: Path):
+    import json
+
+    nb = _notebook_with_outputs([
+        [{"output_type": "display_data", "data": {"image/png": ONE_PIXEL_PNG_B64}}],
+        [{"output_type": "stream", "name": "stdout", "text": ["...\n"]},
+         {"output_type": "display_data", "data": {"image/png": ONE_PIXEL_PNG_B64}}],
+    ])
+    nb_path = tmp_path / "phaseX_output.ipynb"
+    nb_path.write_text(json.dumps(nb))
+
+    written = extract_notebook_images(nb_path, tmp_path / "images")
+    names = sorted(p.name for p in written)
+    assert names == ["cell000_output00.png", "cell001_output01.png"]
+
+
+def test_archive_run_with_executed_notebook_extracts_images(workspace):
+    import json
+
+    outdir, drive = workspace
+    nb = _notebook_with_outputs([
+        [{"output_type": "display_data", "data": {"image/png": ONE_PIXEL_PNG_B64}}],
+    ])
+    nb_path = outdir / "phaseX_output.ipynb"
+    nb_path.write_text(json.dumps(nb))
+
+    run = archive_run("phaseX", outdir, root=drive, executed_notebook=nb_path)
+    manifest = load_manifest(run)
+
+    assert manifest["images"] == ["images/cell000_output00.png"]
+    assert (run / "images" / "cell000_output00.png").is_file()
+
+
+def test_archive_run_reports_a_missing_executed_notebook(workspace):
+    outdir, drive = workspace
+    run = archive_run("phaseX", outdir, root=drive,
+                      executed_notebook=outdir / "does_not_exist.ipynb")
+    manifest = load_manifest(run)
+    assert manifest["images"] == [f"MISSING: {outdir / 'does_not_exist.ipynb'}"]
+
+
+def test_archive_run_without_executed_notebook_has_empty_images(workspace):
+    outdir, drive = workspace
+    run = archive_run("phaseX", outdir, root=drive)
+    assert load_manifest(run)["images"] == []
