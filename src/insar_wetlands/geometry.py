@@ -93,3 +93,48 @@ def two_los_decompose(los_asc, los_desc,
     if np.ndim(los_asc) == 0:
         return float(d_east), float(d_vert)
     return d_east, d_vert
+
+
+def two_los_amplitude_uncertainty(fit_asc: dict, fit_desc: dict,
+                                  geom_asc: tuple[float, float],
+                                  geom_desc: tuple[float, float],
+                                  n_trials: int = 5000,
+                                  rng: np.random.Generator | None = None) -> dict:
+    """Monte Carlo propagation of each track's seasonal-fit uncertainty
+    through the 2-LOS decomposition, onto vertical and east amplitude.
+
+    A deterministic `two_los_decompose` call on two point estimates answers
+    "what does the geometry imply", nothing about how much to trust it — a
+    decomposition anchored on a fit through mostly noise (low
+    `r2_seasonal`, wide `cov_a_b`) looks exactly as precise as one anchored
+    on a strong fit unless this is done. Draws each track's (a_cos_mm,
+    b_sin_mm) from `N(mean, cov_a_b)` (`aggregate.seasonal_amplitude`'s OLS
+    parameter covariance), decomposes every draw, and summarizes the
+    resulting vertical/east amplitude distributions.
+
+    `fit_asc`/`fit_desc` are `seasonal_amplitude(...)` result dicts (must
+    include `a_cos_mm`, `b_sin_mm`, `cov_a_b`). Returns a dict with
+    `vertical_amplitude_mm` and `east_amplitude_mm`, each
+    `{median, mean, std, ci95: [lo, hi]}`.
+    """
+    rng = rng or np.random.default_rng(0)
+    mean_asc = [fit_asc["a_cos_mm"], fit_asc["b_sin_mm"]]
+    mean_desc = [fit_desc["a_cos_mm"], fit_desc["b_sin_mm"]]
+    draws_asc = rng.multivariate_normal(mean_asc, fit_asc["cov_a_b"], size=n_trials)
+    draws_desc = rng.multivariate_normal(mean_desc, fit_desc["cov_a_b"], size=n_trials)
+
+    a_east, a_vert = two_los_decompose(draws_asc[:, 0], draws_desc[:, 0], geom_asc, geom_desc)
+    b_east, b_vert = two_los_decompose(draws_asc[:, 1], draws_desc[:, 1], geom_asc, geom_desc)
+    vert_amplitude = np.hypot(a_vert, b_vert)
+    east_amplitude = np.hypot(a_east, b_east)
+
+    def summarize(x: np.ndarray) -> dict:
+        return {"median": round(float(np.median(x)), 3),
+                "mean": round(float(np.mean(x)), 3),
+                "std": round(float(np.std(x)), 3),
+                "ci95": [round(float(np.percentile(x, 2.5)), 3),
+                        round(float(np.percentile(x, 97.5)), 3)]}
+
+    return {"vertical_amplitude_mm": summarize(vert_amplitude),
+            "east_amplitude_mm": summarize(east_amplitude),
+            "n_trials": n_trials}

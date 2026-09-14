@@ -14,6 +14,7 @@ from insar_wetlands.aggregate import seasonal_amplitude
 from insar_wetlands.geometry import (
     los_to_vertical,
     los_unit_vector,
+    two_los_amplitude_uncertainty,
     two_los_decompose,
     two_los_design_matrix,
 )
@@ -153,6 +154,95 @@ def test_seasonal_amplitude_without_a_shared_epoch_would_be_wrong():
     assert not np.allclose([fit_asc_own["a_cos_mm"], fit_asc_own["b_sin_mm"]],
                           [fit_desc_own["a_cos_mm"], fit_desc_own["b_sin_mm"]],
                           atol=0.5)
+
+
+# --- error propagation through the 2-LOS solve ------------------------
+
+def _synthetic_fit(dates, los_amplitude, phase_frac, epoch, noise_std, rng):
+    """A seasonal_amplitude() result from a known signal plus known noise --
+    lets a test control r2_seasonal/cov_a_b directly instead of hoping a
+    hand-built dict is realistic."""
+    t = (dates - epoch).days.values / 365.25
+    y = los_amplitude * np.cos(2 * np.pi * (t - phase_frac)) + rng.normal(0, noise_std, t.size)
+    return seasonal_amplitude(pd.DataFrame({"date": dates, "disp_mm": y}), epoch=epoch)
+
+
+def test_uncertainty_collapses_to_the_point_estimate_for_a_clean_fit():
+    """Near-zero noise -> near-zero cov_a_b -> the Monte Carlo median must
+    land on the same answer two_los_decompose gives deterministically, with
+    a tight CI, not a wide one."""
+    rng = np.random.default_rng(1)
+    epoch = pd.Timestamp("2022-01-01")
+    dates_asc = pd.date_range("2022-01-05", periods=90, freq="12D")
+    dates_desc = pd.date_range("2022-01-07", periods=89, freq="12D")
+    fit_asc = _synthetic_fit(dates_asc, 3.29, 0.1, epoch, noise_std=0.05, rng=rng)
+    fit_desc = _synthetic_fit(dates_desc, 3.29, 0.1, epoch, noise_std=0.05, rng=rng)
+
+    east_point, vert_point = two_los_decompose(fit_asc["a_cos_mm"], fit_desc["a_cos_mm"],
+                                               ASCENDING, DESCENDING)
+    result = two_los_amplitude_uncertainty(fit_asc, fit_desc, ASCENDING, DESCENDING,
+                                           n_trials=5000, rng=np.random.default_rng(2))
+    vert_ci = result["vertical_amplitude_mm"]["ci95"]
+    assert vert_ci[1] - vert_ci[0] < 1.0, result   # tight: clean fit on both tracks
+
+
+def test_uncertainty_widens_when_one_track_is_mostly_noise():
+    """The real situation this exists for: one track (descending) fit
+    through noise should propagate to a *visibly wider* CI than a case
+    where both tracks are clean -- not the same-looking answer either way."""
+    epoch = pd.Timestamp("2022-01-01")
+    dates_asc = pd.date_range("2022-01-05", periods=90, freq="12D")
+    dates_desc = pd.date_range("2022-01-07", periods=89, freq="12D")
+
+    fit_asc = _synthetic_fit(dates_asc, 3.29, 0.1, epoch, noise_std=0.05,
+                             rng=np.random.default_rng(1))
+    # Descending: tiny true signal buried in noise comparable to X-038's real
+    # descending fit (amplitude 0.75mm, r2_seasonal=0.026 -- mostly noise).
+    fit_desc_noisy = _synthetic_fit(dates_desc, 0.75, 0.3, epoch, noise_std=2.0,
+                                    rng=np.random.default_rng(3))
+    fit_desc_clean = _synthetic_fit(dates_desc, 0.75, 0.3, epoch, noise_std=0.05,
+                                    rng=np.random.default_rng(3))
+    assert fit_desc_noisy["r2_seasonal"] < 0.3, fit_desc_noisy   # confirm it IS noisy
+
+    noisy_result = two_los_amplitude_uncertainty(fit_asc, fit_desc_noisy, ASCENDING, DESCENDING,
+                                                 n_trials=5000, rng=np.random.default_rng(4))
+    clean_result = two_los_amplitude_uncertainty(fit_asc, fit_desc_clean, ASCENDING, DESCENDING,
+                                                 n_trials=5000, rng=np.random.default_rng(4))
+
+    def width(r, key):
+        lo, hi = r[key]["ci95"]
+        return hi - lo
+
+    assert width(noisy_result, "east_amplitude_mm") > 3 * width(clean_result, "east_amplitude_mm")
+    assert width(noisy_result, "vertical_amplitude_mm") > 3 * width(clean_result, "vertical_amplitude_mm")
+
+
+def test_monte_carlo_linear_step_matches_analytical_covariance_propagation():
+    """Before the sqrt(a^2+b^2) nonlinearity, the transform (a_asc, a_desc)
+    -> (a_east, a_vert) is exactly linear -- its Monte Carlo covariance must
+    match A^-1 Cov A^-T analytically, not just look reasonable. This is the
+    correctness check for the propagation itself, independent of whether the
+    downstream amplitude numbers look plausible."""
+    rng = np.random.default_rng(7)
+    cov_asc = np.array([[0.04, 0.01], [0.01, 0.03]])
+    cov_desc = np.array([[0.5, -0.1], [-0.1, 0.6]])
+    fit_asc = {"a_cos_mm": 1.0, "b_sin_mm": 2.0, "cov_a_b": cov_asc.tolist()}
+    fit_desc = {"a_cos_mm": 0.2, "b_sin_mm": 0.5, "cov_a_b": cov_desc.tolist()}
+
+    A = two_los_design_matrix(ASCENDING, DESCENDING)
+    Ainv = np.linalg.inv(A)
+    # Cov of (a_east, a_vert) given independent (a_asc, a_desc): stack their
+    # variances into a 2x2 block-diagonal, propagate through Ainv.
+    cov_a_stack = np.array([[cov_asc[0, 0], 0.0], [0.0, cov_desc[0, 0]]])
+    expected_cov_a = Ainv @ cov_a_stack @ Ainv.T
+
+    n = 200_000
+    draws_asc_a = rng.normal(fit_asc["a_cos_mm"], np.sqrt(cov_asc[0, 0]), n)
+    draws_desc_a = rng.normal(fit_desc["a_cos_mm"], np.sqrt(cov_desc[0, 0]), n)
+    a_east, a_vert = two_los_decompose(draws_asc_a, draws_desc_a, ASCENDING, DESCENDING)
+    mc_cov_a = np.cov(np.stack([a_east, a_vert]))
+
+    np.testing.assert_allclose(mc_cov_a, expected_cov_a, rtol=0.05)
 
 
 def test_los_to_vertical_matches_single_track_special_case():
