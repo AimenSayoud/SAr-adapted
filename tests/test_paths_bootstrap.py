@@ -209,6 +209,36 @@ def test_paths_track_parameterization(fake_repo, tmp_path):
     assert p_desc.describe()["track"] == "descending"
 
 
+def test_artifacts_is_namespaced_by_track(fake_repo, tmp_path):
+    drive = tmp_path / "drive"
+    p_asc = Paths(repo=fake_repo, drive=drive, track="ascending")
+    assert p_asc.artifacts == drive / "artifacts"
+
+    p_desc = Paths(repo=fake_repo, drive=drive, track="descending")
+    assert p_desc.artifacts == drive / "artifacts_descending"
+
+    p_none = Paths(repo=fake_repo, drive=drive)
+    assert p_none.artifacts == drive / "artifacts"
+
+
+def test_track_file_matches_drive_file_for_the_default_track(fake_repo, tmp_path):
+    drive = tmp_path / "drive"
+    p_asc = Paths(repo=fake_repo, drive=drive, track="ascending")
+    assert p_asc.track_file("ts_sbas_ref_only.nc") == drive / "ts_sbas_ref_only.nc"
+
+    p_none = Paths(repo=fake_repo, drive=drive)
+    assert p_none.track_file("ts_sbas_ref_only.nc") == drive / "ts_sbas_ref_only.nc"
+
+
+def test_track_file_is_suffixed_for_a_non_default_track(fake_repo, tmp_path):
+    drive = tmp_path / "drive"
+    p_desc = Paths(repo=fake_repo, drive=drive, track="descending")
+    assert (p_desc.track_file("ts_sbas_ref_only.nc")
+            == drive / "ts_sbas_ref_only_descending.nc")
+    assert (p_desc.track_file("phase_closure.nc")
+            == drive / "phase_closure_descending.nc")
+
+
 def test_paths_for_phase_preserves_track(fake_repo, tmp_path):
     drive = tmp_path / "drive"
     base = Paths(repo=fake_repo, drive=drive, track="descending")

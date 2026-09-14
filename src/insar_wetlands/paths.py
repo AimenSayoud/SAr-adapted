@@ -93,6 +93,26 @@ class Paths:
         tile survives the Colab session that fetched it."""
         return self._made(self.drive / "cache")
 
+    @property
+    def artifacts(self) -> Path:
+        """Small inter-phase artefacts (``pair_selection.csv``, reference-pixel
+        JSON), namespaced by track so a non-default-track run cannot overwrite
+        the default track's copy."""
+        if self.track and self.track.lower() != "ascending":
+            return self._made(self.drive / f"artifacts_{self.track.lower()}")
+        return self._made(self.drive / "artifacts")
+
+    def track_file(self, name: str) -> Path:
+        """A Drive-root product (e.g. ``ts_sbas_ref_only.nc``), suffixed by
+        track when non-default so it cannot collide with the default track's
+        file of the same name. Identical to ``drive_file(name)`` for the
+        default track — no change to the existing ascending pipeline."""
+        if self.track and self.track.lower() != "ascending":
+            stem = Path(name)
+            suffix = stem.suffix
+            return self.drive / f"{stem.stem}_{self.track.lower()}{suffix}"
+        return self.drive / name
+
     # --- outputs ------------------------------------------------------------
     @property
     def outputs(self) -> Path:
