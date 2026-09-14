@@ -252,5 +252,20 @@ def start(phase: str,
         except Exception as e:                          # noqa: BLE001
             log.warning("git setup skipped: %s", e)
 
+    # Expose common data-science aliases in caller globals if running interactively
+    import inspect
+    try:
+        frame = inspect.currentframe().f_back
+        if frame is not None:
+            import matplotlib.pyplot as _plt
+            import numpy as _np
+            import pandas as _pd
+            frame.f_globals.setdefault("np", _np)
+            frame.f_globals.setdefault("pd", _pd)
+            frame.f_globals.setdefault("plt", _plt)
+    except Exception:
+        pass
+
     return Context(phase=phase, cfg=cfg, paths=paths, log=log, track=track)
+
 
