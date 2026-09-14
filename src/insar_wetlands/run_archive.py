@@ -130,8 +130,10 @@ def _digest(path: Path, limit: int = 8 * 1024 * 1024) -> str | None:
         return None
 
 
-def describe_file(path: str | Path) -> dict:
+def describe_file(path: str | Path | object) -> dict:
     """Identify a product without necessarily copying it."""
+    if not isinstance(path, (str, Path, os.PathLike)):
+        return {"value": path, "is_scalar": True, "exists": True}
     path = Path(path)
     if not path.exists():
         return {"path": str(path), "exists": False}
