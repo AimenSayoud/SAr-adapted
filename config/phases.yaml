@@ -79,10 +79,21 @@ phase02_descending_pilot:
   notebook: notebooks/01_data/phase02_descending_pilot.ipynb
   group: data
   question: Does Descending Orbit 22 (05:09 UTC) achieve >= 0.30 coherence over Rzecin across all seasons?
-  status: exploratory
+  status: current
   inputs: []
   outputs: [test_batch_descending.csv]
   paper: "Paper 2 (Diurnal Test), Gate X-030"
+
+phase02_descending_full:
+  title: Full 2022–2024 Descending Orbit 22 SBAS network harvest (340 pairs)
+  notebook: notebooks/01_data/phase02_descending_full.ipynb
+  group: data
+  question: Does the 340-pair descending network provide continuous connectivity for 2-LOS decomposition?
+  status: current
+  inputs: [phase02_descending_pilot.test_batch_descending.csv]
+  outputs: [descending_sbas_jobs.csv]
+  paper: "Paper 2 (Diurnal Test), Ticket X-031"
+
 
 
 phase03:
