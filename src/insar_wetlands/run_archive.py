@@ -18,6 +18,16 @@ Usage is one line at the end of a phase notebook::
     from insar_wetlands.run_archive import archive_run
     archive_run("phaseG", outdir, params=PARAMS, products=PRODUCTS)
 
+A figure a cell only shows with ``plt.show()`` — never written to ``outdir`` with
+``fig.savefig(...)`` — exists nowhere after the Colab session ends. `colab exec`
+(the headless CLI, `docs/guide_colab_drive_operations.md`) already saves the
+executed notebook with every cell's rich output embedded, images included, as
+`<name>_output.ipynb` — that mechanism predates this module and needed no new
+code. What was missing is turning that one big JSON blob into files anyone (or
+any agent without a notebook renderer) can actually look at:
+`extract_notebook_images()`, and `archive_run(..., executed_notebook=path)` to
+pull the images straight into the run archive alongside everything else.
+
 Heavy products (``.nc``, ``.tif``, ``.h5``) are **recorded but not copied**: they
 already live on Drive and duplicating them per run would exhaust the quota. They
 are listed with their path, size and modification time, which is enough to tell
@@ -26,6 +36,7 @@ whether a later run read the same input.
 
 from __future__ import annotations
 
+import base64
 import hashlib
 import json
 import os
@@ -34,6 +45,14 @@ import shutil
 import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
+
+# Rich-output MIME types worth extracting from an executed notebook, mapped to
+# the file extension a cell output under this key becomes.
+IMAGE_MIME_EXTENSIONS = {
+    "image/png": ".png",
+    "image/jpeg": ".jpg",
+    "image/svg+xml": ".svg",
+}
 
 # Where the Drive is mounted in Colab. Overridable for local runs and tests.
 DEFAULT_DRIVE_ROOT = "/content/drive/MyDrive/insar_rzecin"
@@ -150,13 +169,47 @@ def describe_file(path: str | Path | object) -> dict:
     }
 
 
+def extract_notebook_images(notebook_path: str | Path, out_dir: str | Path) -> list[Path]:
+    """Every image a cell displayed (``plt.show()``, not just ``savefig()``),
+    pulled out of an executed ``.ipynb`` into standalone files.
+
+    An executed notebook's JSON carries each cell's rich output inline,
+    base64-encoded — that is the entire content of a `colab exec`-produced
+    `<name>_output.ipynb`. Nothing renders that JSON as pictures on its own;
+    this makes the pictures exist as files again. Cells and outputs are
+    numbered in execution order so multiple figures never collide and the
+    filename alone says where in the notebook each one came from.
+    """
+    nb = json.loads(Path(notebook_path).read_text(encoding="utf-8"))
+    out_dir = Path(out_dir)
+    written: list[Path] = []
+    for ci, cell in enumerate(nb.get("cells", [])):
+        for oi, output in enumerate(cell.get("outputs", [])):
+            data = output.get("data", {})
+            for mime, ext in IMAGE_MIME_EXTENSIONS.items():
+                blob = data.get(mime)
+                if not blob:
+                    continue
+                raw = "".join(blob) if isinstance(blob, list) else blob
+                content = (raw.encode("utf-8") if mime == "image/svg+xml"
+                          else base64.b64decode(raw))
+                mode = "wb" if mime != "image/svg+xml" else "w"
+                dest = out_dir / f"cell{ci:03d}_output{oi:02d}{ext}"
+                out_dir.mkdir(parents=True, exist_ok=True)
+                with dest.open(mode, encoding=None if mode == "wb" else "utf-8") as fh:
+                    fh.write(content)
+                written.append(dest)
+    return written
+
+
 def archive_run(phase: str,
                 outdir: str | Path,
                 params: dict | None = None,
                 products: dict | None = None,
                 root: str | Path | None = None,
                 repo: str | Path = ".",
-                copy_light: bool = True) -> Path:
+                copy_light: bool = True,
+                executed_notebook: str | Path | None = None) -> Path:
     """Archive one phase execution under ``<root>/runs/<phase>/<run_id>/``.
 
     Parameters
@@ -173,6 +226,13 @@ def archive_run(phase: str,
         Heavy files are recorded by path and hash instead of copied.
     copy_light
         Set False to record only, copying nothing.
+    executed_notebook
+        Path to this run's own executed ``.ipynb`` (a `colab exec`
+        `<name>_output.ipynb`, or the notebook itself if the Colab UI's
+        "save a copy with outputs" was used). Every embedded image — anything
+        a cell reached with ``plt.show()``, not only what was explicitly
+        ``savefig()``-ed to `outdir` — is extracted into ``images/`` in the
+        run archive. Optional: omitting it changes nothing else.
 
     Returns the run directory. Runs are never overwritten: a second call in the
     same second with the same commit raises rather than clobbering.
@@ -200,6 +260,15 @@ def archive_run(phase: str,
             shutil.copy2(src, dest)
             copied.append(str(src.relative_to(outdir)))
 
+    images: list[str] = []
+    if executed_notebook is not None:
+        nb_path = Path(executed_notebook)
+        if nb_path.is_file():
+            written = extract_notebook_images(nb_path, base / "images")
+            images = [str(p.relative_to(base)) for p in written]
+        else:
+            images = [f"MISSING: {nb_path}"]
+
     manifest = {
         "phase": phase,
         "run_id": rid,
@@ -209,6 +278,7 @@ def archive_run(phase: str,
         "parameters": params or {},
         "products": described,
         "copied": copied,
+        "images": images,
         "outdir": str(outdir),
         "archive_root": str(drive_root(root)),
     }
