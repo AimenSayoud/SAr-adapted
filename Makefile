@@ -8,6 +8,7 @@ PY      := python3
 SRC     := src
 PAPER   := docs/paper
 FIGURES := $(PAPER)/figures
+TABLES  := results/tables
 HUB     := $(HOME)/Documents/Research_Hub
 OUT     := $(HUB)/03_paper01_rzecin/current
 BIB     := $(HUB)/02_literature/bibliography/references.bib
@@ -67,7 +68,7 @@ readme: phases
 
 appendix:
 	@$(RUN) "from insar_wetlands.paper_build import build_data_appendix; \
-	r = build_data_appendix('$(FIGURES)', '$(PAPER)/09_appendix_data.md'); print(r)"
+	r = build_data_appendix('$(TABLES)', '$(PAPER)/09_appendix_data.md'); print(r)"
 
 assemble:
 	@$(RUN) "from insar_wetlands.paper_build import assemble_markdown; \

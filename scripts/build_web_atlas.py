@@ -162,7 +162,8 @@ def main() -> None:
     tpl = ctx.template
     x, y = tpl.x.values, tpl.y.values
     W = AtlasWriter(out, x, y)
-    FIG = REPO / "docs" / "paper" / "figures"
+    FIG = REPO / "docs" / "paper" / "figures"      # figure images
+    TAB = REPO / "results" / "tables"              # results tables (T*.csv) and series
 
     def P(*files, root=D):
         pv = Provenance()
@@ -178,7 +179,7 @@ def main() -> None:
     # ------------------------------------------------------------------ zones
     print("\n== zones")
     zones = ctx.zones
-    t01 = pd.read_csv(FIG / "T01_zones.csv").set_index("zone")
+    t01 = pd.read_csv(TAB / "T01_zones.csv").set_index("zone")
     lab = np.zeros(tpl.shape, "uint8")
     for code, z in enumerate("ABCD", start=1):
         lab[zones[z].values] = code
@@ -592,9 +593,9 @@ def main() -> None:
 
     # ------------------------------------------------------------------- charts
     print("\n== charts & consistency checks")
-    committed = pd.read_csv(FIG / "phaseG_aggregate_series.csv")
-    check("phaseG series: Drive == committed figures copy",
-          (D / "phaseG_aggregate_series.csv").read_bytes() == (FIG / "phaseG_aggregate_series.csv").read_bytes(),
+    committed = pd.read_csv(TAB / "phaseG_aggregate_series.csv")
+    check("phaseG series: Drive == committed results copy",
+          (D / "phaseG_aggregate_series.csv").read_bytes() == (TAB / "phaseG_aggregate_series.csv").read_bytes(),
           "byte comparison")
     fc = D / "figures_cache"
     cache_ac = pd.read_csv(fc / "series_AC.csv")
@@ -605,7 +606,7 @@ def main() -> None:
           (D / "phaseD_coh_by_zone.csv").read_bytes() == (fc / "coh_perpair.csv").read_bytes(),
           "closes X-039's 'no version of record' concern if equal")
     from insar_wetlands.aggregate import seasonal_amplitude
-    t07 = pd.read_csv(FIG / "T07_seasonal_amplitudes.csv", keep_default_na=False, na_values=[""]).set_index("series")
+    t07 = pd.read_csv(TAB / "T07_seasonal_amplitudes.csv", keep_default_na=False, na_values=[""]).set_index("series")
     for s, f in (("A−C", committed), ("B−C", pd.read_csv(fc / "series_BC.csv")),
                  ("A−B", pd.read_csv(fc / "series_AB.csv")), ("NULL", pd.read_csv(fc / "series_NULL.csv"))):
         amp = seasonal_amplitude(f)["amplitude_mm"]
@@ -622,7 +623,7 @@ def main() -> None:
             ("A−C (ascending, dusk)", committed), ("A−C (descending, dawn)", desc_series))},
     }, title="Aggregated seasonal phase series", group="Charts", status="core",
         description="Zone double-difference series (phaseG). Descending is exploratory.",
-        prov=P(FIG / "phaseG_aggregate_series.csv", root=REPO).add(D / "phaseG_aggregate_series_descending.csv", root=D))
+        prov=P(TAB / "phaseG_aggregate_series.csv", root=REPO).add(D / "phaseG_aggregate_series_descending.csv", root=D))
     ref = D / "referee"
     null = pd.read_csv(ref / "LT08_null_5000.csv")
     lt08 = pd.read_csv(ref / "LT08_summary.csv")
@@ -731,10 +732,10 @@ def main() -> None:
             prov=P(D / "era5_rzecin.nc"))
     # every committed table
     tables = {}
-    for f in sorted(FIG.glob("T*.csv")):
+    for f in sorted(TAB.glob("T*.csv")):
         tables[f.stem] = pd.read_csv(f, keep_default_na=False, na_values=[""]).astype(object).where(lambda d: pd.notna(d), None).to_dict("records")
     W.chart("results_tables", tables, title="Results tables T01–T16", group="Charts", status="core",
-            description="Verbatim copies of docs/paper/figures/T*.csv — the numbers' source of truth.")
+            description="Verbatim copies of results/tables/T*.csv — the numbers' source of truth.")
     ref_tables = {f.stem: pd.read_csv(f, keep_default_na=False, na_values=[""]).astype(object).where(lambda d: pd.notna(d), None).to_dict("records")
                   for f in sorted(ref.glob("*.csv")) if f.stat().st_size < 20000}
     W.chart("robustness_tables", ref_tables, title="Robustness tables (K*, L*, X*)", group="Charts",
@@ -746,7 +747,7 @@ def main() -> None:
                 description="Part II of phaseM is synthetic-only. X-027 envelope discrepancy open.",
                 prov=P(pm, root=REPO))
     from insar_wetlands.paper_numbers import expected_values
-    nums = expected_values(FIG)
+    nums = expected_values(TAB)
     W.chart("numbers", nums, title="Key result numbers", group="Charts", status="core",
             description="paper_numbers.REGISTRY resolved against T*.csv. The only result numbers "
                         "the site prints in text.")

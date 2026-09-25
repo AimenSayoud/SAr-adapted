@@ -423,7 +423,7 @@ phaseK:
   question: Do the referees' objections change any reported number?
   status: current
   inputs: [phaseJ.nulls_300.csv, phaseG.phaseG_aggregate_series.csv]
-  outputs: [referee_response.csv]
+  outputs: [results/robustness/]
   paper: "docs/paper/response_to_referees.md"
 
 phaseL:
@@ -432,8 +432,8 @@ phaseL:
   group: robustness
   question: Do the nine round-2 tests hold?
   status: current
-  inputs: [phaseK.referee_response.csv]
-  outputs: [round2_report.md]
+  inputs: [phaseK.results/robustness/]
+  outputs: [results/robustness/, round2_report.md]
   paper: "docs/paper/round2_report.md"
 
 export_figures_en:
@@ -443,8 +443,8 @@ export_figures_en:
   question: "-"
   status: tooling
   inputs: [phaseD.phaseD_coh_by_zone.csv, phaseE2.phaseE2_evd.nc, phaseG.phaseG_aggregate_series.csv]
-  outputs: [docs/paper/figures/]
-  paper: "all figures and T*.csv"
+  outputs: [docs/paper/figures/, results/tables/]
+  paper: "all figures; T*.csv go to results/tables/"
 
 build_manuscript_docx:
   title: Manuscript assembly to .docx
@@ -452,6 +452,6 @@ build_manuscript_docx:
   group: manuscript
   question: "-"
   status: tooling
-  inputs: [docs/paper/figures/]
+  inputs: [export_figures_en.docs/paper/figures/, export_figures_en.results/tables/]
   outputs: [docs/paper/manuscript.docx]
   paper: "the manuscript itself"

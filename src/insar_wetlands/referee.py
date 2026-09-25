@@ -1243,8 +1243,8 @@ def birchak_peat_forward_model(
 
 
 def generate_t16_saturating_seasonal_fit(
-    series_path: str = "docs/paper/figures/phaseG_aggregate_series.csv",
-    out_csv: str = "docs/paper/figures/T16_saturating_seasonal_fit.csv",
+    series_path: str = "results/tables/phaseG_aggregate_series.csv",
+    out_csv: str = "results/tables/T16_saturating_seasonal_fit.csv",
 ) -> pd.DataFrame:
     """Generate Table T16 comparing linear harmonic and saturating seasonal models."""
     df = pd.read_csv(series_path)

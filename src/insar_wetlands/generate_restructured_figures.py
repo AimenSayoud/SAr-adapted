@@ -285,6 +285,6 @@ def build_all_restructured_figures(fig_dir: Path) -> dict:
 
 
 if __name__ == "__main__":
-    hub_figs = Path("/Users/aymen/Documents/Research_Hub/05_code/SAr-adapted/docs/paper/figures")
+    hub_figs = Path(__file__).resolve().parents[2] / "docs" / "paper" / "figures"
     rep = build_all_restructured_figures(hub_figs)
     print(f"Generated {len(rep)} figure files.")

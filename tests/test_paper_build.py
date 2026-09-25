@@ -337,9 +337,9 @@ def test_generated_manuscript_and_appendix_match_source():
     is a no-op against the tracked docs/paper/ files (drift protection)."""
     repo = Path(__file__).resolve().parents[1]
     paper = repo / "docs" / "paper"
-    figs = paper / "figures"
-    if not (figs.exists() and list(figs.glob("T*.csv"))):
-        return
+    from insar_wetlands.paper_numbers import tables_dir_for
+    figs = tables_dir_for(paper)
+    assert list(figs.glob("T*.csv")), f"no results tables in {figs}"
 
     app_file = paper / "09_appendix_data.md"
     if app_file.exists():
