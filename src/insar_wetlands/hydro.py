@@ -12,9 +12,55 @@ radar dans la tourbe seche, pas un tassement physique.
 
 from __future__ import annotations
 
+import warnings
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 import xarray as xr
+
+
+def era5_samples_per_day(era5: xr.Dataset) -> float:
+    """Median number of time steps per day in an ERA5 dataset (24 = hourly)."""
+    tname = "valid_time" if "valid_time" in era5.coords else "time"
+    t = pd.to_datetime(era5[tname].values)
+    if len(t) < 2:
+        return float("nan")
+    step_h = float(np.median(np.diff(t).astype("timedelta64[m]").astype(float))) / 60.0
+    return 24.0 / step_h
+
+
+def open_era5(drive: str | Path, hourly_dir: str | Path | None = None) -> xr.Dataset:
+    """ERA5 at the site for anything that sums precipitation (X-043).
+
+    ``tp`` is an hourly accumulation, so a daily total needs all 24 hours. The original
+    download (``era5_rzecin.nc``) kept 00/06/12/18 UTC only: daily sums covered 4 of 24 h.
+    Prefer the hourly re-download in ``<drive>/era5_hourly/`` (``era5_<year>_tp_hourly.nc`` +
+    ``era5_<year>_inst_hourly.nc``); fall back to ``era5_rzecin.nc`` with a warning.
+
+    Phases that only use instantaneous fields (t2m for freeze flags, tcwv for delays and
+    pair scoring) still open ``era5_rzecin.nc`` directly, so their results are unchanged.
+    """
+    drive = Path(drive)
+    h = Path(hourly_dir) if hourly_dir else drive / "era5_hourly"
+    tp_files = sorted(h.glob("era5_*_tp_hourly.nc")) if h.is_dir() else []
+    if tp_files:
+        parts = []
+        for tp_f in tp_files:
+            inst_f = tp_f.with_name(tp_f.name.replace("_tp_hourly", "_inst_hourly"))
+            tp = xr.open_dataset(tp_f)[["tp"]]
+            inst = xr.open_dataset(inst_f)[["t2m", "tcwv"]] if inst_f.exists() else None
+            parts.append(xr.merge([tp, inst], compat="override", join="outer") if inst is not None else tp)
+        tname = "valid_time" if "valid_time" in parts[0].coords else "time"
+        ds = xr.concat(parts, dim=tname).sortby(tname)
+        return ds.drop_vars([v for v in ("number", "expver") if v in ds.coords or v in ds.data_vars])
+    legacy = drive / "era5_rzecin.nc"
+    ds = xr.open_dataset(legacy)
+    n = era5_samples_per_day(ds)
+    if "tp" in ds and n < 23.5:
+        warnings.warn(f"{legacy.name}: {n:.0f} samples/day — daily precipitation covers {n:.0f}/24 h "
+                      f"(X-043). Put the hourly download in {h}.", stacklevel=2)
+    return ds
 
 
 def daily_era5_point(era5: xr.Dataset, lon: float, lat: float) -> pd.DataFrame:

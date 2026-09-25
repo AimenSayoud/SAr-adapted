@@ -48,7 +48,9 @@ def _retrieve(cfg: dict, out: Path, year: int, variables: list[str]) -> None:
             "year": [str(year)],
             "month": [f"{m:02d}" for m in range(1, 13)],
             "day": [f"{d:02d}" for d in range(1, 32)],
-            "time": [f"{h:02d}:00" for h in range(0, 24, 6)],
+            # Every hour: tp is an hourly accumulation, so 4 samples a day would make
+            # daily precipitation cover 4 of 24 h (X-043).
+            "time": [f"{h:02d}:00" for h in range(24)],
             "area": e5["area"],  # N, W, S, E
             # Le nouveau backend CDS zippe par defaut meme avec un nom de
             # sortie en .nc -> forcer un fichier netCDF brut, non archive.
