@@ -13,7 +13,6 @@ from contextlib import contextmanager
 from pathlib import Path
 
 from insar_wetlands.paper_numbers import (
-    tables_dir_for,
     GENERATED_SECTIONS,
     REGISTRY,
     SUPERSEDED,
@@ -22,6 +21,7 @@ from insar_wetlands.paper_numbers import (
     fixed,
     hand_written_text,
     scientific,
+    tables_dir_for,
 )
 
 REPO = Path(__file__).resolve().parents[1]
