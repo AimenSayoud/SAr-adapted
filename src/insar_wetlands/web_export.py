@@ -360,6 +360,7 @@ class AtlasWriter:
         "pipeline",             # output of a current phase, not a headline result
         "failed-estimator",     # per-pixel inversion output, shown as H1 evidence
         "exploratory",          # new analysis, not yet tested or registered
+        "field",                # measured on the ground by the field team (unpublished)
         "derived",              # computed for the atlas by this module
         "context",              # terrain, land cover, outlines
         "unverified",           # provenance not established

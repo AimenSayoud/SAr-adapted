@@ -51,6 +51,15 @@ def test_snow_mask_covers_the_72_hours_after_frost(tmp_path):
     assert not m[frost[-1] + pd.Timedelta(hours=80)]
 
 
+def test_snow_mask_is_true_outside_the_air_record():
+    idx = pd.date_range("2024-06-01", periods=48, freq="h", tz="UTC")
+    warm = pd.Series(15.0, index=idx)
+    later = pd.date_range("2024-06-01", periods=96, freq="h", tz="UTC")
+    m = field.snow_mask(warm, later)
+    assert not m[idx].any()
+    assert m[later[48:]].all()
+
+
 def test_base_plot_maps_replicates_to_their_wtd_plot():
     assert [field.base_plot(x) for x in ["P5_2", "CL_1", "CR_3", "P6_1", "P8_2023", "P9"]] == \
         ["P5", "P5", "P6", "P6", "P8", "P9"]
