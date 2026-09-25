@@ -25,8 +25,11 @@ sentinel1:
       burst_id: '175_374052_IW1'
       subswath: IW1
       polarization: VV
+      # Geometry measured from the HyP3 look vectors (lv_theta, lv_phi) over the AOI, Zone A
+      # median (X-042, 2026-09-25); the range is min–max over the AOI crop.
       incidence_angle_deg: 32.26
-      heading_deg: 346.4
+      heading_deg: 348.6
+      aoi_incidence_range_deg: [32.04, 32.48]
       overpass_utc: '16:36'
     descending:
       flight_direction: DESCENDING
@@ -34,8 +37,11 @@ sentinel1:
       burst_id: '022_045867_IW2'
       subswath: IW2
       polarization: VV
-      incidence_angle_deg: 34.10
-      heading_deg: 193.6
+      # Measured like the ascending track (X-042). The former 34.10° / 193.6° lay outside
+      # anything this burst can see over the AOI.
+      incidence_angle_deg: 39.17
+      heading_deg: 190.1
+      aoi_incidence_range_deg: [38.99, 39.36]
       overpass_utc: '05:09'
 sentinel2:
   collection: sentinel-2-l2a
