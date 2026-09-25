@@ -67,3 +67,15 @@ def test_field_root_defaults_to_the_hub(monkeypatch):
     assert field.field_root().parts[-2:] == ("06_data", "field")
     monkeypatch.setenv("RZECIN_FIELD_ROOT", "/x/y")
     assert str(field.field_root()) == "/x/y"
+
+
+def test_censored_flag_marks_a_sustained_floor_not_a_brief_dip():
+    rng = np.random.default_rng(0)
+    t = pd.date_range("2022-01-01", periods=24 * 60, freq="h", tz="UTC")
+    x = np.r_[np.linspace(-5, -30, 24 * 10), np.full(24 * 20, -30.0), np.linspace(-30, -5, 24 * 10),
+              np.full(24 * 18, -5.0), np.full(24 * 2, -30.0)]           # 20-day floor, then a 2-day dip
+    s = pd.Series(x + rng.normal(0, 0.3, len(x)), index=t)               # noisy, like P9
+    f = field.censored_flag(s)
+    assert f[t[24 * 12]:t[24 * 28]].mean() > 0.95                        # the floor
+    assert not f[t[24 * 2]:t[24 * 6]].any()                              # falling limb
+    assert not f[t[24 * 58]:].any()                                      # brief dip
