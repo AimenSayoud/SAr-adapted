@@ -12,9 +12,9 @@ import xarray as xr
 from insar_wetlands.predict_failure import threshold_sweep, zone_fraction_above
 
 
-@pytest.mark.xfail(strict=True, reason="C-039: threshold_sweep pre-rounds to 4 dp, export rounds to 3 dp "
-                                       "-> Zone D 0.231477 is published as 0.232 (23.2 % vs 23.1 %)")
 def test_threshold_sweep_is_not_pre_rounded():
+    """C-039 (fixed 2026-09-25): threshold_sweep used to round to 4 dp before the export
+    rounded to 3 dp, so Zone D 0.231477 was published as 0.232."""
     # 1 000 000 px of which 231 477 are >= 0.7: exact fraction 0.231477
     n, k = 1_000_000, 231_477
     field = xr.DataArray(np.r_[np.full(k, 0.9), np.full(n - k, 0.1)].reshape(1000, 1000), dims=("y", "x"))

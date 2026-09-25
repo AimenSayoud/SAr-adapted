@@ -335,6 +335,6 @@ def threshold_sweep(field: xr.DataArray, zones: dict,
             continue
         for t in thresholds:
             rows.append({"zone": z, "threshold": round(float(t), 3),
-                         "frac_above": round(float((v >= t).mean()), 4),
+                         "frac_above": float((v >= t).mean()),  # rounded once, at export (C-039)
                          "n_px": int(v.size)})
     return pd.DataFrame(rows)
