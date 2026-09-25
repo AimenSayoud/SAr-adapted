@@ -62,7 +62,7 @@ def git_sha(repo: Path) -> str:
 
 
 def zone_medians(stack: np.ndarray, zone_masks: dict) -> dict:
-    """Per-date median over each zone's pixels (descriptive; NOT the paper's
+    """Per-date median over each zone's pixels (descriptive; NOT the project's
     double-difference aggregation, which lives in `aggregate`)."""
     out = {}
     for z, m in zone_masks.items():
@@ -191,7 +191,7 @@ def main() -> None:
     zone_cats = {i: {"label": f"{z} — {ZNAME[z]}", "color": ZONE_COLORS[z]}
                  for i, z in enumerate("ABCD", start=1)}
     W.raster("zones", lab.astype(float) * np.where(lab > 0, 1, np.nan), title="Zones A–D",
-             group="Zones & sampling", status="paper", categories=zone_cats,
+             group="Zones & sampling", status="core", categories=zone_cats,
              description="Zone stratification recomputed with the pipeline's own "
                          "`define_zones` (AOI ∩ non-water = A; AOI ∩ water = B; matched "
                          "WorldCover + S2 features outside = C; rest = D).",
@@ -199,7 +199,7 @@ def main() -> None:
     zfc = labels_to_geojson(lab, x, y, {i: {"zone": z, "name": ZNAME[z], "color": ZONE_COLORS[z]}
                                          for i, z in enumerate("ABCD", start=1)})
     W.vector("zones_outline", zfc, title="Zone outlines", group="Zones & sampling",
-             status="paper", style={"by": "zone", "colors": ZONE_COLORS})
+             status="core", style={"by": "zone", "colors": ZONE_COLORS})
     aoi_path = REPO / cfg["site"]["aoi_geojson"]
     aoi = json.loads(aoi_path.read_text())
     for f in aoi["features"]:        # drop the KML Z coordinate
@@ -207,16 +207,16 @@ def main() -> None:
         f["properties"] = {"name": "Rzecin peatland (AOI)"}
     aoi.pop("bbox", None)
     W.vector("aoi", aoi, title="Rzecin peatland outline (AOI)", group="Zones & sampling",
-             status="paper", prov=P(aoi_path, root=REPO))
+             status="core", prov=P(aoi_path, root=REPO))
     zmask = {z: zones[z].values for z in "ABCD"}
 
     GIS = REPO / "data" / "gis"
     W.vector("lake_erosion_rings", gis_vector_to_lonlat(GIS / "lake_erosion_rings.geojson"),
              title="Lake erosion rings (X-010)", group="Zones & sampling",
-             status="paper-supplementary", prov=P(GIS / "lake_erosion_rings.geojson", root=REPO))
+             status="supporting", prov=P(GIS / "lake_erosion_rings.geojson", root=REPO))
     W.vector("marginal_27_pixels", gis_vector_to_lonlat(GIS / "marginal_27_pixels.geojson"),
              title="27 surviving edge pixels (X-011 / L7)", group="Zones & sampling",
-             status="paper-supplementary", prov=P(GIS / "marginal_27_pixels.geojson", root=REPO))
+             status="supporting", prov=P(GIS / "marginal_27_pixels.geojson", root=REPO))
     W.vector("field_stations", gis_vector_to_lonlat(GIS / "field_monitoring_stations.geojson"),
              title="Field stations (flux tower, piezometers, core)", group="Zones & sampling",
              status="unverified",
@@ -265,7 +265,7 @@ def main() -> None:
     sd = signed_distance_to_aoi(tpl, cfg)
     W.raster("signed_distance", on_grid(sd, "sd").astype(float),
              title="Signed distance to the peatland edge", group="Zones & sampling",
-             status="paper-supplementary", units="m", colormap="RdBu", symmetric=True,
+             status="supporting", units="m", colormap="RdBu", symmetric=True,
              description="Negative inside the AOI. The x-axis of the radial profiles (S8).")
     for track in ("ascending", "descending"):
         pth = ctx.paths.for_phase("web_atlas", track=track)
@@ -288,13 +288,13 @@ def main() -> None:
         cm[track] = on_grid(ds["coh_mean"], fn).astype(float)
         W.raster(f"coh_mean_{track}", cm[track], title=f"Mean coherence ({track})",
                  group="Radar quality", units="γ", colormap="viridis", display=(0.2, 0.8),
-                 status="paper" if track == "ascending" else "exploratory",
-                 description=("Mean interferometric coherence over every pair (phaseD). "
-                              "Figure 1c." if track == "ascending" else
-                              "Same product on the descending (dawn) network. Paper 2."),
+                 status="core" if track == "ascending" else "exploratory",
+                 description=("Mean interferometric coherence over every pair (phaseD)."
+                              if track == "ascending" else
+                              "Same product on the descending (dawn) network."),
                  prov=P(D / fn))
     W.raster("coh_mean_asc_minus_desc", cm["ascending"] - cm["descending"],
-             title="Coherence: dusk (asc) − dawn (desc)", group="Diurnal (Paper 2)",
+             title="Coherence: dusk (asc) − dawn (desc)", group="Diurnal: dusk vs dawn",
              status="derived", units="Δγ", colormap="RdBu", symmetric=True,
              description="Difference of the two phaseD mean-coherence maps. Not pair-matched: "
                          "each track averages its own network. Descriptive — see X-037.",
@@ -309,16 +309,16 @@ def main() -> None:
     e2 = xr.open_dataset(D / "phaseE2_evd.nc")
     tcoh = on_grid(e2["temporal_coherence"], "tcoh").astype(float)
     W.raster("tcoh_evd", tcoh, title="Temporal coherence (EVD phase linking)",
-             group="Radar quality", status="paper", units="γ_t", colormap="viridis",
+             group="Radar quality", status="core", units="γ_t", colormap="viridis",
              display=(0.3, 1.0), description="phaseE2. 0.55 noise floor, 0.7 reliability "
-             "threshold (Figure 3c).", prov=P(D / "phaseE2_evd.nc"))
+             "threshold.", prov=P(D / "phaseE2_evd.nc"))
     W.raster("tcoh_usable", np.where(np.isfinite(tcoh), (tcoh >= 0.7).astype(float), np.nan),
-             title="Usable pixels (γ_t ≥ 0.7)", group="Radar quality", status="paper",
+             title="Usable pixels (γ_t ≥ 0.7)", group="Radar quality", status="core",
              categories={0: {"label": "γ_t < 0.7", "color": "#bdbdbd"},
                          1: {"label": "γ_t ≥ 0.7 (usable)", "color": "#1a9850"}},
              prov=P(D / "phaseE2_evd.nc"))
     qi = xr.open_dataset(D / "quality_index.nc")
-    for v, t, u, cmap, st in (("W", "Quality index W", "", "viridis", "paper-supplementary"),
+    for v, t, u, cmap, st in (("W", "Quality index W", "", "viridis", "supporting"),
                               ("coh_all_pairs", "Coherence, all pairs (phase07)", "γ", "viridis", "pipeline"),
                               ("coh_conditional_dry", "Coherence, dry-condition pairs", "γ", "viridis", "pipeline"),
                               ("n_dry_pairs", "Number of dry pairs", "pairs", "cividis", "pipeline")):
@@ -327,7 +327,7 @@ def main() -> None:
     clo = xr.open_dataset(D / "phase_closure.nc")
     W.raster("closure_error", on_grid(clo["closure_error_fraction"], "closure").astype(float),
              title="Closure-error fraction (518 triplets)", group="Radar quality",
-             status="paper-supplementary", colormap="inferno",
+             status="supporting", colormap="inferno",
              description="Fraction of closed triplets with |closure| above threshold (phase09).",
              prov=P(D / "phase_closure.nc"))
 
@@ -462,7 +462,7 @@ def main() -> None:
     wor = wm["water_or_hidden"].values.astype(float)
     flood = ctx.flooded_fraction.values.astype(float)     # the pipeline's own definition
     W.raster("flooded_fraction", flood, title="Inundated-time fraction", group="Hydrology & optical",
-             status="paper-supplementary", units="fraction", colormap="Blues", display=(0, 1),
+             status="supporting", units="fraction", colormap="Blues", display=(0, 1),
              description="Mean of the dynamic water mask (open + hidden water), S3.",
              prov=P(D / "water_mask.nc"))
     gis_ff = rasterio.open(REPO / "data/gis/water_flooded_fraction.tif").read(1).astype(float)
@@ -503,7 +503,7 @@ def main() -> None:
         W.raster(f"rtc_{v}", arr, title=f"{t} — per date", group="Backscatter", status="pipeline",
                  units="dB", colormap="gray", times=rd, prov=P(D / "rtc_dualpol_stack.nc"))
         W.raster(f"rtc_{v}_mean", np.nanmean(arr, 0), title=f"{t} — mean", group="Backscatter",
-                 status="paper-supplementary", units="dB", colormap="gray", prov=P(D / "rtc_dualpol_stack.nc"))
+                 status="supporting", units="dB", colormap="gray", prov=P(D / "rtc_dualpol_stack.nc"))
         zm = zone_medians(arr, zmask)
         zone_series[v] = {"dates": rd, "units": "dB",
                           **{z: {"median": zm[z]["median"], "n": zm[z]["n_finite"]} for z in "ABCD"}}
@@ -514,7 +514,7 @@ def main() -> None:
              prov=P(D / "rtc_dualpol_stack.nc"))
     W.chart("zone_series", zone_series, title="Per-zone medians through time", group="Charts",
             status="derived", description="Plain per-date zone medians of each stack. Descriptive "
-            "only — the paper's aggregate is the double-difference in `aggregate`, not this.")
+            "only — the project's aggregate is the double-difference in `aggregate`, not this.")
 
     # ---------------------------------------------- per-pair browser & seasons
     pair_meta = {}
@@ -530,7 +530,7 @@ def main() -> None:
         for s in ("DJF", "MAM", "JJA", "SON"):
             if s in sm:
                 W.raster(f"coh_{s}_{track}", sm[s], title=f"Coherence {s} ({track}, Δt ≤ 48 d)",
-                         group="Diurnal (Paper 2)", status="derived", units="γ",
+                         group="Diurnal: dusk vs dawn", status="derived", units="γ",
                          colormap="viridis", display=(0.2, 0.8),
                          extra={"n_pairs": sm[f"{s}_n_pairs"]},
                          description="Mean coherence of pairs whose midpoint falls in the season.")
@@ -577,7 +577,7 @@ def main() -> None:
                                      "bridges_requested": (pd.read_csv(bridges).to_dict("records")
                                                            if bridges.exists() else [])},
                 title=f"Interferogram network ({track})", group="Charts",
-                status="paper-supplementary" if track == "ascending" else "exploratory",
+                status="supporting" if track == "ascending" else "exploratory",
                 prov=P(sel) if sel.exists() else None)
         check(f"{track} network size", None,
               f"{len(pairs)} cropped pairs; {int(ps.keep.sum()) if len(ps) else 'n/a'} kept by phase03 QC")
@@ -586,7 +586,7 @@ def main() -> None:
     for s in ("DJF", "MAM", "JJA", "SON"):
         if s in pair_meta["ascending"]["seasons"] and s in pair_meta["descending"]["seasons"]:
             W.raster(f"coh_{s}_asc_minus_desc", pair_meta["ascending"]["seasons"][s] - pair_meta["descending"]["seasons"][s],
-                     title=f"Coherence {s}: dusk − dawn", group="Diurnal (Paper 2)", status="derived",
+                     title=f"Coherence {s}: dusk − dawn", group="Diurnal: dusk vs dawn", status="derived",
                      units="Δγ", colormap="RdBu", symmetric=True,
                      description="Seasonal mean coherence, ascending minus descending (Δt ≤ 48 d).")
 
@@ -620,8 +620,8 @@ def main() -> None:
         "A−C (descending, dawn)": desc_series.to_dict("list"),
         "fits": {k: seasonal_amplitude(v) for k, v in (
             ("A−C (ascending, dusk)", committed), ("A−C (descending, dawn)", desc_series))},
-    }, title="Aggregated seasonal phase series", group="Charts", status="paper",
-        description="Zone double-difference series (phaseG). Descending is exploratory (Paper 2).",
+    }, title="Aggregated seasonal phase series", group="Charts", status="core",
+        description="Zone double-difference series (phaseG). Descending is exploratory.",
         prov=P(FIG / "phaseG_aggregate_series.csv", root=REPO).add(D / "phaseG_aggregate_series_descending.csv", root=D))
     ref = D / "referee"
     null = pd.read_csv(ref / "LT08_null_5000.csv")
@@ -635,13 +635,13 @@ def main() -> None:
     W.chart("null_distribution", {"amplitude_mm": null.amplitude_mm.round(4).tolist(),
                                   "summary": lt08.to_dict("records")[0]},
             title="Reference-matched null (4,614 draws) vs observed A−C amplitude",
-            group="Charts", status="paper", prov=P(ref / "LT08_null_5000.csv", ref / "LT08_summary.csv"))
+            group="Charts", status="core", prov=P(ref / "LT08_null_5000.csv", ref / "LT08_summary.csv"))
     W.chart("null_superseded_300", pd.read_csv(fc / "nulls_300.csv"),
             title="Superseded 300-draw null (July)", group="Charts", status="superseded",
             description="Kept to show why the p-value changed; never quote.")
     for track, fn in (("ascending", "phaseD_coh_by_zone.csv"), ("descending", "phaseD_coh_by_zone_descending.csv")):
         W.chart(f"coh_by_zone_{track}", pd.read_csv(D / fn), title=f"Per-pair coherence by zone ({track})",
-                group="Charts", status="paper" if track == "ascending" else "exploratory", prov=P(D / fn))
+                group="Charts", status="core" if track == "ascending" else "exploratory", prov=P(D / fn))
     # X-037 diurnal table, recomputed from the two QC tables
     pa = pd.read_csv(D / "artifacts/pair_selection.csv")
     pdsc = pd.read_csv(D / "artifacts_descending/pair_selection.csv")
@@ -733,12 +733,12 @@ def main() -> None:
     tables = {}
     for f in sorted(FIG.glob("T*.csv")):
         tables[f.stem] = pd.read_csv(f, keep_default_na=False, na_values=[""]).astype(object).where(lambda d: pd.notna(d), None).to_dict("records")
-    W.chart("paper_tables", tables, title="Paper tables T01–T16", group="Charts", status="paper",
+    W.chart("results_tables", tables, title="Results tables T01–T16", group="Charts", status="core",
             description="Verbatim copies of docs/paper/figures/T*.csv — the numbers' source of truth.")
     ref_tables = {f.stem: pd.read_csv(f, keep_default_na=False, na_values=[""]).astype(object).where(lambda d: pd.notna(d), None).to_dict("records")
                   for f in sorted(ref.glob("*.csv")) if f.stat().st_size < 20000}
-    W.chart("referee_tables", ref_tables, title="Referee-response tables (K*, L*)", group="Charts",
-            status="paper-supplementary")
+    W.chart("robustness_tables", ref_tables, title="Robustness tables (K*, L*, X*)", group="Charts",
+            status="supporting")
     pm = REPO / "outputs/phaseM_mechanical_vs_dielectric/mechanical_vs_dielectric_summary.csv"
     if pm.exists():
         W.chart("phaseM_summary", pd.read_csv(pm), title="phaseM mechanical vs dielectric (exploratory)",
@@ -747,11 +747,11 @@ def main() -> None:
                 prov=P(pm, root=REPO))
     from insar_wetlands.paper_numbers import expected_values
     nums = expected_values(FIG)
-    W.chart("numbers", nums, title="Registered paper numbers", group="Charts", status="paper",
-            description="paper_numbers.REGISTRY resolved against T*.csv. The only numbers the "
-                        "site may print as paper results.")
+    W.chart("numbers", nums, title="Key result numbers", group="Charts", status="core",
+            description="paper_numbers.REGISTRY resolved against T*.csv. The only result numbers "
+                        "the site prints in text.")
     phases = yaml.safe_load((REPO / "config/phases.yaml").read_text())
-    W.chart("phases", phases, title="Declared pipeline (config/phases.yaml)", group="Pipeline", status="paper")
+    W.chart("phases", phases, title="Declared pipeline (config/phases.yaml)", group="Pipeline", status="core")
     runs = []
     for mf in sorted((D / "runs").glob("*/*/manifest.json")):
         try:
@@ -783,10 +783,10 @@ def main() -> None:
     for f in sorted(FIG.glob("*.png")):
         shutil.copy2(f, gal / f.name)
         gallery.append({"file": f"figures/{f.name}", "source": "docs/paper/figures",
-                        "status": "paper" if f.name in listed else "superseded"})
+                        "status": "core" if f.name in listed else "superseded"})
     for f in sorted(ref.glob("*.png")):
-        shutil.copy2(f, gal / f"referee_{f.name}")
-        gallery.append({"file": f"figures/referee_{f.name}", "source": "Drive referee/", "status": "paper-supplementary"})
+        shutil.copy2(f, gal / f"robustness_{f.name}")
+        gallery.append({"file": f"figures/robustness_{f.name}", "source": "Drive referee/", "status": "supporting"})
     br = subprocess.run(["git", "-C", str(REPO), "for-each-ref", "--format=%(refname)",
                          "refs/remotes/origin/outputs/"], capture_output=True, text=True).stdout.split()
     for b in br:
@@ -803,7 +803,7 @@ def main() -> None:
         shutil.copy2(REPO / "outputs/phaseM_mechanical_vs_dielectric/mechanical_vs_dielectric_dashboard.png",
                      gal / "phaseM_dashboard.png")
         gallery.append({"file": "figures/phaseM_dashboard.png", "source": "phaseM", "status": "exploratory"})
-    W.chart("gallery", gallery, title="Figure gallery", group="Figures", status="paper")
+    W.chart("gallery", gallery, title="Figure gallery", group="Figures", status="core")
 
     for spec in a.attach:
         lid, path = spec.split("=", 1)
@@ -811,7 +811,7 @@ def main() -> None:
                 group="Pipeline", status="pipeline", description=f"Attached from {Path(path).name}.")
 
     # 256-entry colour tables from matplotlib for every colormap a layer names, so the
-    # site colours pixels exactly as the paper figures do (no JS re-implementation).
+    # site colours pixels exactly as the project figures do (no JS re-implementation).
     import matplotlib
     luts = {}
     for name in sorted({lyr["colormap"] for lyr in W.layers if lyr.get("colormap")}):
