@@ -14,7 +14,7 @@ BIB     := $(HUB)/02_literature/bibliography/references.bib
 
 RUN := PYTHONPATH=$(SRC) $(PY) -c
 
-.PHONY: help lint test check check-generated phases readme assemble appendix docx all clean
+.PHONY: help lint test check check-generated phases readme assemble appendix docx all clean web-atlas
 
 help:
 	@echo "make lint      - ruff, on the focused rule set in pyproject"
@@ -103,3 +103,10 @@ all: lint test phases docx
 
 clean:
 	rm -f $(PAPER)/_manuscript.md
+
+# Web-atlas data package (C-035). Reads the Drive (or a local mirror via
+# INSAR_DRIVE_ROOT) read-only; writes quantised layers + manifest.json to ATLAS_OUT.
+# Runs no MintPy, phase linking or null realisations.
+ATLAS_OUT ?= ../../08_deliverables/rzecin-atlas/data
+web-atlas:
+	PYTHONPATH=$(SRC) $(PY) scripts/build_web_atlas.py --out $(ATLAS_OUT)
