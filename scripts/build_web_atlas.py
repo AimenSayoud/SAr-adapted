@@ -91,6 +91,118 @@ def gis_vector_to_lonlat(path: Path) -> dict:
     return {"type": "FeatureCollection", "features": feats}
 
 
+def add_field(W, gallery: list, gal: Path, template, P) -> None:
+    """Field data (unpublished) → atlas layers, when the research hub's 06_data/field and the
+    field deliverables are present next to this repository. Reads them; holds none of them."""
+    from pyproj import Transformer
+    from shapely.geometry import box, mapping
+    from shapely.ops import transform
+
+    from insar_wetlands import field
+    root = field.field_root()
+    hub = root.parents[1]
+    F1, F2 = hub / "08_deliverables" / "field_first", hub / "08_deliverables" / "field_x047_x048"
+    if not (root / field.DELIVERY).exists() or not (F1 / "plot_s1_wtd.csv").exists():
+        print("  field: no field data or deliverables next to this repository — skipped")
+        return
+    print("\n== field data (hub, private)")
+    to_ll = Transformer.from_crs("EPSG:32633", "EPSG:4326", always_xy=True).transform
+    plots = field.load_plots()
+    pts = [{"type": "Feature", "properties": {"name": r.plot, "base_plot": r.base_plot, "treatment": r.treatment,
+                                              "color": "#22d3ee"},
+            "geometry": mapping(transform(to_ll, r.geometry.centroid))} for r in plots.itertuples()]
+    W.vector("field_plots", {"type": "FeatureCollection", "features": pts},
+             title="Field monitoring plots (WTD, laser at P6)", group="Field data", status="field",
+             description="9 water-table plots (P5/P6 with 3 UAV replicates; P8 moved in 2023), from the field "
+                         "team's shapefile. All lie in one column of 40 m radar pixels.",
+             prov=P(root / field.DELIVERY / "plots" / "Plots_PlanetScope.shp", root=hub))
+    px = pd.read_csv(F1 / "plot_pixels.csv")
+    xs, ys = template.x.values, template.y.values
+    cells = []
+    for r in px.itertuples():
+        x0, y0 = xs[r.col], ys[r.row]
+        cells.append({"type": "Feature", "properties": {"name": r.plot, "color": "#22d3ee",
+                                                         "row": int(r.row), "col": int(r.col),
+                                                         "mat_px_3x3": int(r.mat_px_3x3)},
+                      "geometry": mapping(transform(to_ll, box(x0 - 20, y0 - 20, x0 + 20, y0 + 20)))})
+    W.vector("field_plot_pixels", {"type": "FeatureCollection", "features": cells},
+             title="Radar pixel of each field plot", group="Field data", status="derived",
+             description="The 40 m Sentinel-1 pixel containing each plot (extraction windows are 3×3 around it).",
+             prov=P(F1 / "plot_pixels.csv", root=hub))
+
+    wtd = field.load_wtd_hourly()
+    daily = wtd[field.PLOTS].resample("D").mean()
+    cens = pd.DataFrame({p: field.censored_flag(wtd[p]).resample("D").mean() > 0.5 for p in field.PLOTS})
+    W.chart("field_wtd_daily", {"dates": [d.strftime("%Y-%m-%d") for d in daily.index],
+                                "plots": {p: {"wtd_cm": daily[p].round(2).tolist(), "censored": cens[p].tolist()}
+                                          for p in field.PLOTS},
+                                "meteo": {"rain_mm": wtd["Rain_mm_Tot"].resample("D").sum().round(2).tolist(),
+                                          "air_c": wtd["Air_2m"].resample("D").mean().round(2).tolist()}},
+            title="Water-table depth, daily, 9 plots", group="Field data", status="field", units="cm",
+            description="Daily means of the hourly series (cm, negative below the surface). `censored` = the "
+                        "plot sat at its sensor floor (field.censored_flag): a bound, not a measurement.",
+            prov=P(root / field.DELIVERY / "WTD_hourly_2020-2024_9plots_filled_meteo.csv", root=hub))
+    laser = field.load_laser()
+    snow = field.snow_mask(wtd["Air_2m"], laser.index)
+    ld = pd.DataFrame({"surface_cm": laser.surface_cm.where(~snow), "raw_level_cm": wtd["CR_raw"].reindex(laser.index),
+                       "wtd_p6_cm": wtd["P6"].reindex(laser.index)}).resample("D").mean()
+    W.chart("field_laser_daily", {"dates": [d.strftime("%Y-%m-%d") for d in ld.index],
+                                  **{c: ld[c].round(2).where(ld[c].notna(), None).tolist() for c in ld}},
+            title="Laser surface at P6/CR (snow-free) with the water level", group="Field data", status="field",
+            units="cm", description="SDMS40 surface position (cm, snow-masked: frost within 72 h), the raw CR "
+                                    "water level and WTD_P6 corrected to the surface; daily means.",
+            prov=P(root / field.DELIVERY / "Laser_Sensor.xlsx", root=hub))
+    j = pd.read_csv(F1 / "plot_s1_wtd.csv")
+    keep = ["date", "track", "plot", "coh_pairs_le24d", "vv_db", "vh_db", "wtd_at", "change_7d", "wtd_censored"]
+    W.chart("field_plot_s1", j[keep].sort_values(["plot", "track", "date"]).round(4),
+            title="Sentinel-1 at the plots with the WTD at each overpass", group="Field data", status="exploratory",
+            description="3×3 mat-pixel medians per acquisition (field_first deliverable).",
+            prov=P(F1 / "plot_s1_wtd.csv", root=hub))
+    acq = pd.read_csv(F1 / "s1_acquisitions.csv")
+    uav = field.load_uav_table()
+    inv = {"wtd": {"start": str(wtd.index[0].ceil("D").date()), "end": str(wtd.index[-1].date()), "hours": len(wtd),
+                   "plots": field.PLOTS, "censored_share": {p: round(float(field.censored_flag(wtd[p]).mean()), 4)
+                                                            for p in field.PLOTS}},
+           "laser": {"start": str(laser.index[0].date()), "end": str(laser.index[-1].date()),
+                     "hours": len(laser), "hours_with_value": int(laser.surface_cm.notna().sum()),
+                     "hours_snow_free": int((laser.surface_cm.notna() & ~snow).sum())},
+           "uav": {"campaigns": sorted(uav.Date.dt.strftime("%Y-%m-%d").unique().tolist()), "rows": len(uav),
+                   "subplots": int(uav.Plot.nunique()),
+                   "days_with": {k: int(uav.dropna(subset=[c]).Date.nunique()) for k, c in
+                                 (("multispectral", "REMX_NIR_842_mean"), ("thermal", "Altum_Thermal_11um_mean"),
+                                  ("lai", "LAI"), ("wtd", "WTD_MEAN"))}},
+           "acquisitions": acq.groupby("track").agg(n=("date", "size"), laser=("laser_within_1h", "sum"),
+                                                    laser_snowfree=("laser_snowfree_within_1h", "sum")).reset_index()
+                              .astype(object).to_dict("records"),
+           "plot_pixels": px.astype(object).where(px.notna(), None).to_dict("records")}
+    W.chart("field_inventory", inv, title="Field delivery inventory", group="Field data", status="field",
+            prov=P(root / field.DELIVERY / "SOURCE.md", root=hub))
+    if (F2 / "per_pair_correlations.csv").exists():
+        pdc = pd.read_csv(F2 / "per_date_correlations.csv")
+        res = {"per_pair": pd.read_csv(F2 / "per_pair_correlations.csv").to_dict("records"),
+               "p6_laser": pd.read_csv(F2 / "p6_laser_vs_radar.csv").to_dict("records"),
+               "p6_surface_vs_level": pd.read_csv(F2 / "p6_surface_vs_water_level.csv", index_col=0)["value"].to_dict(),
+               "per_date_wtd_at": pdc[pdc.wtd == "wtd_at"].to_dict("records")}
+        W.chart("field_results", res, title="Sentinel-1 vs WTD and laser (X-047, X-048)", group="Field data",
+                status="exploratory", description="Anomaly correlations (annual cycle removed, circular-shift p) "
+                                                  "and the P6 laser test.",
+                prov=P(F2 / "per_pair_correlations.csv", F2 / "p6_laser_vs_radar.csv", root=hub))
+    if (F2 / "per_pair_table.csv").exists():
+        pairs = pd.read_csv(F2 / "per_pair_table.csv")
+        pairs["mid"] = pairs["mid"].str[:10]
+        W.chart("field_pairs", pairs[["plot", "track", "pair", "mid", "dt_days", "coh", "dlos_mm", "dwtd_cm",
+                                      "dsurface_cm", "wtd_censored"]].round(3),
+                title="Interferometric pairs at the plots with the WTD / surface change", group="Field data",
+                status="exploratory", units="mm / cm",
+                description="Coherence and LOS change per pair at each plot, with ΔWTD and, at P6, the "
+                            "snow-free laser Δsurface.", prov=P(F2 / "per_pair_table.csv", root=hub))
+    for folder, tag in ((F1, "field_first"), (F2, "field_mechanism")):
+        for f in sorted(folder.glob("*.png")):
+            shutil.copy2(f, gal / f"{tag}_{f.name}")
+            gallery.append({"file": f"figures/{tag}_{f.name}", "source": f"08_deliverables/{folder.name}",
+                            "status": "exploratory"})
+
+
 S2_SEASONS = {"spring": ("2023-04-01", "2023-05-31"), "summer": ("2023-06-01", "2023-08-31"),
               "autumn": ("2022-09-01", "2022-10-31"), "winter": ("2023-12-01", "2024-02-29")}
 
@@ -816,6 +928,7 @@ def main() -> None:
         shutil.copy2(REPO / "outputs/phaseM_mechanical_vs_dielectric/mechanical_vs_dielectric_dashboard.png",
                      gal / "phaseM_dashboard.png")
         gallery.append({"file": "figures/phaseM_dashboard.png", "source": "phaseM", "status": "exploratory"})
+    add_field(W, gallery, gal, tpl, P)
     W.chart("gallery", gallery, title="Figure gallery", group="Figures", status="core")
 
     for spec in a.attach:

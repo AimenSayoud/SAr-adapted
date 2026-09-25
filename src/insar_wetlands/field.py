@@ -82,9 +82,12 @@ def load_laser(path: str | Path | None = None) -> pd.DataFrame:
 
 def snow_mask(air_temp_c: pd.Series, index: pd.DatetimeIndex, hours: int = 72) -> pd.Series:
     """True where the laser may be seeing snow: any sub-zero hourly air temperature in the
-    ``hours`` before (and including) each time. Aligned to ``index``."""
+    ``hours`` before (and including) each time. Aligned to ``index``. Times outside the air
+    record (e.g. laser hours after the meteo series ends) are True: unknown is not snow-free."""
     cold = (air_temp_c < 0).astype(float).rolling(f"{hours}h", min_periods=1).max() > 0
-    return cold.reindex(index, method="ffill").fillna(True).astype(bool)
+    out = cold.reindex(index, method="ffill").fillna(True).astype(bool)
+    outside = (index < air_temp_c.index[0]) | (index > air_temp_c.index[-1])
+    return out | pd.Series(outside, index=index)
 
 
 def load_uav_table(path: str | Path | None = None) -> pd.DataFrame:
