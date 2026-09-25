@@ -153,3 +153,17 @@ def window_stats(values: np.ndarray, valid: np.ndarray | None = None) -> dict:
     q1, q3 = np.percentile(v, [25, 75])
     return {"n_valid": int(v.size), "median": float(np.median(v)), "mean": float(v.mean()),
             "sd": float(v.std(ddof=1)) if v.size > 1 else np.nan, "iqr": float(q3 - q1)}
+
+
+def censored_flag(s: pd.Series, floor_quantile: float = 0.02, tol_cm: float = 1.5,
+                  min_days: float = 5.0) -> pd.Series:
+    """True where an hourly WTD series probably sits at the bottom of the well / sensor: within
+    ``tol_cm`` of the plot's low floor (its ``floor_quantile`` quantile) for at least ``min_days``
+    in a row. Such stretches (e.g. P1, P4–P6, P9 in Aug–Dec 2022) bound the water table from
+    above; they do not measure it. Brief dips to the same depth are not flagged. Heuristic —
+    to be replaced by the logger's own flag if the field team has one."""
+    near = s <= s.quantile(floor_quantile) + tol_cm
+    run_id = (near != near.shift()).cumsum()
+    run_len = near.groupby(run_id).transform("size")
+    step_h = (s.index[1] - s.index[0]).total_seconds() / 3600 if len(s) > 1 else 1.0
+    return (near & (run_len * step_h >= min_days * 24)).astype(bool)
