@@ -108,3 +108,29 @@ def test_flag_shift_test_on_dates():
     v = np.where(wet, 2.0, 1.0)
     r = fl.flag_shift_test(v, np.arange(40)[:, None], wet, n_shift=100)
     assert r["diff"] == -1.0 and r["n_flagged"] == 20
+
+
+def test_flag_split_correlation_recovers_a_link_lost_on_wet_dates():
+    rng = np.random.default_rng(3)
+    n = 120
+    wet = rng.random(n) < 0.4
+    pairs = _pairs(n)
+    x = rng.standard_normal(len(pairs))
+    hit = wet[pairs].any(axis=1)
+    y = np.where(hit, 0.0, 0.8) * x + rng.standard_normal(len(pairs)) * 0.6
+    r = fl.flag_split_correlation(x, y, pairs, wet, n_shift=300)
+    assert r["r_clear"] > 0.6 and abs(r["r_flagged"]) < 0.15
+    assert r["p"] < 0.01
+
+
+def test_flag_split_correlation_without_a_difference():
+    rng = np.random.default_rng(4)
+    n = 120
+    pairs = _pairs(n)
+    ps = []
+    for _ in range(40):
+        wet = rng.random(n) < 0.4
+        x = rng.standard_normal(len(pairs))
+        y = 0.5 * x + rng.standard_normal(len(pairs))
+        ps.append(fl.flag_split_correlation(x, y, pairs, wet, n_shift=150, rng=rng)["p"])
+    assert np.mean(np.array(ps) < 0.1) <= 0.25
