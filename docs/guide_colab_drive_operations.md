@@ -101,7 +101,7 @@ Binary path on macOS: `/Users/aymen/Library/Python/3.14/bin/colab`. Ensure this 
   2. For push rights from Colab: store a fine-grained GitHub PAT in Colab Secrets (`GITHUB_TOKEN`) with `Contents: Read and write`. The bootstrap script clones via `https://x-access-token:{token}@github.com/...`. If running headlessly without interactive secrets, `git pull` reads publicly, and outputs are either committed directly (if token configured) or retrieved via `colab download` to Mac where they are committed to `main`.
   3. Commit and push result CSVs:
      ```bash
-     !git add docs/paper/figures/T*.csv docs/paper/referee/*.csv
+     !git add results/tables/T*.csv results/robustness/*.csv
      !git commit -m "run: <phase> @ $(git rev-parse --short HEAD) $(date -u +%Y%m%dT%H%M%SZ)" || echo "nothing to commit"
      !git pull --rebase origin {BRANCH} && git push origin {BRANCH} || true
      ```
@@ -155,7 +155,7 @@ Binary path on macOS: `/Users/aymen/Library/Python/3.14/bin/colab`. Ensure this 
   import shutil, os
   dst = '/content/drive/MyDrive/insar_rzecin/referee'
   os.makedirs(dst, exist_ok=True)
-  shutil.copytree('/content/SAr-adapted/docs/paper/referee', dst, dirs_exist_ok=True)
+  shutil.copytree('/content/SAr-adapted/results/robustness', dst, dirs_exist_ok=True)
   ```
   And commit CSV tables (`T*.csv`, `LT*.csv`, `KT*.csv`) back to the git repository.
 
@@ -249,7 +249,7 @@ colab exec --session s1 --timeout 3600 -f notebooks/05_robustness/phaseL_gate.ip
 ### Step 5: Backup Artifacts to Drive
 ```bash
 echo "import shutil, os
-shutil.copytree('/content/SAr-adapted/docs/paper/referee', '/content/drive/MyDrive/insar_rzecin/referee', dirs_exist_ok=True)
+shutil.copytree('/content/SAr-adapted/results/robustness', '/content/drive/MyDrive/insar_rzecin/referee', dirs_exist_ok=True)
 shutil.copytree('/content/SAr-adapted/docs/paper/figures', '/content/drive/MyDrive/insar_rzecin/figures', dirs_exist_ok=True)
 print('All outputs backed up to Drive.')" | colab exec --session s1
 ```

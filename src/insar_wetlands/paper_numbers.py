@@ -187,6 +187,24 @@ REGISTRY = [
 ]
 
 
+def tables_dir_for(paper_dir: str | Path) -> Path:
+    """Where the results tables (``T*.csv``) live for a manuscript directory.
+
+    In the repository they live in ``<repo>/results/tables`` — results are project data, not
+    part of the manuscript. A self-contained directory (test fixtures) may keep them in
+    ``<paper_dir>/figures``. Both at once is an error: one of them would be silently stale.
+    """
+    paper_dir = Path(paper_dir)
+    local = paper_dir / "figures"
+    repo_tables = paper_dir.resolve().parent.parent / "results" / "tables"
+    here = sorted(p.name for p in local.glob("T*.csv")) if local.is_dir() else []
+    there = sorted(p.name for p in repo_tables.glob("T*.csv")) if repo_tables.is_dir() else []
+    if here and there:
+        raise RuntimeError(f"results tables in two places: {local} and {repo_tables} — "
+                           f"keep them only in {repo_tables}")
+    return local if here else repo_tables
+
+
 def expected_values(figures_dir: str | Path) -> list[dict]:
     """Resolve every registry entry against the exported CSVs.
 
@@ -251,7 +269,7 @@ def check_manuscript_numbers(paper_dir: str | Path,
     # normalise thin/non-breaking spaces so "64.7 %" matches "64.7 %"
     haystack = re.sub(r"[   ]", " ", text)
     bad = []
-    for item in expected_values(paper_dir / "figures"):
+    for item in expected_values(tables_dir_for(paper_dir)):
         if item["expected"] is None:
             if item["name"] in PENDING:
                 continue
@@ -280,7 +298,7 @@ def coverage_metric(paper_dir: str | Path,
     if text is None:
         text = hand_written_text(paper_dir)
     all_nums = re.findall(r"\b\d+(?:\.\d+)?\b", text)
-    exp = expected_values(paper_dir / "figures")
+    exp = expected_values(tables_dir_for(paper_dir))
     reg_nums = []
     for item in exp:
         if item.get("expected"):

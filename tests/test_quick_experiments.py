@@ -161,7 +161,7 @@ def test_saturating_seasonal_fit():
     """Verify non-linear saturating seasonal fit resolves the 6.13 mm ceiling violation."""
     from insar_wetlands.referee import saturating_seasonal_fit
 
-    df = pd.read_csv("docs/paper/figures/phaseG_aggregate_series.csv")
+    df = pd.read_csv("results/tables/phaseG_aggregate_series.csv")
     res = saturating_seasonal_fit(df, ceiling_mm=6.13)
 
     # Linear harmonic should reproduce the known 3.286 mm amplitude and exceed ceiling

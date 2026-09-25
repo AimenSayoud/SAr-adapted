@@ -13,6 +13,7 @@ from contextlib import contextmanager
 from pathlib import Path
 
 from insar_wetlands.paper_numbers import (
+    tables_dir_for,
     GENERATED_SECTIONS,
     REGISTRY,
     SUPERSEDED,
@@ -167,7 +168,7 @@ def test_real_manuscript_matches_its_exported_data():
         return
     from insar_wetlands.paper_numbers import format_report
     bad = check_manuscript_numbers(paper)
-    resolved = [v for v in expected_values(paper / "figures")
+    resolved = [v for v in expected_values(tables_dir_for(paper))
                 if v["expected"] is not None]
     print(f"  {len(resolved)}/{len(REGISTRY)} registered numbers resolved "
           f"against exported CSVs")
@@ -199,7 +200,7 @@ def test_superseded_list_does_not_collide_with_current_values():
     paper = Path(__file__).resolve().parents[1] / "docs" / "paper"
     if not paper.exists():
         return
-    current = {v["expected"] for v in expected_values(paper / "figures")
+    current = {v["expected"] for v in expected_values(tables_dir_for(paper))
                if v["expected"]}
     for old in SUPERSEDED:
         assert not any(old in c for c in current), \
@@ -219,3 +220,23 @@ if __name__ == "__main__":
     test_superseded_list_does_not_collide_with_current_values()
     test_real_manuscript_matches_its_exported_data()
     print("ALL PAPER-NUMBER TESTS PASSED")
+
+
+def test_results_tables_live_in_results_not_in_the_manuscript_folder():
+    """T*.csv are project results: one home, results/tables. A copy left in docs/paper/figures
+    would be read instead of (or disagree with) the real one, so two homes is an error."""
+    repo = Path(__file__).resolve().parents[1]
+    assert tables_dir_for(repo / "docs" / "paper") == (repo / "results" / "tables").resolve()
+    assert not list((repo / "docs" / "paper" / "figures").glob("T*.csv"))
+    with tempfile.TemporaryDirectory() as d:
+        paper = Path(d) / "docs" / "paper"
+        (paper / "figures").mkdir(parents=True)
+        (Path(d) / "results" / "tables").mkdir(parents=True)
+        (paper / "figures" / "T01_zones.csv").write_text("zone\n")
+        (Path(d) / "results" / "tables" / "T01_zones.csv").write_text("zone\n")
+        try:
+            tables_dir_for(paper)
+        except RuntimeError as e:
+            assert "two places" in str(e)
+        else:
+            raise AssertionError("tables in two places must be an error")

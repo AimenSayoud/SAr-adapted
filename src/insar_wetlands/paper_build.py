@@ -554,7 +554,8 @@ def build_manuscript(paper_dir: str | Path, out_docx: str | Path,
     paper_dir = Path(paper_dir)
     rep_tables = None
     if data_appendix:
-        rep_tables = build_data_appendix(paper_dir / "figures",
+        from .paper_numbers import tables_dir_for
+        rep_tables = build_data_appendix(tables_dir_for(paper_dir),
                                          paper_dir / "09_appendix_data.md")
     if style and reference_docx is None:
         reference_docx = make_reference_docx(paper_dir / "_reference.docx")

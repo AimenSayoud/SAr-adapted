@@ -132,8 +132,18 @@ class Paths:
 
     @property
     def figures(self) -> Path:
-        """Exported paper figures and ``T*.csv`` — the numbers' source of truth."""
+        """Exported figures (PNG) of the write-up."""
         return self.repo / "docs" / "paper" / "figures"
+
+    @property
+    def tables(self) -> Path:
+        """Results tables ``T*.csv`` and the aggregated series — the numbers' source of truth."""
+        return self.repo / "results" / "tables"
+
+    @property
+    def robustness(self) -> Path:
+        """Robustness tables and figures (K*, L*, X*) of the main results."""
+        return self.repo / "results" / "robustness"
 
     @property
     def paper(self) -> Path:
