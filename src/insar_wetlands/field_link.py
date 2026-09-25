@@ -64,6 +64,41 @@ def season_residual(values, mid_dates, dt_days=None) -> np.ndarray:
     return v - M @ b
 
 
+def flag_shift_test(values, members, flags, n_shift: int = 2000, min_shift: int = 3,
+                    rng: np.random.Generator | None = None) -> dict:
+    """Do items that involve a flagged date differ from items that do not?
+
+    ``values``: one value per item (a pair, or a date); ``members``: (n_items, k) indices into
+    ``flags`` (the dates of each item; k = 2 for pairs, 1 for dates); ``flags``: one bool per
+    date in time order. Statistic: mean over items with no flagged member − mean over items
+    with at least one. Null: the flag sequence circularly shifted along the dates, which keeps
+    how flags cluster in time (dew is seasonal) but breaks their link to the values; two-sided
+    p with floor 1/(n_shift + 1).
+    """
+    v = np.asarray(values, float)
+    m = np.atleast_2d(np.asarray(members, int))
+    m = m.T if m.shape[0] != len(v) else m
+    f = np.asarray(flags, bool)
+
+    def stat(ff):
+        hit = ff[m].any(axis=1)
+        if hit.all() or not hit.any():
+            return np.nan
+        return float(v[~hit].mean() - v[hit].mean())
+
+    d0 = stat(f)
+    hit = f[m].any(axis=1)
+    out = {"n_clear": int((~hit).sum()), "n_flagged": int(hit.sum()), "diff": d0, "p": np.nan}
+    n = len(f)
+    if np.isnan(d0) or n < 2 * min_shift + 2:
+        return out
+    rng = rng or np.random.default_rng(0)
+    null = np.array([stat(np.roll(f, k)) for k in rng.integers(min_shift, n - min_shift, size=n_shift)])
+    null = null[np.isfinite(null)]
+    out["p"] = float((np.sum(np.abs(null) >= abs(d0)) + 1) / (len(null) + 1))
+    return out
+
+
 def los_from_vertical(dh_mm, incidence_deg: float):
     """LOS change (mm, toward the satellite positive) of a purely vertical surface change dh
     (up positive): dh · cos(incidence)."""

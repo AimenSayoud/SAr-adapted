@@ -76,3 +76,35 @@ def test_value_at_respects_the_tolerance():
     s = pd.Series([1.0, np.nan, 3.0, 4.0, 5.0], index=idx)
     assert fl.value_at(s, pd.Timestamp("2022-01-01 02:40", tz="UTC")) == 3.0
     assert np.isnan(fl.value_at(s, pd.Timestamp("2022-01-02", tz="UTC")))
+
+
+def _pairs(n_dates, max_lag=3):
+    return np.array([(i, j) for i in range(n_dates) for j in range(i + 1, min(n_dates, i + 1 + max_lag))])
+
+
+def test_flag_shift_test_recovers_a_wet_date_penalty():
+    rng = np.random.default_rng(1)
+    n = 90
+    wet = rng.random(n) < 0.4
+    pairs = _pairs(n)
+    coh = 0.6 + 0.05 * rng.standard_normal(len(pairs)) - 0.08 * wet[pairs].any(axis=1)
+    r = fl.flag_shift_test(coh, pairs, wet, n_shift=500)
+    assert 0.05 < r["diff"] < 0.11
+    assert r["p"] < 0.01
+
+
+def test_flag_shift_test_is_calibrated_without_an_effect():
+    rng = np.random.default_rng(2)
+    n, ps = 90, []
+    pairs = _pairs(n)
+    for _ in range(60):
+        wet = rng.random(n) < 0.4
+        ps.append(fl.flag_shift_test(rng.standard_normal(len(pairs)), pairs, wet, n_shift=200, rng=rng)["p"])
+    assert 0.03 <= np.mean(np.array(ps) < 0.1) <= 0.2   # ≈ 10 % false positives at α = 0.1
+
+
+def test_flag_shift_test_on_dates():
+    wet = np.array([True, False] * 20)
+    v = np.where(wet, 2.0, 1.0)
+    r = fl.flag_shift_test(v, np.arange(40)[:, None], wet, n_shift=100)
+    assert r["diff"] == -1.0 and r["n_flagged"] == 20

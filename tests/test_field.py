@@ -88,3 +88,15 @@ def test_censored_flag_marks_a_sustained_floor_not_a_brief_dip():
     assert f[t[24 * 12]:t[24 * 28]].mean() > 0.95                        # the floor
     assert not f[t[24 * 2]:t[24 * 6]].any()                              # falling limb
     assert not f[t[24 * 58]:].any()                                      # brief dip
+
+
+def test_surface_wetness_at_flags_humid_rainy_and_frozen_times():
+    idx = pd.date_range("2023-05-01 00:30", periods=24, freq="h", tz="UTC")
+    met = pd.DataFrame({"RH_2m": 70.0, "Air_2m": 10.0, "Rain_mm_Tot": 0.0}, index=idx)
+    met.loc[idx[5], "RH_2m"] = 99.0          # humid at 05:30
+    met.loc[idx[14], "Rain_mm_Tot"] = 1.2    # rain in the hour centred 14:30
+    met.loc[idx[20]:, "Air_2m"] = -2.0       # frost from 20:30
+    t = pd.to_datetime(["2023-05-01 05:30", "2023-05-01 16:00", "2023-05-01 18:30", "2023-05-01 21:00"], utc=True)
+    s = field.surface_wetness_at(met, t)
+    assert s.wet.tolist() == [True, True, False, False]
+    assert s.frozen.tolist() == [False, False, False, True]
