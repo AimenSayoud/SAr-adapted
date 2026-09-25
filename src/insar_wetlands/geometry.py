@@ -50,10 +50,10 @@ def los_unit_vector(incidence_deg: float, heading_deg: float) -> tuple[float, fl
 
     `incidence_deg` from vertical, `heading_deg` clockwise from North (the
     satellite's flight direction) — both as already recorded per track in
-    `config.yaml`'s `sentinel1.tracks`. Verified against the two tracks this
-    project actually uses: ascending (32.26°, 346.4°) gives (-0.5188, 0.8456);
-    descending (34.10°, 193.6°) gives (+0.5449, 0.8281) — both match the
-    independently-derived values in `X-032` to 4 decimal places.
+    `config.yaml`'s `sentinel1.tracks`. With the geometry measured from the HyP3
+    look vectors (X-042): ascending (32.26°, 348.6°) gives (-0.5232, 0.8456) and
+    descending (39.17°, 190.1°) gives (+0.6218, 0.7753) — matching the unit vectors
+    read directly from lv_theta/lv_phi over zone A to 1e-4.
     """
     theta = np.radians(incidence_deg)
     heading = np.radians(heading_deg)

@@ -6,9 +6,12 @@ come out."""
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 import xarray as xr
+import yaml
 
 from insar_wetlands.aggregate import seasonal_amplitude
 from insar_wetlands.geometry import (
@@ -19,9 +22,13 @@ from insar_wetlands.geometry import (
     two_los_design_matrix,
 )
 
-# The two tracks this project actually uses (config.yaml's sentinel1.tracks).
+# The geometry X-032 was built and cross-checked with (config.yaml before X-042). Kept as a
+# fixed input for the maths tests below: X-032's note derived these vectors independently.
 ASCENDING = (32.26, 346.4)
 DESCENDING = (34.10, 193.6)
+
+# The geometry in config.yaml since X-042, measured from the HyP3 look vectors.
+CFG_TRACKS = yaml.safe_load((Path(__file__).resolve().parents[1] / "config" / "config.yaml").read_text())["sentinel1"]["tracks"]
 
 
 def test_los_unit_vector_matches_the_independently_derived_project_values():
@@ -34,6 +41,16 @@ def test_los_unit_vector_matches_the_independently_derived_project_values():
     e_e, e_u = los_unit_vector(*DESCENDING)
     assert abs(e_e - 0.5449) < 1e-3
     assert abs(e_u - 0.8281) < 1e-3
+
+
+def test_config_geometry_reproduces_the_hyp3_look_vectors():
+    """The unit vectors read straight from HyP3 lv_theta/lv_phi (zone-A median, atlas check
+    'geometry: config vs HyP3 look vector') — independent of the (incidence, heading) route."""
+    measured = {"ascending": (-0.5233, 0.8456), "descending": (0.6219, 0.7752)}
+    for track, (e_e_hyp3, e_u_hyp3) in measured.items():
+        t = CFG_TRACKS[track]
+        e_e, e_u = los_unit_vector(t["incidence_angle_deg"], t["heading_deg"])
+        assert abs(e_e - e_e_hyp3) < 5e-4 and abs(e_u - e_u_hyp3) < 5e-4, (track, e_e, e_u)
 
 
 def test_los_unit_vector_is_unit_length_for_a_pure_los_projection():

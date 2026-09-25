@@ -680,8 +680,9 @@ def main() -> None:
         h = np.degrees(np.arccos(np.clip(cos_h, -1, 1)))
         h = 360.0 - h   # e_E = -sin(inc)cos(h): asc ~349, desc ~190
         measured[track] = (round(float(inc), 3), round(float(h % 360), 3))
+        dh = abs((h - tr[track]["heading_deg"] + 180) % 360 - 180)
         check(f"{track} geometry: config vs HyP3 look vector (Zone A median)",
-              abs(inc - tr[track]["incidence_angle_deg"]) < 1.0,
+              abs(inc - tr[track]["incidence_angle_deg"]) < 0.5 and dh < 1.0,
               f"incidence {inc:.2f}° vs config {tr[track]['incidence_angle_deg']}°; "
               f"heading {h % 360:.1f}° vs config {tr[track]['heading_deg']}°; "
               f"unit vector E={e_e:+.4f} U={e_u:.4f}", measured=measured[track])
