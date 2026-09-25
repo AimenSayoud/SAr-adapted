@@ -24,7 +24,8 @@ def _ctx(repo: Path) -> Context:
     (repo / "config").mkdir(parents=True)
     (repo / "config" / "phases.yaml").write_text(PHASES)
     (repo / "notebooks" / "04_hypotheses").mkdir(parents=True)
-    paths = SimpleNamespace(repo=repo, drive=repo / "drive", outputs=repo / "outputs" / "phaseX")
+    paths = SimpleNamespace(repo=repo, drive=repo / "drive", outputs=repo / "outputs" / "phaseX",
+                            runs=repo / "drive" / "runs")
     return Context(phase="phaseX", cfg={}, paths=paths, log=logging.getLogger("t"))
 
 
@@ -59,3 +60,12 @@ def test_archive_forwards_it(tmp_path, monkeypatch):
     monkeypatch.setattr(run_archive, "archive_run", lambda *a, **k: seen.update(k) or tmp_path / "run")
     ctx.archive()
     assert seen["executed_notebook"] == out
+
+
+def test_archive_uses_the_track_aware_runs_folder(tmp_path, monkeypatch):
+    ctx = _ctx(tmp_path)
+    ctx.paths.runs = tmp_path / "drive" / "runs_descending"
+    seen = {}
+    monkeypatch.setattr(run_archive, "archive_run", lambda *a, **k: seen.update(k) or tmp_path / "run")
+    ctx.archive()
+    assert seen["runs_dir"] == tmp_path / "drive" / "runs_descending"

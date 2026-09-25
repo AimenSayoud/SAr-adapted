@@ -209,7 +209,8 @@ def archive_run(phase: str,
                 root: str | Path | None = None,
                 repo: str | Path = ".",
                 copy_light: bool = True,
-                executed_notebook: str | Path | None = None) -> Path:
+                executed_notebook: str | Path | None = None,
+                runs_dir: str | Path | None = None) -> Path:
     """Archive one phase execution under ``<root>/runs/<phase>/<run_id>/``.
 
     Parameters
@@ -240,7 +241,7 @@ def archive_run(phase: str,
     outdir = Path(outdir)
     git = git_state(repo)
     rid = run_id(sha=git.get("short"))
-    base = drive_root(root) / "runs" / phase / rid
+    base = _runs_dir(root, runs_dir) / phase / rid
     if base.exists():
         raise FileExistsError(f"run directory already exists: {base}")
     base.mkdir(parents=True)
@@ -295,15 +296,22 @@ def archive_run(phase: str,
     return base
 
 
-def list_runs(phase: str, root: str | Path | None = None) -> list[Path]:
+def _runs_dir(root: str | Path | None, runs_dir: str | Path | None) -> Path:
+    """``<drive>/runs`` by default; a track-aware caller passes ``Paths.runs`` (C-033)."""
+    return Path(runs_dir) if runs_dir is not None else drive_root(root) / "runs"
+
+
+def list_runs(phase: str, root: str | Path | None = None,
+              runs_dir: str | Path | None = None) -> list[Path]:
     """Every archived run of a phase, oldest first (run ids sort naturally)."""
-    d = drive_root(root) / "runs" / phase
+    d = _runs_dir(root, runs_dir) / phase
     return sorted(p for p in d.glob("*") if p.is_dir()) if d.is_dir() else []
 
 
-def latest_run(phase: str, root: str | Path | None = None) -> Path | None:
+def latest_run(phase: str, root: str | Path | None = None,
+               runs_dir: str | Path | None = None) -> Path | None:
     """The most recent archived run, or None if the phase has never run."""
-    runs = list_runs(phase, root)
+    runs = list_runs(phase, root, runs_dir)
     return runs[-1] if runs else None
 
 
@@ -312,12 +320,13 @@ def load_manifest(run_dir: str | Path) -> dict:
     return json.loads((Path(run_dir) / "manifest.json").read_text(encoding="utf-8"))
 
 
-def compare_runs(phase: str, root: str | Path | None = None) -> dict:
+def compare_runs(phase: str, root: str | Path | None = None,
+                 runs_dir: str | Path | None = None) -> dict:
     """What changed between the two most recent runs of a phase.
 
     Answers the question that went unanswered when the July numbers moved: did
     the code change, the environment, or the parameters?"""
-    runs = list_runs(phase, root)
+    runs = list_runs(phase, root, runs_dir)
     if len(runs) < 2:
         return {"comparable": False, "n_runs": len(runs)}
     prev, curr = load_manifest(runs[-2]), load_manifest(runs[-1])

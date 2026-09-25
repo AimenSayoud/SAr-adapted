@@ -200,9 +200,10 @@ class Context:
         The executed notebook (its figures become standalone images in the run) is found
         automatically when not given — see `executed_notebook`."""
         from .run_archive import archive_run
+        # paths.runs is track-aware: descending runs go to runs_descending/ (C-033).
         run = archive_run(self.phase, self.outdir, params=params,
                           products=products, root=self.paths.drive,
-                          repo=self.paths.repo,
+                          repo=self.paths.repo, runs_dir=self.paths.runs,
                           executed_notebook=executed_notebook or self.executed_notebook())
         self.log.info("archived run: %s", run)
         return run
