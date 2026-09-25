@@ -1,5 +1,12 @@
 # Decadal Dual-Geometry Extension — Execution Plan
 
+> **Superseded in part (2026-09-25, ticket C-034).** Stage 1 (descending Orbit 22,
+> 2022–2024) was executed and turned into the *diurnal / dual-geometry* line of work — work
+> chain `diurnal-dual-geometry` (X-031, X-032, X-036–X-040, X-045). Stage 2 (the 2015–2026
+> decadal run) is **not** scheduled. Still load-bearing and cited: §8.1 (long-baseline noise
+> floor, used by X-031 and D-017) and §9 (the burst inventory the descending track was chosen
+> from). Read the rest as the plan of record at the time, not as current intent.
+
 **Status:** Planning document, not yet executed. Companion to
 `03_paper01_rzecin/review/` Paper 2 / decadal proposal discussion (Research_Hub,
 2026-09-13). Written against the *real* pipeline as it exists today — every
