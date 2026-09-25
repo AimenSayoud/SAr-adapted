@@ -697,7 +697,8 @@ def main() -> None:
     j16 = json.loads((D / "phase16_two_los_decomposition.json").read_text())
     check("phase16 point estimate reproduced", abs(np.hypot(va, vb) - j16["vertical_amplitude_mm"]) < 0.002,
           f"vertical {np.hypot(va, vb):.3f} vs Drive JSON {j16['vertical_amplitude_mm']}; "
-          f"east {np.hypot(ea, eb):.3f} vs {j16['east_amplitude_mm']}")
+          f"east {np.hypot(ea, eb):.3f} vs {j16['east_amplitude_mm']} — a mismatch means Drive's "
+          f"phase16 JSON was computed with other geometry than config.yaml (X-042: re-run phase16 on Colab)")
     check("phase16 uncertainty (X-032 CI) recomputed", None,
           f"vertical {unc['vertical_amplitude_mm']}; east {unc['east_amplitude_mm']}")
     W.chart("two_los", {"fit_ascending": fa, "fit_descending": fd,
@@ -712,25 +713,27 @@ def main() -> None:
                         "pure_vertical_ascending_only_mm": fa["amplitude_mm"] / np.cos(np.radians(ga[0]))},
             title="2-LOS decomposition (X-032)", group="Charts", status="exploratory",
             prov=P(D / "phase16_two_los_decomposition.json"))
-    # ERA5 at the site (flag the 6-hourly sampling of an hourly accumulation)
-    era = xr.open_dataset(D / "era5_rzecin.nc")
+    # ERA5 at the site, as the pipeline reads it for anything precipitation-based (X-043)
+    from insar_wetlands.hydro import era5_samples_per_day, open_era5
+    era = open_era5(D)
     lon, lat = cfg["site"]["centroid"]
     pt = era.sel(latitude=lat, longitude=lon, method="nearest")
     tname = "valid_time" if "valid_time" in pt.coords else "time"
     df = pd.DataFrame({"t2m_c": pt["t2m"].values - 273.15, "tcwv": pt["tcwv"].values,
-                       "tp_sampled_mm": pt["tp"].values * 1000.0},
+                       "precip_mm": pt["tp"].values * 1000.0},
                       index=pd.to_datetime(pt[tname].values))
-    hours = sorted(set(df.index.hour))
-    check("ERA5 precipitation sampling", len(hours) == 24,
-          f"tp present at hours {hours}: each value is a 1-hour accumulation, so a daily sum "
-          f"covers {len(hours)}/24 h (hydro.daily_era5_point sums it as daily precipitation)")
-    daily = df.resample("1D").agg({"t2m_c": "mean", "tcwv": "mean", "tp_sampled_mm": "sum"})
+    spd = era5_samples_per_day(era)
+    check("ERA5 precipitation sampling", abs(spd - 24) < 0.5,
+          f"{spd:.0f} samples/day: tp is a 1-hour accumulation, so a daily sum needs 24 "
+          f"(hydro.open_era5 reads era5_hourly/ when present)")
+    daily = df.resample("1D").agg({"t2m_c": "mean", "tcwv": "mean", "precip_mm": "sum"})
     daily.index = daily.index.strftime("%Y-%m-%d")
+    hourly_dir = D / "era5_hourly"
     W.chart("era5_daily", daily.reset_index(names="date").round(3), title="ERA5 at the site (daily)",
             group="Charts", status="pipeline",
-            description="t2m and tcwv daily means. tp_sampled_mm sums only the hours delivered "
-                        "(00/06/12/18 UTC), i.e. ~1/6 of true daily precipitation.",
-            prov=P(D / "era5_rzecin.nc"))
+            description="Daily means of t2m and tcwv and daily precipitation summed over all 24 "
+                        "hourly accumulations (era5_hourly/, X-043).",
+            prov=P(*sorted(hourly_dir.glob("*.nc"))) if hourly_dir.is_dir() else P(D / "era5_rzecin.nc"))
     # every committed table
     tables = {}
     for f in sorted(TAB.glob("T*.csv")):

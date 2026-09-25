@@ -26,9 +26,8 @@ def test_threshold_sweep_is_not_pre_rounded():
     assert round(at07, 3) == round(exact, 3)      # a single rounding, at export
 
 
-@pytest.mark.xfail(strict=True, reason="X-043: ERA5 is requested at 00/06/12/18 only; tp is an hourly "
-                                       "accumulation, so daily precipitation covers 4 of 24 h (~1/6)")
 def test_era5_request_covers_every_hour(monkeypatch, tmp_path):
+    """X-043 (fixed 2026-09-25): ERA5 used to be requested at 00/06/12/18 only."""
     import sys
     import types
 
