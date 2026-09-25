@@ -103,7 +103,7 @@ phase03:
   question: Is C-band coherence over the mat sufficient to proceed at all?
   status: current
   inputs: [phase02.hyp3_cropped]
-  outputs: [network_qc.csv]
+  outputs: [pair_selection.csv, bridge_pairs_needed.csv]  # rewrites artifacts/pair_selection.csv (C-037 audit)
   paper: "§2.2, Fig. 3"
 
 phase03b:
@@ -133,7 +133,7 @@ phase04b:
   question: What is the per-pixel uncertainty of the pairwise rates?
   status: current
   inputs: [phase03b.pair_rates_b.pkl]
-  outputs: [insar_hybrid_results.nc]
+  outputs: [ensemble_vertical_rate.nc, wls_vertical_rate.nc, ensemble_stats_by_class.csv]  # outputs/phase04b
   paper: "-"
 
 phase05:
@@ -193,7 +193,7 @@ phase10:
   question: Do the two inversions disagree anywhere that matters?
   status: current
   inputs: [phase08.ts_sbas_ref_only.nc, phase09.ts_isbas_ref_only.nc]
-  outputs: [comparison.csv]
+  outputs: [density_by_class.csv, comparison_report.json]
   paper: "§4.1"
 
 phase11:
@@ -203,7 +203,7 @@ phase11:
   question: Does ERA5 correction beat a local reference zone?
   status: current
   inputs: [era5_rzecin.nc, phase08.ts_sbas_ref_only.nc]
-  outputs: [atmosphere_comparison.csv]
+  outputs: [ts_isbas_tropo.nc, ts_sbas_tropo.nc, atmospheric_comparison.csv]
   paper: "§A.4"
 
 phase12:
@@ -212,8 +212,9 @@ phase12:
   group: corrections
   question: What is the measured incidence angle, and the conversion factor?
   status: current
-  inputs: [phase02.hyp3_cropped]
-  outputs: [hybrid_vertical_ts.nc]
+  # Picks the best of phase11's corrected series, so it runs after phase11 (C-037).
+  inputs: [phase02.hyp3_cropped, phase11.atmospheric_comparison.csv, phase11.ts_sbas_tropo.nc, phase11.ts_isbas_tropo.nc, phase06.behavior_classes.nc]
+  outputs: [ts_vertical.nc]  # C-037: hybrid_vertical_ts.nc is phaseA's
   paper: "§A.5 — the measured 32.26 deg, factor 1.183"
 
 phase16:
@@ -243,8 +244,8 @@ phase14:
   group: data
   question: What are the final maps and their uncertainties?
   status: current
-  inputs: [phase12.hybrid_vertical_ts.nc]
-  outputs: [products/]
+  inputs: [phase12.ts_vertical.nc]
+  outputs: [final_summary_by_class.csv, final_maps.png]
   paper: "-"
 
 phase15:
@@ -264,7 +265,7 @@ phaseA:
   question: Does combining short and long baselines recover usable pixels over the AOI?
   status: current
   inputs: [phase02.hyp3_cropped]
-  outputs: [hybrid_pairs.csv, insar_hybrid_results.nc]
+  outputs: [hybrid_pairs.csv, jobs_hybrid.csv, hybrid_vertical_ts.nc, phaseA_summary.json]
   paper: "§4.1, Table 7 (estimator 4)"
 
 phaseB:
@@ -274,7 +275,7 @@ phaseB:
   question: Does an independent ground-motion service see anything here?
   status: exploratory
   inputs: []
-  outputs: [egms_check.csv]
+  outputs: [egms_summary.json]
   paper: "-"
 
 phaseC1:
@@ -316,7 +317,7 @@ phaseDbis:
   status: current
   supersedes: []
   inputs: [phaseD.phaseD_coh_by_zone.csv]
-  outputs: [radial_profiles.csv]
+  outputs: [phaseDbis_summary.json]
   paper: "§4.2.3, Fig. 9"
 
 phaseDter:
@@ -327,7 +328,7 @@ phaseDter:
   status: current
   supersedes: []
   inputs: [rtc_dualpol_stack.nc, phaseD.phaseD_coh_by_zone.csv]
-  outputs: [scattering_signature.csv]
+  outputs: [phaseDter_summary.json]
   paper: "§4.2.4, Table 10"
 
 phaseE:
@@ -359,7 +360,7 @@ phaseF:
   question: Does the mat become coherent at 24 cm?
   status: exploratory
   inputs: []
-  outputs: [nisar_gunw/]
+  outputs: [nisar_gunw_stack.nc, phaseF_nisar_evd.nc]
   paper: "§5.4 — prospective, the archive does not cover 2022-2024"
 
 phaseG:
@@ -379,7 +380,7 @@ phaseH:
   question: Which covariates predict temporal coherence inside the mat?
   status: current
   inputs: [phaseE2.phaseE2_evd.nc, rtc_dualpol_stack.nc]
-  outputs: [predictors.csv]
+  outputs: []  # computed in the notebook; the table is T06, written by export_figures_en
   paper: "§4.2.5, Table 11, Fig. 10"
 
 phaseI:
