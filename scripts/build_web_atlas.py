@@ -196,7 +196,35 @@ def add_field(W, gallery: list, gal: Path, template, P) -> None:
                 status="exploratory", units="mm / cm",
                 description="Coherence and LOS change per pair at each plot, with ΔWTD and, at P6, the "
                             "snow-free laser Δsurface.", prov=P(F2 / "per_pair_table.csv", root=hub))
-    for folder, tag in ((F1, "field_first"), (F2, "field_mechanism")):
+    F3, F4 = hub / "08_deliverables" / "field_dew_x050", hub / "08_deliverables" / "field_t10_x051"
+    if (F3 / "plot_phase_split_test.csv").exists():
+        wt = pd.read_csv(F3 / "wetness_at_overpasses.csv")
+        rh95 = lambda d: d[d.rh_threshold == 95.0].to_dict("records")  # noqa: E731 — the main threshold
+        dew = {"wetness": [{"track": t, "n": len(g), "wet": int(g.wet.sum()), "frozen": int(g.frozen.sum()),
+                            "wet_by_rain": int((g.rain_prev_mm > 0).sum()), "rh_median": float(g.rh.median())}
+                           for t, g in wt.groupby("track")],
+               "zone_coherence": rh95(pd.read_csv(F3 / "zone_coherence_by_wetness.csv")),
+               "plot_phase": rh95(pd.read_csv(F3 / "plot_phase_by_wetness.csv")),
+               "plot_phase_split": pd.read_csv(F3 / "plot_phase_split_test.csv").to_dict("records"),
+               "series": rh95(pd.read_csv(F3 / "series_residual_by_wetness.csv"))}
+        if (F3 / "zone_phase_by_wetness.csv").exists():
+            zp = pd.read_csv(F3 / "zone_phase_by_wetness.csv")
+            dew["zone_phase"] = zp[zp.max_dt == 24].to_dict("records")
+        W.chart("field_dew", dew,
+                title="Dusk vs dawn: surface wetness at the overpass (X-050)", group="Field data",
+                status="exploratory", description="Station RH / rain / frost at each overpass; coherence and "
+                                                  "phase on pairs with two dry dates vs a wet one.",
+                prov=P(F3 / "wetness_at_overpasses.csv", F3 / "plot_phase_split_test.csv", root=hub))
+    if (F4 / "t10_proxy_vs_measured.csv").exists():
+        W.chart("field_t10", {"table": pd.read_csv(F4 / "t10_proxy_vs_measured.csv").to_dict("records"),
+                              "report": json.loads((F4 / "report.json").read_text())},
+                title="T10 with the measured water table (X-051)", group="Field data", status="exploratory",
+                description="Coherence vs |Δ water table| per zone: ERA5 precipitation proxy (committed T10) vs "
+                            "the measured WTD; raw and season-cleaned.",
+                prov=P(F4 / "t10_proxy_vs_measured.csv", F4 / "report.json", root=hub))
+    for folder, tag in ((F1, "field_first"), (F2, "field_mechanism"), (F3, "field_dew"), (F4, "field_t10")):
+        if not folder.exists():
+            continue
         for f in sorted(folder.glob("*.png")):
             shutil.copy2(f, gal / f"{tag}_{f.name}")
             gallery.append({"file": f"figures/{tag}_{f.name}", "source": f"08_deliverables/{folder.name}",

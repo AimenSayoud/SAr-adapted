@@ -13,12 +13,16 @@ a different dielectric state and are left out. Three tests, each per track:
    vs dry dates; B−C and the adjacent null as controls.
 3. Plot phase (X-047/X-048 pair table, pairs ≤ 24 d): phase vs ΔWTD per plot and phase vs laser
    at P6, on pairs whose two dates are both dry vs the rest.
+4. Zone phase (``--drive``: a read-only Drive snapshot): the coherence-weighted A−C phase of every
+   pair (``aggregate_unwrapped``, as phaseG) vs the median ΔWTD over the plots and vs the P6 laser,
+   dry-dry pairs vs the rest — one test on the whole mat instead of nine overlapping plots.
+   B−C, A−B and the adjacent-null zone are the controls.
 
 Significance of 1–2: ``field_link.flag_shift_test`` (wet flags circularly shifted along the
 dates; keeps their seasonality). Of 3: ``circular_shift_p``. Outputs go ONLY to the private hub
 (``--out``, default ``<hub>/08_deliverables/field_dew_x050``): the meteo is field data.
 
-    PYTHONPATH=src python scripts/field_dew_x050.py
+    PYTHONPATH=src python scripts/field_dew_x050.py [--drive <snapshot>]
 """
 from __future__ import annotations
 
@@ -170,6 +174,92 @@ def plot_phase(pairs: pd.DataFrame, wt: pd.DataFrame, max_dt: int = 24, n_shift:
     return pd.DataFrame(rows), pd.DataFrame(lz), pd.DataFrame(split)
 
 
+def zone_pair_table(drive: Path, wt: pd.DataFrame) -> pd.DataFrame:
+    """Per track × zone pair × interferogram: aggregated LOS change, median ΔWTD over the plots
+    (dry-well stretches out; ≥ 5 plots), the P6 snow-free laser change, wet/frozen flags."""
+    from insar_wetlands.aggregate import adjacent_null_zones, aggregate_unwrapped
+    from insar_wetlands.bootstrap import start
+    from insar_wetlands.stack import list_pairs, load_layer
+    ctx = start("field_dew_x050", mount=False, git=False, drive_root=drive)
+    zones, tpl = ctx.zones, ctx.template
+    wtd = field.load_wtd_hourly()
+    cens = {p: field.censored_flag(wtd[p]) for p in field.PLOTS}
+    laser = field.load_laser()
+    surface = laser.surface_cm.where(~field.snow_mask(wtd["Air_2m"], laser.index))
+    znull = adjacent_null_zones(zones, tpl, ref="D")
+    key = wt.set_index(["track", "date"])
+    rows = []
+    for track in OVERPASS:
+        pth = ctx.paths.for_phase("x", track=track)
+        pairs = list_pairs(pth.cropped)
+        unw, corr = load_layer(pth.cropped, "unw_phase", pairs), load_layer(pth.cropped, "corr", pairs)
+        dd = {label: aggregate_unwrapped(unw, corr, z, target=t, reference=r).set_index("pair")
+              for label, z, t, r in (("A-C", zones, "A", "C"), ("B-C", zones, "B", "C"),
+                                     ("A-B", zones, "A", "B"), ("adjacent null", znull, "A", "C"))}
+        del unw, corr
+        for pair in pairs:
+            a, b = (iso(x) for x in pair.split("_"))
+            t1, t2 = (pd.Timestamp(f"{x} {OVERPASS[track]}", tz="UTC") for x in (a, b))
+            dw = [field._interp_at(wtd[p], t2) - field._interp_at(wtd[p], t1) for p in field.PLOTS
+                  if not (bool(cens[p].asof(t1)) or bool(cens[p].asof(t2)))]
+            s1, s2 = key.loc[(track, a)], key.loc[(track, b)]
+            base = {"track": track, "pair": pair, "date1": a, "date2": b, "dt_days": (pd.Timestamp(b) - pd.Timestamp(a)).days,
+                    "dwtd_median_cm": float(np.median(dw)) if len(dw) >= 5 else np.nan, "n_plots": len(dw),
+                    "dsurface_p6_cm": fl.value_at(surface, t2) - fl.value_at(surface, t1),
+                    "frozen_any": bool(s1.frozen or s2.frozen)}
+            for thr in RH_THRESHOLDS:
+                base[f"wet_any_rh{int(thr)}"] = bool(s1[f"wet_rh{int(thr)}"] or s2[f"wet_rh{int(thr)}"])
+            for label, d in dd.items():
+                if pair in d.index:
+                    rows.append({**base, "zones": label, "ddisp_mm": float(d.loc[pair, "ddisp_mm"]),
+                                 "weight": float(d.loc[pair, "weight"])})
+    return pd.DataFrame(rows)
+
+
+def zone_phase_tests(zt: pd.DataFrame, wt: pd.DataFrame) -> pd.DataFrame:
+    rows = []
+    for (track, label), d0 in zt.groupby(["track", "zones"]):
+        w = wt[wt.track == track].reset_index(drop=True)
+        index = {x: i for i, x in enumerate(w.date)}
+        for max_dt in (24, 48):
+            d = d0[(d0.dt_days <= max_dt) & ~d0.frozen_any].sort_values("date1")
+            for xvar in ("dwtd_median_cm", "dsurface_p6_cm"):
+                q = d.dropna(subset=[xvar, "ddisp_mm"])
+                if len(q) < 24:
+                    continue
+                m = np.array([[index[a], index[b]] for a, b in zip(q.date1, q.date2)])
+                x = q[xvar].to_numpy()
+                if xvar == "dsurface_p6_cm":
+                    x = fl.los_from_vertical(x * 10, INCIDENCE[track])
+                r_all, p_all = fl.circular_shift_p(x, q.ddisp_mm.to_numpy())
+                for thr in RH_THRESHOLDS:
+                    s = fl.flag_split_correlation(x, q.ddisp_mm.to_numpy(), m, w[f"wet_rh{int(thr)}"].to_numpy(bool))
+                    rows.append({"track": track, "zones": label, "max_dt": max_dt, "x": xvar, "rh_threshold": thr,
+                                 "n_pairs": len(q), "r_all": r_all, "p_all": p_all, **s})
+    return pd.DataFrame(rows)
+
+
+def zone_figure(out: Path, zp: pd.DataFrame):
+    labels = ["A-C", "B-C", "A-B", "adjacent null"]
+    fig, ax = plt.subplots(1, 2, figsize=(12, 4.2), sharey=True)
+    for a, xvar, title in ((ax[0], "dwtd_median_cm", "vs median ΔWTD over the plots"),
+                           (ax[1], "dsurface_p6_cm", "vs P6 laser surface change (LOS)")):
+        d = zp[(zp.x == xvar) & (zp.max_dt == 24) & (zp.rh_threshold == MAIN_RH)]
+        for k, (track, c) in enumerate((("ascending", "#d97706"), ("descending", "#2563eb"))):
+            t = d[d.track == track].set_index("zones").reindex(labels)
+            xs = np.arange(4) + (k - 0.5) * 0.36
+            a.bar(xs - 0.08, t.r_clear, 0.16, color=c, label=f"{track}: both dates dry")
+            a.bar(xs + 0.08, t.r_flagged, 0.16, color=c, alpha=0.35, hatch="//", label=f"{track}: a wet date")
+            for xi, (hi, p) in enumerate(zip(np.fmax(t.r_clear, t.r_flagged), t.p)):
+                a.text(xs[xi], hi + 0.02, f"p={p:.2f}", ha="center", fontsize=7, color=c)
+        a.axhline(0, c="k", lw=0.6); a.set_xticks(np.arange(4), ["A−C mat−grass", "B−C lake−grass", "A−B mat−lake", "null"])
+        a.set_title(f"Aggregated zone phase {title}\n(pairs ≤ 24 d; p: dry − wet, flags shifted)", fontsize=9)
+    ax[0].set_ylabel("r"); ax[0].legend(fontsize=7, loc="lower left")
+    fig.tight_layout()
+    fig.savefig(out / "fig_zone_phase.png", dpi=150)
+    plt.close(fig)
+
+
 def figure(out: Path, wt: pd.DataFrame, zc: pd.DataFrame, sr: pd.DataFrame, pp: pd.DataFrame, split: pd.DataFrame):
     fig, ax = plt.subplots(1, 4, figsize=(20, 4.4))
     for track, c in (("ascending", "#d97706"), ("descending", "#2563eb")):
@@ -221,6 +311,7 @@ def main(argv=None):
     ap.add_argument("--series", default=str(hub / "05_code" / "local" / "results" / "asc_desc" / "asc_desc_web.json"))
     ap.add_argument("--pairs", default=str(hub / "08_deliverables" / "field_x047_x048" / "per_pair_table.csv"))
     ap.add_argument("--out", default=str(hub / "08_deliverables" / "field_dew_x050"))
+    ap.add_argument("--drive", default=None, help="read-only Drive snapshot for the zone-phase test (4)")
     a = ap.parse_args(argv)
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
@@ -240,6 +331,12 @@ def main(argv=None):
     split.to_csv(out / "plot_phase_split_test.csv", index=False)
     lz.to_csv(out / "p6_laser_by_wetness.csv", index=False)
     figure(out, wt, zc, sr, pp, split)
+    if a.drive:
+        zt = zone_pair_table(Path(a.drive), wt)
+        zt.to_csv(out / "zone_pair_table.csv", index=False)
+        zp = zone_phase_tests(zt, wt)
+        zp.to_csv(out / "zone_phase_by_wetness.csv", index=False)
+        zone_figure(out, zp)
     print(f"wrote {sorted(p.name for p in out.iterdir())}")
 
 

@@ -99,6 +99,43 @@ def flag_shift_test(values, members, flags, n_shift: int = 2000, min_shift: int 
     return out
 
 
+def flag_split_correlation(x, y, members, flags, n_shift: int = 2000, min_shift: int = 3,
+                           min_n: int = 12, rng: np.random.Generator | None = None) -> dict:
+    """Is the x–y correlation different on items with no flagged date than on the rest?
+
+    Returns r on the clear items, r on the flagged items, their difference and a two-sided p
+    from the flags circularly shifted along the dates (as ``flag_shift_test``). Groups smaller
+    than ``min_n`` give NaN.
+    """
+    x, y = np.asarray(x, float), np.asarray(y, float)
+    m = np.atleast_2d(np.asarray(members, int))
+    m = m.T if m.shape[0] != len(x) else m
+    f = np.asarray(flags, bool)
+
+    def rs(ff):
+        hit = ff[m].any(axis=1)
+        if (~hit).sum() < min_n or hit.sum() < min_n:
+            return np.nan, np.nan
+        return float(np.corrcoef(x[~hit], y[~hit])[0, 1]), float(np.corrcoef(x[hit], y[hit])[0, 1])
+
+    r_clear, r_flag = rs(f)
+    hit = f[m].any(axis=1)
+    out = {"n_clear": int((~hit).sum()), "n_flagged": int(hit.sum()), "r_clear": r_clear,
+           "r_flagged": r_flag, "diff": r_clear - r_flag, "p": np.nan}
+    n = len(f)
+    if not np.isfinite(out["diff"]) or n < 2 * min_shift + 2:
+        return out
+    rng = rng or np.random.default_rng(0)
+    null = []
+    for k in rng.integers(min_shift, n - min_shift, size=n_shift):
+        a, b = rs(np.roll(f, k))
+        null.append(a - b)
+    null = np.asarray(null)
+    null = null[np.isfinite(null)]
+    out["p"] = float((np.sum(np.abs(null) >= abs(out["diff"])) + 1) / (len(null) + 1))
+    return out
+
+
 def los_from_vertical(dh_mm, incidence_deg: float):
     """LOS change (mm, toward the satellite positive) of a purely vertical surface change dh
     (up positive): dh · cos(incidence)."""
