@@ -54,7 +54,9 @@ def main(argv=None):
                               max_pairs_per_date=a.max_forward)
         pr = pr[pr.ref_date < a.end]
         pr.to_csv(out / f"candidate_pairs_{track}.csv", index=False)
-        pre.to_csv(out / f"acquisitions_{track}.csv", index=False)
+        # granules of every date a pair uses — the bridge dates in 2022 included
+        pd.concat([pre.assign(role="new"), bridge.assign(role="bridge (existing 2022 date)")]).to_csv(
+            out / f"acquisitions_{track}.csv", index=False)
         summary.append({"track": track, "burst": t["burst_id"], "acquisitions": len(pre),
                         **{f"acq_{k}": int(v) for k, v in pre.Platform.value_counts().items()},
                         "pairs": len(pr), "bridge_pairs_into_2022": int((pr.sec_date >= a.end).sum()),

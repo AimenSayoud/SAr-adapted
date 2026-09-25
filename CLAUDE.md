@@ -127,6 +127,9 @@ ground-truth test is not evidence.
 
 ## Domain constraints
 
+- **Settled questions, with where each is documented:** the hub's `SETTLED.md` (per-pixel
+  inversion is not run on any track or epoch — D-016 overturned 2026-09-25; zone aggregation
+  is the method; no bridge pairs).
 - **Do not propose a seventh inversion algorithm.** Six estimators with distinct
   mathematical assumptions fail identically; H1 is settled and the failure is physical.
 - Empirical p-values have a floor of 1/(1+N). Always state it when reporting one at the floor.
