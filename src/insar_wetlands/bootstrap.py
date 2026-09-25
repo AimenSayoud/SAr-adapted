@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import logging
 import sys
+import time
 from dataclasses import dataclass, field
 from functools import cached_property
 from pathlib import Path
@@ -75,6 +76,7 @@ class Context:
     log: logging.Logger
     track: str | None = None
     _extra: dict[str, Any] = field(default_factory=dict)
+    started: float = field(default_factory=time.time)
 
     @property
     def track_cfg(self) -> dict:
@@ -173,13 +175,35 @@ class Context:
     def outdir(self) -> Path:
         return self.paths.outputs
 
+    def executed_notebook(self) -> Path | None:
+        """This run's executed copy of its notebook, if one was written during the run.
+
+        `colab exec -f notebooks/<group>/<name>.ipynb` writes ``<name>_output.ipynb`` beside
+        it. The notebook comes from ``config/phases.yaml``; a copy older than this run
+        belongs to an earlier execution and is ignored (C-028)."""
+        try:
+            from .phases import load_phases
+            ph = load_phases(self.paths.repo / "config" / "phases.yaml").get(self.phase)
+        except Exception:
+            return None
+        if ph is None:
+            return None
+        nb = self.paths.repo / ph.notebook
+        out = nb.with_name(f"{nb.stem}_output.ipynb")
+        return out if out.exists() and out.stat().st_mtime >= self.started else None
+
     def archive(self, params: dict | None = None,
-                products: dict | None = None) -> Path:
-        """Archive this execution to the Drive. Call at the end of every phase."""
+                products: dict | None = None,
+                executed_notebook: str | Path | None = None) -> Path:
+        """Archive this execution to the Drive. Call at the end of every phase.
+
+        The executed notebook (its figures become standalone images in the run) is found
+        automatically when not given — see `executed_notebook`."""
         from .run_archive import archive_run
         run = archive_run(self.phase, self.outdir, params=params,
                           products=products, root=self.paths.drive,
-                          repo=self.paths.repo)
+                          repo=self.paths.repo,
+                          executed_notebook=executed_notebook or self.executed_notebook())
         self.log.info("archived run: %s", run)
         return run
 

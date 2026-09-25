@@ -2,7 +2,7 @@
 
 | Folder | Holds | Written by |
 |---|---|---|
-| `tables/` | `T01`–`T16` results tables and `phaseG_aggregate_series.csv` (the aggregated A−C series). **The source of truth for every number the project quotes.** | `notebooks/06_manuscript/export_figures_en.ipynb`; T16 by `referee.generate_t16_saturating_seasonal_fit` |
+| `tables/` | `T01`–`T16` results tables, `phaseG_aggregate_series.csv` (the aggregated A−C series) and `phaseD_coh_by_zone[_descending].csv` (mean coherence per interferogram and zone — the input of T05 and H2; version of record since 2026-09-25, X-039). **The source of truth for every number the project quotes.** | `notebooks/06_manuscript/export_figures_en.ipynb`; T16 by `referee.generate_t16_saturating_seasonal_fit` |
 | `robustness/` | Robustness analyses of the main results — K* (phaseK), L* (phaseL), X* (X-tickets) tables, their `.prov.json` provenance and figures. The full phaseK/L output also sits on Drive `insar_rzecin/referee/`. | `phaseK_referee_response`, `phaseL_gate`, ticket notebooks |
 
 Rules
