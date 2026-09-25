@@ -570,7 +570,7 @@ The primary finding of the per-pixel analysis is a stark controlled contrast: un
 | Zone | Median | p25–p75 | % ≥ 0.7 |
 |---|---|---|---|
 | C — matched grassland | 0.734 | 0.671–0.803 | 64.7 % |
-| D — other cover | 0.639 | 0.597–0.693 | 23.2 % |
+| D — other cover | 0.639 | 0.597–0.693 | 23.1 % |
 | A — floating mat | 0.604 | 0.566–0.647 | 5.4 % |
 | B — residual lake | 0.584 | 0.542–0.630 | 1.5 % |
 
@@ -2067,7 +2067,7 @@ Tables exported by `notebooks/06_manuscript/export_figures_en.ipynb`. Each is re
 | A | 0.604 | 0.054 |
 | B | 0.584 | 0.015 |
 | C | 0.734 | 0.647 |
-| D | 0.639 | 0.232 |
+| D | 0.639 | 0.231 |
 
 
 ### T03. Usable fraction against the coherence threshold
@@ -2080,8 +2080,8 @@ Tables exported by `notebooks/06_manuscript/export_figures_en.ipynb`. Each is re
 | 0.55 | 0.84 | 0.692 | 0.976 | 0.931 |
 | 0.6 | 0.531 | 0.431 | 0.882 | 0.734 |
 | 0.65 | 0.236 | 0.185 | 0.794 | 0.429 |
-| 0.7 | 0.054 | 0.015 | 0.647 | 0.232 |
-| 0.75 | 0.006 | 0.0 | 0.446 | 0.125 |
+| 0.7 | 0.054 | 0.015 | 0.647 | 0.231 |
+| 0.75 | 0.006 | 0.0 | 0.447 | 0.125 |
 | 0.8 | 0.0 | 0.0 | 0.267 | 0.062 |
 | 0.85 | 0.0 | 0.0 | 0.104 | 0.024 |
 | 0.9 | 0.0 | 0.0 | 0.029 | 0.006 |

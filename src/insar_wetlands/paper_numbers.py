@@ -85,7 +85,7 @@ SUPERSEDED = {
     "−0.069": "old paired Δ; the mean is −0.081 and the median −0.050",
     "−0.0705": "old date-jackknife minimum, superseded by −0.0842",
     "−0.0652": "old date-jackknife maximum, superseded by −0.0774",
-    "23.1 %": "old zone-D usable fraction, superseded by 23.2 %",
+    "23.2 %": "zone-D usable fraction double-rounded (0.231477 -> 0.2315 -> 0.232); the data give 23.1 % (C-039)",
     "+0.077)": "grassland freeze gain truncated instead of rounded; 0.07775 -> 0.078",
     "p = 0.014": "old size-matched null p-value, superseded by reference-matched 0.026",
     "p = 0.038": "interim 184-draw null p-value, superseded by 5000-draw 0.026",

@@ -11,7 +11,7 @@ The primary finding of the per-pixel analysis is a stark controlled contrast: un
 | Zone | Median | p25–p75 | % ≥ 0.7 |
 |---|---|---|---|
 | C — matched grassland | 0.734 | 0.671–0.803 | 64.7 % |
-| D — other cover | 0.639 | 0.597–0.693 | 23.2 % |
+| D — other cover | 0.639 | 0.597–0.693 | 23.1 % |
 | A — floating mat | 0.604 | 0.566–0.647 | 5.4 % |
 | B — residual lake | 0.584 | 0.542–0.630 | 1.5 % |
 
