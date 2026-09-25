@@ -145,6 +145,27 @@ def _interp_at(s: pd.Series, t: pd.Timestamp) -> float:
     return float(np.interp((t - s.index[0]).total_seconds(), x, s.to_numpy()))
 
 
+def surface_wetness_at(meteo: pd.DataFrame, times_utc, rh_wet: float = 95.0,
+                       rain_hours: int = 3) -> pd.DataFrame:
+    """Surface state at each overpass from the station meteo (``load_wtd_hourly`` columns
+    ``RH_2m``, ``Air_2m``, ``Rain_mm_Tot``).
+
+    ``wet``: relative humidity ≥ ``rh_wet`` % at the time (dew or wet canopy likely) or rain in
+    the ``rain_hours`` before it. ``frozen``: air temperature ≤ 0 °C at the time — a different
+    dielectric state, kept apart from wetness. One row per time.
+    """
+    times = pd.DatetimeIndex(pd.to_datetime(times_utc, utc=True))
+    rain = meteo["Rain_mm_Tot"].astype(float)
+    rows = []
+    for t in times:
+        rh = _interp_at(meteo["RH_2m"].astype(float), t)
+        air = _interp_at(meteo["Air_2m"].astype(float), t)
+        r = float(rain[(rain.index > t - pd.Timedelta(hours=rain_hours)) & (rain.index <= t)].sum())
+        rows.append({"time_utc": t, "rh": rh, "air_c": air, "rain_prev_mm": r,
+                     "wet": bool((rh >= rh_wet) or (r > 0)), "frozen": bool(air <= 0)})
+    return pd.DataFrame(rows)
+
+
 def window_stats(values: np.ndarray, valid: np.ndarray | None = None) -> dict:
     """Statistics of the pixels in an extraction window (NaN = invalid)."""
     v = np.asarray(values, float).ravel()
