@@ -74,15 +74,25 @@ def _existing_granule_pairs(hyp3, name: str) -> set:
     return seen
 
 
+def confirmation_phrase(n_jobs: int, name: str) -> str:
+    """The exact text `submit_pairs` needs before it spends credits."""
+    return f"spend {n_jobs} credits on {name}"
+
+
 def submit_pairs(pairs: pd.DataFrame, granules: dict, name: str,
                  looks: str = "10x2", chunk_size: int = 25,
-                 max_retries: int = 4) -> pd.DataFrame:
+                 max_retries: int = 4, confirm: str | None = None) -> pd.DataFrame:
     """Soumet les paires en jobs INSAR_ISCE_BURST. Retourne le suivi (job_id).
 
     Robuste : saute les paires deja soumises (idempotent), envoie par petits
     lots groupes (1 POST pour 25 jobs au lieu de 25 POST), et re-essaie avec
     attente progressive apres un 504/erreur serveur — en re-verifiant a
     chaque fois cote serveur ce qui a reellement ete cree.
+
+    Spends credits only when ``confirm`` equals ``confirmation_phrase(n, name)`` for the
+    number ``n`` of NEW jobs at this moment (C-033). A flag left True in a notebook cannot
+    re-spend on "run all": a stale phrase no longer matches once the batch changes, and
+    without it every new pair comes back ``NEEDS_CONFIRMATION`` with the phrase printed.
     """
     import time
 
@@ -109,6 +119,13 @@ def submit_pairs(pairs: pd.DataFrame, granules: dict, name: str,
                          hyp3.prepare_insar_isce_burst_job(
                              ref_g, sec_g, name=name, looks=looks,
                              apply_water_mask=False)))
+
+    expected = confirmation_phrase(len(prepared), name)
+    if prepared and confirm != expected:
+        print(f"HyP3: {len(prepared)} new job(s) would be submitted under '{name}'. "
+              f"To spend the credits, pass confirm={expected!r}")
+        rows += [{"pair": pn, "job_id": None, "status": "NEEDS_CONFIRMATION"} for pn, _, _ in prepared]
+        prepared = []
 
     for i in range(0, len(prepared), chunk_size):
         chunk = prepared[i:i + chunk_size]
