@@ -701,7 +701,15 @@ def main() -> None:
           f"phase16 JSON was computed with other geometry than config.yaml (X-042: re-run phase16 on Colab)")
     check("phase16 uncertainty (X-032 CI) recomputed", None,
           f"vertical {unc['vertical_amplitude_mm']}; east {unc['east_amplitude_mm']}")
+    # The decomposition as first run on Colab (X-032): its own recorded geometry, uncertainty
+    # recomputed here so the page can set it beside the current (measured, X-042) geometry.
+    g_run = (tuple(j16["geometry"]["ascending"]), tuple(j16["geometry"]["descending"]))
+    unc_run = two_los_amplitude_uncertainty(fa, fd, *g_run, n_trials=20000, rng=np.random.default_rng(0))
     W.chart("two_los", {"fit_ascending": fa, "fit_descending": fd,
+                        "first_run": {"geometry": {"ascending": g_run[0], "descending": g_run[1]},
+                                      "vertical_amplitude_mm": j16["vertical_amplitude_mm"],
+                                      "east_amplitude_mm": j16["east_amplitude_mm"],
+                                      "uncertainty": unc_run},
                         "vertical_amplitude_mm": float(np.hypot(va, vb)),
                         "east_amplitude_mm": float(np.hypot(ea, eb)),
                         "uncertainty": unc, "geometry": {"ascending": ga, "descending": gd},
