@@ -54,7 +54,7 @@ def test_seasonal_fit_recovers_known_amplitude_phase_and_trend():
 
 
 def test_seasonal_fit_matches_seasonal_amplitude_pixel_for_pixel():
-    """Same definitions as the 1-D routine the paper uses, including NaN gaps
+    """Same definitions as the 1-D routine the project uses, including NaN gaps
     and the day-of-year convention, so a map value can be quoted as that fit."""
     d = _dates()
     rng = np.random.default_rng(1)
@@ -151,11 +151,11 @@ def test_atlas_writer_manifest_and_grid_guard(tmp_path):
     w = AtlasWriter(tmp_path, X, Y)
     f = np.random.default_rng(3).random((129, 138))
     f[0, 0] = np.nan
-    w.raster("coh", f, title="t", group="g", status="paper")
+    w.raster("coh", f, title="t", group="g", status="core")
     w.raster("stk", np.stack([f, f]), title="t", group="g", status="derived",
              times=["2022-01-08", "2022-01-20"])
     with pytest.raises(ValueError, match="atlas grid"):
-        w.raster("shifted", f, title="t", group="g", status="paper", x=X - 20, y=Y + 20)
+        w.raster("shifted", f, title="t", group="g", status="core", x=X - 20, y=Y + 20)
     with pytest.raises(ValueError, match="status"):
         w.raster("bad", f, title="t", group="g", status="nonsense")
     w.write_manifest(title="x")

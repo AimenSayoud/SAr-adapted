@@ -355,11 +355,11 @@ class AtlasWriter:
 
     # What a viewer may conclude from a layer. Shown as a badge on every layer.
     STATUSES = {
-        "paper",                # backs a main figure or table of Paper 1
-        "paper-supplementary",  # backs a supplementary figure or an appendix
-        "pipeline",             # output of a current phase, not shown in the paper
+        "core",                 # a main result of the project (backs a key figure or table)
+        "supporting",           # robustness / supplementary analysis of a main result
+        "pipeline",             # output of a current phase, not a headline result
         "failed-estimator",     # per-pixel inversion output, shown as H1 evidence
-        "exploratory",          # Paper 2 / not registered in paper_numbers
+        "exploratory",          # new analysis, not yet tested or registered
         "derived",              # computed for the atlas by this module
         "context",              # terrain, land cover, outlines
         "unverified",           # provenance not established
