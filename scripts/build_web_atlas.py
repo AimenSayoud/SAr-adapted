@@ -137,7 +137,8 @@ def add_field(W, gallery: list, gal: Path, template, P) -> None:
                                 "plots": {p: {"wtd_cm": daily[p].round(2).tolist(), "censored": cens[p].tolist()}
                                           for p in field.PLOTS},
                                 "meteo": {"rain_mm": wtd["Rain_mm_Tot"].resample("D").sum().round(2).tolist(),
-                                          "air_c": wtd["Air_2m"].resample("D").mean().round(2).tolist()}},
+                                          "air_c": wtd["Air_2m"].resample("D").mean().round(2).tolist(),
+                                          "rh_pct": wtd["RH_2m"].resample("D").mean().round(1).tolist()}},
             title="Water-table depth, daily, 9 plots", group="Field data", status="field", units="cm",
             description="Daily means of the hourly series (cm, negative below the surface). `censored` = the "
                         "plot sat at its sensor floor (field.censored_flag): a bound, not a measurement.",
@@ -153,7 +154,8 @@ def add_field(W, gallery: list, gal: Path, template, P) -> None:
                                     "water level and WTD_P6 corrected to the surface; daily means.",
             prov=P(root / field.DELIVERY / "Laser_Sensor.xlsx", root=hub))
     j = pd.read_csv(F1 / "plot_s1_wtd.csv")
-    keep = ["date", "track", "plot", "coh_pairs_le24d", "vv_db", "vh_db", "wtd_at", "change_7d", "wtd_censored"]
+    keep = ["date", "track", "plot", "n_valid", "coh_pairs_le24d", "temporal_coherence", "vv_db", "vh_db", "rvi",
+            "wtd_at", "mean_24h", "mean_prev3d", "mean_prev7d", "change_3d", "change_7d", "wtd_censored"]
     W.chart("field_plot_s1", j[keep].sort_values(["plot", "track", "date"]).round(4),
             title="Sentinel-1 at the plots with the WTD at each overpass", group="Field data", status="exploratory",
             description="3×3 mat-pixel medians per acquisition (field_first deliverable).",
@@ -224,6 +226,44 @@ def add_field(W, gallery: list, gal: Path, template, P) -> None:
                 description="Coherence vs |Δ water table| per zone: ERA5 precipitation proxy (committed T10) vs "
                             "the measured WTD; raw and season-cleaned.",
                 prov=P(F4 / "t10_proxy_vs_measured.csv", F4 / "report.json", root=hub))
+    # The supervisor's first deliverable, whole, and every field table as a download (local site).
+    files = []
+    for folder in (F1, F2, F3, F4):
+        if not folder.exists():
+            continue
+        for f in sorted(folder.iterdir()):
+            if f.suffix.lower() in (".csv", ".md", ".json"):
+                dst = W.out / "downloads" / "field" / folder.name / f.name
+                dst.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(f, dst)
+                rows = sum(1 for _ in f.open()) - 1 if f.suffix == ".csv" else None
+                files.append({"folder": folder.name, "file": f.name, "path": f"downloads/field/{folder.name}/{f.name}",
+                              "bytes": f.stat().st_size, "rows": rows})
+    W.chart("field_deliverables", {
+        "acquisitions": acq.astype(object).to_dict("records"),
+        "laser_coverage": pd.read_csv(F1 / "laser_coverage.csv").to_dict("records"),
+        "temporal_coherence": pd.read_csv(F1 / "s1_plot_temporal_coherence.csv").to_dict("records"),
+        "files": files}, title="First deliverable for the supervisor, and field downloads", group="Field data",
+        status="field", prov=P(F1 / "s1_acquisitions.csv", F1 / "laser_coverage.csv", root=hub))
+    ext = pd.read_csv(F1 / "s1_plot_by_date.csv")
+    W.chart("field_extraction", ext.round(5), title="Plot-level Sentinel-1 extraction (all windows)", group="Field data",
+            status="derived", description="Per acquisition × plot × variable × window (1×1, 3×3, 5×5 mat pixels): n valid, "
+                                          "median, mean, SD, IQR.", prov=P(F1 / "s1_plot_by_date.csv", root=hub))
+    if (F2 / "per_date_correlations.csv").exists():
+        W.chart("field_correlations", pd.read_csv(F2 / "per_date_correlations.csv").round(5),
+                title="Sentinel-1 variables vs the six WTD variables, per plot (raw and anomalies)", group="Field data",
+                status="exploratory", prov=P(F2 / "per_date_correlations.csv", root=hub))
+    ndvi = (uav["REMX_NIR_842_mean"] - uav["REMX_Red_668_mean"]) / (uav["REMX_NIR_842_mean"] + uav["REMX_Red_668_mean"])
+    ndre = (uav["REMX_NIR_842_mean"] - uav["REMX_Red_Edge_717_mean"]) / (uav["REMX_NIR_842_mean"] + uav["REMX_Red_Edge_717_mean"])
+    uv = uav.assign(ndvi=ndvi, ndre=ndre).groupby([uav.Date.dt.strftime("%Y-%m-%d"), "base_plot"]).agg(
+        ndvi=("ndvi", "median"), ndre=("ndre", "median"), thermal_c=("Altum_Thermal_11um_mean", "median"),
+        lai=("LAI", "median"), wtd_mean_cm=("WTD_MEAN", "median"), subplots=("Plot", "nunique")).reset_index()
+    uv.columns = ["date", "plot", *uv.columns[2:]]
+    W.chart("field_uav", uv.round(4), title="UAV / LAI preview per plot and campaign (not yet analysed)", group="Field data",
+            status="field", description="Medians over each plot's sub-plots of NDVI (NIR 842 / red 668), NDRE (NIR 842 / red "
+                                        "edge 717), Altum surface temperature (°C) and SunScan LAI. Cells the field team "
+                                        "marked as doubtful are not yet excluded.",
+            prov=P(root / field.DELIVERY / "DataSet_All_RS_LAI_merged_with_WTD_Meteo.xlsx", root=hub))
     for folder, tag in ((F1, "field_first"), (F2, "field_mechanism"), (F3, "field_dew"), (F4, "field_t10")):
         if not folder.exists():
             continue
