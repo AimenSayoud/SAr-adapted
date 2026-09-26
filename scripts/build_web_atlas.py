@@ -226,9 +226,24 @@ def add_field(W, gallery: list, gal: Path, template, P) -> None:
                 description="Coherence vs |Δ water table| per zone: ERA5 precipitation proxy (committed T10) vs "
                             "the measured WTD; raw and season-cleaned.",
                 prov=P(F4 / "t10_proxy_vs_measured.csv", F4 / "report.json", root=hub))
+    F5, F6 = hub / "08_deliverables" / "field_methods_laser", hub / "08_deliverables" / "field_uav_x049"
+    if (F5 / "methods_vs_laser.csv").exists():
+        W.chart("field_methods", pd.read_csv(F5 / "methods_vs_laser.csv").round(5),
+                title="The inversion outputs against the P6 laser (X-052)", group="Field data", status="exploratory",
+                description="SBAS, EVD, ISBAS, hybrid and zone aggregation vs the laser surface at P6: seasonal "
+                            "amplitude, series on anomalies, and pair changes.", prov=P(F5 / "methods_vs_laser.csv", root=hub))
+    if (F6 / "plot_summary.csv").exists():
+        W.chart("field_uav_analysis", {
+            "summary": pd.read_csv(F6 / "plot_summary.csv").round(5).to_dict("records"),
+            "spearman": pd.read_csv(F6 / "between_plot_spearman.csv").round(5).to_dict("records"),
+            "intercorrelation": pd.read_csv(F6 / "explanatory_intercorrelation.csv").round(4).to_dict("records"),
+            "two_way": pd.read_csv(F6 / "campaign_two_way.csv").round(5).to_dict("records")},
+            title="UAV / LAI against the plots' radar behaviour (X-049)", group="Field data", status="exploratory",
+            description="Between plots (exact Spearman, 9 plots / 8 radar units) and date-by-date with plot and "
+                        "campaign means removed.", prov=P(F6 / "plot_summary.csv", F6 / "between_plot_spearman.csv", root=hub))
     # The supervisor's first deliverable, whole, and every field table as a download (local site).
     files = []
-    for folder in (F1, F2, F3, F4):
+    for folder in (F1, F2, F3, F4, F5, F6):
         if not folder.exists():
             continue
         for f in sorted(folder.iterdir()):
@@ -264,7 +279,8 @@ def add_field(W, gallery: list, gal: Path, template, P) -> None:
                                         "edge 717), Altum surface temperature (°C) and SunScan LAI. Cells the field team "
                                         "marked as doubtful are not yet excluded.",
             prov=P(root / field.DELIVERY / "DataSet_All_RS_LAI_merged_with_WTD_Meteo.xlsx", root=hub))
-    for folder, tag in ((F1, "field_first"), (F2, "field_mechanism"), (F3, "field_dew"), (F4, "field_t10")):
+    for folder, tag in ((F1, "field_first"), (F2, "field_mechanism"), (F3, "field_dew"), (F4, "field_t10"),
+                        (F5, "field_methods"), (F6, "field_uav")):
         if not folder.exists():
             continue
         for f in sorted(folder.glob("*.png")):

@@ -134,3 +134,16 @@ def test_flag_split_correlation_without_a_difference():
         y = 0.5 * x + rng.standard_normal(len(pairs))
         ps.append(fl.flag_split_correlation(x, y, pairs, wet, n_shift=150, rng=rng)["p"])
     assert np.mean(np.array(ps) < 0.1) <= 0.25
+
+
+def test_spearman_exact_known_answers():
+    # a perfectly monotone relation among 6 plots: only the identity and its reverse reach |rho| = 1
+    rho, p, n = fl.spearman_exact(np.arange(6), np.arange(6) ** 2)
+    assert rho == pytest.approx(1.0) and n == 6 and p == pytest.approx(2 / 720)
+    # unrelated values: p is large and exact p-values are valid (≈ uniform under the null)
+    rng = np.random.default_rng(5)
+    ps = [fl.spearman_exact(rng.standard_normal(7), rng.standard_normal(7))[1] for _ in range(200)]
+    assert 0.02 <= np.mean(np.array(ps) < 0.1) <= 0.2
+    # NaN pairs are dropped, and too few plots give NaN
+    assert fl.spearman_exact([1, 2, np.nan, 4, 5], [2, 1, 3, 5, 4])[2] == 4
+    assert np.isnan(fl.spearman_exact([1, 2, 3], [1, 2, 3])[1])
