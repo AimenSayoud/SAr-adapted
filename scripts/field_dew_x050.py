@@ -174,9 +174,11 @@ def plot_phase(pairs: pd.DataFrame, wt: pd.DataFrame, max_dt: int = 24, n_shift:
     return pd.DataFrame(rows), pd.DataFrame(lz), pd.DataFrame(split)
 
 
-def zone_pair_table(drive: Path, wt: pd.DataFrame) -> pd.DataFrame:
+def zone_pair_table(drive: Path, wt: pd.DataFrame, extra: dict[str, Path] | None = None) -> pd.DataFrame:
     """Per track × zone pair × interferogram: aggregated LOS change, median ΔWTD over the plots
-    (dry-well stretches out; ≥ 5 plots), the P6 snow-free laser change, wet/frozen flags."""
+    (dry-well stretches out; ≥ 5 plots), the P6 snow-free laser change, wet/frozen flags.
+    ``extra``: per track, another cropped stack on the same grid (the 2020–2021 extension, D-020)
+    aggregated with the same zones; ``stack`` says which one a pair comes from."""
     from insar_wetlands.aggregate import adjacent_null_zones, aggregate_unwrapped
     from insar_wetlands.bootstrap import start
     from insar_wetlands.stack import list_pairs, load_layer
@@ -189,10 +191,11 @@ def zone_pair_table(drive: Path, wt: pd.DataFrame) -> pd.DataFrame:
     znull = adjacent_null_zones(zones, tpl, ref="D")
     key = wt.set_index(["track", "date"])
     rows = []
-    for track in OVERPASS:
-        pth = ctx.paths.for_phase("x", track=track)
-        pairs = list_pairs(pth.cropped)
-        unw, corr = load_layer(pth.cropped, "unw_phase", pairs), load_layer(pth.cropped, "corr", pairs)
+    stacks = [(track, "2022–2024", ctx.paths.for_phase("x", track=track).cropped) for track in OVERPASS]
+    stacks += [(track, "2020–2021", Path(d)) for track, d in (extra or {}).items()]
+    for track, stack, cropped in stacks:
+        pairs = list_pairs(cropped)
+        unw, corr = load_layer(cropped, "unw_phase", pairs), load_layer(cropped, "corr", pairs)
         dd = {label: aggregate_unwrapped(unw, corr, z, target=t, reference=r).set_index("pair")
               for label, z, t, r in (("A-C", zones, "A", "C"), ("B-C", zones, "B", "C"),
                                      ("A-B", zones, "A", "B"), ("adjacent null", znull, "A", "C"))}
@@ -203,7 +206,7 @@ def zone_pair_table(drive: Path, wt: pd.DataFrame) -> pd.DataFrame:
             dw = [field._interp_at(wtd[p], t2) - field._interp_at(wtd[p], t1) for p in field.PLOTS
                   if not (bool(cens[p].asof(t1)) or bool(cens[p].asof(t2)))]
             s1, s2 = key.loc[(track, a)], key.loc[(track, b)]
-            base = {"track": track, "pair": pair, "date1": a, "date2": b, "dt_days": (pd.Timestamp(b) - pd.Timestamp(a)).days,
+            base = {"track": track, "stack": stack, "pair": pair, "date1": a, "date2": b, "dt_days": (pd.Timestamp(b) - pd.Timestamp(a)).days,
                     "dwtd_median_cm": float(np.median(dw)) if len(dw) >= 5 else np.nan, "n_plots": len(dw),
                     "dsurface_p6_cm": fl.value_at(surface, t2) - fl.value_at(surface, t1),
                     "frozen_any": bool(s1.frozen or s2.frozen)}
@@ -237,6 +240,55 @@ def zone_phase_tests(zt: pd.DataFrame, wt: pd.DataFrame) -> pd.DataFrame:
                     rows.append({"track": track, "zones": label, "max_dt": max_dt, "x": xvar, "rh_threshold": thr,
                                  "n_pairs": len(q), "r_all": r_all, "p_all": p_all, **s})
     return pd.DataFrame(rows)
+
+
+def zone_phase_by_period(zt: pd.DataFrame, wt: pd.DataFrame) -> pd.DataFrame:
+    """``zone_phase_tests`` on 2020–2021, 2022–2024 and both (periods by the pair's first date;
+    the wet flags are shifted along all 2020–2024 dates of the track)."""
+    first = pd.to_datetime(zt.date1)
+    out = []
+    for period, sel in (("2020–2021", first < "2022-01-01"), ("2022–2024", first >= "2022-01-01"),
+                        ("2020–2024", first.notna())):
+        out.append(zone_phase_tests(zt[sel], wt).assign(period=period))
+    return pd.concat(out, ignore_index=True)
+
+
+def dry_pair_tests(zt: pd.DataFrame, max_dt: int = 24) -> pd.DataFrame:
+    """Does the zone phase follow the water table on pairs whose two dates are both dry (RH < 95 %,
+    no rain, not frozen)? r and circular-shift p per period × track × zone pair — the question the
+    dry/wet contrast cannot answer when one group is small."""
+    d = zt[(zt.dt_days <= max_dt) & ~zt.frozen_any & ~zt[f"wet_any_rh{int(MAIN_RH)}"]].dropna(
+        subset=["dwtd_median_cm", "ddisp_mm"])
+    first = pd.to_datetime(d.date1)
+    rows = []
+    for period, sel in (("2020–2021", first < "2022-01-01"), ("2022–2024", first >= "2022-01-01"),
+                        ("2020–2024", first.notna())):
+        for (track, label), q in d[sel].groupby(["track", "zones"]):
+            q = q.sort_values("date1")
+            r, p = fl.circular_shift_p(q.dwtd_median_cm.to_numpy(), q.ddisp_mm.to_numpy())
+            rows.append({"period": period, "track": track, "zones": label, "n_dry_pairs": len(q), "r": r, "p": p,
+                         "slope_mm_per_cm": float(np.polyfit(q.dwtd_median_cm, q.ddisp_mm, 1)[0])})
+    return pd.DataFrame(rows)
+
+
+def dry_figure(out: Path, dp: pd.DataFrame):
+    labels = ["A-C", "B-C", "A-B", "adjacent null"]
+    periods = ["2020–2021", "2022–2024", "2020–2024"]
+    fig, ax = plt.subplots(1, 2, figsize=(12, 4.2), sharey=True)
+    for a, (track, c) in zip(ax, (("ascending", "#d97706"), ("descending", "#2563eb"))):
+        for k, per in enumerate(periods):
+            t = dp[(dp.track == track) & (dp.period == per)].set_index("zones").reindex(labels)
+            xs = np.arange(4) + (k - 1) * 0.26
+            a.bar(xs, t.r, 0.24, color=c, alpha=(0.45, 0.7, 1.0)[k], label=per)
+            for x, r, p, n in zip(xs, t.r, t.p, t.n_dry_pairs):
+                a.text(x, (r if r > 0 else 0) + 0.015, f"{'*' if p < 0.05 else ''}\n{n}", ha="center", fontsize=6.5)
+        a.axhline(0, c="k", lw=0.6); a.set_xticks(np.arange(4), ["A−C mat−grass", "B−C lake−grass", "A−B mat−lake", "null"])
+        a.set_title(f"{track}: zone phase vs ΔWTD on dry-dry pairs ≤ 24 d\n(* p < 0.05, circular shifts; n = pairs)", fontsize=9)
+        a.legend(fontsize=7)
+    ax[0].set_ylabel("r")
+    fig.tight_layout()
+    fig.savefig(out / "fig_zone_phase_dry_2020_2024.png", dpi=150)
+    plt.close(fig)
 
 
 def zone_figure(out: Path, zp: pd.DataFrame):
@@ -312,6 +364,8 @@ def main(argv=None):
     ap.add_argument("--pairs", default=str(hub / "08_deliverables" / "field_x047_x048" / "per_pair_table.csv"))
     ap.add_argument("--out", default=str(hub / "08_deliverables" / "field_dew_x050"))
     ap.add_argument("--drive", default=None, help="read-only Drive snapshot for the zone-phase test (4)")
+    ap.add_argument("--extra", nargs="*", default=[], metavar="TRACK=DIR",
+                    help="extra cropped stacks for test 4 (D-020: 2020–2021), e.g. ascending=<dir>")
     a = ap.parse_args(argv)
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
@@ -337,6 +391,20 @@ def main(argv=None):
         zp = zone_phase_tests(zt, wt)
         zp.to_csv(out / "zone_phase_by_wetness.csv", index=False)
         zone_figure(out, zp)
+    if a.drive and a.extra:   # 4 again on 2020–2024 (D-020); the 2022–2024 outputs above are unchanged
+        from insar_wetlands.stack import list_pairs
+        extra = dict(x.split("=", 1) for x in a.extra)
+        dates = {t: sorted(set(acquisition_dates(coh[t])) | {iso(d) for p in list_pairs(Path(extra[t])) for d in p.split("_")})
+                 for t in OVERPASS}
+        wt_all = wetness_table(meteo, dates)
+        wt_all.to_csv(out / "wetness_at_overpasses_2020_2024.csv", index=False)
+        zt = zone_pair_table(Path(a.drive), wt_all, extra)
+        zt.to_csv(out / "zone_pair_table_2020_2024.csv", index=False)
+        zp = zone_phase_by_period(zt, wt_all)
+        zp.to_csv(out / "zone_phase_by_wetness_2020_2024.csv", index=False)
+        dp = dry_pair_tests(zt)
+        dp.to_csv(out / "zone_phase_dry_pairs_2020_2024.csv", index=False)
+        dry_figure(out, dp)
     print(f"wrote {sorted(p.name for p in out.iterdir())}")
 
 
