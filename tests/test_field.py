@@ -100,3 +100,23 @@ def test_surface_wetness_at_flags_humid_rainy_and_frozen_times():
     s = field.surface_wetness_at(met, t)
     assert s.wet.tolist() == [True, True, False, False]
     assert s.frozen.tolist() == [False, False, False, True]
+
+
+def test_load_uav_table_masks_the_yellow_cells(tmp_path):
+    openpyxl = pytest.importorskip("openpyxl")
+    from openpyxl.styles import PatternFill
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Sheet1"
+    ws.append(["Date", "Plot", "LAI", "REMX_NIR_842_mean"])
+    ws.append(["2023-05-30", "P1_1", 2.0, 0.30])
+    ws.append(["2023-05-30", "P6_1", 15.1, -9999])
+    ws["C3"].fill = PatternFill("solid", fgColor="FFFFFF00")   # the doubtful LAI
+    p = tmp_path / "uav.xlsx"
+    wb.save(p)
+    df = field.load_uav_table(p)
+    assert df.attrs["n_flagged"] == 1
+    assert df.LAI.tolist()[0] == 2.0 and np.isnan(df.LAI.tolist()[1])
+    assert np.isnan(df.REMX_NIR_842_mean.tolist()[1])          # −9999 → NaN
+    assert df.base_plot.tolist() == ["P1", "P6"]
+    assert field.load_uav_table(p, mask_flagged=False).LAI.tolist()[1] == 15.1

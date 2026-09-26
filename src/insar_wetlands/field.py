@@ -90,10 +90,36 @@ def snow_mask(air_temp_c: pd.Series, index: pd.DatetimeIndex, hours: int = 72) -
     return out | pd.Series(outside, index=index)
 
 
-def load_uav_table(path: str | Path | None = None) -> pd.DataFrame:
-    """Merged UAV/LAI/meteo/WTD table with −9999 → NaN, parsed dates and a ``base_plot`` column."""
+FLAG_FILL = "FFFFFF00"   # the field team marks doubtful cells in solid yellow
+
+
+def flagged_cells(path: str | Path, sheet: str = "Sheet1", fill: str = FLAG_FILL) -> list[tuple[int, str]]:
+    """(data row index, column name) of every cell filled with ``fill`` — the field team's
+    "exclude" marking in the merged table (row 0 = first row under the header)."""
+    import openpyxl
+    ws = openpyxl.load_workbook(path, read_only=False)[sheet]
+    header = [c.value for c in ws[1]]
+    out = []
+    for r, row in enumerate(ws.iter_rows(min_row=2)):
+        for c in row:
+            f = c.fill
+            if f is not None and f.fill_type == "solid" and f.fgColor is not None and f.fgColor.type == "rgb" \
+                    and f.fgColor.rgb == fill and c.column - 1 < len(header):
+                out.append((r, header[c.column - 1]))
+    return out
+
+
+def load_uav_table(path: str | Path | None = None, mask_flagged: bool = True) -> pd.DataFrame:
+    """Merged UAV/LAI/meteo/WTD table with −9999 → NaN, parsed dates and a ``base_plot`` column.
+    ``mask_flagged``: cells the field team marked yellow are set to NaN (their count is in
+    ``df.attrs["n_flagged"]``)."""
     path = Path(path) if path else field_root() / DELIVERY / "DataSet_All_RS_LAI_merged_with_WTD_Meteo.xlsx"
     df = pd.read_excel(path, sheet_name="Sheet1").replace(-9999, np.nan)
+    flags = flagged_cells(path) if mask_flagged else []
+    for r, col in flags:
+        if col in df.columns and col not in ("Date", "Plot"):
+            df.loc[df.index[r], col] = np.nan
+    df.attrs["n_flagged"] = len(flags)
     df["Date"] = pd.to_datetime(df["Date"])
     df["base_plot"] = df["Plot"].map(base_plot)
     return df

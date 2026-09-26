@@ -136,6 +136,38 @@ def flag_split_correlation(x, y, members, flags, n_shift: int = 2000, min_shift:
     return out
 
 
+def _all_permutations(n: int) -> np.ndarray:
+    """Every ordering of n items (cached: 9! rows are built once per process)."""
+    from itertools import permutations
+    if n not in _PERMS:
+        _PERMS[n] = np.array(list(permutations(range(n))), dtype=np.int8)
+    return _PERMS[n]
+
+
+_PERMS: dict[int, np.ndarray] = {}
+
+
+def spearman_exact(x, y, max_exact: int = 9, n_perm: int = 20000,
+                   rng: np.random.Generator | None = None) -> tuple[float, float, int]:
+    """(rho, two-sided p, n) of Spearman's rank correlation between plots, with p from ALL
+    permutations when n ≤ ``max_exact`` (9! = 362 880) — no normal approximation, which is
+    meaningless for a handful of plots — else from ``n_perm`` random permutations. NaN pairs out."""
+    x, y = np.asarray(x, float), np.asarray(y, float)
+    ok = np.isfinite(x) & np.isfinite(y)
+    rx, ry = pd.Series(x[ok]).rank().to_numpy(), pd.Series(y[ok]).rank().to_numpy()
+    n = len(rx)
+    if n < 4 or rx.std() == 0 or ry.std() == 0:
+        return np.nan, np.nan, n
+    rx, ry = (rx - rx.mean()) / rx.std(), (ry - ry.mean()) / ry.std()
+    rho = float(rx @ ry / n)
+    if n <= max_exact:
+        null = ry[_all_permutations(n)] @ rx / n
+        return rho, float(np.mean(np.abs(null) >= abs(rho) - 1e-12)), n
+    rng = rng or np.random.default_rng(0)
+    null = np.array([ry[rng.permutation(n)] @ rx / n for _ in range(n_perm)])
+    return rho, float((np.sum(np.abs(null) >= abs(rho) - 1e-12) + 1) / (n_perm + 1)), n
+
+
 def los_from_vertical(dh_mm, incidence_deg: float):
     """LOS change (mm, toward the satellite positive) of a purely vertical surface change dh
     (up positive): dh · cos(incidence)."""
