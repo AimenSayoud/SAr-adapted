@@ -210,6 +210,8 @@ def add_field(W, gallery: list, gal: Path, template, P) -> None:
         if (F3 / "zone_phase_by_wetness.csv").exists():
             zp = pd.read_csv(F3 / "zone_phase_by_wetness.csv")
             dew["zone_phase"] = zp[zp.max_dt == 24].to_dict("records")
+        if (F3 / "zone_phase_dry_pairs_2020_2024.csv").exists():   # D-020: with 2020–2021
+            dew["dry_pairs_2020_2024"] = pd.read_csv(F3 / "zone_phase_dry_pairs_2020_2024.csv").to_dict("records")
         W.chart("field_dew", dew,
                 title="Dusk vs dawn: surface wetness at the overpass (X-050)", group="Field data",
                 status="exploratory", description="Station RH / rain / frost at each overpass; coherence and "
