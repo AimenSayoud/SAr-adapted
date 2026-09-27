@@ -147,3 +147,26 @@ def test_spearman_exact_known_answers():
     # NaN pairs are dropped, and too few plots give NaN
     assert fl.spearman_exact([1, 2, np.nan, 4, 5], [2, 1, 3, 5, 4])[2] == 4
     assert np.isnan(fl.spearman_exact([1, 2, 3], [1, 2, 3])[1])
+
+
+def test_circular_shift_p_many_finds_the_planted_columns():
+    rng = np.random.default_rng(6)
+    n, cols = 150, 60
+    x = np.cumsum(rng.standard_normal(n))                       # autocorrelated driver
+    Y = np.cumsum(rng.standard_normal((n, cols)), axis=0)       # autocorrelated noise
+    Y[:, :5] = x[:, None] * 2 + rng.standard_normal((n, 5)) * 0.5   # five real responders
+    Y[3:7, 50] = np.nan                                          # a broken column
+    r, p = fl.circular_shift_p_many(x, Y, n_shift=300, rng=rng)
+    assert np.allclose(r[10], np.corrcoef(x, Y[:, 10])[0, 1])
+    assert (p[:5] < 0.01).all() and (r[:5] > 0.9).all()
+    assert np.isnan(r[50]) and np.isnan(p[50])
+    # autocorrelated noise is NOT significant more often than the level says (what a naive p gets wrong)
+    assert np.mean(p[5:50] < 0.05) <= 0.2
+
+
+def test_bh_qvalues_known_example():
+    p = np.array([0.01, 0.04, 0.03, 0.2, np.nan])
+    q = fl.bh_qvalues(p)
+    # sorted p 0.01, 0.03, 0.04, 0.2 → p·m/rank 0.04, 0.06, 0.0533, 0.2 → running minimum from the top
+    assert np.allclose(q[:4], [0.04, 0.0533333, 0.0533333, 0.2], atol=1e-6)
+    assert np.isnan(q[4])
