@@ -94,17 +94,20 @@ def pair_rows(cropped: Path, track: str, px: pd.DataFrame, zone_a, zone_c) -> pd
                 d = us["median"] - ref_med
                 rows.append({"pair": pr, "ref_date": pd.Timestamp(a).date(), "sec_date": pd.Timestamp(b).date(),
                              "dt_days": (pd.Timestamp(b) - pd.Timestamp(a)).days, "track": track, "plot": p["plot"],
-                             "window": w, "n_valid": cs["n_valid"], "coh_median": cs["median"], "coh_iqr": cs["iqr"],
+                             "window": w, "n_valid": cs["n_valid"], "coh_median": cs["median"], "coh_mean": cs["mean"],
+                             "coh_sd": cs["sd"], "coh_iqr": cs["iqr"],
                              "dphase_vs_C_rad": d, "dlos_vs_C_mm": d * PHASE_TO_MM, "phase_iqr_rad": us["iqr"]})
     return pd.DataFrame(rows)
 
 
 def coherence_by_date(pairs: pd.DataFrame, max_dt: int = 24) -> pd.DataFrame:
-    """Per acquisition: mean of the window-median coherence of the short pairs that include it."""
+    """Per acquisition: over the short pairs that include it, the mean of each pair's window
+    statistics — median (the value used), mean, and the spatial SD and IQR inside the window."""
     short = pairs[pairs.dt_days <= max_dt]
     long = pd.concat([short.rename(columns={"ref_date": "date"}), short.rename(columns={"sec_date": "date"})])
     g = long.groupby(["date", "track", "plot", "window"])
-    return g.agg(coh_short_pairs=("coh_median", "mean"), n_short_pairs=("pair", "nunique"),
+    return g.agg(coh_short_pairs=("coh_median", "mean"), coh_mean=("coh_mean", "mean"), coh_sd=("coh_sd", "mean"),
+                 coh_iqr=("coh_iqr", "mean"), n_short_pairs=("pair", "nunique"),
                  n_valid=("n_valid", "min")).reset_index()
 
 
@@ -165,8 +168,9 @@ def main(argv=None):
     pairs = pd.concat([pair_rows(crop[t], t, px, zone_a, zone_c) for t in crop])
     pairs.to_csv(out / "s1_plot_by_pair.csv", index=False)
     coh = coherence_by_date(pairs)
-    by_date = pd.concat([by_date, coh.rename(columns={"coh_short_pairs": "median"}).assign(variable="coh_pairs_le24d")
-                         [["date", "track", "plot", "variable", "window", "n_valid", "median"]]])
+    by_date = pd.concat([by_date, coh.rename(columns={"coh_short_pairs": "median", "coh_mean": "mean", "coh_sd": "sd",
+                                                      "coh_iqr": "iqr"}).assign(variable="coh_pairs_le24d")
+                         [["date", "track", "plot", "variable", "window", "n_valid", "median", "mean", "sd", "iqr"]]])
     by_date.to_csv(out / "s1_plot_by_date.csv", index=False)
 
     # --- WTD at the acquisitions and the joined table ---------------------------------------
