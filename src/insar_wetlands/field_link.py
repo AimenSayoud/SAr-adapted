@@ -34,6 +34,48 @@ def circular_shift_p(x: np.ndarray, y: np.ndarray, n_shift: int = 2000, min_shif
     return r0, float((np.sum(np.abs(null) >= abs(r0)) + 1) / (n_shift + 1))
 
 
+def circular_shift_p_many(x, Y, n_shift: int = 1000, min_shift: int = 3, chunk: int = 100,
+                          rng: np.random.Generator | None = None) -> tuple[np.ndarray, np.ndarray]:
+    """``circular_shift_p`` for many series at once: r of x with every column of Y (e.g. every
+    pixel) and each column's two-sided p against x circularly shifted (the same shifts for all
+    columns). Columns with a NaN or no variance give NaN. The null is counted chunk by chunk,
+    never held whole."""
+    x = np.asarray(x, float)
+    Y = np.asarray(Y, float)
+    n = len(x)
+    xs = (x - x.mean()) / x.std()
+    sd = Y.std(axis=0)
+    bad = ~np.isfinite(Y).all(axis=0) | ~(sd > 0)
+    with np.errstate(invalid="ignore", divide="ignore"):
+        Ys = np.nan_to_num((Y - Y.mean(axis=0)) / np.where(sd > 0, sd, 1.0))
+    r = xs @ Ys / n
+    rng = rng or np.random.default_rng(0)
+    ks = rng.integers(min_shift, n - min_shift, size=n_shift)
+    exceed = np.zeros(Y.shape[1])
+    for i in range(0, n_shift, chunk):
+        null = np.stack([np.roll(xs, k) for k in ks[i:i + chunk]]) @ Ys / n
+        exceed += np.sum(np.abs(null) >= np.abs(r) - 1e-12, axis=0)
+    p = (exceed + 1) / (n_shift + 1)
+    r[bad], p[bad] = np.nan, np.nan
+    return r, p
+
+
+def bh_qvalues(p) -> np.ndarray:
+    """Benjamini–Hochberg q-values (false-discovery rate) of a set of p-values; NaN stays NaN."""
+    p = np.asarray(p, float)
+    q = np.full(p.shape, np.nan)
+    ok = np.isfinite(p)
+    v = p[ok]
+    if v.size:
+        order = np.argsort(v)
+        ranked = v[order] * v.size / (np.arange(v.size) + 1)
+        qq = np.minimum(np.minimum.accumulate(ranked[::-1])[::-1], 1)
+        out = np.empty_like(v)
+        out[order] = qq
+        q[ok] = out
+    return q
+
+
 def years_since(dates) -> np.ndarray:
     d = pd.to_datetime(pd.Series(dates)).reset_index(drop=True)
     return ((d - d.iloc[0]).dt.total_seconds() / (365.25 * 86400)).to_numpy()

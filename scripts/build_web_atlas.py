@@ -91,7 +91,68 @@ def gis_vector_to_lonlat(path: Path) -> dict:
     return {"type": "FeatureCollection", "features": feats}
 
 
-def add_field(W, gallery: list, gal: Path, template, P) -> None:
+def spans(flag: pd.Series) -> list[list[str]]:
+    """[start, end] (inclusive, ISO dates) of the consecutive True stretches of a daily boolean series."""
+    f = flag.fillna(False).astype(bool)
+    grp = (f != f.shift()).cumsum()
+    return [[str(g.index[0].date()), str(g.index[-1].date())] for _, g in f.groupby(grp) if g.iloc[0]]
+
+
+MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+
+
+def add_field_pixel(W, F7: Path, P, hub: Path) -> None:
+    """X-053: per-pixel sensitivity maps (atlas layers) and the transect / arc / summary tables."""
+    if not (F7 / "pixel_maps.nc").exists():
+        return
+    pm = xr.open_dataset(F7 / "pixel_maps.nc")
+    prov = P(F7 / "pixel_maps.nc", root=hub)
+    hours = {"ascending": "16:36", "descending": "05:09"}
+    for track in ("ascending", "descending"):
+        r = pm[f"coh_dwtd_r_{track}"].values.astype(float)
+        p = pm[f"coh_dwtd_p_{track}"].values.astype(float)
+        W.raster(f"field_coh_dwtd_r_{track}", r, title=f"Coherence vs |Δ water table|, per pixel ({track})",
+                 group="Field data", status="exploratory", units="r", colormap="RdBu", symmetric=True,
+                 display=(-0.4, 0.4), prov=prov,
+                 description=f"Anomaly correlation, pair by pair (≤ 24 d, not frozen, {hours[track]} UTC), between each "
+                             "pixel's season-cleaned coherence and the plots' median |ΔWTD|. Red = coherence falls "
+                             "when the water table changes (almost everywhere: a regional effect, strongest on the mat at dusk). Circular-shift p per pixel; exploratory.")
+        W.raster(f"field_coh_dwtd_r_sig_{track}", np.where(p < 0.05, r, np.nan),
+                 title=f"Coherence vs |Δ water table|, p < 0.05 only ({track})", group="Field data",
+                 status="exploratory", units="r", colormap="RdBu", symmetric=True, display=(-0.4, 0.4), prov=prov,
+                 description="The same map keeping only pixels with a circular-shift p below 0.05 (uncorrected: about "
+                             "5 % of pixels pass by chance alone).")
+        W.raster(f"field_wet_penalty_{track}", pm[f"wet_penalty_{track}"].values.astype(float),
+                 title=f"Wet penalty: coherence dry − wet dates ({track})", group="Field data", status="exploratory",
+                 units="Δγ", colormap="RdBu_r", symmetric=True, prov=prov,
+                 description="Per pixel, season-cleaned coherence of pairs with two dry dates minus pairs with a wet "
+                             "date (RH ≥ 95 % or rain in the previous 3 h), 2020–2024, ≤ 24 d. Red = wetness costs "
+                             "coherence here.")
+        W.raster(f"field_coh_month_{track}", pm[f"coh_month_{track}"].values.astype(float),
+                 title=f"Coherence by month ({track}, ≤ 24 d, 2020–2024)", group="Field data", status="derived",
+                 units="γ", colormap="viridis", display=(0.2, 0.8), times=MONTHS, time_label="month", prov=prov,
+                 description="Mean coherence of short pairs by the month of their midpoint, 2020–2024, frozen dates out.")
+    W.raster("field_vv_wtd_r_ascending", pm["vv_wtd_r_ascending"].values.astype(float),
+             title="VV backscatter vs water-table level, per pixel (ascending)", group="Field data",
+             status="exploratory", units="r", colormap="RdBu", symmetric=True, display=(-0.5, 0.5), prov=prov,
+             description="Anomaly correlation over the RTC dates (2022–2024) between each pixel's VV and the plots' "
+                         "median water-table level at 16:36. Blue = brighter when wetter.")
+    W.chart("field_pixel", {
+        "summary": pd.read_csv(F7 / "summary_by_zone.csv").round(4).to_dict("records"),
+        "spatial_context": pd.read_csv(F7 / "spatial_context.csv").round(4).to_dict("records"),
+        "transect": pd.read_csv(F7 / "transect.csv").round(4).astype(object).where(lambda d: d.notna(), None).to_dict("records")},
+        title="Per-pixel sensitivity: summary, spatial context, transect (X-053)", group="Field data",
+        status="exploratory", prov=P(F7 / "summary_by_zone.csv", F7 / "transect.csv", root=hub))
+    arcs = pd.read_csv(F7 / "arc_pairs.csv")
+    W.chart("field_arcs", arcs[["track", "pair", "stack", "date1", "date2", "dt_days", "wet_any", "frozen_any",
+                                "dwtd_median_cm", "coh_A", "coh_C"]].round(4),
+            title="Every interferogram 2020–2024 with its coherence and water-table change", group="Field data",
+            status="derived", description="Zone A (mat) and C (grassland) mean coherence per pair, the plots' median "
+                                          "ΔWTD, and whether a date was wet or frozen.",
+            prov=P(F7 / "arc_pairs.csv", root=hub))
+
+
+def add_field(W, gallery: list, gal: Path, template, P, drive: Path | None = None) -> None:
     """Field data (unpublished) → atlas layers, when the research hub's 06_data/field and the
     field deliverables are present next to this repository. Reads them; holds none of them."""
     from pyproj import Transformer
@@ -153,6 +214,48 @@ def add_field(W, gallery: list, gal: Path, template, P) -> None:
             units="cm", description="SDMS40 surface position (cm, snow-masked: frost within 72 h), the raw CR "
                                     "water level and WTD_P6 corrected to the surface; daily means.",
             prov=P(root / field.DELIVERY / "Laser_Sensor.xlsx", root=hub))
+    # --- what exists when (coverage timeline): acquisitions with their surface state, UAV days,
+    #     laser snow-free periods, dry-well periods per plot, Sentinel-2 dates
+    F3w = hub / "08_deliverables" / "field_dew_x050" / "wetness_at_overpasses_2020_2024.csv"
+    cov = {"window": [str(wtd.index[0].date()), str(laser.index[-1].date())]}
+    if F3w.exists():
+        wt = pd.read_csv(F3w)
+        wt["state"] = np.where(wt.frozen, "frozen", np.where(wt.wet, "wet", "dry"))
+        cov["s1"] = wt[["date", "track", "state"]].to_dict("records")
+    uav_days = field.load_uav_table()
+    cov["uav"] = sorted(uav_days.Date.dt.strftime("%Y-%m-%d").unique().tolist())
+    ok_hours = (laser.surface_cm.notna() & ~snow).resample("D").mean() >= 0.5
+    cov["laser_snowfree"] = spans(ok_hours)
+    cov["dry_wells"] = {p: spans(field.censored_flag(wtd[p]).resample("D").mean() >= 0.5) for p in field.PLOTS}
+    if drive is not None and (drive / "s2_stack.nc").exists():
+        cov["s2"] = [str(t)[:10] for t in xr.open_dataset(drive / "s2_stack.nc")["time"].values]
+    W.chart("field_coverage", cov, title="What data exist when (2020–2025)", group="Field data", status="field",
+            description="Sentinel-1 acquisitions (dry / wet / frozen at the overpass), UAV days, laser snow-free "
+                        "periods, dry wells per plot, Sentinel-2 dates.", prov=P(root / field.DELIVERY / "SOURCE.md", root=hub))
+
+    # --- the day in 24 hours (2022–2024): medians and quartiles per season × hour (UTC) of RH, air
+    #     temperature, and the departure of WTD and of the snow-free laser surface from their daily mean
+    h = wtd["2022":"2024"].copy()
+    h["wtd_mean"] = h[field.PLOTS].where(~pd.DataFrame({q: field.censored_flag(wtd[q]) for q in field.PLOTS})).mean(axis=1)
+    h["wtd_dev"] = h.wtd_mean - h.wtd_mean.groupby(h.index.floor("D")).transform("mean")
+    s_ok = laser.surface_cm.where(~snow)["2022":"2024"]
+    h["surface_dev"] = (s_ok - s_ok.groupby(s_ok.index.floor("D")).transform("mean")).reindex(h.index)
+    season = {12: "DJF", 1: "DJF", 2: "DJF", 3: "MAM", 4: "MAM", 5: "MAM", 6: "JJA", 7: "JJA", 8: "JJA",
+              9: "SON", 10: "SON", 11: "SON"}
+    h["season"] = h.index.month.map(season)
+    h["hour"] = h.index.hour + h.index.minute / 60   # UTC centre of the hour
+    diurnal = {}
+    for sname, g in h.groupby("season"):
+        q = g.groupby("hour")[["RH_2m", "Air_2m", "wtd_dev", "surface_dev"]].quantile([0.25, 0.5, 0.75]).unstack()
+        diurnal[sname] = {"hour": q.index.tolist(),
+                          **{v: {k: q[(v, qq)].round(3).tolist() for k, qq in (("q1", 0.25), ("med", 0.5), ("q3", 0.75))}
+                             for v in ("RH_2m", "Air_2m", "wtd_dev", "surface_dev")}}
+    W.chart("field_diurnal", {"overpass_utc": {"ascending": 16 + 36 / 60, "descending": 5 + 9 / 60}, "seasons": diurnal},
+            title="The day in 24 hours (station, WTD, laser; 2022–2024)", group="Field data", status="field",
+            units="% / °C / cm", description="Per season and hour (UTC): RH, air temperature, and WTD (plot mean, dry "
+                                             "wells out) and laser surface as departures from their daily mean.",
+            prov=P(root / field.DELIVERY / "WTD_hourly_2020-2024_9plots_filled_meteo.csv", root=hub))
+
     j = pd.read_csv(F1 / "plot_s1_wtd.csv")
     keep = ["date", "track", "plot", "n_valid", "coh_pairs_le24d", "temporal_coherence", "vv_db", "vh_db", "rvi",
             "wtd_at", "mean_24h", "mean_prev3d", "mean_prev7d", "change_3d", "change_7d", "wtd_censored"]
@@ -241,9 +344,50 @@ def add_field(W, gallery: list, gal: Path, template, P) -> None:
             title="UAV / LAI against the plots' radar behaviour (X-049)", group="Field data", status="exploratory",
             description="Between plots (exact Spearman, 9 plots / 8 radar units) and date-by-date with plot and "
                         "campaign means removed.", prov=P(F6 / "plot_summary.csv", F6 / "between_plot_spearman.csv", root=hub))
+    F7, F8, F9 = (hub / "08_deliverables" / n for n in ("field_pixel_x053", "field_series_x054", "field_events_x055"))
+    add_field_pixel(W, F7, P, hub)
+    zt_path, wt_path = hub / "08_deliverables" / "field_dew_x050" / "zone_pair_table_2020_2024.csv", F3w
+    if (F7 / "arc_pairs.csv").exists() and zt_path.exists() and wt_path.exists():
+        # one row per pair (both tracks, 2020–2024) for the cross-filter explorer: mat − grassland phase,
+        # zone coherence, water-table / surface change, the wetter of the two overpasses
+        zt = pd.read_csv(zt_path)
+        zt = zt[zt.zones == "A-C"].drop_duplicates(["track", "pair"])
+        arcs = pd.read_csv(F7 / "arc_pairs.csv")[["track", "pair", "coh_A", "coh_C"]]
+        rh = pd.read_csv(wt_path).set_index(["track", "date"])["rh"]
+        ex = zt.merge(arcs, on=["track", "pair"], how="left")
+        ex["rh_max"] = [max(rh.get((t, a), np.nan), rh.get((t, b), np.nan)) for t, a, b in zip(ex.track, ex.date1, ex.date2)]
+        ex["wet_any"] = ex.wet_any_rh95
+        W.chart("field_explore", ex[["track", "stack", "date1", "date2", "dt_days", "dwtd_median_cm", "dsurface_p6_cm",
+                                     "rh_max", "wet_any", "frozen_any", "ddisp_mm", "coh_A", "coh_C"]].round(4),
+                title="Every pair 2020–2024 for the cross-filter explorer", group="Field data", status="derived",
+                description="Per pair and track: mat − grassland (A − C) LOS change, zone A and C coherence, the plots' "
+                            "median ΔWTD, the P6 laser Δsurface, the higher RH of the two overpasses, wet / frozen flags.",
+                prov=P(zt_path, F7 / "arc_pairs.csv", wt_path, root=hub))
+    if (F8 / "series_2020_2024.csv").exists():
+        ser = pd.read_csv(F8 / "series_2020_2024.csv")
+        W.chart("field_series5", {
+            "series": ser.round(3).to_dict("records"),
+            "fits": pd.read_csv(F8 / "seasonal_fits.csv").round(4).to_dict("records"),
+            "vs_wtd": pd.read_csv(F8 / "series_vs_wtd.csv").round(4).to_dict("records"),
+            "reproduction": pd.read_csv(F8 / "reproduction_check.csv").to_dict("records")},
+            title="Aggregated zone series over five years, 2020–2024 (X-054)", group="Field data", status="exploratory",
+            units="mm", description="Zone phase of every interferogram (2022–2024 + the 2020–2021 extension) inverted "
+                                    "as one super-pixel per zone pair; seasonal fits over five years and year by year.",
+            prov=P(F8 / "series_2020_2024.csv", F8 / "seasonal_fits.csv", root=hub))
+    if (F9 / "epoch_response.csv").exists():
+        ev = {"events": pd.read_csv(F9 / "events.csv").round(2).to_dict("records"),
+              "response": pd.read_csv(F9 / "epoch_response.csv").round(3).to_dict("records"),
+              "peaks": pd.read_csv(F9 / "peak_response.csv").round(3).to_dict("records")}
+        if (F9 / "radar_event_test.csv").exists():
+            ev["radar"] = pd.read_csv(F9 / "radar_event_test.csv").round(5).to_dict("records")
+        W.chart("field_events", ev, title="What a rain event does (X-055)", group="Field data", status="exploratory",
+                units="cm", description="Superposed epochs of rain events (≥ 10 mm / 24 h, April–October): water table "
+                                        "and laser surface from 2 days before to 10 days after; radar pairs spanning "
+                                        "an event against shifted event dates.",
+                prov=P(F9 / "events.csv", F9 / "epoch_response.csv", root=hub))
     # The supervisor's first deliverable, whole, and every field table as a download (local site).
     files = []
-    for folder in (F1, F2, F3, F4, F5, F6):
+    for folder in (F1, F2, F3, F4, F5, F6, F7, F8, F9):
         if not folder.exists():
             continue
         for f in sorted(folder.iterdir()):
@@ -280,7 +424,8 @@ def add_field(W, gallery: list, gal: Path, template, P) -> None:
                                         "marked as doubtful are not yet excluded.",
             prov=P(root / field.DELIVERY / "DataSet_All_RS_LAI_merged_with_WTD_Meteo.xlsx", root=hub))
     for folder, tag in ((F1, "field_first"), (F2, "field_mechanism"), (F3, "field_dew"), (F4, "field_t10"),
-                        (F5, "field_methods"), (F6, "field_uav")):
+                        (F5, "field_methods"), (F6, "field_uav"), (F7, "field_pixel"), (F8, "field_series5"),
+                        (F9, "field_events")):
         if not folder.exists():
             continue
         for f in sorted(folder.glob("*.png")):
@@ -1014,7 +1159,7 @@ def main() -> None:
         shutil.copy2(REPO / "outputs/phaseM_mechanical_vs_dielectric/mechanical_vs_dielectric_dashboard.png",
                      gal / "phaseM_dashboard.png")
         gallery.append({"file": "figures/phaseM_dashboard.png", "source": "phaseM", "status": "exploratory"})
-    add_field(W, gallery, gal, tpl, P)
+    add_field(W, gallery, gal, tpl, P, drive=D)
     W.chart("gallery", gallery, title="Figure gallery", group="Figures", status="core")
 
     for spec in a.attach:
