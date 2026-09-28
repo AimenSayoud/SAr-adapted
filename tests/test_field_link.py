@@ -170,3 +170,108 @@ def test_bh_qvalues_known_example():
     # sorted p 0.01, 0.03, 0.04, 0.2 → p·m/rank 0.04, 0.06, 0.0533, 0.2 → running minimum from the top
     assert np.allclose(q[:4], [0.04, 0.0533333, 0.0533333, 0.2], atol=1e-6)
     assert np.isnan(q[4])
+
+
+# ------------------------------------------------------------------ laser checks (X-058)
+
+HOURS = pd.date_range("2022-05-01", periods=24 * 60, freq="h", tz="UTC")
+
+
+def _surface(rng, noise=0.05):
+    t = np.arange(len(HOURS)) / (24 * 30)
+    return pd.Series(np.round(5 * np.sin(t) + rng.normal(0, noise, len(HOURS)), 1), index=HOURS)
+
+
+def test_outliers_are_found_and_slow_motion_is_not():
+    rng = np.random.default_rng(3)
+    s = _surface(rng)
+    s.iloc[[100, 500, 900]] += [4.0, -3.0, 6.0]
+    flags, sigma = fl.running_median_outliers(s)
+    assert set(np.flatnonzero(flags)) == {100, 500, 900}
+    assert sigma < 0.2
+
+
+def test_a_reset_is_a_step_and_a_gap_is_not():
+    rng = np.random.default_rng(4)
+    s = _surface(rng)
+    s.iloc[700:] += 3.0                                   # sensor re-levelled
+    s.iloc[300:340] = np.nan                              # a gap: the jump across it is not a step
+    steps = fl.hourly_steps(s, threshold=1.0)
+    assert list(steps.time) == [HOURS[700]]
+    assert steps.step.iloc[0] == pytest.approx(3.0, abs=0.3)
+    gaps = fl.gap_runs(s.notna(), min_hours=24)
+    assert len(gaps) == 1 and gaps.hours.iloc[0] == 40
+
+
+def test_difference_noise_recovers_the_reading_noise():
+    rng = np.random.default_rng(5)
+    s = pd.Series(np.cumsum(rng.normal(0, 0.001, len(HOURS))) + rng.normal(0, 0.3, len(HOURS)), index=HOURS)
+    assert fl.diff_noise_sd(s, clip=5) == pytest.approx(0.3 * np.sqrt(2), rel=0.1)
+    q = pd.Series(np.round(rng.normal(0, 0.04, len(HOURS)), 1), index=HOURS)   # mostly exact zeros
+    assert fl.diff_noise_sd(q, clip=1) > 0
+
+
+def test_tls_slope_is_unbiased_when_both_variables_are_noisy():
+    rng = np.random.default_rng(6)
+    truth = rng.normal(0, 3, 400)
+    x, y = truth + rng.normal(0, 1, 400), 0.5 * truth + rng.normal(0, 0.5, 400)
+    s = fl.slopes(x, y)
+    assert s["slope_ols"] < 0.47                          # OLS attenuated by the noise in x
+    assert s["slope_tls"] == pytest.approx(0.5, abs=0.05)
+
+
+def test_gap_filling_and_re_levelling_are_found():
+    rng = np.random.default_rng(7)
+    s = _surface(rng)                                     # on a 0.1 grid
+    a, b = 200, 440
+    s.iloc[a:b] = np.linspace(s.iloc[a - 1], s.iloc[b], b - a + 2)[1:-1]   # a filled gap
+    s.iloc[b:] = s.iloc[b:] - 0.0797                      # re-levelled after it
+    runs = fl.interpolated_runs(s)
+    assert len(runs) == 1
+    assert runs.start.iloc[0] == HOURS[a] and runs.end.iloc[0] == HOURS[b - 1]
+    assert fl.in_runs(HOURS, runs).sum() == b - a
+    ramp = _surface(np.random.default_rng(9))             # a re-levelling bridged by a steep line
+    ramp.iloc[800:811] = ramp.iloc[799] + 0.365 * np.arange(1, 12)
+    ramp.iloc[811:] += 0.365 * 12
+    assert len(fl.interpolated_runs(ramp)) == 1
+    g = fl.grid_offsets(s)
+    assert g.offset.iloc[0] == pytest.approx(0.0) and g.offset.iloc[-1] == pytest.approx(0.0203, abs=1e-3)
+    assert g.first_day.iloc[-1] >= HOURS[b].floor("D")
+
+
+# ------------------------------------------------------------------ P6 validation (X-059)
+
+def test_consecutive_pairs_do_not_overlap():
+    d = ["2022-01-13", "2022-01-01", "2022-01-25", "2022-01-13"]
+    p = fl.consecutive_pairs(d)
+    assert [(a.day, b.day) for a, b in p] == [(1, 13), (13, 25)]
+
+
+def test_chain_rebuilds_a_series_and_breaks_at_a_missing_link():
+    truth = np.array([0.0, 1.0, 3.0, 2.0, 5.0, 4.0])
+    inc = np.diff(truth)
+    out, seg = fl.chain(inc)
+    assert np.allclose(out, truth)
+    inc[2] = np.nan                                       # link 3→2 missing
+    out, seg = fl.chain(inc)
+    assert np.allclose(out[:3], truth[:3]) and seg[2] == 0
+    assert out[3] == pytest.approx(0.0) and seg[3] == 1           # a new segment starts at 0
+    assert out[5] - out[3] == pytest.approx(truth[5] - truth[3])  # changes within it are right
+
+
+def test_harmonic_amplitude_ignores_offsets_between_segments():
+    t = fl.years_since(DATES)
+    seg = ((np.arange(90) >= 20) & (np.arange(90) < 40)).astype(int)
+    v = 4.0 * np.cos(2 * np.pi * t) + 25.0 * seg          # a stretch re-levelled by 25 units
+    naive = fl.harmonic_amplitude(DATES, v)
+    right = fl.harmonic_amplitude(DATES, v, seg)
+    assert right["amplitude"] == pytest.approx(4.0, abs=0.15)
+    assert abs(naive["amplitude"] - 4.0) > 0.5
+
+
+def test_partial_r_removes_a_shared_driver():
+    rng = np.random.default_rng(8)
+    z = rng.normal(size=500)
+    x, y = z + rng.normal(0, 0.3, 500), z + rng.normal(0, 0.3, 500)
+    assert np.corrcoef(x, y)[0, 1] > 0.8
+    assert abs(fl.partial_r(x, y, z)) < 0.1
