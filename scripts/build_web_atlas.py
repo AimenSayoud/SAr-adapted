@@ -152,6 +152,57 @@ def add_field_pixel(W, F7: Path, P, hub: Path) -> None:
             prov=P(F7 / "arc_pairs.csv", root=hub))
 
 
+def add_field_p6(W, F10: Path, root: Path, hub: Path, P) -> None:
+    """P6/CR, the primary validation site (X-058 laser verification, X-059 comparison): one chart
+    file with everything the /p6/ page draws. Reads the hub's deliverables; holds nothing."""
+    from insar_wetlands import field
+    Q = F10 / "laser_qc"
+    if not (F10 / "p6_stats.csv").exists() or not (Q / "summary.csv").exists():
+        print("  field P6: no field_p6 deliverable — skipped")
+        return
+    rd = lambda f: pd.read_csv(f)  # noqa: E731
+    recs = lambda df: df.astype(object).where(pd.notna(df), None).to_dict("records")  # noqa: E731
+    fl = pd.read_csv(Q / "laser_flags.csv", parse_dates=["time_utc"]).set_index("time_utc")
+    fl = fl.loc["2022-01-01":"2024-12-31 23:59"]
+    meas = fl.surface_cm.where(~fl.snow_72h & ~fl.filled & ~fl.outlier)
+    wtd = field.load_wtd_hourly().loc["2022-01-01":"2024-12-31 23:59"]
+    day = lambda s: s.resample("D").mean()  # noqa: E731
+    series = pd.DataFrame({"laser_measured_cm": day(meas), "laser_filled_cm": day(fl.surface_cm_raw.where(fl.filled)),
+                           "laser_snow_cm": day(fl.surface_cm_raw.where(fl.snow_72h & ~fl.filled)),
+                           "wtd_p6_cm": day(wtd["P6"]), "cr_raw_cm": day(wtd["CR_raw"])}).round(3)
+    at = rd(Q / "laser_at_s1.csv")
+    cov = at.groupby("track").agg(acquisitions=("date", "size"), within_1h=("laser_cm", lambda x: int(x.notna().sum())),
+                                  filled=("filled", "sum"), usable=("usable", "sum"),
+                                  snowfree_24h=("snow_24h", lambda x: int((~x).sum()))).reset_index()
+    summ = pd.read_csv(Q / "summary.csv", index_col=0)["value"]
+    data = {
+        "qc": {"summary": {k: float(v) for k, v in summ.items()},
+               "filled": recs(rd(Q / "interpolated.csv")), "grid": recs(rd(Q / "grid_offsets.csv")),
+               "mount": recs(rd(Q / "mount_sensitivity.csv")), "years": recs(rd(Q / "coverage_by_year.csv")),
+               "at_s1": recs(cov), "steps": recs(rd(Q / "steps.csv"))},
+        "series": {"dates": [d.strftime("%Y-%m-%d") for d in series.index],
+                   **{c: [None if pd.isna(v) else float(v) for v in series[c]] for c in series.columns}},
+        "overpass": recs(at[["date", "track", "time_utc", "laser_cm", "usable", "filled", "snow_72h", "outlier"]]),
+        "chain": recs(rd(F10 / "p6_web_series.csv")),
+        "pairs": recs(rd(F10 / "p6_pairs.csv").drop(columns=["in_network"]).round(4)),
+        "stats": recs(rd(F10 / "p6_stats.csv").round(5)),
+        "seasonal": recs(rd(F10 / "p6_seasonal.csv").round(4)),
+        "pair_length": recs(rd(F10 / "p6_pair_length.csv").round(4)),
+        "closure": recs(rd(F10 / "p6_closure_summary.csv").round(4)),
+        "triplets": recs(rd(F10 / "p6_closure_triplets.csv").round(3)),
+        "controls": recs(rd(F10 / "p6_controls_summary.csv").round(4)),
+        "control_pixels": recs(rd(F10 / "p6_controls_pixels.csv").round(4)),
+        "checks": {"extraction": recs(rd(F10 / "p6_check_extraction.csv")), "x048": recs(rd(F10 / "p6_check_x048.csv"))},
+        "params": {"quarter_wave_mm": 55.5465763 / 4, "noise_floor_mm": float(summ["noise_floor_mm"]),
+                   "incidence_deg": {"ascending": 32.26, "descending": 39.17}, "window_primary": "1x1"},
+    }
+    W.chart("field_p6", data, title="P6/CR — the primary validation site (X-058, X-059)", group="Field data",
+            status="exploratory", description="Laser verified (units, sign, 10° mount, gaps, filled stretches, "
+                                                "re-levellings), then laser ↔ WTD ↔ Sentinel-1 phase ↔ coherence between "
+                                                "consecutive acquisitions, pair length, closure and pixel controls.",
+            prov=P(F10 / "p6_stats.csv", F10 / "p6_pairs.csv", Q / "summary.csv", root=hub))
+
+
 def add_field(W, gallery: list, gal: Path, template, P, drive: Path | None = None) -> None:
     """Field data (unpublished) → atlas layers, when the research hub's 06_data/field and the
     field deliverables are present next to this repository. Reads them; holds none of them."""
@@ -345,6 +396,8 @@ def add_field(W, gallery: list, gal: Path, template, P, drive: Path | None = Non
             description="Between plots (exact Spearman, 9 plots / 8 radar units) and date-by-date with plot and "
                         "campaign means removed.", prov=P(F6 / "plot_summary.csv", F6 / "between_plot_spearman.csv", root=hub))
     F7, F8, F9 = (hub / "08_deliverables" / n for n in ("field_pixel_x053", "field_series_x054", "field_events_x055"))
+    F10 = hub / "08_deliverables" / "field_p6"
+    add_field_p6(W, F10, root, hub, P)
     add_field_pixel(W, F7, P, hub)
     zt_path, wt_path = hub / "08_deliverables" / "field_dew_x050" / "zone_pair_table_2020_2024.csv", F3w
     if (F7 / "arc_pairs.csv").exists() and zt_path.exists() and wt_path.exists():
@@ -387,16 +440,17 @@ def add_field(W, gallery: list, gal: Path, template, P, drive: Path | None = Non
                 prov=P(F9 / "events.csv", F9 / "epoch_response.csv", root=hub))
     # The supervisor's first deliverable, whole, and every field table as a download (local site).
     files = []
-    for folder in (F1, F2, F3, F4, F5, F6, F7, F8, F9):
+    for folder in (F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F10 / "laser_qc"):
         if not folder.exists():
             continue
         for f in sorted(folder.iterdir()):
-            if f.suffix.lower() in (".csv", ".md", ".json"):
-                dst = W.out / "downloads" / "field" / folder.name / f.name
+            if f.suffix.lower() in (".csv", ".md", ".json") and f.name != "laser_flags.csv":   # hourly flags: 2 MB, not a table to read
+                rel = folder.relative_to(hub / "08_deliverables").as_posix()      # field_p6/laser_qc keeps its parent
+                dst = W.out / "downloads" / "field" / rel / f.name
                 dst.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(f, dst)
                 rows = sum(1 for _ in f.open()) - 1 if f.suffix == ".csv" else None
-                files.append({"folder": folder.name, "file": f.name, "path": f"downloads/field/{folder.name}/{f.name}",
+                files.append({"folder": rel, "file": f.name, "path": f"downloads/field/{rel}/{f.name}",
                               "bytes": f.stat().st_size, "rows": rows})
     W.chart("field_deliverables", {
         "acquisitions": acq.astype(object).to_dict("records"),
@@ -425,7 +479,7 @@ def add_field(W, gallery: list, gal: Path, template, P, drive: Path | None = Non
             prov=P(root / field.DELIVERY / "DataSet_All_RS_LAI_merged_with_WTD_Meteo.xlsx", root=hub))
     for folder, tag in ((F1, "field_first"), (F2, "field_mechanism"), (F3, "field_dew"), (F4, "field_t10"),
                         (F5, "field_methods"), (F6, "field_uav"), (F7, "field_pixel"), (F8, "field_series5"),
-                        (F9, "field_events")):
+                        (F9, "field_events"), (F10, "field_p6"), (F10 / "laser_qc", "field_p6")):
         if not folder.exists():
             continue
         for f in sorted(folder.glob("*.png")):
