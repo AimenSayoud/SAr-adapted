@@ -152,6 +152,63 @@ def add_field_pixel(W, F7: Path, P, hub: Path) -> None:
             prov=P(F7 / "arc_pairs.csv", root=hub))
 
 
+FUSION_ZONE_COLORS = ["#60a5fa", "#fb923c", "#22c55e", "#a855f7", "#f43f5e", "#eab308", "#14b8a6", "#78716c"]   # = fig_B_zones
+
+
+def add_fusion(W, F11: Path, hub: Path, P, gallery: list, gal: Path) -> None:
+    """X-062 (branch fusion-x062): the fused mat-displacement stacks and the block maps as atlas
+    layers, and the block tables as one chart for the /fusion/ page. Reads the hub deliverable."""
+    nc = F11 / "fusion_ascending.nc"
+    if not nc.exists():
+        print("  fusion: no field_fusion_x062 deliverable — skipped")
+        return
+    print("\n== fusion system (X-062, branch)")
+    ds = xr.open_dataset(nc)
+    times = [pd.Timestamp(t).strftime("%Y-%m-%d") for t in ds.time.values]
+    prov = P(nc, F11 / "README.md", root=hub)
+    lim = float(np.nanpercentile(np.abs(ds.fused_mm.where(ds.zone == "A").values), 98))
+    W.raster("fusion_fused_ascending", ds.fused_mm.values, title="Fused mat displacement (ascending, 2022–2024)",
+             group="Fusion system (X-062)", status="exploratory", units="mm", colormap="RdBu", display=(-lim, lim),
+             times=times, prov=prov, x=ds.x.values, y=ds.y.values,
+             description="Surface displacement since the first date, + up: the 12-day radar chain (moisture removed, "
+                         "scaled with what P6 taught) fused with the water forcing; lake masked. Branch fusion-x062.")
+    W.raster("fusion_radar_only_ascending", ds.radar_only_mm.where(ds.zone != "B").values,
+             title="Radar-only chained displacement (ascending)", group="Fusion system (X-062)", status="exploratory",
+             units="mm", colormap="RdBu", display=(-lim * 1.5, lim * 1.5), times=times, prov=prov, x=ds.x.values, y=ds.y.values,
+             description="The calibrated 12-day chain alone (moisture removed, scaled by m on the mat), before fusion.")
+    W.raster("fusion_amplitude_ascending", ds.amplitude_mm.values, title="Annual amplitude of the fused displacement",
+             group="Fusion system (X-062)", status="exploratory", units="mm", colormap="viridis", prov=prov,
+             x=ds.x.values, y=ds.y.values, description="Semi-amplitude of an annual harmonic fitted to each pixel's fused series.")
+    W.raster("fusion_sd_ascending", ds.fused_sd_mm.isel(time=-1).where(ds.zone != "B").values,
+             title="Fused displacement uncertainty (end of 2024)", group="Fusion system (X-062)", status="exploratory",
+             units="mm", colormap="Greys", prov=prov, x=ds.x.values, y=ds.y.values,
+             description="1-σ of the chained fused displacement at the last date.")
+    zj = json.loads((F11 / "zones.json").read_text())
+    W.raster("fusion_dissimilarity", np.log10(np.clip(ds.dissimilarity.values, 1e-3, None)), title="How unlike the plots each pixel is",
+             group="Fusion system (X-062)", status="exploratory", units="log10 index", colormap="viridis_r", prov=prov,
+             x=ds.x.values, y=ds.y.values,
+             description=f"Dissimilarity of each pixel's 15 behaviour features to the plot pixels; above {zj['threshold']:.2f} "
+                         "(log10 below) nothing measured is like it.")
+    zf = F11 / "zones_map.npy"
+    if zf.exists():
+        zl = np.load(zf).astype(float)
+        W.raster("fusion_zones", np.where(zl < 0, np.nan, zl), title="Behaviour zones (k-means)", group="Fusion system (X-062)",
+                 status="exploratory", categories={i: {"label": f"zone {i}" + (" (the plots)" if i == zj["plot_zone"]["P6"] else ""), "color": FUSION_ZONE_COLORS[i % len(FUSION_ZONE_COLORS)]}
+                             for i in range(zj["k"])}, colormap="tab10", prov=prov,
+                 x=ds.x.values, y=ds.y.values, description="k-means zones of per-pixel behaviour; the plots all fall in one.")
+    rd = lambda f: pd.read_csv(F11 / f)  # noqa: E731
+    recs = lambda df: df.astype(object).where(pd.notna(df), None).to_dict("records")  # noqa: E731
+    W.chart("fusion_x062", {
+        "water": recs(rd("water_model_cv.csv")), "zones": zj, "zones_crosstab": recs(rd("zones_crosstab.csv")),
+        "transfer": recs(rd("transfer_units.csv")), "phase_coef": recs(rd("phase_physics_coef.csv")),
+        "phase_cv": recs(rd("phase_physics_cv.csv")), "buoyancy": json.loads((F11 / "buoyancy.json").read_text()),
+        "validation": recs(rd("validation.csv")), "levels": recs(rd("p6_levels.csv")), "stable": recs(rd("stable_ground.csv")),
+    }, title="Fusion system (X-062): block tables", group="Fusion system (X-062)", status="exploratory", prov=prov)
+    for f in sorted(F11.glob("fig_*.png")):
+        shutil.copy2(f, gal / f"fusion_{f.name}")
+        gallery.append({"file": f"figures/fusion_{f.name}", "source": "08_deliverables/field_fusion_x062", "status": "exploratory"})
+
+
 def add_field_p6(W, F10: Path, root: Path, hub: Path, P) -> None:
     """P6/CR, the primary validation site (X-058 laser verification, X-059 comparison): one chart
     file with everything the /p6/ page draws. Reads the hub's deliverables; holds nothing."""
@@ -1214,6 +1271,9 @@ def main() -> None:
                      gal / "phaseM_dashboard.png")
         gallery.append({"file": "figures/phaseM_dashboard.png", "source": "phaseM", "status": "exploratory"})
     add_field(W, gallery, gal, tpl, P, drive=D)
+    from insar_wetlands import field as _field
+    hub_root = _field.field_root().parents[1]
+    add_fusion(W, hub_root / "08_deliverables" / "field_fusion_x062", hub_root, P, gallery, gal)
     W.chart("gallery", gallery, title="Figure gallery", group="Figures", status="core")
 
     for spec in a.attach:

@@ -661,7 +661,7 @@ def readme(out, A, B, C, D, val, stable, phys, g, q, zones, lev):
           "- Coherence, the lake, dew and snow set the radar's weight pixel by pixel; unwrapping outliers are rejected by the gate.\n",
           "## Files\n",
           "| File | Content |", "|---|---|",
-          "| `water_model_cv.csv`, `water_model_params.csv` | A |", "| `zones_crosstab.csv`, `zones.json` | B |",
+          "| `water_model_cv.csv`, `water_model_params.csv` | A |", "| `zones_crosstab.csv`, `zones.json`, `zones_map.npy` | B |",
           "| `transfer_units.csv` | C |", "| `phase_physics_coef.csv`, `phase_physics_cv.csv`, `buoyancy.json` | D |",
           "| `validation.csv`, `stable_ground.csv` | E validation |",
           "| `fusion_ascending.nc`, `fusion_descending.nc` | fused / radar-only / model-only displacement, sd, zones, dissimilarity (not in git) |",
@@ -742,6 +742,7 @@ def main(argv=None):
     B["crosstab"].to_csv(out / "zones_crosstab.csv")
     (out / "zones.json").write_text(json.dumps({"k": B["k"], "silhouette": B["silhouette"], "threshold": B["thr"],
                                                 "plot_zone": B["plot_cluster"], "features": B["features"]}, indent=1))
+    np.save(out / "zones_map.npy", B["labels"])
     fig_b(out, B, ctx, px, zones)
     print("B done, k =", B["k"])
 
