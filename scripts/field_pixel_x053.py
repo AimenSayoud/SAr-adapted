@@ -8,7 +8,8 @@ hydrology. The radar itself has hundreds of mat pixels. For every pixel, on both
    and baseline trend regressed out (the pair analogue of anomalies, as `field_link.season_residual`)
    against |ΔWTD| (median over the plots, dry wells out). r, slope, circular-shift p (pairs ordered
    by mid-date), Benjamini–Hochberg q over the mat.
-2. **VV vs water-table level** (ascending RTC, 2022–2024) — anomaly correlation, circular-shift p.
+2. **VV vs water-table level** (RTC, both tracks, 2020–2024 — C-048/X-063) — anomaly correlation with a
+   step for Sentinel-1B dates (S1B is calibrated slightly differently), circular-shift p.
 3. **Wet penalty** — season-cleaned coherence of pairs whose two dates were dry minus pairs with a
    wet date (RH ≥ 95 % or rain); p from the per-date wet flags circularly shifted (as X-050).
 4. **Transect** — the pixel column through the plots, edge to edge: every map above plus mean
@@ -123,6 +124,8 @@ def main(argv=None):
     local = hub / "05_code" / "local"
     ap = argparse.ArgumentParser()
     ap.add_argument("--extra", default=str(local / "s1_2020_2021"))
+    ap.add_argument("--rtc", default=str(local / "drive_mirror"),
+                    help="folder with the five-year RTC stacks rtc_dualpol_2020_2024[_descending].nc (C-048)")
     ap.add_argument("--wetness", default=str(hub / "08_deliverables" / "field_dew_x050" / "wetness_at_overpasses_2020_2024.csv"))
     ap.add_argument("--out", default=str(hub / "08_deliverables" / "field_pixel_x053"))
     ap.add_argument("--summary-only", action="store_true", help="re-derive summary_by_zone.csv from pixel_maps.nc")
@@ -208,34 +211,40 @@ def main(argv=None):
         summary[-2]["share_q_lt_0.05"] = float((q < 0.05).mean())
         del cube, flat
 
-    # 2. VV vs WTD level (ascending RTC, 2022–2024), anomalies
-    rtc = xr.open_dataset(D / "rtc_dualpol_stack.nc")
-    vv = ctx.to_grid(rtc["gamma0_vv_db"])
-    vh = ctx.to_grid(rtc["gamma0_vh_db"])
-    times = pd.to_datetime(vv.time.values)
-    lvl = []
-    for t in times:
-        tt = pd.Timestamp(f"{t.date()} {OVERPASS['ascending']}", tz="UTC")
-        v = [field._interp_at(wtd[p], tt) for p in field.PLOTS if not bool(cens[p].asof(tt))]
-        lvl.append(float(np.median(v)) if len(v) >= 5 else np.nan)
-    lvl = np.array(lvl)
-    keep = np.isfinite(lvl)
-    yv, _ = fill_columns(vv.values.reshape(len(times), -1)[keep])
-    tyr = (times[keep] - times[keep][0]).days.to_numpy() / 365.25
-    dm = np.column_stack([np.ones(keep.sum()), tyr, np.cos(2 * np.pi * tyr), np.sin(2 * np.pi * tyr)])
-    xv = residualize(lvl[keep][:, None], dm)[:, 0]
-    rv, pv = shift_corr(xv, residualize(yv, dm))
-    maps["vv_wtd_r_ascending"], maps["vv_wtd_p_ascending"] = rv.reshape(shape), pv.reshape(shape)
-    am = zone_a.ravel() & np.isfinite(rv)
-    summary.append({"track": "ascending", "test": "VV vs WTD level (anomalies)", "mat_pixels": int(am.sum()),
-                    "median_value": float(np.nanmedian(rv[am])), "share_p_lt_0.05": float((pv[am] < 0.05).mean()),
-                    "expected_by_chance": 0.05, "share_positive": float((rv[am] > 0).mean()), "n_dates": int(keep.sum())})
+    # 2. VV vs WTD level (RTC, both tracks, 2020–2024), anomalies; S1B dates get their own level
+    rtc_names = {"ascending": "rtc_dualpol_2020_2024.nc", "descending": "rtc_dualpol_2020_2024_descending.nc"}
+    vh_mean = None
+    for track in OVERPASS:
+        rtc = xr.load_dataset(Path(a.rtc) / rtc_names[track])
+        vv = ctx.to_grid(rtc["gamma0_vv_db"])
+        times = pd.to_datetime(vv.time.values)
+        s1b = np.array([str(i).startswith("S1B") for i in rtc.source_item.values])
+        if track == "ascending":
+            vh_mean = ctx.to_grid(rtc["gamma0_vh_db"]).mean("time").values
+        lvl = []
+        for t in times:
+            tt = pd.Timestamp(f"{t.date()} {OVERPASS[track]}", tz="UTC")
+            v = [field._interp_at(wtd[p], tt) for p in field.PLOTS if not bool(cens[p].asof(tt))]
+            lvl.append(float(np.median(v)) if len(v) >= 5 else np.nan)
+        lvl = np.array(lvl)
+        keep = np.isfinite(lvl)
+        yv, _ = fill_columns(vv.values.reshape(len(times), -1)[keep])
+        tyr = (times[keep] - times[keep][0]).days.to_numpy() / 365.25
+        dm = np.column_stack([np.ones(keep.sum()), tyr, np.cos(2 * np.pi * tyr), np.sin(2 * np.pi * tyr)]
+                             + ([s1b[keep].astype(float)] if s1b[keep].any() else []))
+        xv = residualize(lvl[keep][:, None], dm)[:, 0]
+        rv, pv = shift_corr(xv, residualize(yv, dm))
+        maps[f"vv_wtd_r_{track}"], maps[f"vv_wtd_p_{track}"] = rv.reshape(shape), pv.reshape(shape)
+        am = zone_a.ravel() & np.isfinite(rv)
+        summary.append({"track": track, "test": "VV vs WTD level (anomalies)", "mat_pixels": int(am.sum()),
+                        "median_value": float(np.nanmedian(rv[am])), "share_p_lt_0.05": float((pv[am] < 0.05).mean()),
+                        "expected_by_chance": 0.05, "share_positive": float((rv[am] > 0).mean()),
+                        "n_dates": int(keep.sum()), "n_dates_s1b": int(s1b[keep].sum())})
 
     # context maps for the transect and the spatial comparison
     sd = signed_distance_to_aoi(tpl, cfg).values
     ndwi = ctx.to_grid(xr.open_dataset(D / "s2_stack.nc")["ndwi"]).mean("time").values
     tcoh = ctx.to_grid(xr.open_dataset(D / "phaseE2_evd.nc")["temporal_coherence"]).values
-    vh_mean = vh.mean("time").values
 
     # 4. transect: the plots' pixel column, edge to edge
     px = pd.read_csv(hub / "08_deliverables" / "field_first" / "plot_pixels.csv")
@@ -254,13 +263,15 @@ def main(argv=None):
                        "wet_penalty_ascending": maps["wet_penalty_ascending"][rows, col],
                        "wet_penalty_descending": maps["wet_penalty_descending"][rows, col],
                        "vv_wtd_r_ascending": maps["vv_wtd_r_ascending"][rows, col],
+                       "vv_wtd_r_descending": maps["vv_wtd_r_descending"][rows, col],
                        "vh_mean_db": vh_mean[rows, col], "temporal_coherence": tcoh[rows, col], "ndwi_mean": ndwi[rows, col]})
     tr.to_csv(out / "transect.csv", index=False)
 
     # spatial comparison over the mat (Spearman; pixels are spatially autocorrelated — descriptive)
     from scipy.stats import spearmanr
     ctx_rows = []
-    for mname in ("coh_dwtd_r_ascending", "coh_dwtd_r_descending", "wet_penalty_descending", "vv_wtd_r_ascending"):
+    for mname in ("coh_dwtd_r_ascending", "coh_dwtd_r_descending", "wet_penalty_descending", "vv_wtd_r_ascending",
+                  "vv_wtd_r_descending"):
         for cname, cv in (("distance inside the mat (m)", -sd), ("S2 NDWI mean", ndwi), ("temporal coherence", tcoh), ("VH mean (dB)", vh_mean)):
             mm = zone_a & np.isfinite(maps[mname]) & np.isfinite(cv)
             rho = spearmanr(maps[mname][mm], cv[mm]).statistic
@@ -282,7 +293,7 @@ def main(argv=None):
 
 ZONE_TESTS = (("coherence vs |ΔWTD|", "coh_dwtd_r", "coh_dwtd_p", ("ascending", "descending")),
               ("wet penalty (dry − wet)", "wet_penalty", "wet_penalty_p", ("ascending", "descending")),
-              ("VV vs WTD level (anomalies)", "vv_wtd_r", "vv_wtd_p", ("ascending",)))
+              ("VV vs WTD level (anomalies)", "vv_wtd_r", "vv_wtd_p", ("ascending", "descending")))
 
 
 def zone_summary(ds: xr.Dataset, zones) -> pd.DataFrame:
@@ -342,7 +353,8 @@ def figures(out: Path, ds: xr.Dataset, zones, px: pd.DataFrame, tr: pd.DataFrame
     ax[0].plot(tr.row, tr.coh_short_mean_ascending, "o-", label="asc"); ax[0].plot(tr.row, tr.coh_short_mean_descending, "o-", label="desc")
     ax[0].set_ylabel("coherence"); ax[0].legend(fontsize=7)
     ax[1].plot(tr.row, tr.coh_dwtd_r_ascending, "o-", label="coh vs |ΔWTD| asc"); ax[1].plot(tr.row, tr.coh_dwtd_r_descending, "o-", label="desc")
-    ax[1].plot(tr.row, tr.vv_wtd_r_ascending, "s--", label="VV vs WTD asc"); ax[1].axhline(0, c="k", lw=0.5); ax[1].set_ylabel("r"); ax[1].legend(fontsize=7)
+    ax[1].plot(tr.row, tr.vv_wtd_r_ascending, "s--", label="VV vs WTD asc")
+    ax[1].plot(tr.row, tr.vv_wtd_r_descending, "s:", label="VV vs WTD desc"); ax[1].axhline(0, c="k", lw=0.5); ax[1].set_ylabel("r"); ax[1].legend(fontsize=7)
     ax[2].plot(tr.row, tr.vh_mean_db, "o-", c="C3"); ax[2].set_ylabel("VH (dB)")
     ax[3].plot(tr.row, xr_, "o-", c="0.3"); ax[3].set_ylabel("distance inside\nthe mat (m)"); ax[3].set_xlabel("pixel row (north ← → south)")
     for a_ in ax:
