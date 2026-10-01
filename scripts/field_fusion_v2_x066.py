@@ -64,15 +64,24 @@ class Inputs:
         px = pd.read_csv(DLV / "field_first" / "plot_pixels.csv").set_index("plot")
         self.p6 = (int(px.loc["P6", "row"]), int(px.loc["P6", "col"]))
         fl = pd.read_csv(DLV / "field_p6" / "laser_qc" / "laser_flags.csv", parse_dates=["time_utc"]).set_index("time_utc")
-        fl["ok"] = fl.surface_cm.notna() & ~fl.snow_72h & ~fl.outlier & ~fl.filled
+        s25 = DLV / "fusion_v2" / "flags_2025" / "laser_snow72_2025.csv"     # the station record ends in 2024
+        if s25.exists():
+            o = pd.read_csv(s25, parse_dates=["time_utc"]).set_index("time_utc").snow_72h_open_meteo
+            fl.loc[fl.index.isin(o.index), "snow_72h"] = o.reindex(fl.index[fl.index.isin(o.index)]).to_numpy()
+        fl["ok"] = fl.surface_cm.notna() & ~fl.snow_72h.astype(bool) & ~fl.outlier & ~fl.filled
         self.laser = fl
         runs = pd.read_csv(DLV / "field_p6" / "laser_qc" / "interpolated.csv", parse_dates=["start", "end"])
         self.runs = runs
         self.wtd = field.load_wtd_hourly()
         self.cens = {p: field.censored_flag(self.wtd[p]) for p in field.PLOTS}
         w = pd.read_csv(DLV / "field_dew_x050" / "wetness_at_overpasses_2020_2024.csv", parse_dates=["date"])
+        w25 = DLV / "fusion_v2" / "flags_2025" / "wetness_at_overpasses_2025_open_meteo.csv"
+        if w25.exists():
+            w = pd.concat([w, pd.read_csv(w25, parse_dates=["date"])[["date", "track", "wet", "frozen"]]])
+            w = w.drop_duplicates(["date", "track"], keep="first")          # the station wins where both exist
         self.wet = w.set_index(["date", "track"])
-        self.roots = {t: [make_paths(cfg=ctx.cfg, track=t).cropped, extra / f"hyp3_cropped_{t}"] for t in INC}
+        self.roots = {t: [make_paths(cfg=ctx.cfg, track=t).cropped, extra / f"hyp3_cropped_{t}",
+                          HUB / "05_code" / "local" / "s1_2025" / f"hyp3_cropped_{t}"] for t in INC}
         # laser segments: a filled stretch may hide a re-levelling (X-058) — levels compare within a segment
         cuts = np.array(sorted(pd.to_datetime(runs.start, utc=True).dt.tz_convert(None)), dtype="datetime64[ns]")
         self.segment = lambda t: int(np.searchsorted(cuts, np.datetime64(pd.Timestamp(t).tz_convert(None) if pd.Timestamp(t).tzinfo else pd.Timestamp(t))))
@@ -146,7 +155,7 @@ def pair_cube(inp: Inputs, track: str, pairs) -> pd.DataFrame:
 
 # ------------------------------------------------------------------------------ calibration at P6
 
-def calibrate(inp: Inputs, tables: dict, train) -> dict:
+def calibrate(inp: Inputs, tables: dict, train, buoyancy: bool = True) -> dict:
     """g, τ, σ_c from the laser and water table (field data only); m, e, s per track × revisit from the phase.
     ``train(t)`` says whether a time belongs to the calibration block."""
     allp = pd.concat(tables.values())
@@ -157,7 +166,7 @@ def calibrate(inp: Inputs, tables: dict, train) -> dict:
     daily = lz.resample("D").mean().dropna()
     p6 = inp.wtd["P6"].where(~inp.cens["P6"]).resample("D").mean()
     p6.index = p6.index.tz_localize("UTC") if p6.index.tz is None else p6.index
-    res = (daily - g * p6.reindex(daily.index)).dropna()
+    res = (daily - (g if buoyancy else 0.0) * p6.reindex(daily.index)).dropna()
     seg = np.array([inp.segment(t) for t in res.index])
     res = res - pd.Series(res.values, index=res.index).groupby(seg).transform("mean").values
     keep = np.array([train(t.tz_convert(None)) for t in res.index])
@@ -229,7 +238,7 @@ def run_mask(tables, cubes, mask, cal, T, T_index, W_T, sigma_d_ratio, kappa, bu
     k = f2.resolve_ambiguities_per_pixel(p, mu, Qsingle, n_t)
     p = f2.Pairs(p.px, p.i, p.j, p.A, p.y + k * f2.CYCLE_LOS_MM, p.sd)
     out = f2.smooth(p, mu, Qd, n_t, n_px, Qcommon=Qc, ambiguity_iters=0, solver="cg")
-    out.update({"idx": idx, "pairs": p, "k": k})
+    out.update({"idx": idx, "pairs": p, "k": k, "Qsingle": Qsingle})
     return out
 
 
@@ -289,7 +298,7 @@ def md(df):
                      + ["| " + " | ".join(f(v) for v in r) + " |" for r in df.itertuples(index=False)])
 
 
-def run(inp, name, period, tracks, folds, out):
+def run(inp, name, period, tracks, folds, out, fixed_cal=None, fixed_best=None, water=True):
     print(f"\n== {name}: {period} {tracks}")
     tables, cubes = {}, {}
     for t in tracks:
@@ -305,6 +314,10 @@ def run(inp, name, period, tracks, folds, out):
         print(f"  {t}: {len(tables[t])} consecutive pairs, Δt {tables[t].dt.value_counts().to_dict()}", flush=True)
     T, T_index = joint_axis(tables, tracks)
     W_T = np.array([inp.forcing(pd.Timestamp(t).tz_localize("UTC")) for t in T])
+    if not water:                         # no water-table record (2025): radar + mean-reverting prior only
+        W_T = np.zeros(len(T))
+        for t in tables:
+            tables[t] = tables[t].assign(dW=0.0)
     A = inp.zones["A"]
     r6, c6 = inp.p6
     p6_flat = r6 * A.shape[1] + c6
@@ -315,14 +328,14 @@ def run(inp, name, period, tracks, folds, out):
     metrics, choice_rows, cal_rows = [], [], []
     series = {}
     for fold_name, train, test in folds:
-        cal = calibrate(inp, tables, train)
+        cal = dict(fixed_cal) if fixed_cal else calibrate(inp, tables, train)
         cal["noise"] = noise
         cal_rows.append({"fold": fold_name, "g_mm_per_cm": cal["g"], "tau_days": cal["tau"], "sigma_c_mm": cal["sigma_c"],
                          **{f"m_{t[:3]}_{dt}d": v["m"] for (t, dt), v in cal["phys"].items()},
                          **{f"e_{t[:3]}_{dt}d": v["e"] for (t, dt), v in cal["phys"].items()}})
         # σ_d, κ: predict descending pairs from an ascending-only fit (both tracks needed)
-        best = (0.5, 16.0)
-        if len(tracks) == 2 and any(k[0] == "descending" for k in cal["phys"]):
+        best = fixed_best or (0.5, 16.0)
+        if fixed_best is None and len(tracks) == 2 and any(k[0] == "descending" for k in cal["phys"]):
             pd_desc, idx = build_pairs(tables, cubes, A, cal, T_index, tracks=["descending"])
             scores = []
             for sdr in (0.25, 0.5):
@@ -348,7 +361,7 @@ def run(inp, name, period, tracks, folds, out):
             metrics.append({"run": name, "fold": fold_name, **m})
         series[fold_name] = {"T": T, "ests": ests, "held": held, "cal": cal, "best": best, "out": o}
     # final model: calibrated on everything, for the maps and the track / stable-ground checks
-    cal = calibrate(inp, tables, lambda t: True)
+    cal = dict(fixed_cal) if fixed_cal else calibrate(inp, tables, lambda t: True)
     cal["noise"] = noise
     best = series[folds[0][0]]["best"]
     full = run_mask(tables, cubes, A, cal, T, T_index, W_T, *best)
@@ -387,13 +400,18 @@ def run(inp, name, period, tracks, folds, out):
     # maps
     grid = np.full((len(T),) + A.shape, np.nan, "float32")
     grid.reshape(len(T), -1)[:, full["idx"]] = full["h"].T
+    sdg = np.full((len(T),) + A.shape, np.nan, "float32")
+    sdg.reshape(len(T), -1)[:, full["idx"]] = f2.pixelwise_sd(full["pairs"], full["Qsingle"], len(T), len(full["idx"])).T
+    checks.append({"run": name, "check": "median posterior SD of the height, mat (mm; per-pixel bound)",
+                   "value": float(np.nanmedian(sdg))})
     ds = xr.Dataset({"height_mm": (("time", "y", "x"), grid)},
                     coords={"time": pd.DatetimeIndex(T), "y": inp.ctx.template.y.values, "x": inp.ctx.template.x.values})
+    ds["height_sd_mm"] = (("time", "y", "x"), sdg)
     ds["shared_motion_mm"] = ("time", (full["c"] + cal["g"] * np.nan_to_num(W_T - np.nanmean(W_T))).astype("float32"))
     ds.attrs.update({"run": name, "g_mm_per_cm": cal["g"], "tau_days": cal["tau"], "sigma_c_mm": cal["sigma_c"],
                      "sigma_d_ratio": best[0], "kappa": best[1], "units": "mm, vertical, relative to the series mean"})
     ds.to_netcdf(out / f"height_{name}.nc")
-    return {"metrics": metrics, "choice": choice_rows, "cal": cal_rows, "checks": checks, "series": series,
+    return {"tables": tables, "cubes": cubes, "metrics": metrics, "choice": choice_rows, "cal": cal_rows, "checks": checks, "series": series,
             "final_cal": cal, "best": best, "T": T, "full": full, "inp": inp}
 
 
@@ -417,7 +435,56 @@ def figure(out, res, name):
     plt.close(fig)
 
 
-def readme(out, summ, checks, cal, R1, R2):
+def closure_check(inp, R1, out) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Closure triangles 2020–2021: 6-day + 6-day − the 12-day pair over the same dates, mat / lake / stable ground /
+    P6. Then the test of reading the mat-wide closure as a bias of the 6-day pairs (subtract it, chain P6, compare with
+    the laser). Radar only; the laser judges."""
+    from scipy import ndimage
+    Z = inp.zones
+    dist = ndimage.distance_transform_edt(~Z["A"]) * 40.0
+    near = Z["D"] & (dist > 200) & (dist < 1500)
+    r6, c6 = inp.p6
+    rows = []
+    for t in ("ascending", "descending"):
+        d = R1["tables"][t]
+        dl = R1["cubes"][t][0]
+        root = HUB / "05_code" / "local" / "s1_2020_2021" / f"hyp3_cropped_{t}"
+        for k in range(len(d) - 1):
+            a, b = d.iloc[k], d.iloc[k + 1]
+            if a.t2 != b.t1 or a["dt"] != 6 or b["dt"] != 6 or a.frozen or b.frozen:
+                continue
+            pid = f"{a.t1:%Y%m%d}_{b.t2:%Y%m%d}"
+            if not (root / pid).exists():
+                continue
+            u = load_layer(root, "unw_phase", [pid]).isel(pair=0).values
+            l12 = (u - np.nanmedian(u[Z["C"] & np.isfinite(u)])) * PHASE_TO_MM
+            c = dl[k] + dl[k + 1] - l12
+            rows.append({"track": t, "middle_date": b.t1, "wet": bool(a.wet or b.wet), "mat": float(np.nanmean(c[Z["A"]])),
+                         "lake": float(np.nanmean(c[Z["B"]])), "stable": float(np.nanmean(c[near])), "p6": float(c[r6, c6])})
+    cl = pd.DataFrame(rows)
+    cl.to_csv(out / "closure_triplets_2020_2021.csv", index=False)
+    test = []
+    cal = R1["final_cal"]["phys"]
+    for t in ("ascending", "descending"):
+        d = R1["tables"][t]
+        bias = cl[cl.track == t].set_index("middle_date").eval("mat - stable")
+        b = np.nan_to_num([np.nanmean([bias.get(r.t2, np.nan), bias.get(r.t1, np.nan)]) for _, r in d.iterrows()])
+        ph = cal[(t, 6)]
+        A = ph["m"] * np.cos(np.radians(INC[t]))
+        for name, corr in (("6-day chain at P6, raw", np.zeros(len(d))), ("6-day chain at P6, mat closure subtracted", b)):
+            lev, dates = [0.0], [d.t1.iloc[0]]
+            for k, r in d.iterrows():
+                inc = 0.0 if (r.frozen or r["dt"] != 6) else (r.s1_p6 - corr[k] - ph["e"] * r.dW) / A
+                lev.append(lev[-1] + inc)
+                dates.append(r.t2)
+            m, _ = laser_level_metrics(inp, [pd.Timestamp(f"{x.date()} {HOUR[t]}") for x in dates], np.array(lev), name)
+            test.append({"track": t, **m})
+    test = pd.DataFrame(test)
+    test.to_csv(out / "closure_correction_test.csv", index=False)
+    return cl, test
+
+
+def readme(out, summ, checks, cal, closure, closure_test):
     x62 = pd.read_csv(DLV / "field_fusion_x062" / "p6_levels.csv")
     L = ["# X-066 — fusion v2: vertical height of the floating mat (exploratory, branch fusion-x062)", "",
          "Generated by `05_code/SAr-adapted/scripts/field_fusion_v2_x066.py`; every number below is computed by it. "
@@ -428,7 +495,10 @@ def readme(out, summ, checks, cal, R1, R2):
          "s = m·cos θ·Δh + e·ΔW + noise; the noise per pair is the measured spread of stable ground near the mat for that track, revisit and wet/dry state (with the coherence bound added), frozen dates out. Ambiguities decided pixel by "
          "pixel by model comparison; the mat system solved exactly (preconditioned conjugate gradients). No network inversion.", "",
          "- **R1** 2020–2021, consecutive 6-day pairs, ascending + descending (S1A + S1B).",
-         "- **R2** 2022–2024, consecutive 12-day pairs, ascending only.", "",
+         "- **R2** 2022–2024, consecutive 12-day pairs, ascending only.",
+         "- **R3** 2025, consecutive pairs (S1A + S1C, mostly 6-day; D-023), both tracks — **out of sample**: every parameter "
+         "from 2020–2024, no water-table record yet (radar + mean-reverting prior only); weather flags and the laser snow "
+         "mask from Open-Meteo calibrated on the station (`flags_2025/`).", "",
          "## Calibration (P6; per fold, never on the held-out block)", "", md(cal.round(3)), "",
          "g from laser vs water-table changes; τ and σ_c from the daily laser beyond buoyancy (field data only); m, e per "
          "track × revisit from the phase (X-065).", "",
@@ -440,11 +510,27 @@ def readme(out, summ, checks, cal, R1, R2):
          "- V2: ascending-only and descending-only fits see the same vertical motion if their height series agree; the "
          "fair version removes the water prior both share.",
          "- V3: the same model on a stable-ground block (no buoyancy) gives the noise level any mat motion must exceed.", "",
+         "## Closure triangles (2020–2021): where is the short-pair bias?", "",
+         "6-day + 6-day − the 12-day pair over the same dates (mm, LOS; mean over triangles):", "",
+         md(closure.groupby("track")[["mat", "lake", "stable", "p6"]].mean().reset_index().round(2)), "",
+         "By season, mat minus stable ground:", "",
+         md(closure.assign(season=closure.middle_date.map(lambda d: "DJF" if d.month in (12, 1, 2) else "MAM" if d.month < 6
+                                                          else "JJA" if d.month < 9 else "SON"),
+                           diff=closure.mat - closure.stable)
+            .pivot_table(index="track", columns="season", values="diff").reset_index().round(2)), "",
+         "Reading the mat's closure as a bias of the 6-day pairs and subtracting it, at P6 against the laser:", "",
+         md(closure_test.round(3)), "",
+         "The wet surfaces (mat, lake) do not close, most in summer; stable ground does. Subtracting the closure from the "
+         "6-day pairs destroys the agreement with the laser, so the misfit sits in the 12-day pair (which loses part of the "
+         "motion — X-059's closure anti-correlated with the laser), not in the 6-day pairs: the 6-day pairs are the right "
+         "observations, and no closure correction is applied.", "",
          "## Files", "", "| File | Content |", "|---|---|",
-         "| `height_R1_2020_2021_6day_both.nc`, `height_R2_2022_2024_12day_asc.nc` | height per mat pixel and date (mm, vertical), shared motion |",
+         "| `height_R1_2020_2021_6day_both.nc`, `height_R2_2022_2024_12day_asc.nc`, `height_R3_2025_6day_both.nc` | height per mat pixel and date (mm, vertical), its posterior SD (per-pixel bound, conservative), the shared motion |",
          "| `validation_p6_laser.csv`, `validation_summary.csv` | V1 per fold and summary |",
          "| `calibration_by_fold.csv`, `final_calibration.json`, `hyperparameter_choice.csv` | parameters |",
-         "| `checks.csv` | V2, V3, ambiguities |", "| `fig_p6_*.png` | P6 against the laser on the held-out blocks |"]
+         "| `checks.csv` | V2, V3, ambiguities, posterior SD |",
+         "| `closure_triplets_2020_2021.csv`, `closure_correction_test.csv` | closure triangles and the correction test |",
+         "| `flags_2025/` | Open-Meteo weather calibrated on the station: 2025 laser snow mask and overpass flags (`fusion_v2_flags_2025.py`) |", "| `fig_p6_*.png` | P6 against the laser on the held-out blocks |"]
     (out / "README.md").write_text("\n".join(L) + "\n")
 
 
@@ -476,12 +562,23 @@ def main(argv=None):
     yrs = (2022, 2023, 2024)
     R2 = run(inp, "R2_2022_2024_12day_asc", ("2022-01-01", "2024-12-31"), ("ascending",),
              [year_fold(y) for y in yrs], out)
-    for R, n in ((R1, "R1_2020_2021_6day_both"), (R2, "R2_2022_2024_12day_asc")):
+    # R3: 2025, fully out of sample — every parameter from 2020–2024 (6-day m from R1, 12-day ascending m from R2,
+    # OU of the whole laser motion since there is no 2025 water table); only the noise is measured, on stable ground
+    fixed = dict(R1["final_cal"])
+    fixed["phys"] = {**R2["final_cal"]["phys"], **R1["final_cal"]["phys"]}
+    nb = calibrate(inp, {**R1["tables"], **{f"R2 {k}": v for k, v in R2["tables"].items()}}, lambda t: True, buoyancy=False)
+    fixed.update({"g": 0.0, "tau": nb["tau"], "sigma_c": nb["sigma_c"]})
+    R3 = run(inp, "R3_2025_6day_both", ("2025-01-01", "2025-12-31"), ("ascending", "descending"),
+             [("2025 entirely held out (all parameters from 2020–2024)", lambda t: False, lambda t: True)], out,
+             fixed_cal=fixed, fixed_best=R1["best"], water=False)
+    closure, closure_test = closure_check(inp, R1, out)
+    Rs = ((R1, "R1_2020_2021_6day_both"), (R2, "R2_2022_2024_12day_asc"), (R3, "R3_2025_6day_both"))
+    for R, n in Rs:
         figure(out, R, n)
-    met = pd.DataFrame(R1["metrics"] + R2["metrics"])
+    met = pd.DataFrame(R1["metrics"] + R2["metrics"] + R3["metrics"])
     met.to_csv(out / "validation_p6_laser.csv", index=False)
-    pd.DataFrame(R1["checks"] + R2["checks"]).to_csv(out / "checks.csv", index=False)
-    pd.DataFrame(R1["cal"] + R2["cal"]).to_csv(out / "calibration_by_fold.csv", index=False)
+    pd.DataFrame(R1["checks"] + R2["checks"] + R3["checks"]).to_csv(out / "checks.csv", index=False)
+    pd.DataFrame(R1["cal"] + R2["cal"] + R3["cal"]).to_csv(out / "calibration_by_fold.csv", index=False)
     pd.DataFrame(R1["choice"]).to_csv(out / "hyperparameter_choice.csv", index=False)
     summ = met.groupby(["run", "estimate"]).agg(n=("n", "sum"), r=("r", "mean"), rmse_mm=("rmse_mm", "mean"),
                                                 amplitude_ratio=("amplitude_ratio", "mean")).reset_index()
@@ -489,11 +586,12 @@ def main(argv=None):
     (out / "final_calibration.json").write_text(json.dumps(
         {n: {"g_mm_per_cm": R["final_cal"]["g"], "tau_days": R["final_cal"]["tau"], "sigma_c_mm": R["final_cal"]["sigma_c"],
              "sigma_d_ratio": R["best"][0], "kappa": R["best"][1],
-             "phys": {f"{t}|{dt}": v for (t, dt), v in R["final_cal"]["phys"].items()}} for n, R in (("R1", R1), ("R2", R2))}, indent=2))
-    readme(out, summ, pd.DataFrame(R1["checks"] + R2["checks"]), pd.DataFrame(R1["cal"] + R2["cal"]), R1, R2)
+             "phys": {f"{t}|{dt}": v for (t, dt), v in R["final_cal"]["phys"].items()}} for n, R in (("R1", R1), ("R2", R2), ("R3", R3))}, indent=2))
+    readme(out, summ, pd.DataFrame(R1["checks"] + R2["checks"] + R3["checks"]), pd.DataFrame(R1["cal"] + R2["cal"] + R3["cal"]),
+           closure, closure_test)
     pd.set_option("display.width", 220)
     print(summ.round(3).to_string(index=False))
-    print(pd.DataFrame(R1["checks"] + R2["checks"]).round(3).to_string(index=False))
+    print(pd.DataFrame(R1["checks"] + R2["checks"] + R3["checks"]).round(3).to_string(index=False))
 
 
 if __name__ == "__main__":

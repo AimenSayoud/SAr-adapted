@@ -211,6 +211,27 @@ def posterior_sd_pixel(P: sp.spmatrix, n_t: int, px: int, n_common: int = 0) -> 
     return sd
 
 
+def pixelwise_sd(p: Pairs, Qsingle: sp.spmatrix, n_t: int, n_px: int) -> np.ndarray:
+    """Posterior SD of every pixel's heights from its own pairs and a single-pixel prior (n_px × n_t): the
+    diagonal of each pixel's small n_t × n_t inverse precision. It leaves out what neighbouring pixels add
+    through the spatial coupling, so it is an upper bound on the mat model's uncertainty (conservative)."""
+    Qd = Qsingle.toarray()
+    out = np.empty((n_px, n_t))
+    order = np.argsort(p.px, kind="stable")
+    bounds = np.searchsorted(p.px[order], np.arange(n_px + 1))
+    for x in range(n_px):
+        sel = order[bounds[x]:bounds[x + 1]]
+        P = Qd.copy()
+        w = 1.0 / p.sd[sel] ** 2
+        a, i, j = p.A[sel], p.i[sel], p.j[sel]
+        np.add.at(P, (j, j), w * a * a)
+        np.add.at(P, (i, i), w * a * a)
+        np.add.at(P, (i, j), -w * a * a)
+        np.add.at(P, (j, i), -w * a * a)
+        out[x] = np.sqrt(np.clip(np.diag(np.linalg.inv(P)), 0, None))
+    return out
+
+
 # ------------------------------------------------------------------------------ fitting from the laser
 
 def ou_from_series(t_days, x, max_lag_days: float = 60.0) -> dict:
