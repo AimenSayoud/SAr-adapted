@@ -143,3 +143,23 @@ def test_posterior_sd_shrinks_where_observed():
     out = f2.smooth(p, np.zeros(len(t)), Q, len(t), 1, ambiguity_iters=0)
     sd = f2.posterior_sd_pixel(out["P"], len(t), 0, out["n_common"])
     assert sd[5] < sd[-1] <= 6.0 + 1e-6
+
+
+def test_conjugate_gradients_match_the_direct_solve():
+    t, L, idx, h, p, nt = mat_case(4.0, 3)
+    n = len(idx)
+    kw = {"Qprior": f2.space_time_precision(f2.ou_precision(t, 30, 1.5), n, L, 16.0), "Qcommon": f2.ou_precision(t, 30, 6),
+          "n_t": nt, "n_px": n, "ambiguity_iters": 0}
+    a = f2.smooth(p, np.zeros((n, nt)), **kw)["h"]
+    b = f2.smooth(p, np.zeros((n, nt)), solver="cg", **kw)["h"]
+    np.testing.assert_allclose(a, b, atol=1e-5)
+
+
+def test_ambiguities_decided_per_pixel_find_a_planted_cycle():
+    t = np.arange(0, 6 * 80, 6.0)
+    h = ou_path(t, 25, 6, n=3)
+    rows = [pairs_for(np.arange(len(t)), 0.8, h[x], 2.5, px=x, jump=20 + 10 * x) for x in range(3)]
+    p = f2.Pairs(*(np.concatenate([getattr(r, f) for r in rows]) for f in ("px", "i", "j", "A", "y", "sd")))
+    k = f2.resolve_ambiguities_per_pixel(p, np.zeros((3, len(t))), f2.ou_precision(t, 25, 6), len(t))
+    planted = np.concatenate([np.arange(len(t) - 1) == 20 + 10 * x for x in range(3)])
+    assert np.all(k[planted] == -1) and np.count_nonzero(k) == 3

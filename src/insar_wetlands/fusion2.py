@@ -102,9 +102,48 @@ def difference_operator(p: Pairs, n_t: int, n_px: int) -> sp.csr_matrix:
 
 # ------------------------------------------------------------------------------ the solve
 
+def block_preconditioner(P: sp.spmatrix, n_c: int, n_t: int):
+    """Solve with the block-diagonal part of P — the shared series, then one n_t × n_t time block per pixel.
+    The blocks do not fill one another, so this factorises fast where P itself does not (space × time)."""
+    P = P.tocoo()
+    blk = lambda i: np.where(i < n_c, -1, (i - n_c) // n_t)  # noqa: E731
+    keep = blk(P.row) == blk(P.col)
+    B = sp.csc_matrix((P.data[keep], (P.row[keep], P.col[keep])), shape=P.shape)
+    return spla.factorized(B)
+
+
+def cg_solver(P: sp.spmatrix, n_c: int, n_t: int, rtol: float = 1e-9):
+    """``solve(b)`` by preconditioned conjugate gradients (P is symmetric positive definite)."""
+    pre = block_preconditioner(P, n_c, n_t)
+    M = spla.LinearOperator(P.shape, matvec=pre)
+    P = P.tocsr()
+
+    def solve(b):
+        x, info = spla.cg(P, b, rtol=rtol, maxiter=5000, M=M)
+        if info != 0:
+            raise RuntimeError(f"conjugate gradients did not converge (info {info})")
+        return x
+    return solve
+
+
+def resolve_ambiguities_per_pixel(p: Pairs, prior_mean: np.ndarray, Qsingle: sp.spmatrix, n_t: int,
+                                  min_gain: float = 9.0) -> np.ndarray:
+    """Phase ambiguities decided pixel by pixel (``smooth`` on each pixel's own pairs, with a single-pixel
+    prior of the combined variance) — small direct solves, so the model comparison stays cheap; the mat-wide
+    solve then takes them as given. Returns k aligned with ``p``."""
+    k = np.zeros(len(p.y))
+    mu = np.asarray(prior_mean, float)
+    for x in np.unique(p.px):
+        sel = np.flatnonzero(p.px == x)
+        q = p.subset(sel)
+        q = Pairs(np.zeros(len(sel), int), q.i, q.j, q.A, q.y, q.sd)
+        k[sel] = smooth(q, mu[x], Qsingle, n_t, 1, min_gain=min_gain)["k"]
+    return k
+
+
 def smooth(p: Pairs, prior_mean: np.ndarray, Qprior: sp.spmatrix, n_t: int, n_px: int,
            ambiguity_iters: int = 3, min_gain: float = 9.0, max_flips: int = 50,
-           Qcommon: sp.spmatrix | None = None) -> dict:
+           Qcommon: sp.spmatrix | None = None, solver: str = "direct") -> dict:
     """Posterior mean of h (n_px × n_t) given the pairs, a prior mean (n_px × n_t) and the prior precision of
     the residual, with phase ambiguities resolved by model comparison.
 
@@ -114,7 +153,9 @@ def smooth(p: Pairs, prior_mean: np.ndarray, Qprior: sp.spmatrix, n_t: int, n_px
     cycle is kept only if it lowers J by more than ``min_gain`` (in χ² units: 9 = a 3-σ improvement), so a
     real large motion that the prior and the neighbouring pairs support is restored, and noise is not.
     ``Qprior`` is the precision of the pixel departures d (n_px·n_t, pixel-major); with ``Qcommon`` (n_t × n_t)
-    a shared series c is estimated too (unknowns [c, d], h = μ + c + d).
+    a shared series c is estimated too (unknowns [c, d], h = μ + c + d). ``solver="cg"`` for the mat-wide
+    system (a direct factorisation of space × time fills in badly); use it with ``ambiguity_iters=0`` after
+    ``resolve_ambiguities_per_pixel``.
     Returns h, the shared c (or None), k, the final pair residuals, and P with its layout (for variances)."""
     mu = np.asarray(prior_mean, float).reshape(-1)
     D = difference_operator(p, n_t, n_px)
@@ -126,7 +167,7 @@ def smooth(p: Pairs, prior_mean: np.ndarray, Qprior: sp.spmatrix, n_t: int, n_px
         D = sp.hstack([D @ M, D], format="csr")
         Qprior = sp.block_diag([Qcommon, Qprior], format="csr")
     P = (Qprior + D.T @ sp.diags(w) @ D).tocsc()
-    solve = spla.factorized(P)
+    solve = spla.factorized(P) if solver == "direct" else cg_solver(P, n_c, n_t)
 
     def fit(k):
         yk = base + k * CYCLE_LOS_MM
