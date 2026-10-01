@@ -325,7 +325,7 @@ def run(inp, name, period, tracks, folds, out, fixed_cal=None, fixed_best=None, 
         folds = folds(tables)
     noise = stable_noise(tables, cubes, inp.zones)
     print("  stable-ground noise (mm per pair):", {f"{k[0][:3]} {k[1]}d {'wet' if k[2] else 'dry'}": round(v, 2) for k, v in noise.items()}, flush=True)
-    metrics, choice_rows, cal_rows = [], [], []
+    metrics, choice_rows, cal_rows, p6_series = [], [], [], []
     series = {}
     for fold_name, train, test in folds:
         cal = dict(fixed_cal) if fixed_cal else calibrate(inp, tables, train)
@@ -359,6 +359,10 @@ def run(inp, name, period, tracks, folds, out, fixed_cal=None, fixed_best=None, 
         for en, h in ests.items():
             m, dd = laser_level_metrics(inp, [t for t, k in zip(T, held) if k], np.asarray(h)[held], en)
             metrics.append({"run": name, "fold": fold_name, **m})
+            if len(dd) and "laser_c" in dd:                     # the held-out series, as compared (within segments)
+                p6_series.extend({"run": name, "fold": fold_name, "estimate": en, "date": pd.Timestamp(r.t).strftime("%Y-%m-%d %H:%M"),
+                                  "laser_mm": round(float(r.laser_c), 2), "estimate_mm": round(float(r.est_c), 2)}
+                                 for r in dd.itertuples())
         series[fold_name] = {"T": T, "ests": ests, "held": held, "cal": cal, "best": best, "out": o}
     # final model: calibrated on everything, for the maps and the track / stable-ground checks
     cal = dict(fixed_cal) if fixed_cal else calibrate(inp, tables, lambda t: True)
@@ -411,7 +415,7 @@ def run(inp, name, period, tracks, folds, out, fixed_cal=None, fixed_best=None, 
     ds.attrs.update({"run": name, "g_mm_per_cm": cal["g"], "tau_days": cal["tau"], "sigma_c_mm": cal["sigma_c"],
                      "sigma_d_ratio": best[0], "kappa": best[1], "units": "mm, vertical, relative to the series mean"})
     ds.to_netcdf(out / f"height_{name}.nc")
-    return {"tables": tables, "cubes": cubes, "metrics": metrics, "choice": choice_rows, "cal": cal_rows, "checks": checks, "series": series,
+    return {"tables": tables, "cubes": cubes, "p6_series": p6_series, "metrics": metrics, "choice": choice_rows, "cal": cal_rows, "checks": checks, "series": series,
             "final_cal": cal, "best": best, "T": T, "full": full, "inp": inp}
 
 
@@ -527,6 +531,7 @@ def readme(out, summ, checks, cal, closure, closure_test):
          "## Files", "", "| File | Content |", "|---|---|",
          "| `height_R1_2020_2021_6day_both.nc`, `height_R2_2022_2024_12day_asc.nc`, `height_R3_2025_6day_both.nc` | height per mat pixel and date (mm, vertical), its posterior SD (per-pixel bound, conservative), the shared motion |",
          "| `validation_p6_laser.csv`, `validation_summary.csv` | V1 per fold and summary |",
+         "| `p6_heldout_series.csv` | the held-out P6 series behind V1: laser and each estimate, centred within laser segments |",
          "| `calibration_by_fold.csv`, `final_calibration.json`, `hyperparameter_choice.csv` | parameters |",
          "| `checks.csv` | V2, V3, ambiguities, posterior SD |",
          "| `closure_triplets_2020_2021.csv`, `closure_correction_test.csv` | closure triangles and the correction test |",
@@ -575,6 +580,7 @@ def main(argv=None):
     Rs = ((R1, "R1_2020_2021_6day_both"), (R2, "R2_2022_2024_12day_asc"), (R3, "R3_2025_6day_both"))
     for R, n in Rs:
         figure(out, R, n)
+    pd.DataFrame(R1["p6_series"] + R2["p6_series"] + R3["p6_series"]).to_csv(out / "p6_heldout_series.csv", index=False)
     met = pd.DataFrame(R1["metrics"] + R2["metrics"] + R3["metrics"])
     met.to_csv(out / "validation_p6_laser.csv", index=False)
     pd.DataFrame(R1["checks"] + R2["checks"] + R3["checks"]).to_csv(out / "checks.csv", index=False)

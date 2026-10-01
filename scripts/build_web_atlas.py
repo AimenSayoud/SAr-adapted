@@ -213,6 +213,65 @@ def add_fusion(W, F11: Path, hub: Path, P, gallery: list, gal: Path) -> None:
         gallery.append({"file": f"figures/fusion_{f.name}", "source": "08_deliverables/field_fusion_x062", "status": "exploratory"})
 
 
+def add_fusion_v2(W, F: Path, hub: Path, P, gallery: list, gal: Path) -> None:
+    """X-066 (branch fusion-x062): fusion v2 — the vertical height of every mat pixel and date for each run, how much it
+    moves, its uncertainty, and one chart file with the validation (held-out P6 series), checks, calibration and the
+    closure test. Reads the hub deliverable."""
+    runs = {"R1": ("R1_2020_2021_6day_both", "2020–2021, 6-day, both tracks"),
+            "R2": ("R2_2022_2024_12day_asc", "2022–2024, 12-day, ascending"),
+            "R3": ("R3_2025_6day_both", "2025, 6-day, both tracks — out of sample")}
+    if not (F / "validation_summary.csv").exists():
+        print("  fusion v2: no fusion_v2 deliverable — skipped")
+        return
+    print("\n== fusion v2 (X-066, branch)")
+    shared = {}
+    for key, (name, label) in runs.items():
+        nc = F / f"height_{name}.nc"
+        if not nc.exists():
+            continue
+        ds = xr.open_dataset(nc)
+        prov = P(nc, F / "README.md", root=hub)
+        times = [pd.Timestamp(t).strftime("%Y-%m-%d") for t in ds.time.values]
+        h = ds.height_mm.values.astype(float)
+        lim = float(np.nanpercentile(np.abs(h), 98))
+        W.raster(f"fusion2_height_{key}", h, title=f"Mat height, fusion v2 ({label})", group="Fusion v2 (X-066)",
+                 status="exploratory", units="mm", colormap="RdBu", display=(-lim, lim), times=times, prov=prov,
+                 x=ds.x.values, y=ds.y.values,
+                 description="Vertical height of each mat pixel at each acquisition of both tracks, relative to its mean, "
+                             "+ up: the exact posterior of buoyancy × water table + shared motion + smooth departures, "
+                             "observed through consecutive short pairs. Branch fusion-x062.")
+        W.raster(f"fusion2_range_{key}", np.nanstd(h, axis=0), title=f"How much the mat moves, fusion v2 ({label})",
+                 group="Fusion v2 (X-066)", status="exploratory", units="mm", colormap="viridis", prov=prov,
+                 x=ds.x.values, y=ds.y.values, description="Standard deviation over time of each pixel's height.")
+        if "height_sd_mm" in ds:
+            W.raster(f"fusion2_sd_{key}", np.nanmedian(ds.height_sd_mm.values, axis=0), title=f"Uncertainty, fusion v2 ({label})",
+                     group="Fusion v2 (X-066)", status="exploratory", units="mm", colormap="Greys", prov=prov,
+                     x=ds.x.values, y=ds.y.values,
+                     description="Median over dates of the posterior SD of the height (per-pixel bound: conservative).")
+        shared[key] = {"date": times, "mm": [round(float(v), 2) for v in ds.shared_motion_mm.values]}
+    rd = lambda f: pd.read_csv(F / f)  # noqa: E731
+    recs = lambda df: df.astype(object).where(pd.notna(df), None).to_dict("records")  # noqa: E731
+    cl = rd("closure_triplets_2020_2021.csv")
+    cl["season"] = pd.to_datetime(cl.middle_date).dt.month.map(lambda m: "DJF" if m in (12, 1, 2) else "MAM" if m < 6 else "JJA" if m < 9 else "SON")
+    cl["mat_minus_stable"] = cl.mat - cl.stable
+    flags = F / "flags_2025"
+    W.chart("fusion_v2", {
+        "runs": {k: v[1] for k, v in runs.items()}, "summary": recs(rd("validation_summary.csv")),
+        "folds": recs(rd("validation_p6_laser.csv")), "checks": recs(rd("checks.csv")),
+        "calibration": recs(rd("calibration_by_fold.csv")), "final": json.loads((F / "final_calibration.json").read_text()),
+        "series": recs(rd("p6_heldout_series.csv")) if (F / "p6_heldout_series.csv").exists() else [],
+        "shared": shared,
+        "closure": recs(cl.groupby("track")[["mat", "lake", "stable", "p6"]].mean().reset_index().round(3)),
+        "closure_season": recs(cl.pivot_table(index="track", columns="season", values="mat_minus_stable").reset_index().round(3)),
+        "closure_test": recs(rd("closure_correction_test.csv")),
+        "flags_2025": json.loads((flags / "open_meteo_vs_station.json").read_text()) if (flags / "open_meteo_vs_station.json").exists() else {},
+    }, title="Fusion v2 (X-066): validation, checks, calibration, closure", group="Fusion v2 (X-066)", status="exploratory",
+        prov=P(F / "validation_summary.csv", F / "checks.csv", root=hub))
+    for f in sorted(F.glob("fig_*.png")):
+        shutil.copy2(f, gal / f"fusion2_{f.name}")
+        gallery.append({"file": f"figures/fusion2_{f.name}", "source": "08_deliverables/fusion_v2", "status": "exploratory"})
+
+
 def add_field_p6(W, F10: Path, root: Path, hub: Path, P) -> None:
     """P6/CR, the primary validation site (X-058 laser verification, X-059 comparison): one chart
     file with everything the /p6/ page draws. Reads the hub's deliverables; holds nothing."""
@@ -1320,6 +1379,7 @@ def main() -> None:
     from insar_wetlands import field as _field
     hub_root = _field.field_root().parents[1]
     add_fusion(W, hub_root / "08_deliverables" / "field_fusion_x062", hub_root, P, gallery, gal)
+    add_fusion_v2(W, hub_root / "08_deliverables" / "fusion_v2", hub_root, P, gallery, gal)
     add_backscatter_x063(W, hub_root, P)
     W.chart("gallery", gallery, title="Figure gallery", group="Figures", status="core")
 
