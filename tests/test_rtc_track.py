@@ -181,3 +181,27 @@ def test_rtc_coverage_marks_every_date():
     assert cov.in_catalogue.tolist() == [True, True, False]
     assert cov.in_stack.tolist() == [True, False, False]
     assert cov.in_interferograms.tolist() == [True, False, True]
+
+
+def test_zone_backscatter_series_medians_rvi_and_valid_count():
+    """Known powers per zone → exact dB medians and RVI = 4·VH/(VV+VH); a half-empty zone date is NaN."""
+    from insar_wetlands.stratify import zone_backscatter_series
+
+    vv = np.array([[[0.1, 0.1, 0.01]], [[0.1, np.nan, np.nan]]])        # 2 dates, 1×3 grid
+    vh = vv / 10
+    db = {k: 10 * np.log10(v) for k, v in (("vv", vv), ("vh", vh))}
+    ds = xr.Dataset({"gamma0_vv_db": (("time", "y", "x"), db["vv"]),
+                     "gamma0_vh_db": (("time", "y", "x"), db["vh"]),
+                     "ratio_vh_vv_db": (("time", "y", "x"), db["vh"] - db["vv"])},
+                    coords={"time": pd.to_datetime(["2020-01-01", "2020-01-13"])})
+    zones = {"A": xr.DataArray([[True, True, False]]), "B": xr.DataArray([[False, False, True]]),
+             "C": xr.DataArray([[False, False, False]]), "D": xr.DataArray([[True, True, True]])}
+    s = zone_backscatter_series(ds, zones).set_index(["date", "zone"])
+    a1 = s.loc[(pd.Timestamp("2020-01-01"), "A")]
+    assert a1.vv_db == pytest.approx(-10.0) and a1.ratio_vh_vv_db == pytest.approx(-10.0)
+    assert a1.rvi == pytest.approx(4 * 0.01 / 0.11)
+    assert s.loc[(pd.Timestamp("2020-01-01"), "B")].vv_db == pytest.approx(-20.0)
+    assert s.loc[(pd.Timestamp("2020-01-13"), "A")].n_valid == 1          # 1 of 2: still ≥ 50 %
+    assert np.isnan(s.loc[(pd.Timestamp("2020-01-13"), "B")].vv_db)      # 0 of 1
+    assert np.isnan(s.loc[(pd.Timestamp("2020-01-13"), "D")].vv_db)      # 1 of 3 < 50 %
+    assert "C" not in s.index.get_level_values("zone")

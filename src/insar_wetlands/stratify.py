@@ -655,3 +655,25 @@ def amplitude_dispersion_from_rtc(rtc: xr.Dataset, pol: str = "vv") -> xr.DataAr
     with np.errstate(invalid="ignore", divide="ignore"):
         da = (std / mean)
     return da.rename("amplitude_dispersion")
+
+
+def zone_backscatter_series(rtc: xr.Dataset, zones: dict, min_valid: float = 0.5) -> pd.DataFrame:
+    """Per date and zone: median over the zone's pixels of σ0 VV, VH, VH−VV (dB) and the dual-pol
+    RVI (``dual_pol_rvi`` per pixel, in power), with the valid-pixel count. A date whose zone has
+    fewer than ``min_valid`` of its pixels valid gets NaN rather than a median of a corner."""
+    fields = {"vv_db": rtc["gamma0_vv_db"], "vh_db": rtc["gamma0_vh_db"],
+              "ratio_vh_vv_db": rtc["ratio_vh_vv_db"], "rvi": dual_pol_rvi(rtc, reduce=None)}
+    times = pd.to_datetime(rtc["time"].values)
+    rows = []
+    for z in ("A", "B", "C", "D"):
+        m = zones[z].values
+        n_zone = int(m.sum())
+        if not n_zone:
+            continue
+        vals = {k: f.values[:, m] for k, f in fields.items()}          # (time, pixels)
+        n_ok = np.isfinite(vals["vv_db"]).sum(axis=1)
+        for i, t in enumerate(times):
+            ok = n_ok[i] >= min_valid * n_zone
+            rows.append({"date": t, "zone": z, "n_valid": int(n_ok[i]), "n_zone": n_zone,
+                         **{k: float(np.nanmedian(v[i])) if ok else np.nan for k, v in vals.items()}})
+    return pd.DataFrame(rows)
