@@ -163,3 +163,17 @@ def test_ambiguities_decided_per_pixel_find_a_planted_cycle():
     k = f2.resolve_ambiguities_per_pixel(p, np.zeros((3, len(t))), f2.ou_precision(t, 25, 6), len(t))
     planted = np.concatenate([np.arange(len(t) - 1) == 20 + 10 * x for x in range(3)])
     assert np.all(k[planted] == -1) and np.count_nonzero(k) == 3
+
+
+def test_pixelwise_sd_equals_the_exact_single_pixel_posterior():
+    t = np.arange(0, 6 * 30, 6.0)
+    Q = f2.ou_precision(t, 25, 6)
+    rows = [pairs_for(np.arange(len(t)), 0.8, np.zeros(len(t)), 2.0 + x, px=x) for x in range(2)]
+    p = f2.Pairs(*(np.concatenate([getattr(r, f) for r in rows]) for f in ("px", "i", "j", "A", "y", "sd")))
+    sd = f2.pixelwise_sd(p, Q, len(t), 2)
+    for x in range(2):
+        q = p.subset(p.px == x)
+        q = f2.Pairs(np.zeros(len(q.y), int), q.i, q.j, q.A, q.y, q.sd)
+        P = f2.smooth(q, np.zeros(len(t)), Q, len(t), 1, ambiguity_iters=0)["P"]
+        np.testing.assert_allclose(sd[x], f2.posterior_sd_pixel(P, len(t), 0), rtol=1e-8)
+    assert np.all(sd[1] > sd[0])                                   # noisier pixel, wider uncertainty
