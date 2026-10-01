@@ -7,7 +7,9 @@ builds the same stack for any track and period from the Microsoft Planetary Comp
 interferogram grid, converted to dB.
 
 - Track geometry comes from ``config.yaml`` (``sentinel1.tracks``); the grid is the track's first
-  cropped coherence layer; the output name is ``Paths.track_file`` (``…_descending.nc``).
+  cropped coherence layer; the output is ``rtc_dualpol_<y0>_<y1>.nc`` suffixed by track
+  (``Paths.track_file``: ``rtc_dualpol_2020_2024.nc``, ``rtc_dualpol_2020_2024_descending.nc``) — never
+  the 2022–2024 ascending ``rtc_dualpol_stack.nc``, so nothing that reads it changes.
 - Resampling defaults to ``nearest``, as the ascending stack was built, so the tracks compare.
 - A day is a mosaic of its slices (best first, the others only where it has no data).
 - Idempotent: rerun to resume or to retry a failed day. A coverage table says, date by date,
@@ -45,8 +47,12 @@ from insar_wetlands.masking.rtc import (
 from insar_wetlands.paths import make_paths
 from insar_wetlands.stack import list_pairs, load_layer
 
-STACK = "rtc_dualpol_stack.nc"
-COVERAGE = "rtc_coverage.csv"
+
+def stack_names(start: str, end: str) -> tuple[str, str]:
+    """``rtc_dualpol_<y0>_<y1>.nc`` and its coverage table. Never the name of the 2022–2024
+    ascending stack (``rtc_dualpol_stack.nc``), whose consumers must not change under them."""
+    period = f"{pd.Timestamp(start).year}_{pd.Timestamp(end).year}"
+    return f"rtc_dualpol_{period}.nc", f"rtc_coverage_{period}.csv"
 
 
 def interferogram_days(roots: list[Path]) -> set[pd.Timestamp]:
@@ -75,7 +81,7 @@ def main() -> None:
     out = make_paths(cfg=cfg, root=args.out_root or src.drive, track=args.track)
     if "drive_pristine" in out.drive.resolve().parts:
         raise SystemExit(f"{out.drive} is the read-only snapshot: pass --out-root")
-    stack_nc, coverage_csv = out.track_file(STACK), out.track_file(COVERAGE)
+    stack_nc, coverage_csv = (out.track_file(n) for n in stack_names(args.start, args.end))
 
     orbit = track_relative_orbit(cfg, args.track)
     bbox = buffered_bbox(cfg)
