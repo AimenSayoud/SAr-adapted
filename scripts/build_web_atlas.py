@@ -132,11 +132,15 @@ def add_field_pixel(W, F7: Path, P, hub: Path) -> None:
                  title=f"Coherence by month ({track}, ≤ 24 d, 2020–2024)", group="Field data", status="derived",
                  units="γ", colormap="viridis", display=(0.2, 0.8), times=MONTHS, time_label="month", prov=prov,
                  description="Mean coherence of short pairs by the month of their midpoint, 2020–2024, frozen dates out.")
-    W.raster("field_vv_wtd_r_ascending", pm["vv_wtd_r_ascending"].values.astype(float),
-             title="VV backscatter vs water-table level, per pixel (ascending)", group="Field data",
-             status="exploratory", units="r", colormap="RdBu", symmetric=True, display=(-0.5, 0.5), prov=prov,
-             description="Anomaly correlation over the RTC dates (2022–2024) between each pixel's VV and the plots' "
-                         "median water-table level at 16:36. Blue = brighter when wetter.")
+    for track in ("ascending", "descending"):
+        if f"vv_wtd_r_{track}" not in pm:
+            continue
+        W.raster(f"field_vv_wtd_r_{track}", pm[f"vv_wtd_r_{track}"].values.astype(float),
+                 title=f"VV backscatter vs water-table level, per pixel ({track})", group="Field data",
+                 status="exploratory", units="r", colormap="RdBu", symmetric=True, display=(-0.5, 0.5), prov=prov,
+                 description=f"Anomaly correlation over the RTC dates 2020–2024 (C-048) between each pixel's VV and the "
+                             f"plots' median water-table level at {hours[track]} UTC, Sentinel-1B dates on their own level. "
+                             "Blue = brighter when wetter.")
     W.chart("field_pixel", {
         "summary": pd.read_csv(F7 / "summary_by_zone.csv").round(4).to_dict("records"),
         "spatial_context": pd.read_csv(F7 / "spatial_context.csv").round(4).to_dict("records"),
@@ -258,6 +262,48 @@ def add_field_p6(W, F10: Path, root: Path, hub: Path, P) -> None:
                                                 "re-levellings), then laser ↔ WTD ↔ Sentinel-1 phase ↔ coherence between "
                                                 "consecutive acquisitions, pair length, closure and pixel controls.",
             prov=P(F10 / "p6_stats.csv", F10 / "p6_pairs.csv", Q / "summary.csv", root=hub))
+
+
+def add_backscatter_x063(W, hub: Path, P) -> None:
+    """Backscatter on both tracks, 2020–2024 (C-048 stacks, X-063 tables): per-date VV / VH, summary maps,
+    and one chart file for the dusk-vs-dawn page. The stacks live in the hub's local mirror until copied to Drive."""
+    from insar_wetlands.stratify import dual_pol_rvi
+    mirror, F = hub / "05_code" / "local" / "drive_mirror", hub / "08_deliverables" / "backscatter_x063"
+    names = {"ascending": "rtc_dualpol_2020_2024.nc", "descending": "rtc_dualpol_2020_2024_descending.nc"}
+    if not all((mirror / n).exists() for n in names.values()) or not (F / "zone_backscatter_series.csv").exists():
+        print("  backscatter 2020–2024: stacks or X-063 outputs missing — skipped")
+        return
+    print("\n== backscatter, both tracks 2020–2024 (C-048, X-063)")
+    for track, name in names.items():
+        ds = xr.load_dataset(mirror / name)
+        prov, dd = P(mirror / name, root=hub), to_dates(ds)
+        for v, t in (("gamma0_vv_db", "σ⁰ VV"), ("gamma0_vh_db", "σ⁰ VH")):
+            W.raster(f"rtc5_{track}_{v}", ds[v].values.astype(float), title=f"{t} — per date ({track}, 2020–2024)",
+                     group="Backscatter", status="pipeline", units="dB", colormap="gray", times=dd, prov=prov)
+        for v, t in (("gamma0_vv_db", "σ⁰ VV"), ("gamma0_vh_db", "σ⁰ VH"), ("ratio_vh_vv_db", "VH − VV")):
+            W.raster(f"rtc5_{track}_{v}_mean", np.nanmean(ds[v].values, 0).astype(float),
+                     title=f"{t} — mean ({track}, 2020–2024)", group="Backscatter", status="supporting",
+                     units="dB", colormap="gray", prov=prov)
+        W.raster(f"rtc5_{track}_rvi", dual_pol_rvi(ds).values.astype(float),
+                 title=f"Radar vegetation index RVI — median ({track}, 2020–2024)", group="Backscatter",
+                 status="derived", colormap="YlGn", display=(0.4, 1.4), prov=prov,
+                 description="RVI = 4·VH / (VV + VH) in power, per date, median over 2020–2024. Higher = more volume "
+                             "(vegetation) scattering.")
+        W.raster(f"rtc5_{track}_amplitude_dispersion", amplitude_dispersion_from_db(ds["gamma0_vv_db"].values),
+                 title=f"Amplitude dispersion D_A, VV ({track}, 2020–2024)", group="Backscatter", status="derived",
+                 colormap="magma", display=(0, 1), prov=prov,
+                 description=f"σ_A/μ_A over {ds.time.size} RTC dates. < 0.25 = persistent-scatterer candidate.")
+    ser = pd.read_csv(F / "zone_backscatter_series.csv")
+    tab = lambda n: pd.read_csv(F / n).round(4).astype(object).where(lambda d: d.notna(), None).to_dict("records")  # noqa: E731
+    W.chart("backscatter_x063", {
+        "series": {track: {z: {"date": g.date.tolist(), **{v: g[v].round(3).astype(object).where(g[v].notna(), None).tolist()
+                                                           for v in ("vv_db", "vh_db", "ratio_vh_vv_db", "rvi")}}
+                           for z, g in st.groupby("zone")} for track, st in ser.groupby("track")},
+        "summary": tab("zone_backscatter_summary.csv"), "wet_dry": tab("wet_dry_contrast.csv"),
+        "satellite_offset": tab("satellite_offset_2020_2021.csv"), "lake_backscatter": tab("clean_lake_backscatter.csv"),
+        "lake_coherence": tab("clean_lake_coherence.csv"), "checks": tab("reproduction_check.csv")},
+        title="Backscatter by zone, both tracks, 2020–2024 (X-063)", group="Charts", status="exploratory",
+        prov=P(F / "zone_backscatter_series.csv", F / "zone_backscatter_summary.csv", root=hub))
 
 
 def add_field(W, gallery: list, gal: Path, template, P, drive: Path | None = None) -> None:
@@ -955,9 +1001,9 @@ def main() -> None:
     rd = to_dates(rtc)
     for v, t in (("gamma0_vv_db", "σ⁰ VV"), ("gamma0_vh_db", "σ⁰ VH"), ("ratio_vh_vv_db", "VH/VV ratio")):
         arr = rtc[v].values.astype(float)
-        W.raster(f"rtc_{v}", arr, title=f"{t} — per date", group="Backscatter", status="pipeline",
+        W.raster(f"rtc_{v}", arr, title=f"{t} — per date (ascending, 2022–2024)", group="Backscatter", status="pipeline",
                  units="dB", colormap="gray", times=rd, prov=P(D / "rtc_dualpol_stack.nc"))
-        W.raster(f"rtc_{v}_mean", np.nanmean(arr, 0), title=f"{t} — mean", group="Backscatter",
+        W.raster(f"rtc_{v}_mean", np.nanmean(arr, 0), title=f"{t} — mean (ascending, 2022–2024)", group="Backscatter",
                  status="supporting", units="dB", colormap="gray", prov=P(D / "rtc_dualpol_stack.nc"))
         zm = zone_medians(arr, zmask)
         zone_series[v] = {"dates": rd, "units": "dB",
@@ -1274,6 +1320,7 @@ def main() -> None:
     from insar_wetlands import field as _field
     hub_root = _field.field_root().parents[1]
     add_fusion(W, hub_root / "08_deliverables" / "field_fusion_x062", hub_root, P, gallery, gal)
+    add_backscatter_x063(W, hub_root, P)
     W.chart("gallery", gallery, title="Figure gallery", group="Figures", status="core")
 
     for spec in a.attach:
