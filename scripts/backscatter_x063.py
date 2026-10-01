@@ -12,7 +12,10 @@ zones (the project's A–D, defined once on the radar grid — the descending cr
 4. **Sentinel-1A vs 1B** — 2020–2021 mixes two satellites (6-day interleave, so the seasons are the
    same): their zone medians are compared, because a calibration offset would pass for a change
    between the periods.
-5. **Dew and rain** — anomalies (each date minus its calendar-month median, frozen dates out) on wet
+5. **Clean lake** — phaseDter's negative control (persistent open water: WorldCover water or S2 NDWI
+   > 0.2 most of the time, inside the outline): its backscatter per track × period, and the coherence
+   of every interferogram 2020–2024 on both tracks for the mat, the clean lake, the grassland, outside.
+6. **Dew and rain** — anomalies (each date minus its calendar-month median, frozen dates out) on wet
    vs dry overpasses (X-050 flags: RH ≥ 95 % or rain in the previous 3 h), per zone and for the mat
    against the grassland (A − C). Exploratory.
 
@@ -38,10 +41,15 @@ from scipy.stats import mannwhitneyu  # noqa: E402
 
 from insar_wetlands import field  # noqa: E402
 from insar_wetlands.bootstrap import start  # noqa: E402
+from insar_wetlands.paths import make_paths  # noqa: E402
+from insar_wetlands.stack import list_pairs  # noqa: E402
 from insar_wetlands.stratify import (  # noqa: E402
     amplitude_dispersion_from_rtc,
     backscatter_by_zone,
+    clean_lake_mask,
+    coherence_by_zone_stream,
     dual_pol_rvi,
+    load_worldcover,
     zone_backscatter_series,
 )
 
@@ -132,6 +140,32 @@ def satellite_offset(series: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+def lake_coherence(ctx, extra: Path, zones: dict, lake: xr.DataArray) -> pd.DataFrame:
+    """Per pair, both tracks, 2020–2024: mean coherence of the mat, the clean lake (as B), the
+    grassland and outside — phaseDter's lake check, streamed one interferogram at a time."""
+    zl = {"A": zones["A"], "B": lake, "C": zones["C"], "D": zones["D"]}
+    out = []
+    for track in TRACKS:
+        for root in (make_paths(cfg=ctx.cfg, track=track).cropped, extra / f"hyp3_cropped_{track}"):
+            if root.is_dir():
+                df, _ = coherence_by_zone_stream(root, list_pairs(root), zl, ctx.template)
+                out.append(df.assign(track=track))
+    df = pd.concat(out, ignore_index=True).drop_duplicates(["track", "pair", "zone"])
+    df["year"] = pd.to_datetime(df.pair.str[:8]).dt.year
+    return df
+
+
+def lake_coherence_table(df: pd.DataFrame) -> pd.DataFrame:
+    rows = []
+    for (track, period), (y0, y1) in [((t, p), yy) for t in TRACKS for p, yy in PERIODS.items()]:
+        d = df[(df.track == track) & df.year.between(y0, y1)]
+        for subset, dd in (("pairs ≤ 24 d", d[d.dt_days <= 24]), ("all pairs", d)):
+            med = dd.groupby("zone").mean_coh.median()
+            rows.append({"track": track, "period": period, "pairs": subset, "n_pairs": int(dd.pair.nunique()),
+                         **{f"coh_{'clean_lake' if z == 'B' else z}": float(med.get(z, np.nan)) for z in "ABCD"}})
+    return pd.DataFrame(rows)
+
+
 def figures(out: Path, series: pd.DataFrame, stacks: dict, zones: dict) -> None:
     colors = {"A": "C3", "B": "C0", "C": "C2", "D": "0.5"}
     fig, ax = plt.subplots(4, 1, figsize=(13, 11), sharex=True)
@@ -177,6 +211,8 @@ def main(argv=None):
     ap.add_argument("--stacks", default=str(hub / "05_code" / "local" / "drive_mirror"),
                     help="folder holding rtc_dualpol_2020_2024[_descending].nc")
     ap.add_argument("--wet", default=str(hub / "08_deliverables" / "field_dew_x050" / "wetness_at_overpasses_2020_2024.csv"))
+    ap.add_argument("--extra", default=str(hub / "05_code" / "local" / "s1_2020_2021"),
+                    help="the 2020–2021 crops (D-020), for the clean-lake coherence")
     ap.add_argument("--reference", default=None, help="phaseDter_summary.json to reproduce (default: latest local run)")
     ap.add_argument("--out", default=str(hub / "08_deliverables" / "backscatter_x063"))
     a = ap.parse_args(argv)
@@ -229,7 +265,20 @@ def main(argv=None):
     summ = summ[["track", "period", "n_dates", "zone", "n_px", "sigma0_vv_db", "sigma0_vv_temporal_std",
                  "ratio_vh_vv_db", "rvi_median", "da_median", f"da_frac_below_{PS_DA}"]]
 
-    # 4–5.
+    # 5. clean lake
+    wc = load_worldcover(tpl, ctx.cfg, cache_dir=ctx.paths.cache)
+    lake = clean_lake_mask(tpl, ctx.cfg, worldcover=wc, s2=xr.load_dataset(ctx.paths.drive_file("s2_stack.nc")))
+    if ref_path and ref_path.exists():
+        checks = pd.concat([checks, pd.DataFrame([{"check": "phaseDter clean-lake pixels", "n": 1,
+                                                   "max_abs_diff": abs(int(lake.sum()) - ref["clean_lake_n"])}])])
+    zl = {**zones, "B": lake}
+    lake_bs = pd.concat([summary(years(ds, y0, y1), zl).query("zone == 'B'").assign(track=track, period=p)
+                         for track, ds in stacks.items() for p, (y0, y1) in PERIODS.items()], ignore_index=True)
+    lake_bs = lake_bs.assign(zone="clean lake")[["track", "period", "zone", "n_px", "sigma0_vv_db",
+                                                "sigma0_vv_temporal_std", "ratio_vh_vv_db", "rvi_median", "da_median"]]
+    lake_coh = lake_coherence_table(lake_coherence(ctx, Path(a.extra), zones, lake))
+
+    # 4, 6.
     sat = satellite_offset(series)
     wd = wet_dry(series)
 
@@ -237,6 +286,8 @@ def main(argv=None):
     summ.to_csv(out / "zone_backscatter_summary.csv", index=False)
     sat.to_csv(out / "satellite_offset_2020_2021.csv", index=False)
     wd.to_csv(out / "wet_dry_contrast.csv", index=False)
+    lake_bs.to_csv(out / "clean_lake_backscatter.csv", index=False)
+    lake_coh.to_csv(out / "clean_lake_coherence.csv", index=False)
     checks.to_csv(out / "reproduction_check.csv", index=False)
     figures(out, series, stacks, zones)
 
@@ -262,6 +313,12 @@ def main(argv=None):
         f"The tracks see the site at different incidence ({inc}): backscatter falls with incidence, so absolute levels "
         "differ between tracks for that reason alone — compare zones within a track, and changes in time.", "",
         md(summ), "",
+        "## Clean lake — the open-water control", "",
+        f"phaseDter's clean lake ({int(lake.sum())} pixels: WorldCover water or S2 NDWI > 0.2 in most scenes, inside the "
+        "outline). Open water should be dark and specular in backscatter and incoherent between dates.", "",
+        md(lake_bs), "",
+        "Median over pairs of the zone-mean coherence (every interferogram of the period, both stacks):", "",
+        md(lake_coh), "",
         "## Sentinel-1A vs 1B (2020–2021)", "",
         "Median zone value on S1A dates minus S1B dates (interleaved, same seasons; frozen dates out). An offset here "
         "would show up as a change between 2020–2021 and 2022–2024 (S1A only).", "", md(sat), "",
@@ -272,6 +329,7 @@ def main(argv=None):
         "| File | Content |", "|---|---|",
         "| `zone_backscatter_series.csv` | per track × date × zone: median VV, VH, VH − VV, RVI, valid pixels, satellite, wet, frozen |",
         "| `zone_backscatter_summary.csv` | the summary table |",
+        "| `clean_lake_backscatter.csv`, `clean_lake_coherence.csv` | the open-water control |",
         "| `satellite_offset_2020_2021.csv`, `wet_dry_contrast.csv`, `reproduction_check.csv` | the tables above |",
         "| `fig_zone_series.png` | zone series, both tracks, VV and VH |",
         "| `fig_monthly_dusk_dawn.png` | monthly medians, dusk vs dawn |",
@@ -281,6 +339,8 @@ def main(argv=None):
     pd.set_option("display.width", 220)
     print(checks.to_string(index=False))
     print(summ[summ.period == "2020–2024"].round(3).to_string(index=False))
+    print(lake_bs.round(3).to_string(index=False))
+    print(lake_coh.round(3).to_string(index=False))
     print(sat.round(3).to_string(index=False))
     print(wd[wd.p < 0.05].round(3).to_string(index=False))
 

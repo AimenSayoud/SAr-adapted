@@ -7,7 +7,8 @@ this public repository.
 
 1. map of the plots over the Sentinel-1 grid            map_plots_s1_grid.png
 2. Sentinel-1 acquisition dates 2022–2024               s1_acquisitions.csv
-3. plot-level Sentinel-1 extraction                     s1_plot_by_date.csv, s1_plot_by_pair.csv,
+3. plot-level Sentinel-1 extraction (backscatter:       s1_plot_by_date.csv, s1_plot_by_pair.csv,
+   both tracks since C-048)
                                                         plot_pixels.csv
    joined with WTD at the acquisitions                  plot_s1_wtd.csv, wtd_at_s1.csv
 4. preliminary figure, WTD with S1 phase/coherence      fig_wtd_s1_plots.png
@@ -121,6 +122,8 @@ def main(argv=None):
     hub = field.field_root().parents[1]
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default=str(hub / "08_deliverables" / "field_first"))
+    ap.add_argument("--rtc", default=str(hub / "05_code" / "local" / "drive_mirror"),
+                    help="folder with the five-year RTC stacks rtc_dualpol_2020_2024[_descending].nc (C-048)")
     a = ap.parse_args(argv)
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
@@ -153,12 +156,16 @@ def main(argv=None):
         if f == "ts_sbas_ref_only.nc":  # MintPy writes pixel corners: shift to centres (as the atlas does)
             da = da.assign_coords(x=da.x + 20.0, y=da.y - 20.0)
         rows += date_stack_rows(name, ctx.to_grid(da), px, zone_a, "ascending")
-    rtc = xr.open_dataset(D / "rtc_dualpol_stack.nc")
-    vv, vh = ctx.to_grid(rtc["gamma0_vv_db"]), ctx.to_grid(rtc["gamma0_vh_db"])
-    lin_vv, lin_vh = 10 ** (vv / 10), 10 ** (vh / 10)
-    rows += date_stack_rows("vv_db", vv, px, zone_a, "ascending")
-    rows += date_stack_rows("vh_db", vh, px, zone_a, "ascending")
-    rows += date_stack_rows("rvi", 4 * lin_vh / (lin_vv + lin_vh), px, zone_a, "ascending")
+    # Backscatter, both tracks (C-048): the five-year RTC stacks cut to PERIOD. On the ascending track
+    # they are identical to rtc_dualpol_stack.nc (X-063 check); the descending track had none before.
+    rtc_names = {"ascending": "rtc_dualpol_2020_2024.nc", "descending": "rtc_dualpol_2020_2024_descending.nc"}
+    for track, name in rtc_names.items():
+        rtc = xr.open_dataset(Path(a.rtc) / name).sel(time=slice(*PERIOD))
+        vv, vh = ctx.to_grid(rtc["gamma0_vv_db"]), ctx.to_grid(rtc["gamma0_vh_db"])
+        lin_vv, lin_vh = 10 ** (vv / 10), 10 ** (vh / 10)
+        rows += date_stack_rows("vv_db", vv, px, zone_a, track)
+        rows += date_stack_rows("vh_db", vh, px, zone_a, track)
+        rows += date_stack_rows("rvi", 4 * lin_vh / (lin_vv + lin_vh), px, zone_a, track)
     by_date = pd.DataFrame(rows)
     tcoh = ctx.to_grid(xr.open_dataset(D / "phaseE2_evd.nc")["temporal_coherence"]).values
     tc = pd.DataFrame([{"plot": p["plot"], "window": w, **window(tcoh, p.row, p.col, h, zone_a)}
