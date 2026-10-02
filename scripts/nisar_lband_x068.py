@@ -238,7 +238,8 @@ def main():
         ax[0].plot(mid, d[f"u80_coherenceMagnitude_{z}"], "o-", color=col, label=f"L-band 12 d, zone {z}")
     if len(c):
         for (tr, dt), g in c[c.track == "ascending"].groupby(["track", "dt"]):
-            ax[0].plot(g.t1 + (g.t2 - g.t1) / 2, g.coh_A, "x--", color="C3", alpha=0.5, label=f"C-band {dt} d asc, mat")
+            ax[0].plot(g.t1 + (g.t2 - g.t1) / 2, g.coh_A, "x:" if dt == 6 else "s--", color="C3", alpha=0.45 if dt == 6 else 0.8,
+                       mfc="none", label=f"C-band {dt} d asc, mat")
     ax[0].set_ylim(0, 1); ax[0].set_ylabel("median coherence"); ax[0].legend(fontsize=7); ax[0].set_title("Coherence: NISAR L-band vs Sentinel-1 C-band")
     ax[1].bar(np.arange(len(d)) - 0.2, d.los_mm_iono_corrected, 0.4, label="NISAR P6 − grassland (iono-corrected)")
     ax[1].bar(np.arange(len(d)) + 0.2, d.laser_los_mm, 0.4, label="laser (LOS)")
@@ -256,8 +257,8 @@ def readme(d: pd.DataFrame, c: pd.DataFrame, summ: dict) -> None:
         ["pair", "frozen", "u80_coherenceMagnitude_A", "u80_coherenceMagnitude_C", "u80_coherenceMagnitude_B", "w20_coherenceMagnitude_A",
          "w20_coherenceMagnitude_C", "los_mm", "los_mm_iono_corrected", "laser_los_mm", "laser_dh_mm_unscreened_NOT_USED"]].rename(columns={
         "u80_coherenceMagnitude_A": "coh mat (80 m)", "u80_coherenceMagnitude_C": "coh grass (80 m)", "u80_coherenceMagnitude_B": "coh lake (80 m)",
-        "w20_coherenceMagnitude_A": "coh mat (20 m)", "w20_coherenceMagnitude_C": "coh grass (20 m)", "los_mm": "P6 LOS mm",
-        "los_mm_iono_corrected": "P6 LOS mm, iono-corr.", "laser_los_mm": "laser LOS mm (screened)", "laser_dh_mm_unscreened_NOT_USED": "laser Δh mm UNSCREENED (not used)"})
+        "w20_coherenceMagnitude_A": "coh mat (20 m)", "w20_coherenceMagnitude_C": "coh grass (20 m)", "los_mm": "P6 − grassland, LOS mm",
+        "los_mm_iono_corrected": "same, iono-corrected", "laser_los_mm": "laser LOS mm (screened)", "laser_dh_mm_unscreened_NOT_USED": "laser Δh mm UNSCREENED (not used)"})
     cmp = pd.DataFrame([{"sensor": "NISAR L-band 12 d", "state": k, "pairs": v["pairs"], "mat": v["A"], "grassland": v["C"], "lake": v["B"]}
                         for k, v in summ["lband_12d_by_state"].items()]
                        + [{"sensor": f"Sentinel-1 C-band {k.replace(' not frozen', '').removesuffix(' frozen')}",
