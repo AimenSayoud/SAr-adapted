@@ -166,3 +166,23 @@ def test_atlas_writer_manifest_and_grid_guard(tmp_path):
     assert np.isnan(back[0, 0]) and np.nanmax(np.abs(back - f)) < 1e-4
     assert lyr["stk"]["shape"] == [2, 129, 138]
     assert m["grid"]["width"] == 138 and m["grid"]["dx"] == 40.0
+
+
+def test_zone_medians_of_every_dated_stack_and_annotate_checks_references(tmp_path):
+    """C-049: with zone masks set, a dated stack carries its per-zone medians (NaN-aware); a month stack does not;
+    annotate() writes the inspect block and refuses a companion that does not exist."""
+    import pytest
+
+    from insar_wetlands.web_export import AtlasWriter
+    x, y = np.array([0.0, 40.0, 80.0]) + 600000, np.array([40.0, 0.0]) + 5800000
+    W = AtlasWriter(tmp_path, x, y, crs="EPSG:32633")
+    W.zone_masks = {"A": np.array([[True, True, False], [False, False, False]]), "B": np.zeros((2, 3), bool)}
+    a = np.stack([np.array([[1.0, 3.0, 9.0], [9, 9, 9]]), np.array([[np.nan, 4.0, 9.0], [9, 9, 9]])])
+    W.raster("s", a, title="s", group="g", status="derived", times=["2020-01-01", "2020-01-07"])
+    W.raster("m", a, title="m", group="g", status="derived", times=["Jan", "Feb"], time_label="month")
+    assert W.zone_medians["s"]["A"] == [2.0, 4.0] and W.zone_medians["s"]["B"] == [None, None]
+    assert "m" not in W.zone_medians
+    W.annotate(lambda lyr, ids: {"panel": "compare", "family": "g", "companions": ["m"]} if lyr["id"] == "s" else None)
+    assert W.layers[0]["inspect"]["companions"] == ["m"] and "inspect" not in W.layers[1]
+    with pytest.raises(ValueError, match="missing layer"):
+        W.annotate(lambda lyr, ids: {"panel": "band", "family": "g", "band": "nope"})
