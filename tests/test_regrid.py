@@ -41,3 +41,17 @@ def test_unaligned_grid_assigns_by_centre():
     r, c = cell_index(fx, fy, tpl_x, tpl_y)
     assert (c[c >= 0] == np.floor((fx[c >= 0] - 1000.0) / 40)).all()
     assert c[-1] == -1                                 # the last fine centre falls outside the template
+
+
+def test_stack_to_template_keeps_pairs_and_skips_template_grids():
+    import xarray as xr
+
+    from insar_wetlands.regrid import stack_to_template
+    tpl_x, tpl_y, fx, fy = _grids()
+    truth = np.arange(20, dtype=float).reshape(4, 5)
+    fine = np.stack([np.kron(truth, np.ones((2, 2))), np.kron(truth + 1, np.ones((2, 2)))])
+    da = xr.DataArray(fine, dims=("pair", "y", "x"), coords={"pair": ["a_b", "b_c"], "y": fy, "x": fx}, name="corr")
+    out = stack_to_template(da, tpl_x, tpl_y)
+    assert out.sizes == {"pair": 2, "y": 4, "x": 5} and list(out.pair.values) == ["a_b", "b_c"]
+    assert np.allclose(out.values[1], truth + 1)
+    assert stack_to_template(out, tpl_x, tpl_y) is out

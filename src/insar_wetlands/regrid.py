@@ -40,3 +40,24 @@ def to_template(values: np.ndarray, fine_x, fine_y, tpl_x, tpl_y, kind: str = "m
         raise ValueError(kind)
     out[count < min_count] = np.nan
     return out.reshape(len(tpl_y), len(tpl_x))
+
+
+KIND = {"wrapped_phase": "phase", "corr": "mean", "unw_phase": "mean"}
+
+
+def stack_to_template(da, tpl_x, tpl_y, kind: str | None = None, min_count: int = 2):
+    """A (pair, y, x) stack from ``stack.load_layer`` on a finer grid → the same stack on the template grid
+    (``kind`` from the layer name when not given: wrapped phase as a phasor, coherence and unwrapped phase as means).
+    A grid that already is the template is returned unchanged."""
+    import xarray as xr
+
+    if da.sizes["x"] == len(tpl_x) and da.sizes["y"] == len(tpl_y) and np.allclose(da.x, tpl_x) and np.allclose(da.y, tpl_y):
+        return da
+    k = kind or KIND.get(str(da.name), "mean")
+    vals = np.stack([to_template(da.values[i], da.x.values, da.y.values, tpl_x, tpl_y, kind=k, min_count=min_count)
+                     for i in range(da.sizes["pair"])])
+    out = xr.DataArray(vals, dims=("pair", "y", "x"), coords={"pair": da.pair.values, "y": tpl_y, "x": tpl_x}, name=da.name)
+    for c in ("ref_date", "sec_date"):
+        if c in da.coords:
+            out = out.assign_coords({c: ("pair", da[c].values)})
+    return out

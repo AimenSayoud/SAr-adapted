@@ -39,6 +39,7 @@ from insar_wetlands import fusion as fu  # noqa: E402
 from insar_wetlands.bootstrap import start  # noqa: E402
 from insar_wetlands.inversion.isbas import PHASE_TO_MM  # noqa: E402
 from insar_wetlands.paths import make_paths  # noqa: E402
+from insar_wetlands.regrid import stack_to_template  # noqa: E402
 from insar_wetlands.stack import list_pairs, load_layer  # noqa: E402
 
 HUB = Path(__file__).resolve().parents[3]
@@ -47,7 +48,9 @@ OUT = DLV / "closure_x070"
 HOUR = {"ascending": "16:36", "descending": "05:09"}
 MIRROR = HUB / "05_code" / "local" / "drive_mirror"
 RTC = {("ascending", "2020"): "rtc_dualpol_2020_2024.nc", ("descending", "2020"): "rtc_dualpol_2020_2024_descending.nc",
-       ("ascending", "2025"): "rtc_dualpol_2025_2025.nc", ("descending", "2025"): "rtc_dualpol_2025_2025_descending.nc"}
+       ("ascending", "2025"): "rtc_dualpol_2025_2025.nc", ("descending", "2025"): "rtc_dualpol_2025_2025_descending.nc",
+       ("ascending", "2026"): "rtc_dualpol_2026_2026.nc", ("descending", "2026"): "rtc_dualpol_2026_2026_descending.nc"}
+OM26 = DLV / "nisar_x069"                 # Open-Meteo 2026 cached by X-069 (open_meteo_2026-*.csv)
 ZONES_OUT = ["mat", "lake", "grassland", "stable", "p6"]
 FEATURES = {"dwtd13": "water-table change t1→t3 (cm)", "wtd_mid_anom": "water table at t2 minus the mean of t1, t3 (cm)",
             "rain_mm": "rain over [t1, t3] (mm)", "n_wet": "wet overpasses among t1, t2, t3",
@@ -60,6 +63,7 @@ def stacks(ctx) -> list[tuple[str, str, Path, int]]:
         out.append(("2020–2021", t, HUB / f"05_code/local/s1_2020_2021/hyp3_cropped_{t}", 6))
         out.append(("2022–2024", t, make_paths(cfg=ctx.cfg, track=t).cropped, 12))
         out.append(("2025", t, HUB / f"05_code/local/s1_2025/hyp3_cropped_{t}", 6))
+        out.append(("2026", t, HUB / f"05_code/local/s1_2026/hyp3_cropped_{t}", 6))   # 20 m (D-024), put on the template
     return [s for s in out if s[2].exists()]
 
 
@@ -85,9 +89,10 @@ def closure_table(ctx, masks: dict) -> pd.DataFrame:
         need = sorted({p for t in tri for p in t})
         if not need:
             continue
-        w = load_layer(root, "wrapped_phase", need)
-        co = load_layer(root, "corr", need)
-        u = load_layer(root, "unw_phase", need)
+        tx, ty = ctx.template.x.values, ctx.template.y.values
+        w = stack_to_template(load_layer(root, "wrapped_phase", need), tx, ty)
+        co = stack_to_template(load_layer(root, "corr", need), tx, ty)
+        u = stack_to_template(load_layer(root, "unw_phase", need), tx, ty)
         idx = {p: k for k, p in enumerate(w.pair.values.astype(str))}
         W, C, U = w.values, co.values, u.values
         refC = {p: np.nanmedian(U[idx[p]][masks["grassland"] & np.isfinite(U[idx[p]])]) for p in need}
@@ -130,7 +135,15 @@ def drivers(d: pd.DataFrame, ctx, masks: dict) -> pd.DataFrame:
     wet = pd.read_csv(DLV / "field_dew_x050" / "wetness_at_overpasses_2020_2024.csv").set_index(["date", "track"])
     w25 = pd.read_csv(DLV / "fusion_v2" / "flags_2025" / "wetness_at_overpasses_2025_open_meteo.csv")
     om = pd.read_csv(HUB / "06_data/local_small/open_meteo/open_meteo_rzecin_hourly_2020_2025.csv", parse_dates=["time"]).set_index("time")
+    om26 = sorted(OM26.glob("open_meteo_2026-*.csv"))
+    if om26:
+        om = pd.concat([om, pd.read_csv(om26[-1], parse_dates=["time"]).set_index("time")])
     om.index = pd.to_datetime(om.index, utc=True)
+    om = om[~om.index.duplicated()].sort_index()
+    import json
+    meta = json.loads((DLV / "fusion_v2" / "flags_2025" / "open_meteo_vs_station.json").read_text())
+    omc = om.copy()
+    omc["Air_2m"] = omc["Air_2m"] - meta["air_bias_c"]
     rain_st = wtd["Rain_mm_Tot"].astype(float)
     vv = {}
     for (track, y), name in RTC.items():
@@ -147,7 +160,11 @@ def drivers(d: pd.DataFrame, ctx, masks: dict) -> pd.DataFrame:
         if key in wet.index:
             return bool(wet.loc[key].wet)
         h = w25[(w25.date == f"{t:%Y-%m-%d}") & (w25.track == track)] if "date" in w25.columns else pd.DataFrame()
-        return bool(h.wet.iloc[0]) if len(h) else np.nan
+        if len(h):
+            return bool(h.wet.iloc[0])
+        if t.year >= 2026:                                   # Open-Meteo calibrated on the station, as X-066 / X-069
+            return bool(field.surface_wetness_at(omc, [t], rh_wet=meta["rh_wet_threshold_open_meteo"]).wet.iloc[0])
+        return np.nan
     out = []
     for r in d.itertuples(index=False):
         rec = {}
@@ -158,7 +175,7 @@ def drivers(d: pd.DataFrame, ctx, masks: dict) -> pd.DataFrame:
         rec["rain_mm"] = float(src[(src.index > r.t1) & (src.index <= r.t3)].sum())
         f = [wet_at(t, r.track) for t in (r.t1, r.t2, r.t3)]
         rec["n_wet"] = float(np.nansum(f)) if not all(isinstance(x, float) and np.isnan(x) for x in f) else np.nan
-        key = (r.track, "2025" if r.t1.year == 2025 else "2020")
+        key = (r.track, str(r.t1.year) if r.t1.year >= 2025 else "2020")
         for z in ("mat", "grassland", "lake"):
             s = vv.get(key, {}).get(z)
             v = [s.get(t.normalize().tz_localize(None), np.nan) if s is not None else np.nan for t in (r.t1, r.t2, r.t3)]

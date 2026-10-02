@@ -38,6 +38,7 @@ import nisar_lband_x068 as N  # noqa: E402
 
 from insar_wetlands import field  # noqa: E402
 from insar_wetlands.bootstrap import start  # noqa: E402
+from insar_wetlands.regrid import stack_to_template  # noqa: E402
 from insar_wetlands.stack import list_pairs, load_layer  # noqa: E402
 
 HUB = Path(__file__).resolve().parents[3]
@@ -89,13 +90,15 @@ def open_meteo(ctx, start_date: str, end_date: str) -> pd.DataFrame:
     return d
 
 
-def sentinel1_summer(ctx, om_all: pd.DataFrame, meta: dict) -> pd.DataFrame:
-    """C-band reference: every May–September pair ≤ 24 d of the 2025 and 2020–2021 crops, zone median coherence."""
+def sentinel1_summer(ctx, om_all: pd.DataFrame, meta: dict, om26: pd.DataFrame | None = None) -> pd.DataFrame:
+    """C-band reference: every May–September pair ≤ 24 d of the 2026 (same weeks as NISAR; 20 m products put on the 40 m
+    template, D-024), 2025 and 2020–2021 crops, zone median coherence."""
     zones = {z: ctx.zones[z].values.astype(bool) for z in "ABCD"}
     st = field.load_wtd_hourly()
     rows = []
     for track in S1_HOUR:
-        for label, root in (("2025 (S1A+S1C)", HUB / f"05_code/local/s1_2025/hyp3_cropped_{track}"),
+        for label, root in (("2026 (S1A+S1C+S1D, same weeks)", HUB / f"05_code/local/s1_2026/hyp3_cropped_{track}"),
+                            ("2025 (S1A+S1C)", HUB / f"05_code/local/s1_2025/hyp3_cropped_{track}"),
                             ("2020–2021 (S1A+S1B)", HUB / f"05_code/local/s1_2020_2021/hyp3_cropped_{track}")):
             if not root.exists():
                 continue
@@ -103,10 +106,14 @@ def sentinel1_summer(ctx, om_all: pd.DataFrame, meta: dict) -> pd.DataFrame:
             pairs = [p for p in pairs if (pd.Timestamp(p[9:]) - pd.Timestamp(p[:8])).days <= 24]
             if not pairs:
                 continue
-            co = load_layer(root, "corr", pairs).values
+            co = stack_to_template(load_layer(root, "corr", pairs), ctx.template.x.values, ctx.template.y.values).values
             t1 = [pd.Timestamp(f"{p[:8]} {S1_HOUR[track]}", tz="UTC") for p in pairs]
             t2 = [pd.Timestamp(f"{p[9:]} {S1_HOUR[track]}", tz="UTC") for p in pairs]
-            if label.startswith("2025"):
+            if label.startswith("2026"):
+                if om26 is None:
+                    continue
+                f1, f2 = flags(om26, meta, t1), flags(om26, meta, t2)
+            elif label.startswith("2025"):
                 f1, f2 = flags(om_all, meta, t1), flags(om_all, meta, t2)
             else:
                 f1, f2 = field.surface_wetness_at(st, t1), field.surface_wetness_at(st, t2)
@@ -158,8 +165,14 @@ def findings(sN: pd.DataFrame, sC: pd.DataFrame) -> list[str]:
     """Generated reading of the two summary tables (no typed number)."""
     a = sN[sN.track_no == "all"].set_index("dt")
     out = []
+    same = sC[sC.period.str.startswith("2026")]
+    if 12 in a.index and len(same):
+        s12, s6 = same[same.dt == 12], same[same.dt == 6]
+        out.append(f"- **Same weeks (Sentinel-1 2026, D-024):** mat coherence C-band 12-day {s12.mat.min():.2f}–{s12.mat.max():.2f}, "
+                   f"6-day {s6.mat.min():.2f}–{s6.mat.max():.2f}, against L-band 12-day {a.loc[12, 'mat']:.2f}; mat minus grassland "
+                   f"C 12-day {s12.mat_minus_grassland.min():+.2f} to {s12.mat_minus_grassland.max():+.2f}, L 12-day {a.loc[12, 'mat_minus_grassland']:+.2f}.")
     if 12 in a.index:
-        c12, c6 = sC[sC.dt == 12], sC[sC.dt == 6]
+        c12, c6 = sC[(sC.dt == 12) & ~sC.period.str.startswith("2026")], sC[(sC.dt == 6) & ~sC.period.str.startswith("2026")]
         out.append(f"- **Summer, mat:** NISAR L-band 12-day coherence {a.loc[12, 'mat']:.2f} ({int(a.loc[12, 'pairs'])} pairs) against "
                    f"Sentinel-1 C-band 12-day {c12.mat.min():.2f}–{c12.mat.max():.2f} and 6-day {c6.mat.min():.2f}–{c6.mat.max():.2f} "
                    "(other summers, both tracks).")
@@ -255,7 +268,7 @@ def main(argv=None):
     d.to_csv(cache.with_name("nisar_pairs_flagged.csv"), index=False)
     om_all = pd.read_csv(HUB / "06_data" / "local_small" / "open_meteo" / "open_meteo_rzecin_hourly_2020_2025.csv", parse_dates=["time"]).set_index("time")
     om_all.index = pd.to_datetime(om_all.index, utc=True)
-    c = sentinel1_summer(ctx, om_all, meta)
+    c = sentinel1_summer(ctx, om_all, meta, om26)
     c.to_csv(OUT / "sentinel1_summer_reference.csv", index=False)
     sN = summarise(d.assign(sensor="NISAR L-band"), ["track_no", "dir", "dt"])
     sN_all = summarise(d.assign(sensor="NISAR L-band"), ["dt"]).assign(track_no="all", dir="")
