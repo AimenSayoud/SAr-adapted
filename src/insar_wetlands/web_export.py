@@ -380,6 +380,8 @@ class AtlasWriter:
         # per layer and zone, 21 quantiles (0, 5, …, 100 %) of the pixel values (rasters) or of each pixel's mean over
         # time (stacks): where a pixel ranks within its zone (C-051)
         self.zone_dist: dict = {}
+        # the 2-D rasters as written (float), for summaries across layers at the end of a build (class medians)
+        self.fields: dict[str, np.ndarray] = {}
 
     def _check_grid(self, x, y):
         if x is None:
@@ -443,7 +445,7 @@ class AtlasWriter:
         if a.ndim == 3:
             entry["times"] = [str(t) for t in times]
             entry["time_label"] = time_label
-            if self.zone_masks and time_label in ("date", "pair"):
+            if self.zone_masks and time_label in ("date", "pair", "month"):
                 flat = a.reshape(a.shape[0], -1)
 
                 def q(m, p):
@@ -456,6 +458,8 @@ class AtlasWriter:
                                           **{z: q(m, 50) for z, m in self.zone_masks.items()},
                                           "q25": {z: q(m, 25) for z, m in self.zone_masks.items()},
                                           "q75": {z: q(m, 75) for z, m in self.zone_masks.items()}}
+        if a.ndim == 2:
+            self.fields[lid] = a
         if self.zone_masks and categories is None:
             with np.errstate(all="ignore"):
                 per_px = np.nanmean(a, axis=0) if a.ndim == 3 else a
@@ -478,6 +482,25 @@ class AtlasWriter:
                       "style": style or {}, "bytes": path.stat().st_size})
         self.layers.append(entry)
         return entry
+
+    def class_medians(self, class_ids: list[str], metric_ids: list[str]) -> dict:
+        """Per class of each category raster: its pixel count and the median of each metric raster over its pixels
+        (C-051: what a behaviour class, a land-cover class or a zone looks like in coherence, backscatter, wetness)."""
+        by = {lyr["id"]: lyr for lyr in self.layers}
+        metrics = [m for m in metric_ids if m in self.fields]
+        out = {"metrics": [{"id": m, "title": by[m]["title"], "units": by[m].get("units", "")} for m in metrics], "classes": {}}
+        for cid in class_ids:
+            if cid not in self.fields or not by[cid].get("categories"):
+                continue
+            c = self.fields[cid]
+            rows = []
+            for k, cat in by[cid]["categories"].items():
+                m = np.isfinite(c) & (np.round(c) == int(k))
+                rows.append({"value": int(k), "label": cat["label"], "color": cat["color"], "n": int(m.sum()),
+                             **{mid: (None if not np.isfinite(self.fields[mid][m]).any()
+                                      else round(float(np.nanmedian(self.fields[mid][m])), 4)) for mid in metrics}})
+            out["classes"][cid] = rows
+        return out
 
     def chart(self, lid: str, data, *, title: str, group: str, status: str,
               description: str = "", units: str = "",
@@ -531,7 +554,7 @@ class AtlasWriter:
             if not sp:
                 continue
             refs = [*sp.get("companions", []), *sp.get("related", []), *([sp["band"]] if sp.get("band") else []),
-                    *([sp["source"]["stack"], sp["source"]["chart"]] if sp.get("source") else []),
+                    *[sp["source"][k] for k in ("stack", "chart", "amplitude", "phase", "trend", "r2") if sp.get("source", {}).get(k)],
                     *([sp["reference"]["chart"]] if sp.get("reference") else [])]
             for ref in refs:
                 if ref not in ids:
