@@ -380,6 +380,30 @@ def add_backscatter_x063(W, hub: Path, P) -> None:
         prov=P(F / "zone_backscatter_series.csv", F / "zone_backscatter_summary.csv", root=hub))
 
 
+def add_claims_and_revisit(W, hub: Path, P) -> None:
+    """C-051 phase 6: the synthesis's graded claims and test tally (Results page), and X-065 — phase vs laser at P6 by
+    revisit, with the independent year (P6 page). Reads the hub's deliverables; holds nothing."""
+    recs = lambda df: df.astype(object).where(pd.notna(df), None).to_dict("records")  # noqa: E731
+    S = hub / "08_deliverables" / "synthesis"
+    if (S / "claims.csv").exists():
+        W.chart("synthesis_claims", {"claims": recs(pd.read_csv(S / "claims.csv")),
+                                     "tally": recs(pd.read_csv(S / "test_tally.csv")) if (S / "test_tally.csv").exists() else []},
+                title="How strong is each claim (synthesis)", group="Charts", status="derived",
+                description="The synthesis's graded claims (robust / supported / fragile / not supported) with their main "
+                            "evidence, and how many tests each analysis family ran against how many chance would pass.",
+                prov=P(S / "claims.csv", S / "test_tally.csv", root=hub))
+    X = hub / "08_deliverables" / "field_p6_short_pairs_x065"
+    if (X / "phase_vs_laser_by_revisit.csv").exists():
+        W.chart("field_p6_x065", {"by_revisit": recs(pd.read_csv(X / "phase_vs_laser_by_revisit.csv").round(4)),
+                                  "pairs": recs(pd.read_csv(X / "p6_pairs_2020_2024.csv").round(4)),
+                                  "backscatter": recs(pd.read_csv(X / "backscatter_in_phase_model.csv").round(4))},
+                title="P6: phase vs laser by revisit, with an independent year (X-065)", group="Field data", status="exploratory",
+                description="Per track, period and revisit (6, 12, 24 d): how the phase at P6 follows the laser (r, same sign, "
+                            "motion coefficient m); every consecutive and next-but-one pair 2020–2024; whether backscatter "
+                            "adds to the phase model with a year held out.",
+                prov=P(X / "phase_vs_laser_by_revisit.csv", X / "p6_pairs_2020_2024.csv", root=hub))
+
+
 def add_followups(W, hub: Path, P, gallery: list, gal: Path) -> None:
     """The supervisor's 28 Sep follow-ups and the NISAR check: X-060 (the boardwalk, P6's extraction windows), X-061
     (mat plots P6–P9 vs reference plots P1–P5), X-064 (the lake with a pure open-water mask), X-068 (NISAR L-band).
@@ -1688,6 +1712,7 @@ def main() -> None:
     add_fusion_v2(W, hub_root / "08_deliverables" / "fusion_v2", hub_root, P, gallery, gal)
     add_backscatter_x063(W, hub_root, P)
     add_followups(W, hub_root, P, gallery, gal)
+    add_claims_and_revisit(W, hub_root, P)
     W.chart("gallery", gallery, title="Figure gallery", group="Figures", status="core")
 
     for spec in a.attach:
