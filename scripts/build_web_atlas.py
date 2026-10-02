@@ -957,6 +957,10 @@ def _inspect_spec(layer: dict, ids: set) -> dict | None:
             return {"panel": "band", "family": "fusion-v2", "priority": 0, "zone_median": True,
                     **({"band": band} if band in ids else {}),
                     **({"reference": {"chart": "inspector_refs", "key": lid}} if lid in INSPECTOR_REFS and "inspector_refs" in ids else {}),
+                    # every run at this pixel on one axis (C-051): the other runs' heights, and each run's SD and range
+                    "companions": [f"fusion2_{v}_{r}" for r in ("R1", "R2", "R3") for v in ("height", "sd", "range")
+                                   if f"fusion2_{v}_{r}" in ids and f"fusion2_{v}_{r}" != lid],
+                    **({"source": {"chart": "fusion_v2"}} if "fusion_v2" in ids else {}),
                     "note": "± posterior SD (per-pixel bound, conservative)"}
         return {"panel": "value", "family": "fusion-v2", "priority": 5}
     if lid == "fusion_fused_ascending":
