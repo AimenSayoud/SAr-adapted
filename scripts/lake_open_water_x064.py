@@ -96,6 +96,7 @@ def run(ctx, mk: dict, rtc_med: dict, share: np.ndarray):
             valid = np.isfinite(unw.values[:, mv]).sum(1) if mv.any() else np.zeros(len(pairs))
             coh = np.nanmedian(corr.values[:, mv], 1) if mv.any() else np.full(len(pairs), np.nan)
             row = {"track": track, "stack": stack, "mask": name, "n_px": int(mv.sum()),
+                   "n_px_in_zone_B": int((mv & ctx.zones["B"].values.astype(bool)).sum()),
                    "water_share_median": float(np.median(share[mv])) if mv.any() else np.nan,
                    "median_valid_px_per_pair": float(np.median(valid)),
                    "coh_short_pairs_median": float(np.nanmedian(coh[short])) if short.any() else np.nan,
@@ -205,7 +206,8 @@ def readme(out: Path, desc, fits, chk):
          "## Masks", "",
          f"Open water at 10 m: summer-median σ0 VV < {VV_MAX_DB:.0f} dB **and** VH < {VH_MAX_DB:.0f} dB on both tracks "
          f"(RTC 10 m, May–September 2022–2024). A 40 m cell's water share = share of its 16 sub-cells. Masks: zone B; "
-         f"phaseDter's clean lake (X-063); cells ≥ {SHARE_MIXED:.0%} water; cells 100 % water.", "",
+         f"phaseDter's clean lake (X-063); cells ≥ {SHARE_MIXED:.0%} water; cells 100 % water — anywhere in the scene, so a pond outside zone B "
+         f"counts (`n_px_in_zone_B`).", "",
          md(d), "",
          "`median_valid_px_per_pair`: mask pixels with an unwrapped phase in a typical pair. `coh_floor_gt96d_median`: "
          "coherence of pairs longer than 96 days, where every surface here has decorrelated — the estimator's floor in "
