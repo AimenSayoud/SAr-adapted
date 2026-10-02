@@ -169,8 +169,9 @@ def test_atlas_writer_manifest_and_grid_guard(tmp_path):
 
 
 def test_zone_medians_of_every_dated_stack_and_annotate_checks_references(tmp_path):
-    """C-049: with zone masks set, a dated stack carries its per-zone medians (NaN-aware); a month stack does not;
-    annotate() writes the inspect block and refuses a companion that does not exist."""
+    """C-049, C-051: with zone masks set, dated and month stacks carry their per-zone medians and 25/75 % quantiles
+    (NaN-aware); every non-category layer gets its per-zone distribution (21 quantiles, of each pixel's mean over
+    time for a stack); annotate() writes the inspect block and refuses a companion that does not exist."""
     import pytest
 
     from insar_wetlands.web_export import AtlasWriter
@@ -181,7 +182,11 @@ def test_zone_medians_of_every_dated_stack_and_annotate_checks_references(tmp_pa
     W.raster("s", a, title="s", group="g", status="derived", times=["2020-01-01", "2020-01-07"])
     W.raster("m", a, title="m", group="g", status="derived", times=["Jan", "Feb"], time_label="month")
     assert W.zone_medians["s"]["A"] == [2.0, 4.0] and W.zone_medians["s"]["B"] == [None, None]
-    assert "m" not in W.zone_medians
+    assert W.zone_medians["m"]["dates"] == ["Jan", "Feb"] and W.zone_medians["m"]["A"] == [2.0, 4.0]
+    assert W.zone_medians["s"]["q25"]["A"] == [1.5, 4.0] and W.zone_medians["s"]["q75"]["A"] == [2.5, 4.0]
+    d = W.zone_dist["s"]
+    assert d["stat"] == "mean over time" and len(d["A"]) == 21 and d["A"][0] == 1.0 and d["A"][-1] == 3.5   # pixel means 1, 3.5
+    assert d["B"] == [None] * 21
     W.annotate(lambda lyr, ids: {"panel": "compare", "family": "g", "companions": ["m"]} if lyr["id"] == "s" else None)
     assert W.layers[0]["inspect"]["companions"] == ["m"] and "inspect" not in W.layers[1]
     with pytest.raises(ValueError, match="missing layer"):

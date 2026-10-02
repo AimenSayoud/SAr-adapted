@@ -822,17 +822,33 @@ def p6_laser_reference(hub: Path, times: pd.DatetimeIndex) -> dict | None:
 INSPECT_ALWAYS = ["fusion2_height_R1", "rtc_gamma0_vv_db", "ndwi_stack", "pairs_corr_ascending"]   # the motion model leads
 
 
+SEASONS = ("DJF", "MAM", "JJA", "SON")
+# category rasters whose inspector compares the pixel's class with the others (class_medians chart)
+CLASS_RASTERS = ["zones", "worldcover", "behaviour_classes", "fusion_zones"]
+CLASS_METRICS = ["coh_mean_ascending", "coh_mean_descending", "rtc_gamma0_vv_db_mean", "ndwi_mean", "flooded_fraction"]
+# reference values drawn on a raster's zone distributions (the thresholds the project uses)
+THRESHOLDS = [
+    (r"tcoh_evd|mintpy_temporalCoherence", [{"value": 0.7, "label": "usable (γ_t ≥ 0.7)"}, {"value": 0.55, "label": "noise floor"}]),
+    (r"coh_mean_(ascending|descending)|coh_(DJF|MAM|JJA|SON)_(ascending|descending)|qi_coh_.*",
+     [{"value": 0.3, "label": "below: phase mostly noise"}]),
+    (r"(rtc5_(ascending|descending)_)?amplitude_dispersion", [{"value": 0.25, "label": "PS candidates below"}]),
+    (r"coh_.*asc_minus_desc|field_.*_r(_sig)?_(ascending|descending)|field_wet_penalty_.*|.*trend_mm_yr|.*velocity|.*vertical_rate",
+     [{"value": 0.0, "label": "zero"}]),
+]
+
+
 def related_of(lid: str, ids: set) -> list[str]:
     """The charts that explain a layer when it is the one on top (C-051): the series a summary raster was made from,
     the stack a mean was taken over, the pairs a coherence map averages. At most two, existing ids only."""
     tr = re.search(r"(ascending|descending)", lid)
     t = tr.group(1) if tr else "ascending"
     rules = [
-        (r"fit_(evd|isbas|hybrid|sbas)_.*", lambda m: [f"ts_{m.group(1)}"]),
+        (r"fit_(evd|isbas|hybrid|sbas)_.*", lambda m: ["pairs_corr_ascending"]),     # the series is in the fit panel
         (r"evd_velocity|tcoh_evd|tcoh_usable", lambda m: ["ts_evd", "pairs_corr_ascending"]),
         (r"isbas_.*", lambda m: ["ts_isbas"]),
         (r"mintpy_.*|phase04b_.*", lambda m: ["ts_sbas", "pairs_corr_ascending"]),
         (r"ts_(evd|isbas|hybrid|sbas)", lambda m: ["fusion2_height_R1", "pairs_corr_ascending"]),
+        (r"coh_(DJF|MAM|JJA|SON)_.*", lambda m: [f"pairs_corr_{t}"]),
         (r"coh_.*|qi_.*|closure_error|field_wet_penalty_.*|field_boardwalk_share", lambda m: [f"pairs_corr_{t}"]),
         (r"field_coh_dwtd_r.*", lambda m: [f"pairs_corr_{t}"]),
         (r"rtc_(gamma0_v[vh]_db|ratio_vh_vv_db)_mean", lambda m: [f"rtc_{m.group(1)}", "ndwi_stack"]),
@@ -870,7 +886,8 @@ def inspect_spec(layer: dict, ids: set) -> dict | None:
     if sp is None:
         return None
     rel = related_of(lid, ids)
-    return {**sp, **({"related": rel} if rel else {})}
+    th = next((v for pat, v in THRESHOLDS if re.fullmatch(pat, lid)), None) if kind == "raster" else None
+    return {**sp, **({"related": rel} if rel else {}), **({"thresholds": th} if th else {})}
 
 
 def _inspect_spec(layer: dict, ids: set) -> dict | None:
@@ -878,7 +895,34 @@ def _inspect_spec(layer: dict, ids: set) -> dict | None:
     m = re.fullmatch(r"pairs_corr_(ascending|descending)", lid)
     if m:
         return {"panel": "coherence12", "family": "radar-quality", "priority": 1, "zone_median": True, "track": m.group(1),
+                **({"source": {"chart": "field_arcs", "flag": "frozen_any", "track": m.group(1)}} if "field_arcs" in ids else {}),
                 "note": "one dot per 12-day interferogram, at its midpoint"}
+    m = re.fullmatch(r"fit_(evd|isbas|hybrid|sbas)_(amplitude_mm|phase_doy|r2_seasonal|trend_mm_yr)", lid)
+    if m and f"ts_{m.group(1)}" in ids:
+        e = m.group(1)
+        return {"panel": "fit", "family": "per-pixel-seasonal-fit", "priority": 0,
+                "source": {"stack": f"ts_{e}", "amplitude": f"fit_{e}_amplitude_mm", "phase": f"fit_{e}_phase_doy",
+                           "trend": f"fit_{e}_trend_mm_yr", "r2": f"fit_{e}_r2_seasonal"},
+                "note": "y = c + d·t + A·cos(2π(t − peak)): the four maps at this pixel, c from the series"}
+    m = re.fullmatch(r"coh_(DJF|MAM|JJA|SON)_(ascending|descending|asc_minus_desc)", lid)
+    if m:
+        comp = [f"coh_{se}_{tr}" for tr in ("ascending", "descending") for se in SEASONS if f"coh_{se}_{tr}" in ids]
+        return {"panel": "seasons", "family": "diurnal-dusk-vs-dawn", "priority": 0, "companions": comp,
+                "season": m.group(1), "note": "mean coherence of each season's pairs, dusk and dawn"}
+    m = re.fullmatch(r"field_coh_month_(ascending|descending)", lid)
+    if m:
+        other = f"field_coh_month_{'descending' if m.group(1) == 'ascending' else 'ascending'}"
+        return {"panel": "months", "family": "field-data", "priority": 0, "zone_median": True, "track": m.group(1),
+                "companions": [other] if other in ids else [], "note": "short pairs (≤ 24 d), frozen dates out, 2020–2024"}
+    m = re.fullmatch(r"field_wet_penalty_(ascending|descending)", lid)
+    if m and f"pairs_corr_{m.group(1)}" in ids and "field_arcs" in ids:
+        return {"panel": "wetsplit", "family": "field-data", "priority": 0,
+                "source": {"stack": f"pairs_corr_{m.group(1)}", "chart": "field_arcs", "flag": "wet_any", "exclude": "frozen_any",
+                           "max_dt": 24, "track": m.group(1)},
+                "note": "raw coherence of the 2022–2024 pairs in the atlas — the map's penalty is season-cleaned over 2020–2024"}
+    if layer.get("categories") and lid in CLASS_RASTERS and "class_medians" in ids:
+        return {"panel": "class", "family": layer["group"].lower().replace(" ", "-"), "priority": 0,
+                "source": {"chart": "class_medians"}}
     dated = kind == "stack" and layer.get("time_label") == "date"
     m = re.fullmatch(r"fusion2_(height|range|sd)_(R\d)", lid)
     if m:
@@ -1637,6 +1681,11 @@ def main() -> None:
     if INSPECTOR_REFS:
         W.chart("inspector_refs", INSPECTOR_REFS, title="Reference series for the pixel inspector (P6 laser)", group="Charts",
                 status="field", description="Per layer: a pixel and a measured series the inspector overlays there (C-049).")
+    W.chart("class_medians", W.class_medians(CLASS_RASTERS, CLASS_METRICS), title="What each class looks like (medians per class)",
+            group="Charts", status="derived",
+            description="For the pixel inspector: per class of the zone, land-cover, behaviour-class and fusion-zone maps, "
+                        "its pixel count and the median mean coherence (both tracks), mean VV, mean NDWI and inundated "
+                        "fraction over its pixels (C-051).")
     W.chart("zone_dist", W.zone_dist, title="Per-zone distributions of every map layer", group="Charts", status="derived",
             description="For the pixel inspector: 21 quantiles (0, 5, …, 100 %) per zone of each layer's values (rasters) or "
                         "of each pixel's mean over time (stacks) — where a pixel ranks within its zone (C-051).")
