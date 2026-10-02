@@ -33,6 +33,7 @@ REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "src"))
 
 from insar_wetlands.bootstrap import start  # noqa: E402
+from insar_wetlands.inversion.isbas import PHASE_TO_MM, WAVELENGTH_M  # noqa: E402
 from insar_wetlands.web_export import (  # noqa: E402
     AtlasWriter,
     Provenance,
@@ -316,9 +317,20 @@ def add_field_p6(W, F10: Path, root: Path, hub: Path, P) -> None:
         "controls": recs(rd(F10 / "p6_controls_summary.csv").round(4)),
         "control_pixels": recs(rd(F10 / "p6_controls_pixels.csv").round(4)),
         "checks": {"extraction": recs(rd(F10 / "p6_check_extraction.csv")), "x048": recs(rd(F10 / "p6_check_x048.csv"))},
-        "params": {"quarter_wave_mm": 55.5465763 / 4, "noise_floor_mm": float(summ["noise_floor_mm"]),
+        "params": {"quarter_wave_mm": WAVELENGTH_M * 1000 / 4, "noise_floor_mm": float(summ["noise_floor_mm"]),
                    "incidence_deg": {"ascending": 32.26, "descending": 39.17}, "window_primary": "1x1"},
     }
+    # the inspector's interferogram view overlays, at P6, the laser's change in line of sight for the same pairs (X-059)
+    px = hub / "08_deliverables" / "field_first" / "plot_pixels.csv"
+    if px.exists():
+        pp = pd.read_csv(px).set_index("plot")
+        pr = rd(F10 / "p6_pairs.csv")
+        pr = pr[pr.window == "1x1"]
+        for track, g in pr.groupby("track"):
+            INSPECTOR_REFS[f"pairs_unw_{track}"] = {
+                "pixel": [int(pp.loc["P6", "row"]), int(pp.loc["P6", "col"])], "label": "laser at P6 (LOS)", "units": "mm",
+                "pairs": list(g.pair), "values": [None if pd.isna(v) else round(float(v), 3) for v in g.laser_dlos_mm],
+                "s1_dlos_mm": [None if pd.isna(v) else round(float(v), 3) for v in g.s1_dlos_mm]}
     W.chart("field_p6", data, title="P6/CR — the primary validation site (X-058, X-059)", group="Field data",
             status="exploratory", description="Laser verified (units, sign, 10° mount, gaps, filled stretches, "
                                                 "re-levellings), then laser ↔ WTD ↔ Sentinel-1 phase ↔ coherence between "
@@ -847,7 +859,10 @@ def related_of(lid: str, ids: set) -> list[str]:
         (r"evd_velocity|tcoh_evd|tcoh_usable", lambda m: ["ts_evd", "pairs_corr_ascending"]),
         (r"isbas_.*", lambda m: ["ts_isbas"]),
         (r"mintpy_.*|phase04b_.*", lambda m: ["ts_sbas", "pairs_corr_ascending"]),
-        (r"ts_(evd|isbas|hybrid|sbas)", lambda m: ["fusion2_height_R1", "pairs_corr_ascending"]),
+        (r"ts_(evd|isbas|hybrid|sbas)", lambda m: ["pairs_unw_ascending", "fusion2_height_R1"]),
+        (r"pairs_wrapped_(ascending|descending)", lambda m: [f"pairs_unw_{m.group(1)}", f"pairs_corr_{m.group(1)}"]),
+        (r"pairs_unw_(ascending|descending)", lambda m: [f"pairs_corr_{m.group(1)}"]),
+        (r"closure_error", lambda m: ["pairs_unw_ascending", "pairs_corr_ascending"]),
         (r"coh_(DJF|MAM|JJA|SON)_.*", lambda m: [f"pairs_corr_{t}"]),
         (r"coh_.*|qi_.*|closure_error|field_wet_penalty_.*|field_boardwalk_share", lambda m: [f"pairs_corr_{t}"]),
         (r"field_coh_dwtd_r.*", lambda m: [f"pairs_corr_{t}"]),
@@ -897,6 +912,17 @@ def _inspect_spec(layer: dict, ids: set) -> dict | None:
         return {"panel": "coherence12", "family": "radar-quality", "priority": 1, "zone_median": True, "track": m.group(1),
                 **({"source": {"chart": "field_arcs", "flag": "frozen_any", "track": m.group(1)}} if "field_arcs" in ids else {}),
                 "note": "one dot per 12-day interferogram, at its midpoint"}
+    m = re.fullmatch(r"pairs_unw_(ascending|descending)", lid)
+    if m:
+        t = m.group(1)
+        return {"panel": "pairs", "family": "interferogram", "priority": 0, "zone_median": True, "track": t,
+                "phase_to_mm": PHASE_TO_MM, "reference_zone": "C", "quarter_wave_mm": WAVELENGTH_M * 1000 / 4,
+                "companions": [c for c in (f"pairs_corr_{t}",) if c in ids],
+                **({"source": {"chart": "field_arcs", "flag": "frozen_any", "track": t}} if "field_arcs" in ids else {}),
+                **({"reference": {"chart": "inspector_refs", "key": lid}} if lid in INSPECTOR_REFS and "inspector_refs" in ids else {}),
+                "note": "each pair: this pixel minus the grassland (zone C) median of the same pair, in mm of line of sight (X-059)"}
+    if re.fullmatch(r"pairs_wrapped_(ascending|descending)", lid):
+        return {"panel": "value", "family": "interferogram", "priority": 5}
     m = re.fullmatch(r"fit_(evd|isbas|hybrid|sbas)_(amplitude_mm|phase_doy|r2_seasonal|trend_mm_yr)", lid)
     if m and f"ts_{m.group(1)}" in ids:
         e = m.group(1)
