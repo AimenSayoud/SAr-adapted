@@ -249,6 +249,9 @@ def add_fusion_v2(W, F: Path, hub: Path, P, gallery: list, gal: Path) -> None:
                      x=ds.x.values, y=ds.y.values,
                      description="Median over dates of the posterior SD of the height (per-pixel bound: conservative).")
         shared[key] = {"date": times, "mm": [round(float(v), 2) for v in ds.shared_motion_mm.values]}
+        ref = p6_laser_reference(hub, pd.DatetimeIndex(ds.time.values))
+        if ref is not None:
+            INSPECTOR_REFS[f"fusion2_height_{key}"] = {**ref, "dates": times, "label": "laser at P6", "units": "mm"}
     rd = lambda f: pd.read_csv(F / f)  # noqa: E731
     recs = lambda df: df.astype(object).where(pd.notna(df), None).to_dict("records")  # noqa: E731
     cl = rd("closure_triplets_2020_2021.csv")
@@ -699,6 +702,35 @@ def s2_basemaps(W: AtlasWriter, x: np.ndarray, y: np.ndarray) -> None:
         print(f"  {season}: {it.id} ({it.properties['eo:cloud_cover']:.2f} % cloud) {rgb.shape}")
 
 
+INSPECTOR_REFS: dict = {}     # layer id → reference series for the pixel inspector (filled by the exporters, C-049)
+
+
+def p6_laser_reference(hub: Path, times: pd.DatetimeIndex) -> dict | None:
+    """The P6 laser at each overpass time (nearest measured hour within ±1 h, snow-free, not an outlier, not gap-filled
+    — X-058; the 2025 snow mask from the calibrated reanalysis, X-066) with its laser segment (a filled stretch may hide
+    a re-levelling, so levels compare within a segment), for the pixel inspector to overlay at P6."""
+    qc = hub / "08_deliverables" / "field_p6" / "laser_qc"
+    px = hub / "08_deliverables" / "field_first" / "plot_pixels.csv"
+    if not (qc / "laser_flags.csv").exists() or not px.exists():
+        return None
+    fl = pd.read_csv(qc / "laser_flags.csv", parse_dates=["time_utc"]).set_index("time_utc")
+    s25 = hub / "08_deliverables" / "fusion_v2" / "flags_2025" / "laser_snow72_2025.csv"
+    if s25.exists():
+        o = pd.read_csv(s25, parse_dates=["time_utc"]).set_index("time_utc").snow_72h_open_meteo
+        hit = fl.index.isin(o.index)
+        fl.loc[hit, "snow_72h"] = o.reindex(fl.index[hit]).to_numpy()
+    ok = fl.surface_cm.notna() & ~fl.snow_72h.astype(bool) & ~fl.outlier & ~fl.filled
+    cuts = np.array(sorted(pd.to_datetime(pd.read_csv(qc / "interpolated.csv").start, utc=True)), dtype="datetime64[ns]")
+    vals, segs = [], []
+    for t in times.tz_localize("UTC") if times.tz is None else times:
+        i = fl.index.get_indexer([t], method="nearest")[0]
+        good = abs((fl.index[i] - t).total_seconds()) <= 3600 and bool(ok.iloc[i])
+        vals.append(round(float(fl.surface_cm.iloc[i]) * 10, 2) if good else None)
+        segs.append(int(np.searchsorted(cuts, np.datetime64(t.tz_convert(None)))))
+    p = pd.read_csv(px).set_index("plot")
+    return {"pixel": [int(p.loc["P6", "row"]), int(p.loc["P6", "col"])], "values": vals, "segments": segs}
+
+
 INSPECT_ALWAYS = ["fusion2_height_R1", "rtc_gamma0_vv_db", "ndwi_stack"]   # the current motion model leads
 
 
@@ -715,6 +747,7 @@ def inspect_spec(layer: dict, ids: set) -> dict | None:
             band = f"fusion2_sd_{m.group(2)}"
             return {"panel": "band", "family": "fusion-v2", "priority": 0, "zone_median": True,
                     **({"band": band} if band in ids else {}),
+                    **({"reference": {"chart": "inspector_refs", "key": lid}} if lid in INSPECTOR_REFS and "inspector_refs" in ids else {}),
                     "note": "± posterior SD (per-pixel bound, conservative)"}
         return {"panel": "value", "family": "fusion-v2", "priority": 5}
     if lid == "fusion_fused_ascending":
@@ -724,6 +757,12 @@ def inspect_spec(layer: dict, ids: set) -> dict | None:
     if lid.startswith("fusion_"):
         return {"panel": "value" if not dated else "series", "family": "fusion-v1", "priority": 5,
                 **({"companion_of": "fusion_fused_ascending"} if lid == "fusion_radar_only_ascending" else {})}
+    m = re.fullmatch(r"field_coh_dwtd_r(?:_sig)?_(ascending|descending)", lid)
+    if m and f"pairs_corr_{m.group(1)}" in ids and "field_arcs" in ids:
+        return {"panel": "scatter", "family": "field-x053", "priority": 2,
+                "source": {"stack": f"pairs_corr_{m.group(1)}", "chart": "field_arcs", "x": "dwtd_median_cm", "abs": True,
+                           "max_dt": 24, "exclude": "frozen_any", "track": m.group(1)},
+                "note": "raw coherence of the 2022–2024 pairs in the atlas — the map's r is season-cleaned over 2020–2024"}
     m = re.fullmatch(r"rtc5_(ascending|descending)_(gamma0_v[vh]_db)", lid)
     if m:
         other = f"rtc5_{'descending' if m.group(1) == 'ascending' else 'ascending'}_{m.group(2)}"
@@ -1444,6 +1483,9 @@ def main() -> None:
     write_json(out / "checks.json", CHECKS, indent=1)
     W.chart("zone_medians", W.zone_medians, title="Per-zone medians of every dated stack", group="Charts", status="derived",
             description="For the pixel inspector: the median of zones A–D at each date of every dated stack (C-049).")
+    if INSPECTOR_REFS:
+        W.chart("inspector_refs", INSPECTOR_REFS, title="Reference series for the pixel inspector (P6 laser)", group="Charts",
+                status="field", description="Per layer: a pixel and a measured series the inspector overlays there (C-049).")
     W.annotate(inspect_spec)
     W.meta["inspector_always"] = [i for i in INSPECT_ALWAYS if any(lyr["id"] == i for lyr in W.layers)]
     W.write_manifest(title="Rzecin InSAR atlas", git_sha=git_sha(REPO),

@@ -513,7 +513,10 @@ class AtlasWriter:
             sp = spec(lyr, ids)
             if not sp:
                 continue
-            for ref in [*sp.get("companions", []), *([sp["band"]] if sp.get("band") else [])]:
+            refs = [*sp.get("companions", []), *([sp["band"]] if sp.get("band") else []),
+                    *([sp["source"]["stack"], sp["source"]["chart"]] if sp.get("source") else []),
+                    *([sp["reference"]["chart"]] if sp.get("reference") else [])]
+            for ref in refs:
                 if ref not in ids:
                     raise ValueError(f"{lyr['id']}: inspect refers to missing layer {ref!r}")
             lyr["inspect"] = sp
