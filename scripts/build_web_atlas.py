@@ -368,6 +368,83 @@ def add_backscatter_x063(W, hub: Path, P) -> None:
         prov=P(F / "zone_backscatter_series.csv", F / "zone_backscatter_summary.csv", root=hub))
 
 
+def add_followups(W, hub: Path, P, gallery: list, gal: Path) -> None:
+    """The supervisor's 28 Sep follow-ups and the NISAR check: X-060 (the boardwalk, P6's extraction windows), X-061
+    (mat plots P6–P9 vs reference plots P1–P5), X-064 (the lake with a pure open-water mask), X-068 (NISAR L-band).
+    One chart file each, the boardwalk outline as a vector, two 40 m layers, their figures. Reads the hub; holds nothing."""
+    import rasterio
+    from pyproj import Transformer
+    from rasterio.features import shapes
+    from shapely.geometry import mapping, shape
+    from shapely.ops import transform, unary_union
+    D = hub / "08_deliverables"
+    B, PL, L, N = D / "field_boardwalk_x060", D / "field_plots_x061", D / "lake_x064", D / "nisar_x068"
+    recs = lambda df: df.round(5).astype(object).where(pd.notna(df), None).to_dict("records")  # noqa: E731
+    shape40 = (len(W.y), len(W.x))
+    print("\n== follow-ups: boardwalk, plot roles, open-water lake, NISAR (X-060, X-061, X-064, X-068)")
+    if (B / "p6_windows.csv").exists():
+        cells = pd.read_csv(B / "boardwalk_cells.csv")
+        pxy = pd.read_csv(D / "field_first" / "plot_pixels.csv")
+        plot_share = [{"plot": r.plot, **{f"share_{res}m": float(cells[(cells.res_m == res) & ((cells.E - r.E).abs() <= res / 2)
+                                                                       & ((cells.N - r.N).abs() <= res / 2)].boardwalk_share.max())
+                                          if len(cells[(cells.res_m == res) & ((cells.E - r.E).abs() <= res / 2) & ((cells.N - r.N).abs() <= res / 2)])
+                                          else 0.0 for res in (40, 20, 10)}} for r in pxy.itertuples()]
+        W.chart("field_boardwalk", {"cells": recs(cells), "plot_share": plot_share, "tests": recs(pd.read_csv(B / "boardwalk_tests_summary.csv")),
+                                    "cell_tests": recs(pd.read_csv(B / "boardwalk_cell_tests.csv")),
+                                    "windows": recs(pd.read_csv(B / "p6_windows.csv")),
+                                    "plots": recs(pd.read_csv(D / "field_first" / "plot_pixels.csv")[["plot", "row", "col"]])},
+                title="The boardwalk on the radar grids, and P6's extraction windows (X-060)", group="Field data",
+                status="exploratory", prov=P(B / "boardwalk_cells.csv", B / "p6_windows.csv", root=hub),
+                description="Boardwalk share of every 40/20/10 m cell; boardwalk cells against their row neighbours "
+                            "(coherence, phase scatter, VV/VH at 40 m and 10 m); X-059's statistics for every window around P6.")
+        c40 = cells[cells.res_m == 40]
+        share = np.full(shape40, np.nan)
+        share[c40.row.to_numpy(), c40.col.to_numpy()] = c40.boardwalk_share.to_numpy() * 100
+        W.raster("field_boardwalk_share", share, title="Boardwalk share of each 40 m cell (X-060)", group="Field data",
+                 status="derived", units="%", colormap="YlOrRd", display=(0, 10),
+                 prov=P(B / "boardwalk_cells.csv", root=hub),
+                 description="Share of the 40 m radar cell covered by the boardwalk (walkway and platforms) traced on the "
+                             "national orthophoto. Empty = no boardwalk. Every plot's cell holds some; P6's holds its platform.")
+        with rasterio.open(B / "boardwalk_mask.tif") as src:
+            m = src.read(1)
+            polys = [shape(g) for g, v in shapes(m, mask=m > 0, transform=src.transform) if v > 0]
+        to_ll = Transformer.from_crs("EPSG:32633", "EPSG:4326", always_xy=True).transform
+        geom = unary_union(polys).simplify(0.3)
+        parts = list(geom.geoms) if hasattr(geom, "geoms") else [geom]
+        feats = [{"type": "Feature", "properties": {"name": "boardwalk", "color": "#f97316", "area_m2": round(g.area, 1)},
+                  "geometry": mapping(transform(to_ll, g))} for g in parts if g.area >= 0.5]
+        W.vector("field_boardwalk_outline", {"type": "FeatureCollection", "features": feats}, title="Boardwalk (traced, X-060)",
+                 group="Field data", status="derived", prov=P(B / "boardwalk_mask.tif", root=hub),
+                 description="Walkway and platforms traced automatically on the GUGiK orthophoto (~0.25 m): light-grey "
+                             "pixels, a centreline through them, the structures within 20 m of a plot. Not a survey.")
+    if (PL / "plots_stats.csv").exists():
+        W.chart("field_plot_roles", {"stats": recs(pd.read_csv(PL / "plots_stats.csv")), "groups": recs(pd.read_csv(PL / "plots_groups.csv"))},
+                title="Mat plots P6–P9 vs reference plots P1–P5 (X-061)", group="Field data", status="exploratory",
+                prov=P(PL / "plots_stats.csv", root=hub),
+                description="Per plot, track and period (2020–2021, 2022–2024), consecutive pairs: phase vs ΔWTD, coherence "
+                            "vs |ΔWTD|; plot cell and boardwalk-free cells; group medians.")
+    if (L / "seasonal_fits.csv").exists():
+        W.chart("lake_open_water", {"masks": recs(pd.read_csv(L / "masks_summary.csv")), "fits": recs(pd.read_csv(L / "seasonal_fits.csv"))},
+                title="The lake control with a pure open-water mask (X-064)", group="Charts", status="exploratory",
+                prov=P(L / "masks_summary.csv", L / "seasonal_fits.csv", root=hub))
+        ow = np.load(L / "open_water_share_40m.npy") * 100
+        W.raster("lake_open_water_share", np.where(ow > 0, ow, np.nan), title="Open-water share of each 40 m cell (10 m RTC, X-064)",
+                 group="Hydrology & optical", status="derived", units="%", colormap="Blues", display=(0, 100),
+                 prov=P(L / "open_water_share_40m.npy", root=hub),
+                 description="Share of the cell's sixteen 10 m sub-cells that are open water: summer-median σ⁰ VV < −15 dB and "
+                             "VH < −20 dB on both tracks (RTC 10 m, May–September 2022–2024). 100 % = pure open water.")
+    if (N / "nisar_pairs.csv").exists():
+        W.chart("nisar_x068", {"pairs": recs(pd.read_csv(N / "nisar_pairs.csv")),
+                               "sentinel1": recs(pd.read_csv(N / "sentinel1_same_weeks.csv")),
+                               "summary": json.loads((N / "summary.json").read_text())},
+                title="NISAR L-band vs Sentinel-1 C-band, Oct 2025 – Jan 2026 (X-068)", group="Charts", status="exploratory",
+                prov=P(N / "nisar_pairs.csv", N / "sentinel1_same_weeks.csv", root=hub))
+    for folder, tag in ((B, "field_boardwalk"), (PL, "field_plots"), (L, "lake_x064"), (N, "nisar_x068")):
+        for f in sorted(folder.glob("*.png")) if folder.exists() else []:
+            shutil.copy2(f, gal / f"{tag}_{f.name}")
+            gallery.append({"file": f"figures/{tag}_{f.name}", "source": f"08_deliverables/{folder.name}", "status": "exploratory"})
+
+
 def add_field(W, gallery: list, gal: Path, template, P, drive: Path | None = None) -> None:
     """Field data (unpublished) → atlas layers, when the research hub's 06_data/field and the
     field deliverables are present next to this repository. Reads them; holds none of them."""
@@ -605,7 +682,8 @@ def add_field(W, gallery: list, gal: Path, template, P, drive: Path | None = Non
                 prov=P(F9 / "events.csv", F9 / "epoch_response.csv", root=hub))
     # The supervisor's first deliverable, whole, and every field table as a download (local site).
     files = []
-    for folder in (F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F10 / "laser_qc"):
+    extra = [hub / "08_deliverables" / n for n in ("field_boardwalk_x060", "field_plots_x061", "lake_x064", "nisar_x068")]
+    for folder in (F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F10 / "laser_qc", *extra):
         if not folder.exists():
             continue
         for f in sorted(folder.iterdir()):
@@ -1464,6 +1542,7 @@ def main() -> None:
     add_fusion(W, hub_root / "08_deliverables" / "field_fusion_x062", hub_root, P, gallery, gal)
     add_fusion_v2(W, hub_root / "08_deliverables" / "fusion_v2", hub_root, P, gallery, gal)
     add_backscatter_x063(W, hub_root, P)
+    add_followups(W, hub_root, P, gallery, gal)
     W.chart("gallery", gallery, title="Figure gallery", group="Figures", status="core")
 
     for spec in a.attach:
