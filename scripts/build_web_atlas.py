@@ -380,13 +380,29 @@ def add_backscatter_x063(W, hub: Path, P) -> None:
         prov=P(F / "zone_backscatter_series.csv", F / "zone_backscatter_summary.csv", root=hub))
 
 
+# The site speaks for the project, not about who asked for what: ticket titles are shown with neutral wording (the
+# ledger keeps its own). Plain substitutions, listed so they can be read.
+SITE_WORDING = [(r"the supervisor noted", "noted in review"), (r"per supervisor-review milestone", "per review milestone"),
+                (r"(?i)\bthe supervisor's\b", "the"), (r"(?i)\bsupervisor\b", "review")]
+
+
+def site_wording(text):
+    if not isinstance(text, str):
+        return text
+    for pat, rep in SITE_WORDING:
+        text = re.sub(pat, rep, text)
+    return text
+
+
 def add_claims_and_revisit(W, hub: Path, P) -> None:
     """C-051 phase 6: the synthesis's graded claims and test tally (Results page), and X-065 — phase vs laser at P6 by
     revisit, with the independent year (P6 page). Reads the hub's deliverables; holds nothing."""
     recs = lambda df: df.astype(object).where(pd.notna(df), None).to_dict("records")  # noqa: E731
     S = hub / "08_deliverables" / "synthesis"
     if (S / "claims.csv").exists():
-        W.chart("synthesis_claims", {"claims": recs(pd.read_csv(S / "claims.csv")),
+        cl = pd.read_csv(S / "claims.csv")
+        cl["claim"] = cl.claim.str.replace(r"\s*\(H[1-4]\)", "", regex=True)   # topics, not hypothesis codes, on the site
+        W.chart("synthesis_claims", {"claims": recs(cl),
                                      "tally": recs(pd.read_csv(S / "test_tally.csv")) if (S / "test_tally.csv").exists() else []},
                 title="How strong is each claim (synthesis)", group="Charts", status="derived",
                 description="The synthesis's graded claims (robust / supported / fragile / not supported) with their main "
@@ -405,7 +421,7 @@ def add_claims_and_revisit(W, hub: Path, P) -> None:
 
 
 def add_followups(W, hub: Path, P, gallery: list, gal: Path) -> None:
-    """The supervisor's 28 Sep follow-ups and the NISAR check: X-060 (the boardwalk, P6's extraction windows), X-061
+    """The 28 Sep follow-ups and the NISAR check: X-060 (the boardwalk, P6's extraction windows), X-061
     (mat plots P6–P9 vs reference plots P1–P5), X-064 (the lake with a pure open-water mask), X-068 (NISAR L-band).
     One chart file each, the boardwalk outline as a vector, two 40 m layers, their figures. Reads the hub; holds nothing."""
     import rasterio
@@ -726,7 +742,7 @@ def add_field(W, gallery: list, gal: Path, template, P, drive: Path | None = Non
                                         "and laser surface from 2 days before to 10 days after; radar pairs spanning "
                                         "an event against shifted event dates.",
                 prov=P(F9 / "events.csv", F9 / "epoch_response.csv", root=hub))
-    # The supervisor's first deliverable, whole, and every field table as a download (local site).
+    # The first field deliverable, whole, and every field table as a download (local site).
     files = []
     extra = [hub / "08_deliverables" / n for n in ("field_boardwalk_x060", "field_plots_x061", "lake_x064", "nisar_x068", "nisar_x069", "closure_x070")]
     for folder in (F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F10 / "laser_qc", *extra):
@@ -745,7 +761,7 @@ def add_field(W, gallery: list, gal: Path, template, P, drive: Path | None = Non
         "acquisitions": acq.astype(object).to_dict("records"),
         "laser_coverage": pd.read_csv(F1 / "laser_coverage.csv").to_dict("records"),
         "temporal_coherence": pd.read_csv(F1 / "s1_plot_temporal_coherence.csv").to_dict("records"),
-        "files": files}, title="First deliverable for the supervisor, and field downloads", group="Field data",
+        "files": files}, title="First field deliverable, and field downloads", group="Field data",
         status="field", prov=P(F1 / "s1_acquisitions.csv", F1 / "laser_coverage.csv", root=hub))
     ext = pd.read_csv(F1 / "s1_plot_by_date.csv")
     W.chart("field_extraction", ext.round(5), title="Plot-level Sentinel-1 extraction (all windows)", group="Field data",
@@ -1010,7 +1026,7 @@ def _inspect_spec(layer: dict, ids: set) -> dict | None:
         return {"panel": "value", "family": "backscatter-2020-2024", "priority": 5}
     if lid in ("ts_isbas", "ts_evd", "ts_hybrid", "ts_sbas"):
         return {"panel": "series", "family": "per-pixel-inversion-h1", "priority": 9, "zone_median": True, "folded": True,
-                "note": "H1 evidence: noise, not movement"}
+                "note": "evidence that per-pixel inversion fails: noise, not movement"}
     if dated:
         return {"panel": "series", "family": layer["group"].lower().replace(" ", "-"), "priority": 3, "zone_median": True}
     if kind == "raster":
@@ -1214,7 +1230,7 @@ def main() -> None:
     # ------------------------------------------------------- estimators (H1)
     print("\n== per-pixel estimators (H1)")
     W.raster("evd_velocity", on_grid(e2["velocity_mm_yr"], "v").astype(float),
-             title="EVD velocity", group="Per-pixel estimators (H1)", status="failed-estimator",
+             title="EVD velocity", group="Per-pixel estimators", status="failed-estimator",
              units="mm/yr", colormap="RdBu_r", symmetric=True,
              description="A velocity fitted to a periodic signal is ~0 by construction; shown "
                          "because it is what a standard map would publish.",
@@ -1226,10 +1242,10 @@ def main() -> None:
     stacks["isbas"] = (on_grid(isb["los_displacement_mm"], "isbas").astype(float), to_dates(isb),
                        "ts_isbas_ref_only.nc", "LOS mm")
     W.raster("isbas_rms", on_grid(isb["rms_residual_rad"], "rms").astype(float),
-             title="ISBAS RMS residual", group="Per-pixel estimators (H1)",
+             title="ISBAS RMS residual", group="Per-pixel estimators",
              status="failed-estimator", units="rad", colormap="magma", prov=P(D / "ts_isbas_ref_only.nc"))
     W.raster("isbas_nvalid", on_grid(isb["n_valid_pairs"], "nv").astype(float),
-             title="ISBAS valid pairs per pixel", group="Per-pixel estimators (H1)",
+             title="ISBAS valid pairs per pixel", group="Per-pixel estimators",
              status="failed-estimator", units="pairs", colormap="cividis", prov=P(D / "ts_isbas_ref_only.nc"))
 
     # hybrid: two files that look alike — decide which is which, don't guess
@@ -1277,7 +1293,7 @@ def main() -> None:
             if fn == "velocity.h5":
                 arr = arr * 1000.0
                 u = "mm/yr"
-            W.raster(f"mintpy_{Path(fn).stem}", arr, title=t, group="Per-pixel estimators (H1)",
+            W.raster(f"mintpy_{Path(fn).stem}", arr, title=t, group="Per-pixel estimators",
                      status="failed-estimator", units=u, colormap=cmap,
                      symmetric=(cmap == "RdBu_r"), prov=P(mp / fn),
                      description="MintPy SBAS (phase08), reference-only network. "
@@ -1299,7 +1315,7 @@ def main() -> None:
             arr = ds[v]
             if "x" in arr.dims and np.allclose(arr.x.values, x) and np.allclose(arr.y.values, y):
                 W.raster(f"phase04b_{name}", arr.values.astype(float).squeeze(), title=t,
-                         group="Per-pixel estimators (H1)", status="failed-estimator",
+                         group="Per-pixel estimators", status="failed-estimator",
                          units=str(ds[v].attrs.get("units", "mm/yr")), colormap="RdBu_r", symmetric=True,
                          description="From branch outputs/phase04b (July 2026 vintage).")
             else:
@@ -1314,11 +1330,11 @@ def main() -> None:
                  "hybrid_results": "Hybrid inversion results (phaseA/04b)",
                  "sbas": "MintPy SBAS displacement"}[key]
         src = D / fn
-        W.raster(f"ts_{key}", arr, title=title + " — time series", group="Per-pixel estimators (H1)",
+        W.raster(f"ts_{key}", arr, title=title + " — time series", group="Per-pixel estimators",
                  status="failed-estimator", units=units, colormap="RdBu_r", symmetric=True,
                  times=dates, prov=P(src),
                  description="Per-pixel inversion. Scrub the time slider: the fields are "
-                             "dominated by per-pixel noise (H1).")
+                             "dominated by per-pixel noise.")
         if key in ("evd", "isbas", "hybrid"):
             fit = seasonal_fit_stack(arr, dates, min_obs=20)
             for f, u, cmap, sym in (("amplitude_mm", "mm", "magma", False),
@@ -1673,8 +1689,10 @@ def main() -> None:
                 fm = yaml.safe_load(mt.group(1))
             except Exception:                               # noqa: BLE001
                 continue
-            tickets.append({k: fm.get(k) for k in ("id", "title", "status", "priority", "progress", "start",
-                                                   "due", "work_chain", "tags", "dependencies", "sha")})
+            t = {k: fm.get(k) for k in ("id", "title", "status", "priority", "progress", "start",
+                                        "due", "work_chain", "tags", "dependencies", "sha")}
+            t["title"] = site_wording(t.get("title"))
+            tickets.append(t)
     W.chart("tickets", tickets, title="Ledger tickets", group="Pipeline", status="pipeline")
 
     # ------------------------------------------------------------ figure gallery
