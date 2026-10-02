@@ -1472,6 +1472,16 @@ def main() -> None:
                   for f in sorted(ref.glob("*.csv")) if f.stat().st_size < 20000}
     W.chart("robustness_tables", ref_tables, title="Robustness tables (K*, L*, X*)", group="Charts",
             status="supporting")
+    # One sentence per table, from the hub's data catalog (where every dataset is described once).
+    cat_path = REPO.parents[1] / "06_data" / "catalog.yaml"
+    if cat_path.exists():
+        cat = yaml.safe_load(cat_path.read_text())
+        cat = cat.get("datasets", cat)
+        titles = {k.rsplit("/", 1)[-1][:-4]: v.get("title") for k, v in cat.items()
+                  if isinstance(v, dict) and k.startswith("repo:results/") and k.endswith(".csv") and v.get("title")}
+        W.chart("table_titles", {k: t for k, t in titles.items() if k in tables or k in ref_tables},
+                title="One-line description of each results and robustness table", group="Charts", status="core",
+                description="From the hub's data catalog (06_data/catalog.yaml).")
     pm = REPO / "outputs/phaseM_mechanical_vs_dielectric/mechanical_vs_dielectric_summary.csv"
     if pm.exists():
         W.chart("phaseM_summary", pd.read_csv(pm), title="phaseM mechanical vs dielectric (exploratory)",
