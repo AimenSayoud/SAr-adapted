@@ -374,6 +374,9 @@ class AtlasWriter:
         self.corners = grid_corners_lonlat(self.x, self.y, crs)
         self.layers: list[dict] = []
         self.meta: dict = {}
+        # zone masks (name → bool (y, x)); when set, every dated stack gets its per-zone medians (zone_medians chart)
+        self.zone_masks: dict | None = None
+        self.zone_medians: dict = {}
 
     def _check_grid(self, x, y):
         if x is None:
@@ -437,6 +440,12 @@ class AtlasWriter:
         if a.ndim == 3:
             entry["times"] = [str(t) for t in times]
             entry["time_label"] = time_label
+            if self.zone_masks and time_label == "date":
+                self.zone_medians[lid] = {"dates": entry["times"], "units": units, **{
+                    z: [None if not np.isfinite(v) else round(float(v), 4)
+                        for v in (np.nanmedian(np.where(m[None], a, np.nan).reshape(a.shape[0], -1), axis=1)
+                                  if m.any() else np.full(a.shape[0], np.nan))]
+                    for z, m in self.zone_masks.items()}}
         if extra:
             entry.update(extra)
         self.layers.append(entry)
@@ -495,6 +504,19 @@ class AtlasWriter:
             entry.update(extra)
         self.layers.append(entry)
         return entry
+
+    def annotate(self, spec) -> None:
+        """Set each layer's optional ``inspect`` block (what the pixel inspector shows for it) from ``spec(layer,
+        ids)`` → dict or None. Companion and band ids must exist: a missing one is an error, not a silent gap."""
+        ids = {lyr["id"] for lyr in self.layers}
+        for lyr in self.layers:
+            sp = spec(lyr, ids)
+            if not sp:
+                continue
+            for ref in [*sp.get("companions", []), *([sp["band"]] if sp.get("band") else [])]:
+                if ref not in ids:
+                    raise ValueError(f"{lyr['id']}: inspect refers to missing layer {ref!r}")
+            lyr["inspect"] = sp
 
     def write_manifest(self, **meta) -> Path:
         self.meta.update(meta)

@@ -699,6 +699,49 @@ def s2_basemaps(W: AtlasWriter, x: np.ndarray, y: np.ndarray) -> None:
         print(f"  {season}: {it.id} ({it.properties['eo:cloud_cover']:.2f} % cloud) {rgb.shape}")
 
 
+INSPECT_ALWAYS = ["fusion2_height_R1", "rtc_gamma0_vv_db", "ndwi_stack"]   # the current motion model leads
+
+
+def inspect_spec(layer: dict, ids: set) -> dict | None:
+    """What the pixel inspector shows for a layer (C-049). One place for every family; the site's registry renders
+    it. panel: series (pixel + zone median) · band (series ± a companion SD) · compare (two series) · value."""
+    lid, kind = layer["id"], layer["kind"]
+    if kind not in ("raster", "stack"):
+        return None
+    dated = kind == "stack" and layer.get("time_label") == "date"
+    m = re.fullmatch(r"fusion2_(height|range|sd)_(R\d)", lid)
+    if m:
+        if m.group(1) == "height":
+            band = f"fusion2_sd_{m.group(2)}"
+            return {"panel": "band", "family": "fusion-v2", "priority": 0, "zone_median": True,
+                    **({"band": band} if band in ids else {}),
+                    "note": "± posterior SD (per-pixel bound, conservative)"}
+        return {"panel": "value", "family": "fusion-v2", "priority": 5}
+    if lid == "fusion_fused_ascending":
+        comp = ["fusion_radar_only_ascending"] if "fusion_radar_only_ascending" in ids else []
+        return {"panel": "compare", "family": "fusion-v1", "priority": 0, "companions": comp,
+                "note": "fused vs the calibrated radar chain alone"}
+    if lid.startswith("fusion_"):
+        return {"panel": "value" if not dated else "series", "family": "fusion-v1", "priority": 5,
+                **({"companion_of": "fusion_fused_ascending"} if lid == "fusion_radar_only_ascending" else {})}
+    m = re.fullmatch(r"rtc5_(ascending|descending)_(gamma0_v[vh]_db)", lid)
+    if m:
+        other = f"rtc5_{'descending' if m.group(1) == 'ascending' else 'ascending'}_{m.group(2)}"
+        return {"panel": "compare", "family": "backscatter-2020-2024", "priority": 0 if m.group(1) == "ascending" else 1,
+                "zone_median": True, "companions": [other] if other in ids else [],
+                "note": "dusk vs dawn — compare shapes, not levels (different incidence)"}
+    if lid.startswith("rtc5_"):
+        return {"panel": "value", "family": "backscatter-2020-2024", "priority": 5}
+    if lid in ("ts_isbas", "ts_evd", "ts_hybrid", "ts_sbas"):
+        return {"panel": "series", "family": "per-pixel-inversion-h1", "priority": 9, "zone_median": True, "folded": True,
+                "note": "H1 evidence: noise, not movement"}
+    if dated:
+        return {"panel": "series", "family": layer["group"].lower().replace(" ", "-"), "priority": 3, "zone_median": True}
+    if kind == "raster":
+        return {"panel": "value", "family": layer["group"].lower().replace(" ", "-"), "priority": 5}
+    return None
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", required=True)
@@ -738,6 +781,7 @@ def main() -> None:
     # ------------------------------------------------------------------ zones
     print("\n== zones")
     zones = ctx.zones
+    W.zone_masks = {z: zones[z].values.astype(bool) for z in "ABCD"}   # zone medians for every dated stack
     t01 = pd.read_csv(TAB / "T01_zones.csv").set_index("zone")
     lab = np.zeros(tpl.shape, "uint8")
     for code, z in enumerate("ABCD", start=1):
@@ -1398,6 +1442,10 @@ def main() -> None:
     write_json(out / "colormaps.json", luts)
 
     write_json(out / "checks.json", CHECKS, indent=1)
+    W.chart("zone_medians", W.zone_medians, title="Per-zone medians of every dated stack", group="Charts", status="derived",
+            description="For the pixel inspector: the median of zones A–D at each date of every dated stack (C-049).")
+    W.annotate(inspect_spec)
+    W.meta["inspector_always"] = [i for i in INSPECT_ALWAYS if any(lyr["id"] == i for lyr in W.layers)]
     W.write_manifest(title="Rzecin InSAR atlas", git_sha=git_sha(REPO),
                      built_utc=pd.Timestamp.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
                      data_root=str(D), zone_colors=ZONE_COLORS,

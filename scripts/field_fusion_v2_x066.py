@@ -155,9 +155,11 @@ def pair_cube(inp: Inputs, track: str, pairs) -> pd.DataFrame:
 
 # ------------------------------------------------------------------------------ calibration at P6
 
-def calibrate(inp: Inputs, tables: dict, train, buoyancy: bool = True) -> dict:
+def calibrate(inp: Inputs, tables: dict, train, buoyancy: bool = True, ou_train=None, e_by_wet: bool = False) -> dict:
     """g, τ, σ_c from the laser and water table (field data only); m, e, s per track × revisit from the phase.
-    ``train(t)`` says whether a time belongs to the calibration block."""
+    ``train(t)`` says whether a time belongs to the calibration block. ``ou_train`` (default ``train``) selects the
+    laser days for τ and σ_c — e.g. every day outside the test block, other years included (X-067 E1).
+    ``e_by_wet``: separate moisture coefficients for pairs with a wet date and dry pairs (X-067 E2)."""
     allp = pd.concat(tables.values())
     lp = allp[allp.dh_laser.notna() & (allp.p6_w2 - allp.p6_w1).notna() & allp.t2.map(train)]
     g = float(np.polyfit(lp.p6_w2 - lp.p6_w1, lp.dh_laser, 1)[0])            # mm per cm
@@ -169,17 +171,22 @@ def calibrate(inp: Inputs, tables: dict, train, buoyancy: bool = True) -> dict:
     res = (daily - (g if buoyancy else 0.0) * p6.reindex(daily.index)).dropna()
     seg = np.array([inp.segment(t) for t in res.index])
     res = res - pd.Series(res.values, index=res.index).groupby(seg).transform("mean").values
-    keep = np.array([train(t.tz_convert(None)) for t in res.index])
+    keep = np.array([(ou_train or train)(t.tz_convert(None)) for t in res.index])
     ou = f2.ou_from_series((res.index[keep] - res.index[0]).days.to_numpy(float), res.values[keep], max_lag_days=60)
     phys = {}
     for (track, dt), d in allp.groupby(["track", "dt"]):
         d = d[d.dh_laser.notna() & d.dW.notna() & ~d.frozen & d.t2.map(train)]
         if len(d) < MIN_LASER_PAIRS:
             continue
-        X = np.column_stack([d.dh_laser * np.cos(np.radians(INC[track])), d.dW])
-        f = fu.bayes_linear(X, d.s1_p6.to_numpy(), fu.phase_sigma_mm(d.coh_p6.to_numpy()))
+        wet = d.wet.to_numpy(bool)
+        split = e_by_wet and wet.sum() >= 3 and (~wet).sum() >= 3
+        cols = [d.dh_laser * np.cos(np.radians(INC[track])), d.dW * ~wet, d.dW * wet] if split else \
+               [d.dh_laser * np.cos(np.radians(INC[track])), d.dW]
+        f = fu.bayes_linear(np.column_stack(cols), d.s1_p6.to_numpy(), fu.phase_sigma_mm(d.coh_p6.to_numpy()))
         phys[(track, int(dt))] = {"m": float(f["beta"][0]), "m_sd": float(f["sd"][0]), "e": float(f["beta"][1]),
                                   "s": f["noise_scale"], "n": len(d)}
+        if split:
+            phys[(track, int(dt))]["e_wet"] = float(f["beta"][2])
     return {"g": g, "tau": ou["tau_days"], "sigma_c": ou["sigma"], "phys": phys, "n_buoyancy": len(lp)}
 
 
@@ -214,10 +221,18 @@ def build_pairs(tables, cubes, mask, cal, T_index, prior_W=True, tracks=None):
             ph = cal["phys"].get((track, int(r["dt"])))
             if ph is None or r.frozen or not np.isfinite(r.dW) or ph["m"] <= 0.1:
                 continue
-            y = dl[k].ravel()[idx] - (ph["e"] * r.dW if prior_W else 0.0)
-            emp = cal["noise"].get((track, int(r["dt"]), bool(r.wet)), cal["noise"].get((track, int(r["dt"]), False)))
+            e = ph.get("e_wet", ph["e"]) if r.wet else ph["e"]
+            y = dl[k].ravel()[idx] - (e * r.dW if prior_W else 0.0)
             crb = fu.phase_sigma_mm(co[k].ravel()[idx])
-            sd = np.sqrt(emp ** 2 + crb ** 2) if emp is not None else crb * ph["s"] * (WET_FACTOR if r.wet else 1.0)
+            pw = cal.get("pixel_wet")                               # X-067 E3: wet state per pixel from backscatter
+            if pw is not None and (track, r.t1) in pw and (track, r.t2) in pw:
+                wet_px = (pw[(track, r.t1)] | pw[(track, r.t2)]).ravel()[idx]
+                dry_n, wet_n = (cal["noise"].get((track, int(r["dt"]), w)) for w in (False, True))
+                wet_n = wet_n if wet_n is not None else dry_n
+                sd = np.sqrt(np.where(wet_px, wet_n, dry_n) ** 2 + crb ** 2) if dry_n is not None else crb * ph["s"]
+            else:
+                emp = cal["noise"].get((track, int(r["dt"]), bool(r.wet)), cal["noise"].get((track, int(r["dt"]), False)))
+                sd = np.sqrt(emp ** 2 + crb ** 2) if emp is not None else crb * ph["s"] * (WET_FACTOR if r.wet else 1.0)
             ok = np.isfinite(y) & np.isfinite(sd)
             n = int(ok.sum())
             out.append(f2.Pairs(np.flatnonzero(ok), np.full(n, T_index[(track, r.t1)]), np.full(n, T_index[(track, r.t2)]),
@@ -298,11 +313,16 @@ def md(df):
                      + ["| " + " | ".join(f(v) for v in r) + " |" for r in df.itertuples(index=False)])
 
 
-def run(inp, name, period, tracks, folds, out, fixed_cal=None, fixed_best=None, water=True):
+def run(inp, name, period, tracks, folds, out, fixed_cal=None, fixed_best=None, water=True, variant=None, cache_name=None):
+    """``variant`` (X-067): {"ou_outside_test": bool, "e_by_wet": bool, "pixel_wet": {(track, date): bool grid},
+    "mask_out": bool grid of pixels kept out of the mat model, "best": (σ_d ratio, κ)} — empty = v2 as published."""
+    variant = variant or {}
+    if variant.get("best"):
+        fixed_best = variant["best"]
     print(f"\n== {name}: {period} {tracks}")
     tables, cubes = {}, {}
     for t in tracks:
-        cache = CACHE / f"{name}_{t}.pkl"
+        cache = CACHE / f"{cache_name or name}_{t}.pkl"
         if cache.exists():
             tables[t], dl, co = pd.read_pickle(cache)
         else:
@@ -318,18 +338,23 @@ def run(inp, name, period, tracks, folds, out, fixed_cal=None, fixed_best=None, 
         W_T = np.zeros(len(T))
         for t in tables:
             tables[t] = tables[t].assign(dW=0.0)
-    A = inp.zones["A"]
+    A = inp.zones["A"] & ~variant["mask_out"] if variant.get("mask_out") is not None else inp.zones["A"]
     r6, c6 = inp.p6
     p6_flat = r6 * A.shape[1] + c6
     if callable(folds):
         folds = folds(tables)
+    lo, hi = pd.Timestamp(period[0]), pd.Timestamp(period[1])   # the test block of a fold lies inside the run's period
     noise = stable_noise(tables, cubes, inp.zones)
     print("  stable-ground noise (mm per pair):", {f"{k[0][:3]} {k[1]}d {'wet' if k[2] else 'dry'}": round(v, 2) for k, v in noise.items()}, flush=True)
     metrics, choice_rows, cal_rows, p6_series = [], [], [], []
     series = {}
     for fold_name, train, test in folds:
-        cal = dict(fixed_cal) if fixed_cal else calibrate(inp, tables, train)
+        cal = dict(fixed_cal) if fixed_cal else calibrate(
+            inp, tables, train,
+            ou_train=(lambda t, test=test: not (test(t) and lo <= t <= hi)) if variant.get("ou_outside_test") else None,
+            e_by_wet=variant.get("e_by_wet", False))
         cal["noise"] = noise
+        cal["pixel_wet"] = variant.get("pixel_wet")
         cal_rows.append({"fold": fold_name, "g_mm_per_cm": cal["g"], "tau_days": cal["tau"], "sigma_c_mm": cal["sigma_c"],
                          **{f"m_{t[:3]}_{dt}d": v["m"] for (t, dt), v in cal["phys"].items()},
                          **{f"e_{t[:3]}_{dt}d": v["e"] for (t, dt), v in cal["phys"].items()}})
@@ -365,8 +390,9 @@ def run(inp, name, period, tracks, folds, out, fixed_cal=None, fixed_best=None, 
                                  for r in dd.itertuples())
         series[fold_name] = {"T": T, "ests": ests, "held": held, "cal": cal, "best": best, "out": o}
     # final model: calibrated on everything, for the maps and the track / stable-ground checks
-    cal = dict(fixed_cal) if fixed_cal else calibrate(inp, tables, lambda t: True)
+    cal = dict(fixed_cal) if fixed_cal else calibrate(inp, tables, lambda t: True, e_by_wet=variant.get("e_by_wet", False))
     cal["noise"] = noise
+    cal["pixel_wet"] = variant.get("pixel_wet")
     best = series[folds[0][0]]["best"]
     full = run_mask(tables, cubes, A, cal, T, T_index, W_T, *best)
     checks = []
@@ -414,7 +440,8 @@ def run(inp, name, period, tracks, folds, out, fixed_cal=None, fixed_best=None, 
     ds["shared_motion_mm"] = ("time", (full["c"] + cal["g"] * np.nan_to_num(W_T - np.nanmean(W_T))).astype("float32"))
     ds.attrs.update({"run": name, "g_mm_per_cm": cal["g"], "tau_days": cal["tau"], "sigma_c_mm": cal["sigma_c"],
                      "sigma_d_ratio": best[0], "kappa": best[1], "units": "mm, vertical, relative to the series mean"})
-    ds.to_netcdf(out / f"height_{name}.nc")
+    if variant.get("save_maps", True):
+        ds.to_netcdf(out / f"height_{name}.nc")
     return {"tables": tables, "cubes": cubes, "p6_series": p6_series, "metrics": metrics, "choice": choice_rows, "cal": cal_rows, "checks": checks, "series": series,
             "final_cal": cal, "best": best, "T": T, "full": full, "inp": inp}
 
