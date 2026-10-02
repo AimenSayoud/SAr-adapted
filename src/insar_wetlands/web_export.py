@@ -377,6 +377,9 @@ class AtlasWriter:
         # zone masks (name → bool (y, x)); when set, every dated stack gets its per-zone medians (zone_medians chart)
         self.zone_masks: dict | None = None
         self.zone_medians: dict = {}
+        # per layer and zone, 21 quantiles (0, 5, …, 100 %) of the pixel values (rasters) or of each pixel's mean over
+        # time (stacks): where a pixel ranks within its zone (C-051)
+        self.zone_dist: dict = {}
 
     def _check_grid(self, x, y):
         if x is None:
@@ -440,12 +443,26 @@ class AtlasWriter:
         if a.ndim == 3:
             entry["times"] = [str(t) for t in times]
             entry["time_label"] = time_label
-            if self.zone_masks and time_label == "date":
-                self.zone_medians[lid] = {"dates": entry["times"], "units": units, **{
-                    z: [None if not np.isfinite(v) else round(float(v), 4)
-                        for v in (np.nanmedian(np.where(m[None], a, np.nan).reshape(a.shape[0], -1), axis=1)
-                                  if m.any() else np.full(a.shape[0], np.nan))]
-                    for z, m in self.zone_masks.items()}}
+            if self.zone_masks and time_label in ("date", "pair"):
+                flat = a.reshape(a.shape[0], -1)
+
+                def q(m, p):
+                    if not m.any():
+                        return [None] * a.shape[0]
+                    with np.errstate(all="ignore"):
+                        v = np.nanpercentile(np.where(m.ravel()[None], flat, np.nan), p, axis=1)
+                    return [None if not np.isfinite(x) else round(float(x), 4) for x in v]
+                self.zone_medians[lid] = {"dates": entry["times"], "units": units,
+                                          **{z: q(m, 50) for z, m in self.zone_masks.items()},
+                                          "q25": {z: q(m, 25) for z, m in self.zone_masks.items()},
+                                          "q75": {z: q(m, 75) for z, m in self.zone_masks.items()}}
+        if self.zone_masks and categories is None:
+            with np.errstate(all="ignore"):
+                per_px = np.nanmean(a, axis=0) if a.ndim == 3 else a
+            self.zone_dist[lid] = {"stat": ("mean over pairs" if time_label == "pair" else "mean over time") if a.ndim == 3 else "value", **{
+                z: [None if not np.isfinite(x) else round(float(x), 4)
+                    for x in (np.nanpercentile(per_px[m], np.arange(0, 101, 5)) if np.isfinite(per_px[m]).any() else np.full(21, np.nan))]
+                for z, m in self.zone_masks.items()}}
         if extra:
             entry.update(extra)
         self.layers.append(entry)
@@ -513,7 +530,7 @@ class AtlasWriter:
             sp = spec(lyr, ids)
             if not sp:
                 continue
-            refs = [*sp.get("companions", []), *([sp["band"]] if sp.get("band") else []),
+            refs = [*sp.get("companions", []), *sp.get("related", []), *([sp["band"]] if sp.get("band") else []),
                     *([sp["source"]["stack"], sp["source"]["chart"]] if sp.get("source") else []),
                     *([sp["reference"]["chart"]] if sp.get("reference") else [])]
             for ref in refs:

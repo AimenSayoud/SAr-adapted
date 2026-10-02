@@ -819,7 +819,45 @@ def p6_laser_reference(hub: Path, times: pd.DatetimeIndex) -> dict | None:
     return {"pixel": [int(p.loc["P6", "row"]), int(p.loc["P6", "col"])], "values": vals, "segments": segs}
 
 
-INSPECT_ALWAYS = ["fusion2_height_R1", "rtc_gamma0_vv_db", "ndwi_stack"]   # the current motion model leads
+INSPECT_ALWAYS = ["fusion2_height_R1", "rtc_gamma0_vv_db", "ndwi_stack", "pairs_corr_ascending"]   # the motion model leads
+
+
+def related_of(lid: str, ids: set) -> list[str]:
+    """The charts that explain a layer when it is the one on top (C-051): the series a summary raster was made from,
+    the stack a mean was taken over, the pairs a coherence map averages. At most two, existing ids only."""
+    tr = re.search(r"(ascending|descending)", lid)
+    t = tr.group(1) if tr else "ascending"
+    rules = [
+        (r"fit_(evd|isbas|hybrid|sbas)_.*", lambda m: [f"ts_{m.group(1)}"]),
+        (r"evd_velocity|tcoh_evd|tcoh_usable", lambda m: ["ts_evd", "pairs_corr_ascending"]),
+        (r"isbas_.*", lambda m: ["ts_isbas"]),
+        (r"mintpy_.*|phase04b_.*", lambda m: ["ts_sbas", "pairs_corr_ascending"]),
+        (r"ts_(evd|isbas|hybrid|sbas)", lambda m: ["fusion2_height_R1", "pairs_corr_ascending"]),
+        (r"coh_.*|qi_.*|closure_error|field_wet_penalty_.*|field_boardwalk_share", lambda m: [f"pairs_corr_{t}"]),
+        (r"field_coh_dwtd_r.*", lambda m: [f"pairs_corr_{t}"]),
+        (r"rtc_(gamma0_v[vh]_db|ratio_vh_vv_db)_mean", lambda m: [f"rtc_{m.group(1)}", "ndwi_stack"]),
+        (r"amplitude_dispersion", lambda m: ["rtc_gamma0_vv_db"]),
+        (r"rtc_.*", lambda m: ["ndwi_stack", "water_stack"]),
+        (r"rtc5_(ascending|descending)_(gamma0_v[vh]_db)_mean", lambda m: [f"rtc5_{m.group(1)}_{m.group(2)}"]),
+        (r"rtc5_(ascending|descending)_(rvi|ratio_vh_vv_db_mean)", lambda m: [f"rtc5_{m.group(1)}_gamma0_vh_db", f"rtc5_{m.group(1)}_gamma0_vv_db"]),
+        (r"rtc5_(ascending|descending)_amplitude_dispersion", lambda m: [f"rtc5_{m.group(1)}_gamma0_vv_db"]),
+        (r"rtc5_.*", lambda m: ["ndwi_stack"]),
+        (r"field_vv_wtd_r_(ascending|descending)", lambda m: [f"rtc5_{m.group(1)}_gamma0_vv_db"]),
+        (r"incidence_(ascending|descending)", lambda m: [f"rtc5_{m.group(1)}_gamma0_vv_db"]),
+        (r"ndwi_mean", lambda m: ["ndwi_stack", "rtc_gamma0_vv_db"]),
+        (r"mndwi_mean", lambda m: ["mndwi_stack", "rtc_gamma0_vv_db"]),
+        (r"flooded_fraction|lake_open_water_share|behaviour_classes", lambda m: ["water_stack", "ndwi_stack"]),
+        (r"(ndwi|mndwi|water)_stack", lambda m: ["rtc_gamma0_vv_db"]),
+        (r"fusion2_(range|sd)_(R\d)", lambda m: [f"fusion2_height_{m.group(2)}"]),
+        (r"fusion2_height_R\d", lambda m: ["pairs_corr_ascending"]),
+        (r"fusion_(amplitude|sd)_ascending|fusion_dissimilarity|fusion_zones", lambda m: ["fusion_fused_ascending"]),
+        (r"fusion_fused_ascending", lambda m: ["fusion2_height_R1"]),
+    ]
+    for pat, f in rules:
+        m = re.fullmatch(pat, lid)
+        if m:
+            return [r for r in dict.fromkeys(f(m)) if r in ids and r != lid][:2]
+    return []
 
 
 def inspect_spec(layer: dict, ids: set) -> dict | None:
@@ -828,6 +866,19 @@ def inspect_spec(layer: dict, ids: set) -> dict | None:
     lid, kind = layer["id"], layer["kind"]
     if kind not in ("raster", "stack"):
         return None
+    sp = _inspect_spec(layer, ids)
+    if sp is None:
+        return None
+    rel = related_of(lid, ids)
+    return {**sp, **({"related": rel} if rel else {})}
+
+
+def _inspect_spec(layer: dict, ids: set) -> dict | None:
+    lid, kind = layer["id"], layer["kind"]
+    m = re.fullmatch(r"pairs_corr_(ascending|descending)", lid)
+    if m:
+        return {"panel": "coherence12", "family": "radar-quality", "priority": 1, "zone_median": True, "track": m.group(1),
+                "note": "one dot per 12-day interferogram, at its midpoint"}
     dated = kind == "stack" and layer.get("time_label") == "date"
     m = re.fullmatch(r"fusion2_(height|range|sd)_(R\d)", lid)
     if m:
@@ -1581,10 +1632,14 @@ def main() -> None:
 
     write_json(out / "checks.json", CHECKS, indent=1)
     W.chart("zone_medians", W.zone_medians, title="Per-zone medians of every dated stack", group="Charts", status="derived",
-            description="For the pixel inspector: the median of zones A–D at each date of every dated stack (C-049).")
+            description="For the pixel inspector: the median of zones A–D at each date of every dated or pair stack, with "
+                        "their 25th and 75th percentiles under q25 and q75 (C-049, C-051).")
     if INSPECTOR_REFS:
         W.chart("inspector_refs", INSPECTOR_REFS, title="Reference series for the pixel inspector (P6 laser)", group="Charts",
                 status="field", description="Per layer: a pixel and a measured series the inspector overlays there (C-049).")
+    W.chart("zone_dist", W.zone_dist, title="Per-zone distributions of every map layer", group="Charts", status="derived",
+            description="For the pixel inspector: 21 quantiles (0, 5, …, 100 %) per zone of each layer's values (rasters) or "
+                        "of each pixel's mean over time (stacks) — where a pixel ranks within its zone (C-051).")
     W.annotate(inspect_spec)
     W.meta["inspector_always"] = [i for i in INSPECT_ALWAYS if any(lyr["id"] == i for lyr in W.layers)]
     W.write_manifest(title="Rzecin InSAR atlas", git_sha=git_sha(REPO),
