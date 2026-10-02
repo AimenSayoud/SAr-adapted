@@ -433,13 +433,23 @@ def add_followups(W, hub: Path, P, gallery: list, gal: Path) -> None:
                  prov=P(L / "open_water_share_40m.npy", root=hub),
                  description="Share of the cell's sixteen 10 m sub-cells that are open water: summer-median σ⁰ VV < −15 dB and "
                              "VH < −20 dB on both tracks (RTC 10 m, May–September 2022–2024). 100 % = pure open water.")
+    S = D / "nisar_x069"
+    summer = ({"nisar": recs(pd.read_csv(S / "summary_nisar.csv")), "sentinel1": recs(pd.read_csv(S / "summary_sentinel1.csv")),
+               "pairs": recs(pd.read_csv(S / "nisar_pairs_flagged.csv")[["track_no", "dir", "t1", "t2", "dt", "coh_A", "coh_B", "coh_C", "wet", "frozen"]])}
+              if (S / "summary_nisar.csv").exists() else None)
     if (N / "nisar_pairs.csv").exists():
         W.chart("nisar_x068", {"pairs": recs(pd.read_csv(N / "nisar_pairs.csv")),
                                "sentinel1": recs(pd.read_csv(N / "sentinel1_same_weeks.csv")),
-                               "summary": json.loads((N / "summary.json").read_text())},
+                               "summary": json.loads((N / "summary.json").read_text()), "summer": summer},
                 title="NISAR L-band vs Sentinel-1 C-band, Oct 2025 – Jan 2026 (X-068)", group="Charts", status="exploratory",
                 prov=P(N / "nisar_pairs.csv", N / "sentinel1_same_weeks.csv", root=hub))
-    for folder, tag in ((B, "field_boardwalk"), (PL, "field_plots"), (L, "lake_x064"), (N, "nisar_x068")):
+    X70 = D / "closure_x070"
+    if (X70 / "closure_by_season.csv").exists():
+        W.chart("closure_x070", {"season": recs(pd.read_csv(X70 / "closure_by_season.csv")), "tests": recs(pd.read_csv(X70 / "closure_tests.csv")),
+                                 "p6_model": recs(pd.read_csv(X70 / "p6_closure_model.csv").iloc[:, :5])},
+                title="Closure phase as the moisture observable; unwrapping cycles in summer (X-070)", group="Charts", status="exploratory",
+                prov=P(X70 / "closure_by_season.csv", X70 / "closure_tests.csv", root=hub))
+    for folder, tag in ((B, "field_boardwalk"), (PL, "field_plots"), (L, "lake_x064"), (N, "nisar_x068"), (S, "nisar_x069"), (X70, "closure_x070")):
         for f in sorted(folder.glob("*.png")) if folder.exists() else []:
             shutil.copy2(f, gal / f"{tag}_{f.name}")
             gallery.append({"file": f"figures/{tag}_{f.name}", "source": f"08_deliverables/{folder.name}", "status": "exploratory"})
@@ -682,7 +692,7 @@ def add_field(W, gallery: list, gal: Path, template, P, drive: Path | None = Non
                 prov=P(F9 / "events.csv", F9 / "epoch_response.csv", root=hub))
     # The supervisor's first deliverable, whole, and every field table as a download (local site).
     files = []
-    extra = [hub / "08_deliverables" / n for n in ("field_boardwalk_x060", "field_plots_x061", "lake_x064", "nisar_x068")]
+    extra = [hub / "08_deliverables" / n for n in ("field_boardwalk_x060", "field_plots_x061", "lake_x064", "nisar_x068", "nisar_x069", "closure_x070")]
     for folder in (F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F10 / "laser_qc", *extra):
         if not folder.exists():
             continue
