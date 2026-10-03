@@ -122,13 +122,22 @@ def s2_indices(b: dict[str, np.ndarray]) -> dict[str, np.ndarray]:
     snow = (scl == SCL_SNOW).astype("float32")
 
     def nd(a, c):
+        # after the −0.1 offset, dark water can read ≤ 0: not a physical reflectance, so no index there
         with np.errstate(invalid="ignore", divide="ignore"):
             v = (a - c) / (a + c)
-        return np.where(valid & np.isfinite(v), v, np.nan).astype("float32")
+        ok = valid & np.isfinite(v) & (a > 0) & (c > 0)
+        return np.where(ok, v, np.nan).astype("float32")
 
     return {"ndvi": nd(b["B08"], b["B04"]), "ndre": nd(b["B8A"], b["B05"]), "ndmi": nd(b["B8A"], b["B11"]),
             "ndwi": nd(b["B03"], b["B08"]), "mndwi": nd(b["B03"], b["B11"]),
             "valid": valid.astype("float32"), "snow": np.where(np.isfinite(scl), snow, np.nan)}
+
+
+def indices_from_npz(z) -> dict[str, np.ndarray]:
+    """Indices recomputed from the reflectances stored in a scene file (int16 ×10⁴, −32768 = missing)."""
+    b = {k[5:]: np.where(z[k] == -32768, np.nan, z[k] / 1e4).astype("float32") for k in z.files if k.startswith("refl_")}
+    b["SCL"] = np.where(z["scl"] == 0, np.nan, z["scl"]).astype("float32")
+    return s2_indices(b)
 
 
 def block_mean(a: np.ndarray, k: int) -> np.ndarray:
