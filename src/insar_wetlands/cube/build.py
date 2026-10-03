@@ -519,6 +519,18 @@ def site_hourly(raw: Path, end: str, log=print) -> pd.DataFrame:
         df["laser_surface_raw_cm"] = lh["surface_cm_raw"].to_numpy()
         for c in ("snow_72h", "snow_24h", "outlier", "filled"):
             df[f"laser_{c}"] = lh[c].astype("boolean").to_numpy()
+        # X-058's snow mask needs the station's air temperature, which ends with 2024: after that it reads "snow" by
+        # construction. There, use X-066's Open-Meteo mask calibrated on the station (fusion_v2/flags_2025).
+        df["laser_snow_72h_source"] = np.where(df.laser_surface_raw_cm.notna(), "station", "")
+        om_snow = DLV / "fusion_v2" / "flags_2025" / "laser_snow72_2025.csv"
+        st_end = w["Air_2m"].dropna().index.max()
+        if om_snow.exists():
+            sn = pd.read_csv(om_snow, parse_dates=["time_utc"]).set_index("time_utc")
+            sn.index = pd.DatetimeIndex(sn.index, tz="UTC") if sn.index.tz is None else sn.index
+            v = core.asof(idx, sn, "31min")["snow_72h_open_meteo"]
+            after = (idx > st_end) & v.notna().to_numpy()
+            df.loc[after, "laser_snow_72h"] = v[after].astype(bool).to_numpy()
+            df.loc[after & df.laser_surface_raw_cm.notna().to_numpy(), "laser_snow_72h_source"] = "open_meteo_calibrated"
         df["laser_ok"] = df.laser_surface_cm.notna() & ~df[["laser_snow_72h", "laser_outlier", "laser_filled"]].fillna(True).any(axis=1)
     # P6 water level on the laser's datum — meaningful only if the logger's WTD is depth below the moving surface
     df["p6_level_on_laser_datum_cm"] = df.get("laser_surface_cm", np.nan) + df["wtd_P6_cm"]

@@ -661,7 +661,8 @@ def readme(raw: Path, cov: pd.DataFrame, problems: list[str], man: dict, out: Pa
         "- `gold/` model-ready: per plot (`plots_acq`, `plots_pair`, `triangles`, `truth_laser_*`) and per mat / reference "
         "pixel (`mat_pairs_*`, `mat_acq_*`).", "",
         "## Public sources ingested (M1)", "", md(inv) if len(inv) else "(none)", "",
-        "## Products (M2, M3, M5)", "", md(cov.fillna("")), "",
+        "## Products (M2, M3, M5)", "", md(cov.astype({c: "Int64" for c in ("rows", "columns", "variables") if c in cov})
+                                           .astype(object).fillna("")), "",
         "## Conventions", "",
         "- **Time:** UTC; an overpass is an instant (ascending ≈ 16:36, descending ≈ 05:09; the exact time is kept where "
         "the backscatter scene records it). Joins across sources are as-of joins with a tolerance and a lag column "
