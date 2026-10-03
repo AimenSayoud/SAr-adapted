@@ -115,8 +115,8 @@ def read_window(href: str, bounds_utm, res: float, epsg: int = 32633, resampling
 # ------------------------------------------------------------------------------ Sentinel-2
 
 def s2_indices(b: dict[str, np.ndarray]) -> dict[str, np.ndarray]:
-    """Optical indices on the 20 m grid from 20 m bands (10 m bands already block-averaged to 20 m). Reflectances are
-    collection-1 L2A (offset already harmonised). Invalid SCL → NaN; snow kept as its own fraction."""
+    """Optical indices on the 20 m grid from surface reflectances (scale and offset applied; 10 m bands already
+    block-averaged to 20 m). Invalid SCL → NaN; snow kept as its own fraction."""
     scl = b["SCL"]
     valid = np.isin(scl, SCL_VALID)
     snow = (scl == SCL_SNOW).astype("float32")
@@ -138,44 +138,67 @@ def block_mean(a: np.ndarray, k: int) -> np.ndarray:
 
 
 def s2_items(bbox, start: str, end: str, max_cloud: float = 90.0) -> list:
+    """Sentinel-2 L2A items over the box: collection 1 (reprocessed, consistent baseline) first; the older
+    ``sentinel-2-l2a`` fills the acquisitions collection 1 lacks (Earth Search's collection 1 holds only a handful of
+    2022 scenes). One item per acquisition instant (to the minute) and tile."""
+    import warnings
+
     from pystac_client import Client
+    warnings.filterwarnings("ignore", message="Could not parse bucket")
     c = Client.open(EARTH_SEARCH)
-    s = c.search(collections=["sentinel-2-c1-l2a"], bbox=bbox, datetime=f"{start}/{end}",
-                 query={"eo:cloud_cover": {"lt": max_cloud}})
-    return list(s.items())
+    seen, out = set(), []
+    for coll in ("sentinel-2-c1-l2a", "sentinel-2-l2a"):
+        for it in c.search(collections=[coll], bbox=bbox, datetime=f"{start}/{end}",
+                           query={"eo:cloud_cover": {"lt": max_cloud}}).items():
+            key = (f"{it.datetime:%Y%m%dT%H%M}", it.properties.get("s2:mgrs_tile") or it.properties.get("grid:code"))
+            if key in seen:
+                continue
+            seen.add(key)
+            it.extra_fields["cube_collection"] = coll
+            out.append(it)
+    return sorted(out, key=lambda i: i.datetime)
+
+
+def asset_scale_offset(asset) -> tuple[float, float]:
+    """Reflectance = DN · scale + offset, from the asset's ``raster:bands`` (collection 1 and baseline ≥ 04.00 carry
+    offset −0.1; older scenes 0)."""
+    rb = (asset.extra_fields.get("raster:bands") or [{}])[0]
+    return float(rb.get("scale", 1e-4)), float(rb.get("offset", 0.0))
 
 
 def fetch_s2(out_dir: Path, bounds_utm, start: str, end: str, max_cloud: float = 90.0, workers: int = 6,
              log=print) -> pd.DataFrame:
-    """Every Sentinel-2 scene over the template: indices on the 20 m grid aligned with the template's edges, one ``.npz``
-    per scene (resumable). Returns the scene table (id, time, cloud cover, valid share over the window)."""
-    import warnings
-    warnings.filterwarnings("ignore", message="Could not parse bucket")
+    """Every Sentinel-2 scene over the template on the 20 m grid aligned with the template's edges: surface
+    reflectance of B03, B04, B05, B08, B8A, B11 (int16, ×10⁴, scale and offset applied; 10 m bands block-averaged),
+    SCL, and the indices; one ``.npz`` per scene (resumable). Returns the scene table."""
     out_dir.mkdir(parents=True, exist_ok=True)
     items = s2_items(bbox_wgs84(bounds_utm), start, end, max_cloud)
     log(f"S2: {len(items)} items {start}..{end}")
 
     def one(it):
         f = out_dir / f"{it.id}.npz"
+        base = {"id": it.id, "time": it.datetime, "cloud": it.properties.get("eo:cloud_cover"),
+                "collection": it.extra_fields.get("cube_collection"),
+                "baseline": it.properties.get("s2:processing_baseline"), "file": f.name}
         if f.exists():
-            z = np.load(f)
-            return {"id": it.id, "time": it.datetime, "cloud": it.properties.get("eo:cloud_cover"),
-                    "valid_share": float(np.nanmean(z["valid"])), "file": f.name}
+            return {**base, "valid_share": float(np.nanmean(np.load(f)["valid"]))}
         try:
             b = {}
             for key, name in S2_BANDS.items():
                 res = 10 if name in ("B03", "B04", "B08") else 20
                 a = read_window(it.assets[key].href, bounds_utm, res)
                 if name != "SCL":
-                    a[a <= 0] = np.nan
+                    sc, off = asset_scale_offset(it.assets[key])
+                    a[~(a > 0)] = np.nan                       # 0 = nodata
+                    a = a * sc + off
                 b[name] = block_mean(a, 2) if res == 10 else a
             idx = s2_indices(b)
-            np.savez_compressed(f, **idx)
-            return {"id": it.id, "time": it.datetime, "cloud": it.properties.get("eo:cloud_cover"),
-                    "valid_share": float(np.nanmean(idx["valid"])), "file": f.name}
+            bands = {f"refl_{n}": np.where(np.isfinite(v), np.round(v * 1e4), -32768).astype("int16")
+                     for n, v in b.items() if n != "SCL"}
+            np.savez_compressed(f, **idx, **bands, scl=np.nan_to_num(b["SCL"], nan=0).astype("uint8"))
+            return {**base, "valid_share": float(np.nanmean(idx["valid"]))}
         except Exception as e:  # noqa: BLE001 — one bad scene must not stop the archive
-            return {"id": it.id, "time": it.datetime, "cloud": it.properties.get("eo:cloud_cover"),
-                    "valid_share": np.nan, "file": "", "error": str(e)[:200]}
+            return {**base, "valid_share": np.nan, "file": "", "error": str(e)[:200]}
 
     rows = []
     with ThreadPoolExecutor(workers) as ex:

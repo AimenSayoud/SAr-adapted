@@ -76,3 +76,12 @@ def test_paste_and_to20():
     x20, y20 = np.array([30.0, 50.0]), np.array([50.0, 30.0])    # a 20 m grid inset by half a 40 m cell
     a = build._to20(np.array([[1, 2], [3, 4]]), tx, ty, x20, y20)
     assert a.tolist() == [[1, 2], [3, 4]]
+
+
+def test_asset_scale_offset():
+    class A:
+        extra_fields = {"raster:bands": [{"scale": 0.0001, "offset": -0.1}]}
+    sc, off = sources.asset_scale_offset(A())
+    dn = np.array([1000.0 + 4000, 1000.0 + 500])          # NIR 0.40, red 0.05 after the baseline-04 offset
+    nir, red = dn * sc + off
+    assert (nir - red) / (nir + red) == pytest.approx(0.35 / 0.45)
