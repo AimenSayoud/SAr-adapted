@@ -1193,7 +1193,7 @@ def main() -> None:
              title="Coherence: dusk (asc) − dawn (desc)", group="Diurnal: dusk vs dawn",
              status="derived", units="Δγ", colormap="RdBu", symmetric=True,
              description="Difference of the two phaseD mean-coherence maps. Not pair-matched: "
-                         "each track averages its own network. Descriptive — see X-037.",
+                         "each track averages its own network. Descriptive; see X-037.",
              prov=P(D / "phaseD_coh_mean.nc", D / "phaseD_coh_mean_descending.nc"))
     gis_coh = REPO / "data/gis/mean_coherence_spatial.tif"
     import rasterio
@@ -1410,7 +1410,7 @@ def main() -> None:
              prov=P(D / "rtc_dualpol_stack.nc"))
     W.chart("zone_series", zone_series, title="Per-zone medians through time", group="Charts",
             status="derived", description="Plain per-date zone medians of each stack. Descriptive "
-            "only — the project's aggregate is the double-difference in `aggregate`, not this.")
+            "only; the project's aggregate is the double difference in `aggregate`.")
 
     # ---------------------------------------------- per-pair browser & seasons
     pair_meta = {}
@@ -1642,7 +1642,7 @@ def main() -> None:
     for f in sorted(TAB.glob("T*.csv")):
         tables[f.stem] = pd.read_csv(f, keep_default_na=False, na_values=[""]).astype(object).where(lambda d: pd.notna(d), None).to_dict("records")
     W.chart("results_tables", tables, title="Results tables T01–T16", group="Charts", status="core",
-            description="Verbatim copies of results/tables/T*.csv — the numbers' source of truth.")
+            description="Verbatim copies of results/tables/T*.csv, the source of truth for every number.")
     ref_tables = {f.stem: pd.read_csv(f, keep_default_na=False, na_values=[""]).astype(object).where(lambda d: pd.notna(d), None).to_dict("records")
                   for f in sorted(ref.glob("*.csv")) if f.stat().st_size < 20000}
     W.chart("robustness_tables", ref_tables, title="Robustness tables (K*, L*, X*)", group="Charts",
@@ -1761,7 +1761,7 @@ def main() -> None:
                         "fraction over its pixels (C-051).")
     W.chart("zone_dist", W.zone_dist, title="Per-zone distributions of every map layer", group="Charts", status="derived",
             description="For the pixel inspector: 21 quantiles (0, 5, …, 100 %) per zone of each layer's values (rasters) or "
-                        "of each pixel's mean over time (stacks) — where a pixel ranks within its zone (C-051).")
+                        "of each pixel's mean over time (stacks): where a pixel ranks within its zone (C-051).")
     W.annotate(inspect_spec)
     W.meta["inspector_always"] = [i for i in INSPECT_ALWAYS if any(lyr["id"] == i for lyr in W.layers)]
     W.write_manifest(title="Rzecin InSAR atlas", git_sha=git_sha(REPO),
