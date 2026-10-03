@@ -85,3 +85,12 @@ def test_asset_scale_offset():
     dn = np.array([1000.0 + 4000, 1000.0 + 500])          # NIR 0.40, red 0.05 after the baseline-04 offset
     nir, red = dn * sc + off
     assert (nir - red) / (nir + red) == pytest.approx(0.35 / 0.45)
+
+
+def test_indices_refuse_non_positive_reflectance():
+    b = {k: np.full((1, 2), v, "float32") for k, v in
+         {"B03": 0.05, "B04": -0.01, "B05": 0.02, "B08": 0.03, "B8A": 0.03, "B11": 0.01}.items()}
+    b["SCL"] = np.array([[6, 6]], "float32")
+    ix = sources.s2_indices(b)
+    assert np.isnan(ix["ndvi"]).all() and np.isfinite(ix["ndwi"]).all()
+    assert np.nanmax(np.abs(ix["ndmi"])) <= 1

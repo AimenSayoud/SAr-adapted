@@ -28,6 +28,7 @@ from ..paths import make_paths
 from ..regrid import stack_to_template
 from ..stack import list_pairs, load_layer, load_static_layer
 from . import core
+from .sources import indices_from_npz as src_indices
 
 HUB = Path(__file__).resolve().parents[5]
 LOCAL = HUB / "05_code" / "local"
@@ -238,6 +239,8 @@ def harmonise_optical(ctx, raw: Path, silver: Path, log=print, min_valid: float 
     prow = []
     for f, t in zip(sc.file, sc.time):
         z = np.load(raw / "s2" / f)
+        if "refl_B04" in z.files:
+            z = src_indices(z)
         for k in S2_INDICES:
             a = core.aggregate_to_grid(z[k], gx, gy, tx, ty)
             stack[k].append(a["mean"])

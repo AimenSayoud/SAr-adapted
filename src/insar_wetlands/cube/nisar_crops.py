@@ -91,8 +91,14 @@ def granules(bbox) -> list[dict]:
     return sorted({g["title"]: g for g in out}.values(), key=lambda g: g["title"])
 
 
+class OutsideGrid(ValueError):
+    """The granule's footprint touches the site's box but its product grid does not reach the template."""
+
+
 def _window(c: np.ndarray, lo: float, hi: float) -> slice:
     k = np.flatnonzero((c >= lo) & (c <= hi))
+    if not len(k):
+        raise OutsideGrid("product grid does not reach the template window")
     return slice(int(k.min()), int(k.max()) + 1)
 
 
@@ -140,6 +146,8 @@ def fetch(raw_dir: Path, ctx, log=print) -> pd.DataFrame:
         try:
             rows.append(crop(g, bounds, out))
             log(f"  {i}/{len(gs)} {g['title'][:60]}")
+        except OutsideGrid:
+            log(f"  - {g['title'][:60]}: product grid does not reach the site (skipped)")
         except Exception as e:  # noqa: BLE001 — an unreadable granule is reported, not fatal
             log(f"  ! {g['title']}: {type(e).__name__}: {e}")
     tab = pd.DataFrame(rows)
@@ -183,13 +191,18 @@ def to_silver(raw_dir: Path, tx, ty, out: Path, log=print) -> None:
     k = pd.DataFrame(keep)
     t1, t2 = pd.to_datetime(k.t1, utc=True), pd.to_datetime(k.t2, utc=True)
     parts = k.title.str.split("_")
+    def txt(v):
+        return np.asarray([str(x) for x in v], dtype=object)
+
     ds = xr.Dataset({n: (("pair", "y", "x"), np.stack(v).astype("float32")) for n, v in layers.items()},
-                    coords={"pair": k.title.values, "x": tx, "y": ty, "t1": ("pair", t1.dt.tz_convert(None)),
-                            "t2": ("pair", t2.dt.tz_convert(None)),
-                            "revisit_days": ("pair", ((t2 - t1).dt.total_seconds() / 86400).round().astype(int)),
-                            "track_no": ("pair", parts.str[5].values), "direction": ("pair", parts.str[6].values),
-                            "product": ("pair", k.kind.values),
-                            "fold_year": ("pair", core.pair_year_fold(t1, t2))})
+                    coords={"pair": txt(k.title), "x": tx, "y": ty,
+                            "t1": ("pair", t1.dt.tz_convert(None).to_numpy()),
+                            "t2": ("pair", t2.dt.tz_convert(None).to_numpy()),
+                            "revisit_days": ("pair", ((t2 - t1).dt.total_seconds() / 86400).round().astype(int).to_numpy()),
+                            "track_no": ("pair", txt(parts.str[5])), "direction": ("pair", txt(parts.str[6])),
+                            "product": ("pair", txt(k.kind)),
+                            "fold_year": ("pair", core.pair_year_fold(t1, t2)),
+                            "valid_share": ("pair", np.isfinite(np.stack(layers["unw"])).mean((1, 2)))})
     ds.attrs = {"source": "NISAR L2 GUNW (beta, provisional), HH, frequency A; 80 m unwrapped grid by parent cell, "
                           "20 m wrapped grid as a phasor", "phase_units": "rad, unreferenced",
                 "wavelength_m": float(np.load(raw_dir / k.file.iloc[0])["wavelength_m"])}
