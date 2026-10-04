@@ -172,12 +172,27 @@ def to_silver(raw_dir: Path, tx, ty, out: Path, log=print) -> None:
         if "u_unwrappedPhase" not in z:
             continue
         ux, uy = z["u_x"], z["u_y"]
+        # outside a frame's valid swath the GUNW layers hold 0 (phase and coherence): not data
+        bad = ~(z["u_coherenceMagnitude"] > 0)
+        z = {k: (np.where(bad, np.nan, z[k]) if k.startswith("u_") and k not in ("u_x", "u_y") else z[k]) for k in z.files}
+        if "u_connectedComponents" in z:                          # component 0 = not unwrapped (phase held at 0)
+            nounw = ~(z["u_connectedComponents"] > 0)
+            for k in ("u_unwrappedPhase", "u_ionospherePhaseScreen"):
+                if k in z:
+                    z[k] = np.where(nounw, np.nan, z[k])
+        u = z["u_unwrappedPhase"]
+        if np.isfinite(u).any() and np.mean(u[np.isfinite(u)] == 0) > 0.5:   # a frame delivered without unwrapping
+            z["u_unwrappedPhase"] = np.full_like(u, np.nan)
         layers["unw"].append(parent(z["u_unwrappedPhase"], ux, uy))
         layers["coh"].append(parent(z["u_coherenceMagnitude"], ux, uy))
         layers["iono"].append(parent(z["u_ionospherePhaseScreen"], ux, uy) if "u_ionospherePhaseScreen" in z
                               else np.full((len(ty), len(tx)), np.nan, "float32"))
         layers["conncomp"].append(parent(z["u_connectedComponents"], ux, uy) if "u_connectedComponents" in z
                                   else np.full((len(ty), len(tx)), np.nan, "float32"))
+        if "w_wrappedInterferogram" in z and "w_coherenceMagnitude" in z:
+            wbad = ~(z["w_coherenceMagnitude"] > 0)
+            z["w_wrappedInterferogram"] = np.where(wbad, np.nan, z["w_wrappedInterferogram"])
+            z["w_coherenceMagnitude"] = np.where(wbad, np.nan, z["w_coherenceMagnitude"])
         if "w_wrappedInterferogram" in z:
             layers["wrapped"].append(to_template(z["w_wrappedInterferogram"], z["w_x"], z["w_y"], tx, ty, kind="phase"))
             layers["coh_w"].append(to_template(z["w_coherenceMagnitude"], z["w_x"], z["w_y"], tx, ty, kind="mean"))
