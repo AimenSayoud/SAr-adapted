@@ -17,7 +17,7 @@ CONTRACTS: dict[str, dict] = {
         "ranges": {"vv_db_3x3": (-40, 15), "vh_db_3x3": (-45, 10), "rvi_3x3": (0, 4), "air_c": (-40, 45),
                    "wtd_at": (-200, 80), "s2_ndvi_3x3": (-1, 1), "s2_ndmi_3x3": (-1, 1), "lst_c_3x3": (-40, 70),
                    "uav_ndvi": (-1, 1), "uav_lai": (0, 15), "s2_lag_days": (-10, 10), "lst_lag_days": (-16, 16),
-                   "uav_lag_days": (-30, 30)},
+                   "uav_lag_days": (-30, 30), "eco_lst_c_3x3": (-40, 70)},
     },
     "plots_pair": {
         "keys": ["period", "track", "grid", "pair", "plot"],

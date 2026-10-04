@@ -386,3 +386,97 @@ def fetch_gugik_tiles(out_dir: Path, bounds_2180, tile_m: float = 500.0, log=pri
                 rows.append({"kind": kind, "x0": x0, "y0": y0, "file": f.name})
         log(f"LiDAR column x0={x0:.0f} done")
     return pd.DataFrame(rows)
+
+
+# ------------------------------------------------------------------------------ ECOSTRESS (LP DAAC, Earthdata token)
+
+CMR_GRANULES = "https://cmr.earthdata.nasa.gov/search/granules.json"
+ECO_TILE = "33UWU"
+
+
+def load_env(path: Path | None = None) -> dict:
+    """KEY=VALUE pairs of the hub's private ``.env`` (credentials; never versioned), also exported to os.environ."""
+    import os
+    p = path or Path(__file__).resolve().parents[5] / ".env"
+    out = {}
+    if p.exists():
+        for line in p.read_text().splitlines():
+            line = line.strip()
+            if line and not line.startswith("#") and "=" in line:
+                k, v = line.split("=", 1)
+                out[k.strip()] = v.strip().strip("'\"")
+    os.environ.update({k: v for k, v in out.items() if k not in os.environ})
+    return out
+
+
+def eco_granules(bbox, start: str, end: str, tile: str = ECO_TILE) -> pd.DataFrame:
+    """ECOSTRESS L2T LSTE v002 granules on one MGRS tile; one row per acquisition (the latest build kept)."""
+    rows, headers = [], {}
+    while True:
+        q = {"short_name": "ECO_L2T_LSTE", "version": "002", "bounding_box": ",".join(map(str, bbox)),
+             "temporal": f"{start}T00:00:00Z,{end}T23:59:59Z", "page_size": 2000}
+        r = requests.get(CMR_GRANULES, params=q, headers=headers, timeout=120)
+        r.raise_for_status()
+        feed = r.json()["feed"]["entry"]
+        for e in feed:
+            if f"_{tile}_" not in e["title"]:
+                continue
+            links = {lk["href"].rsplit("_", 1)[-1].replace(".tif", ""): lk["href"] for lk in e.get("links", [])
+                     if lk.get("href", "").endswith(".tif") and lk["href"].startswith("https")}
+            rows.append({"title": e["title"], "time": pd.Timestamp(e["time_start"]), **{f"url_{k}": v for k, v in links.items()}})
+        after = r.headers.get("CMR-Search-After")
+        if not feed or not after:
+            break
+        headers = {"CMR-Search-After": after}
+    d = pd.DataFrame(rows)
+    if d.empty:
+        return d
+    parts = d.title.str.split("_")              # ECOv002 L2T LSTE orbit scene tile <acq time> <build> <iteration>
+    d["acq"] = parts.str[6]
+    d["build"] = parts.str[7] + parts.str[8]
+    return d.sort_values(["acq", "build"]).drop_duplicates("acq", keep="last").sort_values("time").reset_index(drop=True)
+
+
+def fetch_ecostress(out_dir: Path, bounds_utm, start: str, end: str, workers: int = 6, log=print) -> pd.DataFrame:
+    """ECOSTRESS surface temperature (°C), its error and the cloud mask, read on the 40 m template grid (nearest
+    70 m pixel per cell) — one ``.npz`` per acquisition. Times of day vary (dawn to night): the point of the source."""
+    import os
+    load_env()
+    tok = os.environ.get("EARTHDATA_TOKEN")
+    if not tok:
+        raise RuntimeError("EARTHDATA_TOKEN missing from the hub's .env")
+    jar = str(out_dir.parent / ".earthdata_cookies")          # the LP DAAC redirect needs a session cookie
+    env = {**GDAL_ENV, "GDAL_HTTP_HEADERS": f"Authorization: Bearer {tok}", "GDAL_HTTP_COOKIEFILE": jar,
+           "GDAL_HTTP_COOKIEJAR": jar}
+    out_dir.mkdir(parents=True, exist_ok=True)
+    g = eco_granules(bbox_wgs84(bounds_utm), start, end)
+    log(f"ECOSTRESS: {len(g)} acquisitions on tile {ECO_TILE}")
+
+    def one(r):
+        f = out_dir / f"{r.title}.npz"
+        base = {"title": r.title, "time": r.time, "file": f.name}
+        if f.exists():
+            return {**base, "valid_share": float(np.isfinite(np.load(f)["lst_c"]).mean())}
+        try:
+            lst = read_window(r.url_LST, bounds_utm, 40, env=env)
+            err = read_window(r.url_err, bounds_utm, 40, env=env) if isinstance(getattr(r, "url_err", None), str) else lst * np.nan
+            cld = read_window(r.url_cloud, bounds_utm, 40, env=env) if isinstance(getattr(r, "url_cloud", None), str) else lst * 0
+            lst_c = np.where((cld != 1) & np.isfinite(lst) & (lst > 150), lst - 273.15, np.nan).astype("float32")
+            np.savez_compressed(f, lst_c=lst_c, lst_err=err.astype("float32"), cloud=np.nan_to_num(cld, nan=255).astype("uint8"))
+            return {**base, "valid_share": float(np.isfinite(lst_c).mean())}
+        except Exception as e:  # noqa: BLE001 — a bad granule is reported, not fatal
+            return {**base, "file": "", "valid_share": np.nan, "error": str(e)[:200]}
+
+    first = one(next(g.itertuples()))                        # fail fast on an access problem
+    if first.get("error"):
+        raise RuntimeError(f"ECOSTRESS access failed: {first['error']}")
+    rows = []
+    with ThreadPoolExecutor(workers) as ex:
+        for k, res in enumerate(ex.map(one, g.itertuples())):
+            rows.append(res)
+            if k % 100 == 0:
+                n_err = sum(1 for x in rows if x.get("error"))
+                log(f"  ECOSTRESS {k}/{len(g)} ({n_err} errors)")
+    tab = pd.DataFrame(rows).sort_values("time")
+    tab.to_csv(out_dir / "scenes.csv", index=False)
+    return tab
