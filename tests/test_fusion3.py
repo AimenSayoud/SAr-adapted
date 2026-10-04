@@ -64,3 +64,27 @@ def test_coverage_of_a_correct_model():
     c = f3.coverage(z)
     assert c["within_1sd"] == pytest.approx(0.683, abs=0.01) and c["within_2sd"] == pytest.approx(0.954, abs=0.01)
     assert f3.robust_sd(RNG.normal(0, 2, 20000)) == pytest.approx(2.0, rel=0.03)
+
+
+def test_ou_increment_smoother_recovers_a_series():
+    t = np.arange(0, 360, 6.0)
+    truth = 20 * np.sin(2 * np.pi * t / 360)
+    i = np.arange(len(t) - 1)
+    j = i + 1
+    y = truth[j] - truth[i] + RNG.normal(0, 1.0, len(i))
+    mean, sd = f3.ou_increment_smoother(t, i, j, y, np.full(len(i), 1.0), tau_days=200.0, sigma_r=20.0)
+    est = mean - mean.mean()
+    assert np.corrcoef(est, truth - truth.mean())[0, 1] > 0.98
+    assert np.all(sd > 0) and sd[len(t) // 2] < 20
+
+
+def test_smoother_ignores_infinite_noise_and_falls_back_to_prior():
+    t = np.arange(0, 60, 6.0)
+    i, j = np.arange(len(t) - 1), np.arange(1, len(t))
+    mean, sd = f3.ou_increment_smoother(t, i, j, np.full(len(i), 5.0), np.full(len(i), 1e6), 50.0, 10.0)
+    assert np.allclose(mean, 0, atol=1e-3) and np.allclose(sd, 10.0, rtol=1e-3)
+
+
+def test_detect_inflated_sigma():
+    s = f3.detect_inflated_sigma(np.array([2.0, 2.0]), np.array([1.0, 0.0]))
+    assert s[0] == pytest.approx(2.0) and s[1] > 13

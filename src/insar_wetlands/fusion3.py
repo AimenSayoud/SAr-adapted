@@ -120,3 +120,37 @@ def coverage(z: np.ndarray) -> dict:
     return {"n": int(len(z)), "within_1sd": float(np.mean(np.abs(z) <= 1)) if len(z) else np.nan,
             "within_2sd": float(np.mean(np.abs(z) <= 2)) if len(z) else np.nan,
             "sd_z": float(np.std(z)) if len(z) else np.nan}
+
+
+# ------------------------------------------------------------------------------ the v3 smoother
+
+def ou_increment_smoother(t_days: np.ndarray, i: np.ndarray, j: np.ndarray, y: np.ndarray, sigma: np.ndarray,
+                          tau_days: float, sigma_r: float) -> tuple[np.ndarray, np.ndarray]:
+    """Exact posterior of r(t) at the nodes ``t_days`` (increasing) given increment observations
+    y_k = r[j_k] − r[i_k] + ε_k, ε_k ~ N(0, σ_k²), and a stationary OU prior on r (τ, σ_r). Returns the posterior
+    mean and SD of r. This is the Kalman/RTS smoother of the model, solved in one sparse system (no network
+    inversion: each node is tied only by its own increments and the prior)."""
+    import scipy.sparse as sp
+    import scipy.sparse.linalg as spla
+
+    from .fusion2 import ou_precision
+    n = len(t_days)
+    ok = np.isfinite(y) & np.isfinite(sigma) & (sigma > 0)
+    i, j, y, s = i[ok], j[ok], y[ok], sigma[ok]
+    m = len(y)
+    D = sp.csr_matrix((np.r_[-np.ones(m), np.ones(m)], (np.r_[np.arange(m), np.arange(m)], np.r_[i, j])), shape=(m, n))
+    Wt = sp.diags(1 / s ** 2)
+    P = (ou_precision(t_days, tau_days, sigma_r) + D.T @ Wt @ D).tocsc()
+    mean = spla.spsolve(P, D.T @ (y / s ** 2))
+    cov = np.linalg.inv(P.toarray()) if n <= 3000 else None
+    sd = np.sqrt(np.diag(cov)) if cov is not None else np.full(n, np.nan)
+    return np.asarray(mean), sd
+
+
+def detect_inflated_sigma(sigma: np.ndarray, p_detect: np.ndarray, floor: float = 0.05,
+                          miss_scale_mm: float = WAVELENGTH_MM / 2) -> np.ndarray:
+    """Observation SD for the smoother: the noise-model σ when the pair surely carries the motion, growing toward the
+    error scale of a miss as the detectability falls (a mixture's variance, σ² + (1 − p)·scale²). The scale is a
+    whole cycle (λ/2) where misses are cycle slips; λ/4 where they are not (6-day pairs, WP4)."""
+    p = np.clip(np.asarray(p_detect, float), floor, 1.0)
+    return np.sqrt(np.asarray(sigma, float) ** 2 + (1 - p) * miss_scale_mm ** 2)
