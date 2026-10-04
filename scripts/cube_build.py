@@ -82,6 +82,9 @@ def ingest(what: str) -> None:
                  np.ceil(max(ys) / 500) * 500)
         tab = src.fetch_gugik_tiles(RAW / "lidar", b2180, log=log)
         tab.to_csv(RAW / "lidar" / "tiles.csv", index=False)
+    elif what == "ecostress":
+        tab = src.fetch_ecostress(RAW / "ecostress", bounds, START, END, log=log)
+        log(f"ECOSTRESS acquisitions {len(tab)}, with clear pixels {int((tab.valid_share > 0).sum())}")
     elif what == "nisar":
         from insar_wetlands.cube import nisar_crops
         nisar_crops.fetch(RAW / "nisar", ctx(), log=log)

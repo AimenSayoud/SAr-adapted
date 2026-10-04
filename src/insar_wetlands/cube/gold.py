@@ -26,6 +26,7 @@ from .build import F32, PERIODS, REPO, TRACKS, plot_units
 
 V2_SPLIT = pd.Timestamp("2021-08-13", tz="UTC")
 S2_TOL_DAYS, LST_TOL_DAYS, UAV_TOL_DAYS = 10, 16, 30
+ECO_TOL_H = 6
 S2_IDX = ("ndvi", "ndre", "ndmi", "ndwi", "mndwi")
 SITE_AT = ["air_c", "dpd_c", "wind_ms", "st_rh_pct", "st_vpd_kpa", "st_ppfd_global", "rain_3h_mm", "rain_24h_mm",
            "rain_72h_mm", "hours_since_rain", "om_era5_land_soil_temperature_0_to_7cm",
@@ -357,6 +358,12 @@ def plots_acq(site: pd.DataFrame, px: pd.DataFrame, static: xr.Dataset, silver: 
         acq = pd.concat([acq, nearest_by_plot(ls, keys, "time_utc", LST_TOL_DAYS, ["lst_c_3x3", "lst_c_1x1"], "",
                                               ok=ls.lst_c_3x3.notna())], axis=1)
         acq = acq.rename(columns={"lag_days": "lst_lag_days"})
+    if (silver / "eco_plots.csv.gz").exists():
+        # surface temperature near the radar's own time: ECOSTRESS within ± ECO_TOL_H hours of the overpass
+        ec = pd.read_csv(silver / "eco_plots.csv.gz", parse_dates=["time_utc"])
+        ne = nearest_by_plot(ec, keys, "time_utc", ECO_TOL_H / 24, ["eco_lst_c_3x3", "eco_lst_c_1x1"], "",
+                             ok=ec.eco_lst_c_3x3.notna())
+        acq = pd.concat([acq, ne.rename(columns={"lag_days": "eco_lag_days"})], axis=1)
     uav = uav_by_plot()
     uav["time_utc"] = pd.to_datetime(uav.date).dt.tz_localize("UTC") + pd.Timedelta(hours=11)
     ucols = [c for c in uav.columns if c.startswith("uav_")]
@@ -438,6 +445,12 @@ def gold_mat(silver: Path, gold: Path, log=print) -> None:
             v, lag = nearest_pixel(lst.lst_c.values[:, rr, cc], np.isfinite(lst.lst_c.values[:, rr, cc]).astype(float),
                                    pd.DatetimeIndex(lst.time.values, tz="UTC"), times, LST_TOL_DAYS)
             o["lst_c"], o["lst_lag_days"] = (("pixel", "time"), v.T.astype("float32")), (("pixel", "time"), lag.T.astype("float32"))
+        if (silver / "eco_40m.nc").exists():
+            eco = xr.open_dataset(silver / "eco_40m.nc")
+            v, lag = nearest_pixel(eco.lst_c.values[:, rr, cc], np.isfinite(eco.lst_c.values[:, rr, cc]).astype(float),
+                                   pd.DatetimeIndex(eco.time.values, tz="UTC"), times, ECO_TOL_H / 24)
+            o["eco_lst_c"] = (("pixel", "time"), v.T.astype("float32"))
+            o["eco_lag_h"] = (("pixel", "time"), (lag * 24).T.astype("float32"))
         sa = site_at(site, times)
         for c in sa.columns:
             vals = sa[c].to_numpy()

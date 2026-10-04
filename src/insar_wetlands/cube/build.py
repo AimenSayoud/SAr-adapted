@@ -287,6 +287,35 @@ def harmonise_optical(ctx, raw: Path, silver: Path, log=print, min_valid: float 
         log(f"Landsat: {d2.sizes['time']} scenes → lst_40m.nc")
 
 
+def harmonise_ecostress(ctx, raw: Path, silver: Path, log=print, min_valid: float = 0.02) -> None:
+    """ECOSTRESS surface temperature (read on the 40 m template already) → ``eco_40m.nc`` and ``eco_plots.csv.gz``; the
+    acquisition hour is kept — ECOSTRESS samples every time of day, the radar's dawn and dusk included."""
+    f = raw / "ecostress" / "scenes.csv"
+    if not f.exists():
+        return
+    tx, ty = tpl_xy(ctx)
+    sc = pd.read_csv(f, parse_dates=["time"])
+    sc = sc[(sc.file.fillna("") != "") & (sc.valid_share >= min_valid)].sort_values("time").drop_duplicates("time")
+    px = plot_units()
+    lst, prow = [], []
+    for fn, t in zip(sc.file, sc.time):
+        z = np.load(raw / "ecostress" / fn)["lst_c"]
+        if z.shape != (len(ty), len(tx)):
+            continue
+        lst.append(z)
+        for p, r, c in zip(px["plot"], px.row, px.col):
+            prow.append({"time_utc": t, "plot": p, "eco_lst_c_1x1": float(z[r, c]),
+                         "eco_lst_c_3x3": core.window_stats(z, r, c)["mean"]})
+    times = pd.DatetimeIndex(sc.time.iloc[:len(lst)])
+    times = times.tz_convert(None) if times.tz is not None else times
+    ds = xr.Dataset({"lst_c": (("time", "y", "x"), np.stack(lst).astype("float32"))},
+                    coords={"time": times, "x": tx, "y": ty, "hour_utc": ("time", times.hour + times.minute / 60)})
+    ds.attrs = {"source": "ECOSTRESS L2T LSTE v002 (LP DAAC), cloud-masked; 70 m → 40 m template (nearest)"}
+    ds.to_netcdf(silver / "eco_40m.nc", encoding=_enc(ds))
+    pd.DataFrame(prow).to_csv(silver / "eco_plots.csv.gz", index=False)
+    log(f"ECOSTRESS: {ds.sizes['time']} scenes → eco_40m.nc, eco_plots.csv.gz")
+
+
 # ------------------------------------------------------------------------------ static layers
 
 def _lidar_1m(raw: Path, bounds_utm, log=print):
@@ -598,7 +627,7 @@ def folds() -> dict:
 def run(step: str, what: list[str], ctx_fn, raw: Path, silver: Path, gold: Path, log=print) -> None:
     if step in ("harmonise", "all"):
         ctx = ctx_fn()
-        todo = what or ["ifg", "rtc", "optical", "static", "site", "folds", "nisar"]
+        todo = what or ["ifg", "rtc", "optical", "ecostress", "static", "site", "folds", "nisar"]
         for w in todo:
             if w == "ifg":
                 harmonise_ifg(ctx, silver, log)
@@ -611,6 +640,8 @@ def run(step: str, what: list[str], ctx_fn, raw: Path, silver: Path, gold: Path,
             elif w == "site":
                 df = site_hourly(raw, f"{pd.Timestamp.now(tz='UTC'):%Y-%m-%d}", log)
                 df.to_csv(silver / "site_hourly.csv.gz")
+            elif w == "ecostress":
+                harmonise_ecostress(ctx, raw, silver, log)
             elif w == "nisar":
                 from .nisar_crops import to_silver
                 if (raw / "nisar" / "granules.csv").exists():
