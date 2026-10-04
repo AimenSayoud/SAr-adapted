@@ -276,6 +276,145 @@ def add_fusion_v2(W, F: Path, hub: Path, P, gallery: list, gal: Path) -> None:
         gallery.append({"file": f"figures/fusion2_{f.name}", "source": "08_deliverables/fusion_v2", "status": "exploratory"})
 
 
+def add_fusion_v3(W, F: Path, hub: Path, P, gallery: list, gal: Path) -> None:
+    """X-072…X-078 (branch fusion-x062): fusion v3 — height maps per run (the raft with the WP3 edge gradient), how much
+    each pixel moves, its uncertainty, the edge factor, summer/autumn detectability, and one chart with the evidence of
+    every work package (scoping, WP0–WP5) and the held-out P6 series. Reads the hub deliverable."""
+    W5 = F / "wp5"
+    if not (W5 / "validation_p6_laser.csv").exists():
+        print("  fusion v3: no fusion_v3 deliverable — skipped")
+        return
+    print("\n== fusion v3 (X-072…X-078, branch)")
+    runs = {"R1": "2020–2021, 6-day pairs, both tracks", "R3": "2025, out of sample (no water-table logger)",
+            "R4": "2026, out of sample (no laser to check)"}
+    group = "Fusion v3 (X-078)"
+    shared, slope = {}, None
+    for key, label in runs.items():
+        nc = W5 / f"height_v3_{key}.nc"
+        if not nc.exists():
+            continue
+        ds = xr.open_dataset(nc)
+        slope = float(ds.attrs.get("depth_slope", np.nan))
+        prov = P(nc, W5 / "README.md", root=hub)
+        # date labels as v2 (no run has two acquisitions on one day): the inspector matches laser and raft by date
+        times = [pd.Timestamp(t).strftime("%Y-%m-%d") for t in ds.time.values]
+        h = ds.height_mm.values.astype(float)
+        h = h - np.nanmean(h, axis=0, keepdims=True)           # each pixel relative to its own mean (as v2)
+        lim = float(np.nanpercentile(np.abs(h), 98))
+        W.raster(f"fusion3_height_{key}", h, title=f"Mat height, fusion v3 ({label})", group=group, status="exploratory",
+                 units="mm", colormap="RdBu", display=(-lim, lim), times=times, prov=prov, x=ds.x.values, y=ds.y.values,
+                 description="Vertical height of each mat pixel at each acquisition of both tracks, relative to its mean, + up: "
+                             "the whole mat's motion from 6-day pairs referenced to the hard targets, weighted by measured "
+                             "noise and detectability, with the buoyancy prior, times the edge factor. Branch fusion-x062.")
+        W.raster(f"fusion3_range_{key}", np.nanstd(h, axis=0), title=f"How much the mat moves, fusion v3 ({label})",
+                 group=group, status="exploratory", units="mm", colormap="viridis", prov=prov, x=ds.x.values, y=ds.y.values,
+                 description="Standard deviation over time of each pixel's height.")
+        W.raster(f"fusion3_sd_{key}", np.nanmedian(ds.height_sd_mm.values, axis=0), title=f"Uncertainty, fusion v3 ({label})",
+                 group=group, status="exploratory", units="mm", colormap="Greys", prov=prov, x=ds.x.values, y=ds.y.values,
+                 description="Median over dates of the posterior SD of the height (conservative: it over-covers at P6).")
+        shared[key] = {"date": times, "mm": [round(float(v), 2) for v in ds.raft_mm.values - np.nanmean(ds.raft_mm.values)]}
+        ref = p6_laser_reference(hub, pd.DatetimeIndex(ds.time.values))
+        if ref is not None:
+            INSPECTOR_REFS[f"fusion3_height_{key}"] = {**ref, "dates": times, "label": "laser at P6", "units": "mm"}
+    st = xr.open_dataset(hub / "06_data" / "cube" / "silver" / "static_40m.nc")
+    mat = st.zone.values == 1
+    depth = st.depth_in_mat_m.values
+    if slope is not None and np.isfinite(slope):
+        z = (depth - np.nanmean(depth[mat])) / np.nanstd(depth[mat])
+        W.raster("fusion3_edge_factor", np.where(mat, 1 + slope * z, np.nan), title="Edge factor: motion relative to the mat's mean (fusion v3)",
+                 group=group, status="exploratory", units="×", colormap="viridis", prov=P(F / "wp3" / "README.md", root=hub),
+                 x=st.x.values, y=st.y.values,
+                 description="1 + s·z: how much each mat pixel moves for a unit motion of the whole mat (z = standardised depth in "
+                             "the mat, s = the WP3 depth slope). Above 1 in the interior, below 1 at the shore.")
+    det = F / "wp3" / "e32_detectability_per_pixel_6day.csv"
+    if det.exists():
+        dd = pd.read_csv(det)
+        for track in ("ascending", "descending"):
+            for season in ("JJA", "SON"):
+                g = dd[(dd.track == track) & (dd.season == season)]
+                if g.empty:
+                    continue
+                a = np.full(mat.shape, np.nan)
+                a[g.row.to_numpy(), g.col.to_numpy()] = g.p_detect.to_numpy()
+                sname = {"JJA": "summer", "SON": "autumn"}[season]
+                W.raster(f"fusion3_detect_{track}_{season}", a, title=f"P(a 6-day pair carries the motion), {track}, {sname}",
+                         group=group, status="exploratory", units="probability", colormap="viridis", display=(0, 1),
+                         prov=P(det, root=hub), x=st.x.values, y=st.y.values,
+                         description="The WP2 detectability model (logistic, leave-one-year-out calibrated at P6) applied to every "
+                                     "mat pixel's 6-day pairs of that season: where and when the mat is measurable.")
+    rd = lambda f: pd.read_csv(F / f)  # noqa: E731
+    recs = lambda df: df.astype(object).where(pd.notna(df), None).to_dict("records")  # noqa: E731
+    val = rd("wp5/validation_p6_laser.csv")
+    # held-out P6 series (primary setting), demeaned within laser segments as the validation does
+    ser = rd("wp5/series_p6.csv")
+    primary = [v for v in ser.variant.dropna().unique() if "λ/4" in str(v)]
+    ser = ser[ser.variant.isin(primary)] if primary else ser
+    series_rows = []
+    lh = hub / "06_data" / "cube" / "gold" / "truth_laser_hourly.csv.gz"
+    if lh.exists():
+        from insar_wetlands.cube.core import value_at
+        h = pd.read_csv(lh, index_col=0, parse_dates=True)
+        h.index = pd.DatetimeIndex(h.index, tz="UTC") if h.index.tz is None else h.index
+        ok = h.laser_surface_cm.where(h.laser_ok.map({True: True, False: False, "True": True, "False": False}).fillna(False).astype(bool)) * 10
+        for ty in (2021, 2025):
+            g = ser[ser.test_year.astype(str).str.startswith(str(ty))].copy()
+            g["time_utc"] = pd.to_datetime(g.time_utc, utc=True)
+            g = g[g.time_utc.dt.year == ty].sort_values("time_utc")
+            if g.empty:
+                continue
+            g["laser"] = value_at(ok, pd.DatetimeIndex(g.time_utc))
+            seg, sid, prev = [], -1, None
+            for t, v in zip(g.time_utc, g.laser):
+                if not np.isfinite(v):
+                    seg.append(-1)
+                    continue
+                if prev is None or (t - prev).days > 15:
+                    sid += 1
+                seg.append(sid)
+                prev = t
+            g["seg"] = seg
+            g = g[g.seg >= 0]
+            cols = {"laser": "laser_mm", "h_v3_mm": "v3_mm", "h_matmode_p6_mm": "map_at_p6_mm", "chain_asc_mm": "chain_asc_mm",
+                    "chain_des_mm": "chain_des_mm", "prior_mm": "prior_mm"}
+            for c in cols:
+                if c in g:
+                    g[c] = g[c] - g.groupby("seg")[c].transform("mean")
+            for r in g.itertuples():
+                series_rows.append({"year": ty, "date": r.time_utc.strftime("%Y-%m-%d %H:%M"), "segment": int(r.seg),
+                                    **{v: (None if not np.isfinite(getattr(r, k, np.nan)) else round(float(getattr(r, k)), 2))
+                                       for k, v in cols.items()},
+                                    "v3_sd_mm": None if not np.isfinite(r.h_v3_sd_mm) else round(float(r.h_v3_sd_mm), 2)})
+    rob = rd("wp0/hard_target_robustness.csv")
+    rob_s = rob.groupby(["track", "revisit_days", "set"]).resid_sd_year_blocked_mm.quantile([0.05, 0.5, 0.95]).unstack().reset_index()
+    rob_s.columns = ["track", "revisit_days", "set", "p05", "p50", "p95"]
+    nis = rd("wp4/e42_nisar_vs_sentinel1.csv")
+    nis_s = {"pairs": int(len(nis)), "median_abs_cycles": float(nis.difference_in_cband_cycles.abs().median()) if len(nis) else None,
+             "about_a_cycle": int((nis.difference_in_cband_cycles.abs() > 0.75).sum()) if len(nis) else 0}
+    ref = rd("wp0/reference_study.csv")
+    W.chart("fusion_v3", {
+        "runs": runs, "shared": shared, "depth_slope": slope,
+        "validation": recs(val), "parameters": recs(rd("wp5/parameters_by_block.csv")), "series": series_rows,
+        "v2_summary": recs(pd.read_csv(hub / "08_deliverables" / "fusion_v2" / "validation_summary.csv")),
+        "scoping_reference": recs(rd("scoping/q4_reference.csv")), "scoping_truth": recs(rd("scoping/q1_truth_size.csv")),
+        "reference": recs(ref[ref.period == "all"]), "reference_robustness": recs(rob_s.round(3)),
+        "noise_fits": recs(rd("wp0/noise_model_fits.csv")), "noise_check": recs(rd("wp0/noise_model_check_p6.csv")),
+        "laser_models": recs(rd("wp1/e11_laser_level_models.csv")), "driver_models": recs(rd("wp1/e12_change_models.csv")),
+        "proxies": recs(rd("wp1/e13_water_table_proxies.csv")), "driver_2025": recs(rd("wp1/e13_driver_vs_laser_2024_2025.csv")),
+        "budget": recs(rd("wp2/e21_signal_budget.csv")), "detect_skill": recs(rd("wp2/e22_detectability_skill.csv")),
+        "detect_calibration": recs(rd("wp2/e22_calibration.csv").astype({"bin": str})), "detect_importance": recs(rd("wp2/e22_importance.csv")),
+        "correction_gate": recs(rd("wp2/e23_correction_gate.csv")), "single_driver_gate": recs(rd("wp2/e23_single_driver_gate.csv")),
+        "edge": recs(rd("wp3/e31_shape_vs_raft.csv")), "edge_wrapped": recs(rd("wp4/e41b_wrapped_edge_gradient.csv")),
+        "detect_summary": recs(rd("wp3/e32_detectability_summary.csv")), "cycles": recs(rd("wp4/e41_cycle_choice.csv")),
+        "nisar": nis_s,
+    }, title="Fusion v3 (X-072…X-078): the evidence of each work package and the held-out P6 series", group=group,
+        status="exploratory", prov=P(W5 / "validation_p6_laser.csv", W5 / "README.md", root=hub))
+    for sub in ("scoping", "wp0", "wp1", "wp2", "wp3", "wp4", "wp5"):
+        for f in sorted((F / sub).glob("fig_*.png")):
+            shutil.copy2(f, gal / f"fusion3_{sub}_{f.name}")
+            gallery.append({"file": f"figures/fusion3_{sub}_{f.name}", "source": f"08_deliverables/fusion_v3/{sub}",
+                            "status": "exploratory"})
+
+
 def add_field_p6(W, F10: Path, root: Path, hub: Path, P) -> None:
     """P6/CR, the primary validation site (X-058 laser verification, X-059 comparison): one chart
     file with everything the /p6/ page draws. Reads the hub's deliverables; holds nothing."""
@@ -921,6 +1060,9 @@ def related_of(lid: str, ids: set) -> list[str]:
         (r"(ndwi|mndwi|water)_stack", lambda m: ["rtc_gamma0_vv_db"]),
         (r"fusion2_(range|sd)_(R\d)", lambda m: [f"fusion2_height_{m.group(2)}"]),
         (r"fusion2_height_R\d", lambda m: ["pairs_corr_ascending"]),
+        (r"fusion3_(range|sd)_(R\d)", lambda m: [f"fusion3_height_{m.group(2)}"]),
+        (r"fusion3_height_(R\d)", lambda m: [f"fusion2_height_{m.group(1)}", "fusion3_edge_factor"]),
+        (r"fusion3_edge_factor|fusion3_detect_.*", lambda m: ["fusion3_height_R1", "pairs_corr_ascending"]),
         (r"fusion_(amplitude|sd)_ascending|fusion_dissimilarity|fusion_zones", lambda m: ["fusion_fused_ascending"]),
         (r"fusion_fused_ascending", lambda m: ["fusion2_height_R1"]),
     ]
@@ -990,19 +1132,20 @@ def _inspect_spec(layer: dict, ids: set) -> dict | None:
         return {"panel": "class", "family": layer["group"].lower().replace(" ", "-"), "priority": 0,
                 "source": {"chart": "class_medians"}}
     dated = kind == "stack" and layer.get("time_label") == "date"
-    m = re.fullmatch(r"fusion2_(height|range|sd)_(R\d)", lid)
+    m = re.fullmatch(r"fusion([23])_(height|range|sd)_(R\d)", lid)
     if m:
-        if m.group(1) == "height":
-            band = f"fusion2_sd_{m.group(2)}"
-            return {"panel": "band", "family": "fusion-v2", "priority": 0, "zone_median": True,
+        v, fam = m.group(1), f"fusion-v{m.group(1)}"
+        if m.group(2) == "height":
+            band = f"fusion{v}_sd_{m.group(3)}"
+            return {"panel": "band", "family": fam, "priority": 0, "zone_median": True,
                     **({"band": band} if band in ids else {}),
                     **({"reference": {"chart": "inspector_refs", "key": lid}} if lid in INSPECTOR_REFS and "inspector_refs" in ids else {}),
                     # every run at this pixel on one axis (C-051): the other runs' heights, and each run's SD and range
-                    "companions": [f"fusion2_{v}_{r}" for r in ("R1", "R2", "R3") for v in ("height", "sd", "range")
-                                   if f"fusion2_{v}_{r}" in ids and f"fusion2_{v}_{r}" != lid],
-                    **({"source": {"chart": "fusion_v2"}} if "fusion_v2" in ids else {}),
-                    "note": "± posterior SD (per-pixel bound, conservative)"}
-        return {"panel": "value", "family": "fusion-v2", "priority": 5}
+                    "companions": [f"fusion{v}_{q}_{r}" for r in ("R1", "R2", "R3", "R4") for q in ("height", "sd", "range")
+                                   if f"fusion{v}_{q}_{r}" in ids and f"fusion{v}_{q}_{r}" != lid],
+                    **({"source": {"chart": f"fusion_v{v}"}} if f"fusion_v{v}" in ids else {}),
+                    "note": "± posterior SD (conservative)"}
+        return {"panel": "value", "family": fam, "priority": 5}
     if lid == "fusion_fused_ascending":
         comp = ["fusion_radar_only_ascending"] if "fusion_radar_only_ascending" in ids else []
         return {"panel": "compare", "family": "fusion-v1", "priority": 0, "companions": comp,
@@ -1728,6 +1871,7 @@ def main() -> None:
     hub_root = _field.field_root().parents[1]
     add_fusion(W, hub_root / "08_deliverables" / "field_fusion_x062", hub_root, P, gallery, gal)
     add_fusion_v2(W, hub_root / "08_deliverables" / "fusion_v2", hub_root, P, gallery, gal)
+    add_fusion_v3(W, hub_root / "08_deliverables" / "fusion_v3", hub_root, P, gallery, gal)
     add_backscatter_x063(W, hub_root, P)
     add_followups(W, hub_root, P, gallery, gal)
     add_claims_and_revisit(W, hub_root, P)
