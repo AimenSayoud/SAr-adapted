@@ -420,13 +420,15 @@ def harmonise_static(ctx, raw: Path, silver: Path, peat_bounds, log=print) -> No
     for k in "DCBA":                                     # mat wins over everything
         zone[Z[k]] = ZONE_CODES[k]
     out_mat = ndimage.distance_transform_edt(~Z["A"]) * 40.0
-    in_mat = ndimage.distance_transform_edt(Z["A"]) * 40.0
+    basin = Z["A"] | Z["B"]                                   # floating mat + internal lake = wetland basin
+    in_mat = (ndimage.distance_transform_edt(basin) * 40.0 * Z["A"]).astype("float32")
     stable = Z["D"] & (out_mat > 200) & (out_mat < 1500)     # as X-070
     L = {"zone": zone, "stable": stable.astype("int16"), "dist_to_mat_m": out_mat.astype("float32"),
-         "depth_in_mat_m": in_mat.astype("float32"),
+         "depth_in_mat_m": in_mat,
          "spatial_block": core.spatial_blocks(zone.shape, SPATIAL_BLOCK_CELLS).astype("int32")}
     up = lambda a: _to20(a, tx, ty, x20, y20)  # noqa: E731
     L20 = {"zone": up(zone).astype("int16"), "stable": up(L["stable"]).astype("int16"),
+           "depth_in_mat_m": up(in_mat).astype("float32"),
            "spatial_block": up(L["spatial_block"]).astype("int32")}
     # WorldCover 2021 shares
     wc = sorted((raw / "worldcover").glob("*2021*.npz"))

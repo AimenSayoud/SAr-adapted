@@ -96,10 +96,13 @@ def e31(n_patches: int = 60) -> tuple[pd.DataFrame, pd.DataFrame]:
             rr, cc = ds.row.values[mat], ds.col.values[mat]
             if "st_depth_in_mat_m" in ds:
                 depth = ds.st_depth_in_mat_m.values[mat]
-            else:                                                     # 20 m grid: distance to the mat's edge here
+            else:                                                     # 20 m grid: distance to the basin edge here
                 res_m = 20.0 if sfx else 40.0
                 gm = np.zeros((ds.row.values.max() + 1, ds.col.values.max() + 1), bool)
                 gm[rr, cc] = True
+                lake_mask = ds.st_zone.values == 2
+                if lake_mask.any():
+                    gm[ds.row.values[lake_mask], ds.col.values[lake_mask]] = True
                 depth = (ndimage.distance_transform_edt(gm) * res_m)[rr, cc]
             cohm = np.nanmedian(ds.coh.values[:, keep], 1)                 # each pixel's median coherence over the pairs
             Sh = shapes_for(rr, cc, depth, ds.st_lidar_microrelief_sd_m.values[mat], ds.st_lidar_vegh_mean_m.values[mat],

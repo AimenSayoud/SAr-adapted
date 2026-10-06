@@ -110,4 +110,8 @@ clean:
 # Runs no MintPy, phase linking or null realisations.
 ATLAS_OUT ?= ../../08_deliverables/rzecin-atlas/data
 web-atlas:
-	PYTHONPATH=$(SRC) $(PY) scripts/build_web_atlas.py --out $(ATLAS_OUT)
+	PYTHONPATH=$(SRC) $(PY) scripts/build_web_atlas.py --out $(ATLAS_OUT) \
+		--attach reproduction_report=../local/results/reproduction_report.json \
+		--attach zone_sensitivity=../local/results/zone_sensitivity.json \
+		--attach asc_desc=../local/results/asc_desc/asc_desc_web.json \
+		--attach era5_sensitivity=../local/results/x043_era5_sensitivity.json

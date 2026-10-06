@@ -1,0 +1,57 @@
+[
+  {
+    "direction":"DESCENDING",
+    "relative_orbit":22,
+    "burst_id":"022_045866_IW2",
+    "subswath":"IW2",
+    "coverage_pct":61.02,
+    "n_acquisitions_2023":31,
+    "median_gap_days":12.0,
+    "max_gap_days":12.0,
+    "overpass_time_utc":"05:09 UTC"
+  },
+  {
+    "direction":"DESCENDING",
+    "relative_orbit":22,
+    "burst_id":"022_045867_IW2",
+    "subswath":"IW2",
+    "coverage_pct":100.0,
+    "n_acquisitions_2023":31,
+    "median_gap_days":12.0,
+    "max_gap_days":12.0,
+    "overpass_time_utc":"05:09 UTC"
+  },
+  {
+    "direction":"ASCENDING",
+    "relative_orbit":73,
+    "burst_id":"073_154962_IW2",
+    "subswath":"IW2",
+    "coverage_pct":100.0,
+    "n_acquisitions_2023":30,
+    "median_gap_days":12.0,
+    "max_gap_days":12.0,
+    "overpass_time_utc":"16:44 UTC"
+  },
+  {
+    "direction":"ASCENDING",
+    "relative_orbit":175,
+    "burst_id":"175_374052_IW1",
+    "subswath":"IW1",
+    "coverage_pct":100.0,
+    "n_acquisitions_2023":31,
+    "median_gap_days":12.0,
+    "max_gap_days":12.0,
+    "overpass_time_utc":"16:36 UTC"
+  },
+  {
+    "direction":"ASCENDING",
+    "relative_orbit":175,
+    "burst_id":"175_374053_IW1",
+    "subswath":"IW1",
+    "coverage_pct":100.0,
+    "n_acquisitions_2023":31,
+    "median_gap_days":12.0,
+    "max_gap_days":12.0,
+    "overpass_time_utc":"16:36 UTC"
+  }
+]
