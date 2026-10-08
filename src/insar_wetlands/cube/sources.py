@@ -3,7 +3,7 @@ already present is not fetched again.
 
 | source | what | access |
 |---|---|---|
-| Sentinel-2 L2A (collection 1) | B03, B04, B05, B08, B8A, B11, SCL over the template, 2020 → | Earth Search STAC, COG windows |
+| Sentinel-2 L2A (collection 1) | B03, B04, B05, B08, B8A, B11, SCL over the template, 2017 → | Earth Search STAC, COG windows |
 | Landsat 8/9 C2 L2 | surface temperature (ST_B10) + QA over the template | Planetary Computer STAC, COG windows |
 | ESA WorldCover 10 m (2020, 2021) | land-cover classes over the template | Planetary Computer STAC |
 | ERA5-Land + ERA5 hourly | soil/skin/dew/snow (Land), rain/radiation/wind/cloud (ERA5) at the site | Open-Meteo archive API |

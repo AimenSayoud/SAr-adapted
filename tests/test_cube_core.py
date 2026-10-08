@@ -98,3 +98,13 @@ def test_folds():
 
 def test_overpass_time():
     assert core.overpass_time("2022-06-01", "descending") == pd.Timestamp("2022-06-01 05:09", tz="UTC")
+
+
+def test_period_of_boundaries_cover_every_period():
+    from insar_wetlands.cube.build import CUBE_START, PERIODS
+    from insar_wetlands.cube.gold import period_of
+    cases = {CUBE_START: "2017_2019", "2019-12-31": "2017_2019", "2020-01-01": "2020_2021", "2021-12-31": "2020_2021",
+             "2022-01-01": "2022_2024", "2024-12-31": "2022_2024", "2025-06-01": "2025", "2026-10-05": "2026"}
+    for d, want in cases.items():
+        assert period_of(d) == want, d
+    assert set(cases.values()) == set(PERIODS)
