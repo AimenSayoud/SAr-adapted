@@ -41,7 +41,7 @@ PIXEL_STATIC = ["dist_to_mat_m", "depth_in_mat_m", "spatial_block", "boardwalk_s
 
 def period_of(date) -> str:
     y = pd.Timestamp(date).year
-    return "2020_2021" if y <= 2021 else "2022_2024" if y <= 2024 else str(y)
+    return "2017_2019" if y <= 2019 else "2020_2021" if y <= 2021 else "2022_2024" if y <= 2024 else str(y)
 
 
 # ------------------------------------------------------------------------------ loaders
@@ -89,7 +89,8 @@ def nearest_by_plot(tab: pd.DataFrame, keys: pd.DataFrame, time_col: str, tol_da
     out = []
     for p, g in keys.groupby("plot", sort=False):
         src = t[t["plot"] == p].set_index(time_col)[cols].sort_index()
-        src.index = pd.DatetimeIndex(src.index, tz="UTC") if src.index.tz is None else src.index
+        # mixed ISO stamps (with / without fractional seconds, C-060) stay text under a plain parse: coerce to UTC here
+        src.index = pd.to_datetime(src.index, format="ISO8601", utc=True)
         a = core.asof(g.time_utc, src, pd.Timedelta(days=tol_days)) if len(src) else \
             pd.DataFrame({**{c: np.nan for c in cols}, "lag_h": np.nan}, index=range(len(g)))
         a.index = g.index

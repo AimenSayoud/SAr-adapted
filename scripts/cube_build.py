@@ -22,7 +22,9 @@ from insar_wetlands.cube import sources as src
 HUB = Path(__file__).resolve().parents[3]
 CUBE = cube_root()
 RAW, SILVER, GOLD = CUBE / "raw", CUBE / "silver", CUBE / "gold"
-START, END = "2020-01-01", f"{pd.Timestamp.now(tz='UTC'):%Y-%m-%d}"
+from insar_wetlands.cube.build import CUBE_START  # noqa: E402
+
+START, END = CUBE_START, f"{pd.Timestamp.now(tz='UTC'):%Y-%m-%d}"
 SITE_LATLON = (52.761413, 16.3099)        # P6/CR, from the field team's plot table (readme sheet)
 
 

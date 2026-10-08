@@ -5,7 +5,7 @@ one set of units; flags as columns. Called by ``scripts/cube_build.py harmonise 
 |---|---|
 | ``ifg_<period>_<track>.nc`` | every HyP3 pair on disk: wrapped / unwrapped phase (rad, unreferenced), coherence, connected component; look-vector angles and DEM |
 | ``ifg_2026_<track>_20m.nc`` | the same at 20 m (D-024) |
-| ``rtc_<track>.nc`` | γ⁰ VV, VH (dB), VH/VV, RVI, platform and exact time, 2020 → |
+| ``rtc_<track>.nc`` | γ⁰ VV, VH (dB), VH/VV, RVI, platform and exact time, 2017 → |
 | ``s2_40m.nc``, ``s2_plots.csv.gz`` | NDVI, NDRE, NDMI, NDWI, MNDWI (mean, SD, valid share), snow share, every scene |
 | ``lst_40m.nc``, ``lst_plots.csv.gz`` | Landsat 8/9 surface temperature (°C), clear pixels |
 | ``static_40m.nc``, ``static_20m.nc`` | zones, stable ground, hard targets, distance to the mat edge, WorldCover shares, LiDAR terrain and vegetation, boardwalk share, geometry, mean radar behaviour, spatial CV blocks |
@@ -36,9 +36,12 @@ MIRROR = LOCAL / "drive_mirror"
 DLV = HUB / "08_deliverables"
 REPO = Path(__file__).resolve().parents[3]
 TRACKS = ("ascending", "descending")
-PERIODS = ("2020_2021", "2022_2024", "2025", "2026")
-RTC_FILES = {"ascending": ["rtc_dualpol_2020_2024.nc", "rtc_dualpol_2025_2025.nc", "rtc_dualpol_2026_2026.nc"],
-             "descending": ["rtc_dualpol_2020_2024_descending.nc", "rtc_dualpol_2025_2025_descending.nc",
+CUBE_START = "2017-01-01"                                 # first day of every time series (C-060; was 2020-01-01)
+PERIODS = ("2017_2019", "2020_2021", "2022_2024", "2025", "2026")
+RTC_FILES = {"ascending": ["rtc_dualpol_2017_2019.nc", "rtc_dualpol_2020_2024.nc", "rtc_dualpol_2025_2025.nc",
+                           "rtc_dualpol_2026_2026.nc"],
+             "descending": ["rtc_dualpol_2017_2019_descending.nc", "rtc_dualpol_2020_2024_descending.nc",
+                            "rtc_dualpol_2025_2025_descending.nc",
                             "rtc_dualpol_2026_2026_descending.nc"]}
 S2_INDICES = ("ndvi", "ndre", "ndmi", "ndwi", "mndwi")
 ZONE_CODES = {"A": 1, "B": 2, "C": 3, "D": 4}           # mat, lake, grassland, other ground
@@ -178,9 +181,18 @@ def _write_ifg(lay: dict, st: dict, plat: pd.Series, track: str, out: Path, log)
 
 # ------------------------------------------------------------------------------ backscatter
 
+ASF_ACQ = HUB / "06_data" / "s1_archive" / "asf_acquisitions.csv"   # C-059 inventory: every burst acquisition
+
+
 def platform_by_date() -> pd.Series:
-    """(track, date) → platform (S1A/S1B/S1C/S1D) from the RTC source items, the only place the platform is recorded."""
+    """(track, date) → platform (S1A/S1B/S1C/S1D). First from ASF's burst catalogue (C-059: the acquisitions HyP3
+    paired, every date), then from the RTC source items for any date it lacks. Before C-060 only the RTC items were
+    read, so dates without an RTC scene were labelled '?' — and a '?' pair escaped the S1D filters of fusion v3."""
     rows = []
+    if ASF_ACQ.exists():
+        a = pd.read_csv(ASF_ACQ, parse_dates=["date"])
+        rows += [{"track": t, "date": d.date(), "platform": "S1" + str(p)[-1]}
+                 for t, d, p in zip(a.track, a.date, a.platform)]
     for track, files in RTC_FILES.items():
         for f in files:
             p = MIRROR / f
@@ -213,6 +225,14 @@ def harmonise_rtc(ctx, silver: Path, log=print) -> None:
 
 # ------------------------------------------------------------------------------ optical
 
+def _read_scenes(path: Path) -> pd.DataFrame:
+    """A scene table with its ``time`` column parsed as UTC. The archives mix stamps with and without fractional
+    seconds (older Sentinel-2 collection, 2017–2019), which a plain ``parse_dates`` leaves as text."""
+    d = pd.read_csv(path)
+    d["time"] = pd.to_datetime(d["time"], format="ISO8601", utc=True)
+    return d
+
+
 def _grid_from_bounds(left, top, res, w, h):
     return left + res / 2 + res * np.arange(w), top - res / 2 - res * np.arange(h)
 
@@ -227,7 +247,7 @@ def harmonise_optical(ctx, raw: Path, silver: Path, log=print, min_valid: float 
     left, top = tx[0] - 20, ty[0] + 20
     px = plot_units()
     # Sentinel-2 (20 m)
-    sc = pd.read_csv(raw / "s2" / "scenes.csv", parse_dates=["time"])
+    sc = _read_scenes(raw / "s2" / "scenes.csv")
     sc = sc[(sc.file.fillna("") != "") & (sc.valid_share >= min_valid)].sort_values("time")
     sc = sc.drop_duplicates("time")
     first = np.load(raw / "s2" / sc.file.iloc[0])
@@ -266,7 +286,7 @@ def harmonise_optical(ctx, raw: Path, silver: Path, log=print, min_valid: float 
     # Landsat surface temperature (30 m)
     f = raw / "landsat" / "scenes.csv"
     if f.exists():
-        ls = pd.read_csv(f, parse_dates=["time"])
+        ls = _read_scenes(f)
         ls = ls[(ls.file.fillna("") != "") & (ls.clear_share > min_valid)].sort_values("time").drop_duplicates("time")
         z0 = np.load(raw / "landsat" / ls.file.iloc[0])["lst_c"]
         lx, ly = _grid_from_bounds(left, top, 30.0, z0.shape[1], z0.shape[0])
@@ -294,7 +314,7 @@ def harmonise_ecostress(ctx, raw: Path, silver: Path, log=print, min_valid: floa
     if not f.exists():
         return
     tx, ty = tpl_xy(ctx)
-    sc = pd.read_csv(f, parse_dates=["time"])
+    sc = _read_scenes(f)
     sc = sc[(sc.file.fillna("") != "") & (sc.valid_share >= min_valid)].sort_values("time").drop_duplicates("time")
     px = plot_units()
     lst, prow = [], []
@@ -477,6 +497,7 @@ def harmonise_static(ctx, raw: Path, silver: Path, peat_bounds, log=print) -> No
             L[f"incidence_{tr}_deg"] = core.incidence_deg(ds.lv_theta.values).astype("float32")
             L[f"los_e_{tr}"], L[f"los_n_{tr}"], L[f"los_u_{tr}"] = (a.astype("float32") for a in (e, n, u))
             L[f"coh12_{tr}_median"] = ds.coh.where(ds.revisit_days == 12).median("pair").values.astype("float32")
+        # kept on 2020–2021 + 2025 (not 2017–2019) so the static layers — and every result read from them — do not move
         f6 = [silver / f"ifg_{p}_{track}.nc" for p in ("2020_2021", "2025")]
         c6 = [xr.open_dataset(p).coh.where(xr.open_dataset(p).revisit_days == 6) for p in f6 if p.exists()]
         if c6:
@@ -528,7 +549,7 @@ STATION = {"Air_2m": "st_air_c", "RH_2m": "st_rh_pct", "VPD_Kpa": "st_vpd_kpa", 
 
 def site_hourly(raw: Path, end: str, log=print) -> pd.DataFrame:
     w = field.load_wtd_hourly()
-    idx = pd.date_range("2020-01-01", end, freq="1h", tz="UTC", name="time_utc")
+    idx = pd.date_range(CUBE_START, end, freq="1h", tz="UTC", name="time_utc")
     # the logger stamps sit at :30 UTC centres; put them on the whole hour (nearest within 31 min)
     w = w[~w.index.duplicated()]
     wh = core.asof(idx, w, "31min").drop(columns="lag_h")
