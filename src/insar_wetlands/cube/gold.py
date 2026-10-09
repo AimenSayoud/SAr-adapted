@@ -22,7 +22,7 @@ import xarray as xr
 
 from .. import field
 from . import core, schema
-from .build import F32, PERIODS, REPO, TRACKS, plot_units
+from .build import F32, IFG_SETS, REPO, TRACKS, plot_units
 
 V2_SPLIT = pd.Timestamp("2021-08-13", tz="UTC")
 S2_TOL_DAYS, LST_TOL_DAYS, UAV_TOL_DAYS = 10, 16, 30
@@ -103,7 +103,7 @@ def nearest_by_plot(tab: pd.DataFrame, keys: pd.DataFrame, time_col: str, tol_da
 
 def ifg_files(silver: Path) -> list[tuple[str, str, str, Path]]:
     out = []
-    for period in PERIODS:
+    for period in IFG_SETS:
         for track in TRACKS:
             for grid, suffix in (("40m", ""), ("20m", "_20m")):
                 f = silver / f"ifg_{period}_{track}{suffix}.nc"
@@ -315,7 +315,7 @@ def plots_acq(site: pd.DataFrame, px: pd.DataFrame, static: xr.Dataset, silver: 
         r = xr.open_dataset(silver / f"rtc_{track}.nc")
         rtc_dates = pd.DatetimeIndex(r.time.values).normalize()
         ifg_dates = set()
-        for period in PERIODS:
+        for period in IFG_SETS:
             f = silver / f"ifg_{period}_{track}.nc"
             if f.exists():
                 d = xr.open_dataset(f)
