@@ -1,11 +1,11 @@
 # CLAUDE.md
 
-InSAR analysis of the Rzecin floating peatland (Poland): Sentinel-1 C-band 2017–2026, both tracks, with field
-data (laser at P6, water table, meteo, UAV) in a data cube. **Aim:** algorithms adapted to the floating mat that
-track its vertical displacement. Established so far: per-pixel inversion fails physically; only the shortest
-consecutive pairs (6-day, 12-day partly) record the mat's motion; the aggregated seasonal series of the first study
-(2022–2024, the manuscript in `docs/paper/`) is not that motion. The hub's `SETTLED.md` holds the current answers;
-the manuscript is an early attempt, not the reference.
+InSAR analysis of the Rzecin floating peatland (Poland): Sentinel-1 C-band with field and auxiliary data in a
+data cube (the hub's `06_data/cube/README.md` lists what it holds). **Aim:** methods adapted to the floating mat
+that track its vertical displacement. Established: per-pixel inversion fails physically. Provisional (one laser
+point so far): the motion shows up in the shortest consecutive pairs and is lost on longer ones; the aggregated
+seasonal series of the first study (2022–2024, the manuscript in `docs/paper/`) is not that motion. The hub's
+`SETTLED.md` and `STATE.md` hold the current answers; the manuscript is an early attempt, not the reference.
 
 ## Commands
 
@@ -131,14 +131,13 @@ ground-truth test is not evidence.
 ## Domain constraints
 
 - **Settled questions, with where each is documented:** the hub's `SETTLED.md` (per-pixel
-  inversion is not run on any track or epoch — D-016 overturned 2026-09-25; motion work is built on
-  consecutive short pairs referenced to hard targets; zone aggregation is for zone-level series; no
-  bridge pairs, and year-long pairs keep no coherence on vegetated ground).
+  inversion is not run on any track or epoch — D-016 overturned 2026-09-25; zone aggregation is for
+  zone-level series; no bridge pairs).
 - **Do not propose a seventh inversion algorithm.** Six estimators with distinct
   mathematical assumptions fail identically; H1 is settled and the failure is physical.
-  This means no new per-pixel time-series estimator of the standard kind. Physics-informed estimators built
-  on consecutive short pairs (the fusion line: state-space with a buoyancy/water-level prior, hard-target
-  reference, detectability weights) are the project's direction (hub `DECISIONS.md` 2026-10-10).
+  This excludes re-running per-pixel time-series estimators of the standard kind; it does not exclude new
+  approaches designed for the mat (e.g. the fusion experiments), which are open research (hub `DECISIONS.md`
+  2026-10-10).
 - Empirical p-values have a floor of 1/(1+N). Always state it when reporting one at the floor.
 - Nulls must be **size-matched** to the zone under test. Aggregate noise falls as 1/√N, so a
   larger null understates the floor and manufactures detections.
