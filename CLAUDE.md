@@ -130,14 +130,15 @@ ground-truth test is not evidence.
 
 ## Domain constraints
 
-- **Settled questions, with where each is documented:** the hub's `SETTLED.md` (per-pixel
-  inversion is not run on any track or epoch — D-016 overturned 2026-09-25; zone aggregation is for
-  zone-level series; no bridge pairs).
-- **Do not propose a seventh inversion algorithm.** Six estimators with distinct
-  mathematical assumptions fail identically; H1 is settled and the failure is physical.
-  This excludes re-running per-pixel time-series estimators of the standard kind; it does not exclude new
-  approaches designed for the mat (e.g. the fusion experiments), which are open research (hub `DECISIONS.md`
-  2026-10-10).
+- **Settled findings, with how far each reaches:** the hub's `SETTLED.md`. Its entries are findings, not bans:
+  each says what was tested, how it failed, what was never varied and what would reopen it (hub `DECISIONS.md`
+  2026-10-11).
+- **Per-pixel inversion on the HyP3 products did not recover the mat** (SBAS, ISBAS, hybrid, WLS, sparse EVD; H1).
+  Do not re-run the same estimators on the same product class for another track or epoch — nothing that caused the
+  failure would change. A test that changes what was never varied (SLC input, SHP looks, full-covariance phase
+  linking, bias correction, temporal unwrapping, another chain) is legitimate when it is scored against the truth
+  in advance and its result is recorded, whichever way it goes. New approaches designed for the mat (the fusion
+  experiments) are open research.
 - Empirical p-values have a floor of 1/(1+N). Always state it when reporting one at the floor.
 - Nulls must be **size-matched** to the zone under test. Aggregate noise falls as 1/√N, so a
   larger null understates the floor and manufactures detections.
