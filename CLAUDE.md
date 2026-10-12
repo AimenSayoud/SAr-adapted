@@ -11,15 +11,16 @@ seasonal series of the first study (2022–2024, the manuscript in `docs/paper/`
 
 ```bash
 make test       # synthetic ground-truth test suite
-make check      # manuscript numbers vs exported CSVs — run before any claim
-make phases     # validate config/phases.yaml (the declared pipeline)
-make readme     # regenerate the README phase table from phases.yaml
-make docx       # check + regenerate Appendix B + assemble + pandoc
+make check      # registered numbers vs the results tables (and the frozen manuscript)
+make register   # config/register.yaml is sound; every script in experiments/, pipelines/, colab/ is declared
+make list TICKET=X-082   # find entries (CHAIN=…, KIND=…)
+make run E=<entry>       # run one entry on the Mac; writes a run record to the hub's 05_code/runs/
+make cube STEP=check     # the data cube
 ```
 
-Heavy processing runs in Colab (`notebooks/<group>/phaseXX_*.ipynb`), reading data from the
-Drive-mounted `insar_rzecin/`. The user's Mac has 2 cores and 8 GB: never propose running
-MintPy, phase linking or null realisations locally.
+Heavy processing (SLC coregistration, phase linking, MintPy-class inversions, null realisations) runs on Colab from a
+generated launcher, `colab/<entry>.ipynb` (`python -m insar_wetlands.colab <entry>`). The user's Mac has 2 cores and
+8 GB: never propose running those locally.
 
 ## Numbers — the rule that matters most
 
@@ -42,83 +43,62 @@ exists to prevent recurrence:
 **When you introduce or change a load-bearing number, add it to `REGISTRY` in the same
 change.** One line, permanent protection.
 
-## Starting a phase
+## Starting an entry
 
-Every phase notebook opens the same way:
+**Read the hub's `05_code/REGISTER.md` card first.** It shows whether the question was asked, on which data, what was
+found and what was never varied.
 
-```python
-from insar_wetlands.bootstrap import start
-ctx = start("phaseG")
-```
+- **Experiments** (`experiments/`) find the hub and the cube through `insar_wetlands.paths`:
+  - `hub_root()`, `cube_root()`, `s1_crops(period, track)`, `resolve_drive()`;
+  - these also resolve on Colab, where the cube and the crops outside 2022–2024 are read from Drive `mac_backup/`,
+    read-only.
 
-`start` mounts Drive, loads the config, resolves paths, configures logging to both the
-notebook and `outputs/<phase>/run.log`, and returns a `Context`. Everything on it is lazy —
-`ctx.pairs`, `ctx.template`, `ctx.dem`, `ctx.zones`, `ctx.layer(name)`, `ctx.to_grid(obj)` —
-so a phase pays only for what it uses.
+  **Never construct a path from a literal.**
+- **Colab entries:** keep their logic in a `.py`. The launcher only mounts, pins a commit, installs and calls
+  `python -m insar_wetlands.register run <entry>`.
+- **`bootstrap.start`** remains for code that needs a phase `Context` (config, grid, zones, lazy layers).
 
-**Never rebuild that preamble by hand, and never construct a path from a literal.**
-`paths.py` is the only place a path is made; a Colab-only default hidden in a signature is
-what this replaced.
+## Recording a run
 
-All 38 notebooks are migrated. Two keep their own setup — `build_manuscript_docx` and
-`phaseK_referee_response` — because they do not call `load_config()` in the recognised
-pattern. That exception is declared as `exempt: [bootstrap]` in `config/phases.yaml`,
-not asserted here: `make phases` checks the preamble, and a fact stated only in prose is
-one no check can read.
+`python -m insar_wetlands.register run <entry>` (and `make run`) writes one manifest per execution:
+- on the Mac, to the hub's `05_code/runs/<entry>/<UTC>_<sha>/manifest.json`;
+- on Colab, to Drive `runs/`.
 
-## Archiving a run
+Each manifest holds the commit and whether the tree was dirty, the package versions, the arguments, the duration,
+the exit code and every output file written. Phase code that archives heavy products uses
+`run_archive.archive_run(...)`, which records `.nc`/`.tif`/`.h5` by path, size and hash rather than copying them.
+Runs are never overwritten.
 
-Every phase execution ends with one line, so the run survives the Colab session:
+## Everything that runs is declared
 
-```python
-from insar_wetlands.run_archive import archive_run
-archive_run("phaseG", outdir, params=PARAMS, products=PRODUCTS)
-```
-
-It writes `<Drive>/runs/<phase>/<UTC timestamp>_<git sha>/manifest.json` recording the
-commit, whether the tree was dirty, package versions, parameters and products. Runs are
-never overwritten. Heavy files (`.nc`, `.tif`, `.h5`) are recorded by path, size and hash
-rather than copied. `compare_runs("phaseG")` says what changed between the last two runs —
-code, environment or parameters.
-
-**Any new or re-run phase must call it.** A result whose environment was not captured
-cannot be defended later. `make phases` enforces this: a `current` or `exploratory` phase
-whose notebook never calls `ctx.archive` / `archive_run` fails the check, as does an
-archive call still carrying doubled `{{...}}` braces — an unrendered template that is
-valid Python and raises `TypeError` only at run time.
-
-## The pipeline is declared
-
-`config/phases.yaml` holds all 38 phases: question, inputs, outputs, `status`
-(current / superseded / exploratory / tooling) and the paper section each supports.
-
-- **Adding a phase means adding an entry**, not inventing a new convention.
-- Each phase declares a `group`, which is also its directory under `notebooks/`
-  (`01_data`, `02_inversion`, `03_corrections`, `04_hypotheses`, `05_robustness`,
-  `06_manuscript`). Group is orthogonal to `status`: a superseded phase stays beside the
-  one that replaced it. `make phases` fails if a notebook's directory and its declared
-  group disagree.
-- **Never re-run a `superseded` phase**, and never make a live phase read from one —
-  `make phases` fails on both.
-- The README table is generated by `make readme`. Do not hand-edit it.
+`config/register.yaml` holds one entry per historical phase, experiment, pipeline and Colab launcher. Each entry
+has kind, status, `runs_on`, code at `code_ref` (`HEAD`, or the tag where removed code lives), command, inputs,
+outputs, tickets, chains and tries (ids only).
+- **Findings never go in the register:** this repo is public. They live in the hub's tries map, and the hub joins
+  both halves into `05_code/REGISTER.md`.
+- **Adding a script means adding an entry.** `make register` fails on an undeclared script, a missing code path or a
+  malformed id.
+- **Never re-run a `superseded` entry.** A `finished` entry's result stands for its scope. Changing what it never
+  varied is a new entry, with a ticket and a pre-registration.
 
 ## Files you must not edit by hand
 
 | File | Why |
 |---|---|
-| `docs/paper/09_appendix_data.md` | Generated from `results/tables/T*.csv` on every build |
-| `docs/paper/_manuscript.md` | Generated by `assemble_markdown` from the numbered sections |
-| `README.md` phase table | Generated by `make readme` from `config/phases.yaml` |
-
-Edit the numbered section files (`00_title_abstract.md` … `08_references.md`) instead.
+| `colab/<entry>.ipynb` | Generated by `python -m insar_wetlands.colab <entry>` |
+| `docs/paper/*`, `docs/article/*` | A frozen early manuscript (hub DECISIONS 2026-10-10); its build was removed on 2026-10-13 |
 
 ## Layout
 
-- `src/insar_wetlands/` — all real code. Notebooks are thin callers, not logic.
-- `docs/paper/` — English submission draft. **Authoritative.**
-- `docs/article/` — French laboratory record. Detailed, superseded by `docs/paper/` for anything going out.
-- `docs/paper/traceability.md` — every number → its source notebook.
+- `src/insar_wetlands/` — all real code. Experiments and launchers are thin callers.
+- `experiments/` — one script per ticket question. They write only to the hub.
+- `pipelines/` — scripts that make data (cube, RTC, web-atlas package).
+- `colab/` — launchers, setup, SOP, troubleshooting.
+- `config/register.yaml` — the register. `config/config.yaml` — site and processing configuration.
+- `results/tables/`, `results/robustness/` — the sources of every reported number.
 - `tests/` — synthetic tests that recover a known ground truth.
+- Removed on 2026-10-13: the phase notebooks, the manuscript build and the modules only they used. They are at tag
+  `archive/pre-reorg-2026-10-12`.
 
 ## Testing
 
@@ -163,5 +143,3 @@ ground-truth test is not evidence.
 - `$HOME/Documents/Research_Hub/_ledger/_INDEX.md`: The authoritative task ledger. Rows where
   `owner: CC` constitute the queue. When finishing an item, update its status to `state: applied`
   or `state: closed` with its commit SHA.
-- `docs/paper/response_to_referees.md`: Records the round-2 referee commitments and corrections.
-  The July draft in the hub's `99_archive/` predates them and must never be quoted.
