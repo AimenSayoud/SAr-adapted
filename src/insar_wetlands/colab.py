@@ -26,7 +26,8 @@ def _code(text: str) -> dict:
             "source": text.strip().splitlines(keepends=True)}
 
 
-def launcher(entry: str, ref: str = "fusion-x062", extra: str = "", pip: str = "") -> dict:
+def launcher(entry: str, ref: str = "fusion-x062", extra: str = "", pip: str = "", args: str = "",
+             conda: str = "") -> dict:
     e = load_register().get(entry)
     if e is None:
         raise SystemExit(f"no register entry {entry!r}")
@@ -44,6 +45,11 @@ writes the run record to Drive `insar_rzecin/runs/{entry}/`. The cube and the cr
 `insar_rzecin/mac_backup/` (read-only: never write there). Outputs go where the entry's code says (Drive), never into
 this public repository."""),
         _code(f'REF = "{ref}"          # branch or commit to run; the run record keeps the exact commit'),
+        *([_md("**Conda tools.** This entry needs conda-forge packages. The next cell installs conda once; the "
+               "runtime then **restarts by itself**. After the restart, *Run all* again: the cell sees conda and "
+               "goes on."),
+           _code("!pip install -q condacolab\nimport condacolab\ncondacolab.install()"),
+           _code(f"!mamba install -q -y -c conda-forge {conda}")] if conda else []),
         _code(f"""
 from google.colab import drive
 drive.mount("/content/drive")
@@ -56,7 +62,7 @@ subprocess.run(["git", "checkout", "-q", REF], check=True)
 subprocess.run(["git", "pull", "-q", "--ff-only"], check=False)
 print(subprocess.run(["git", "log", "-1", "--oneline"], capture_output=True, text=True).stdout)"""),
         _code(f"!bash colab/setup.sh {extra}".strip() + (f"\n!pip install -q {pip}" if pip else "")),
-        _code(f"!PYTHONPATH=src python -m insar_wetlands.register run {entry}"),
+        _code(f"!PYTHONPATH=src python -m insar_wetlands.register run {entry}" + (f" -- {args}" if args else "")),
         _code(f"""
 import glob, json
 last = sorted(glob.glob("/content/drive/MyDrive/insar_rzecin/runs/{entry}/*/manifest.json"))[-1]
@@ -73,9 +79,11 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--ref", default="fusion-x062")
     ap.add_argument("--extra", default="", help="setup.sh extra: '' or 'acquisition'")
     ap.add_argument("--pip", default="", help="extra pip packages for this launcher only (e.g. heavy SAR tools)")
+    ap.add_argument("--args", default="", help="arguments passed to the entry")
+    ap.add_argument("--conda", default="", help="conda-forge packages (installed through condacolab; one restart)")
     a = ap.parse_args(argv)
     out = REPO / "colab" / f"{a.entry}.ipynb"
-    out.write_text(json.dumps(launcher(a.entry, a.ref, a.extra, a.pip), indent=1, ensure_ascii=False) + "\n")
+    out.write_text(json.dumps(launcher(a.entry, a.ref, a.extra, a.pip, a.args, a.conda), indent=1, ensure_ascii=False) + "\n")
     print(f"wrote {out.relative_to(REPO)}")
     return 0
 
