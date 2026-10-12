@@ -8,22 +8,21 @@ from types import SimpleNamespace
 from insar_wetlands import run_archive
 from insar_wetlands.bootstrap import Context
 
-PHASES = """phaseX:
-  title: t
-  notebook: notebooks/04_hypotheses/phaseX_test.ipynb
-  group: hypotheses
-  question: q
-  status: current
-  inputs: []
-  outputs: []
-  paper: "-"
+REGISTER = """version: 1
+entries:
+  phaseX:
+    kind: colab
+    title: t
+    status: current
+    runs_on: colab
+    code: colab/phaseX_test.ipynb
 """
 
 
 def _ctx(repo: Path) -> Context:
     (repo / "config").mkdir(parents=True)
-    (repo / "config" / "phases.yaml").write_text(PHASES)
-    (repo / "notebooks" / "04_hypotheses").mkdir(parents=True)
+    (repo / "config" / "register.yaml").write_text(REGISTER)
+    (repo / "colab").mkdir(parents=True)
     paths = SimpleNamespace(repo=repo, drive=repo / "drive", outputs=repo / "outputs" / "phaseX",
                             runs=repo / "drive" / "runs")
     return Context(phase="phaseX", cfg={}, paths=paths, log=logging.getLogger("t"))
@@ -31,14 +30,14 @@ def _ctx(repo: Path) -> Context:
 
 def test_finds_the_output_notebook_written_during_this_run(tmp_path):
     ctx = _ctx(tmp_path)
-    out = tmp_path / "notebooks/04_hypotheses/phaseX_test_output.ipynb"
+    out = tmp_path / "colab/phaseX_test_output.ipynb"
     out.write_text("{}")
     assert ctx.executed_notebook() == out
 
 
 def test_ignores_an_output_notebook_from_an_earlier_run(tmp_path):
     ctx = _ctx(tmp_path)
-    out = tmp_path / "notebooks/04_hypotheses/phaseX_test_output.ipynb"
+    out = tmp_path / "colab/phaseX_test_output.ipynb"
     out.write_text("{}")
     old = ctx.started - 3600
     os.utime(out, (old, old))
@@ -53,7 +52,7 @@ def test_unknown_phase_gives_none(tmp_path):
 
 def test_archive_forwards_it(tmp_path, monkeypatch):
     ctx = _ctx(tmp_path)
-    out = tmp_path / "notebooks/04_hypotheses/phaseX_test_output.ipynb"
+    out = tmp_path / "colab/phaseX_test_output.ipynb"
     time.sleep(0.01)
     out.write_text("{}")
     seen = {}

@@ -179,16 +179,16 @@ class Context:
         """This run's executed copy of its notebook, if one was written during the run.
 
         `colab exec -f notebooks/<group>/<name>.ipynb` writes ``<name>_output.ipynb`` beside
-        it. The notebook comes from ``config/phases.yaml``; a copy older than this run
+        it. The notebook comes from ``config/register.yaml``; a copy older than this run
         belongs to an earlier execution and is ignored (C-028)."""
         try:
-            from .phases import load_phases
-            ph = load_phases(self.paths.repo / "config" / "phases.yaml").get(self.phase)
+            from .register import load_register
+            ph = load_register(self.paths.repo / "config" / "register.yaml").get(self.phase)
         except Exception:
             return None
-        if ph is None:
+        if ph is None or not ph.code or not ph.code.endswith(".ipynb"):
             return None
-        nb = self.paths.repo / ph.notebook
+        nb = self.paths.repo / ph.code
         out = nb.with_name(f"{nb.stem}_output.ipynb")
         return out if out.exists() and out.stat().st_mtime >= self.started else None
 

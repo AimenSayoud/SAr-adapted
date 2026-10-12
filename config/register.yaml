@@ -1,0 +1,1596 @@
+# The register of everything that runs or has run (05_code/PLAN.md §2.2) — the public, technical half.
+#
+# One entry per notebook phase (historical, Colab), experiment (answers a ticket, writes a hub deliverable) or
+# pipeline (makes data). Fields:
+#   kind      phase | experiment | pipeline | colab
+#   status    current (runnable, maintained) | finished (ran; result recorded) | superseded | open (planned) | removed
+#   runs_on   mac | colab
+#   code      path of the entry point at `code_ref` (HEAD = in the tree; a tag = removed from the tree, kept there)
+#   command   how to run it from the repo root (make run E=<id> uses it)
+#   inputs / outputs   catalog keys (root:path), cube layers (gold/…, silver/…) or hub paths
+#   tickets / chains / tries   ids into the hub's ledger and tries map (what it found is there, not here)
+#
+# Findings never go here: this repo is public. The hub joins both halves into 05_code/REGISTER.md
+# (scripts/execution_register.py), one card per entry with what it ran on and what it found.
+version: 1
+entries:
+  phase01:
+    kind: phase
+    title: Multi-source acquisition inventory
+    question: What Sentinel-1, Sentinel-2 and ERA5 data exist over the AOI and period?
+    status: finished
+    phase_status: current
+    runs_on: colab
+    code: notebooks/01_data/phase01_acquisition.ipynb
+    code_ref: archive/pre-reorg-2026-10-12
+    inputs: []
+    outputs:
+    - s1_inventory.csv
+    paper: §2.2, Table 2
+    group: data
+    tries:
+    - T01
+  phase01b:
+    kind: phase
+    title: Pair selection — the paper's method, improved
+    question: Which interferometric pairs should the network contain?
+    status: finished
+    phase_status: current
+    runs_on: colab
+    code: notebooks/01_data/phase01b_selection.ipynb
+    code_ref: archive/pre-reorg-2026-10-12
+    inputs:
+    - phase01.s1_inventory.csv
+    outputs:
+    - pair_selection.csv
+    - sbas_pairs_planned.csv
+    paper: §2.2, Fig. 3
+    group: data
+    tries:
+    - T01
+    - T06
+  phase02:
+    kind: phase
+    title: HyP3 burst interferograms — SBAS network
+    question: Can the planned network be produced as burst interferograms in the cloud?
+    status: finished
+    phase_status: current
+    runs_on: colab
+    code: notebooks/01_data/phase02_hyp3_jobs.ipynb
+    code_ref: archive/pre-reorg-2026-10-12
+    inputs:
+    - phase01b.sbas_pairs_planned.csv
+    outputs:
+    - jobs_sbas_all.csv
+    - hyp3_cropped/
+    paper: §2.2, Table 2
+    group: data
+    tries:
+    - T01
+  phase02b:
+    kind: phase
+    title: HyP3 submission and download
+    question: Same, for the alternative pair set.
+    status: finished
+    phase_status: current
+    runs_on: colab
+    code: notebooks/01_data/phase02b_hyp3.ipynb
+    code_ref: archive/pre-reorg-2026-10-12
+    inputs:
+    - phase01b.pair_selection.csv
+    outputs:
+    - hyp3_cropped/
+    paper: '-'
+    group: data
+    tries:
+    - T01
+  phase02_descending_pilot:
+    kind: phase
+    title: Descending Orbit 22 pilot batch submission and coherence gate
+    question: Does Descending Orbit 22 (05:09 UTC) achieve >= 0.30 coherence over Rzecin across all seasons?
+    status: finished
+    phase_status: current
+    runs_on: colab
+    code: notebooks/01_data/phase02_descending_pilot.ipynb
+    code_ref: archive/pre-reorg-2026-10-12
+    inputs: []
+    outputs:
+    - test_batch_descending.csv
+    paper: Paper 2 (Diurnal Test), Gate X-030
+    group: data
+    tries:
+    - T02
+  phase02_descending_full:
+    kind: phase
+    title: Full 2022–2024 Descending Orbit 22 SBAS network harvest (340 pairs)
+    question: Does the 340-pair descending network provide continuous connectivity for 2-LOS decomposition?
+    status: finished
+    phase_status: current
+    runs_on: colab
+    code: notebooks/01_data/phase02_descending_full.ipynb
+    code_ref: archive/pre-reorg-2026-10-12
+    inputs:
+    - phase02_descending_pilot.test_batch_descending.csv
+    outputs:
+    - descending_sbas_jobs.csv
+    paper: Paper 2 (Diurnal Test), Ticket X-031
+    group: data
+    tries:
+    - T02
+  phase03:
+    kind: phase
+    title: Network quality control and topology
+    question: Is C-band coherence over the mat sufficient to proceed at all?
+    status: finished
+    phase_status: current
+    runs_on: colab
+    code: notebooks/01_data/phase03_network_qc.ipynb
+    code_ref: archive/pre-reorg-2026-10-12
+    inputs:
+    - phase02.hyp3_cropped
+    outputs:
+    - pair_selection.csv
+    - bridge_pairs_needed.csv
+    paper: §2.2, Fig. 3
+    group: data
+    tries:
+    - T01
+    - T11
+  phase03b:
+    kind: phase
+    title: Per-pair vertical rate, deramp and quality control
+    question: What vertical rate does each pair imply on its own?
+    status: finished
+    phase_status: current
+    runs_on: colab
+    code: notebooks/01_data/phase03b_pair_rates.ipynb
+    code_ref: archive/pre-reorg-2026-10-12
+    inputs:
+    - phase02b.hyp3_cropped
+    outputs:
+    - pair_rates_b.pkl
+    paper: '-'
+    group: data
+    tries:
+    - T16
+  phase04:
+    kind: phase
+    title: Sentinel-2 fusion onto the HyP3 UTM grid
+    question: How do the optical observations align with the radar grid?
+    status: finished
+    phase_status: current
+    runs_on: colab
+    code: notebooks/01_data/phase04_s2_fusion.ipynb
+    code_ref: archive/pre-reorg-2026-10-12
+    inputs:
+    - phase02.hyp3_cropped
+    outputs:
+    - s2_stack.nc
+    paper: §2.3, Table 3
+    group: data
+    tries:
+    - T46
+  phase04b:
+    kind: phase
+    title: Ensemble, uncertainty and final products
+    question: What is the per-pixel uncertainty of the pairwise rates?
+    status: finished
+    phase_status: current
+    runs_on: colab
+    code: notebooks/01_data/phase04b_products.ipynb
+    code_ref: archive/pre-reorg-2026-10-12
+    inputs:
+    - phase03b.pair_rates_b.pkl
+    outputs:
+    - ensemble_vertical_rate.nc
+    - wls_vertical_rate.nc
+    - ensemble_stats_by_class.csv
+    paper: '-'
+    group: data
+    tries:
+    - T16
+  phase05:
+    kind: phase
+    title: Dynamic water mask
+    question: Which pixels are inundated, and how often?
+    status: finished
+    phase_status: current
+    runs_on: colab
+    code: notebooks/01_data/phase05_water_mask.ipynb
+    code_ref: archive/pre-reorg-2026-10-12
+    inputs:
+    - phase04.s2_stack.nc
+    - rtc_stack.nc
+    outputs:
+    - water_mask.nc
+    paper: §2.4, Fig. S2
+    group: data
+    tries:
+    - T12
+  phase06:
+    kind: phase
+    title: Spatio-temporal classification, 5 classes
+    question: Do the pixels fall into distinct behavioural classes?
+    status: finished
+    phase_status: current
+    runs_on: colab
+    code: notebooks/01_data/phase06_classification.ipynb
+    code_ref: archive/pre-reorg-2026-10-12
+    inputs:
+    - phase05.water_mask.nc
+    outputs:
+    - behavior_classes.nc
+    paper: '-'
+    group: data
+    tries:
+    - T12
+  phase07:
+    kind: phase
+    title: Quality index W_i
+    question: Can coherence and non-water fraction be combined into one weight?
+    status: finished
+    phase_status: current
+    runs_on: colab
+    code: notebooks/01_data/phase07_quality_index.ipynb
+    code_ref: archive/pre-reorg-2026-10-12
+    inputs:
+    - phase05.water_mask.nc
+    outputs:
+    - quality_index.nc
+    paper: §3.1
+    group: data
+    tries:
+    - T11
+  phase08:
+    kind: phase
+    title: SBAS inversion (MintPy)
+    question: Does a standard small-baseline inversion recover displacement?
+    status: finished
+    phase_status: current
+    runs_on: colab
+    code: notebooks/02_inversion/phase08_sbas_mintpy.ipynb
+    code_ref: archive/pre-reorg-2026-10-12
+    inputs:
+    - phase02.hyp3_cropped
+    - phase07.quality_index.nc
+    outputs:
+    - ts_sbas_ref_only.nc
+    paper: §4.1, Table 7 (estimator 1)
+    group: inversion
+    tries:
+    - T13
+  phase09:
+    kind: phase
+    title: ISBAS inversion, with closure control
+    question: Does tolerating intermittent pixels rescue the inversion?
+    status: finished
+    phase_status: current
+    runs_on: colab
+    code: notebooks/02_inversion/phase09_isbas.ipynb
+    code_ref: archive/pre-reorg-2026-10-12
+    inputs:
+    - phase02.hyp3_cropped
+    - phase07.quality_index.nc
+    outputs:
+    - ts_isbas_ref_only.nc
+    - phase_closure.nc
+    paper: §4.1, Table 7 (estimator 2)
+    group: inversion
+    tries:
+    - T14
+  phase10:
+    kind: phase
+    title: SBAS versus ISBAS, quantitative
+    question: Do the two inversions disagree anywhere that matters?
+    status: finished
+    phase_status: current
+    runs_on: colab
+    code: notebooks/02_inversion/phase10_comparison.ipynb
+    code_ref: archive/pre-reorg-2026-10-12
+    inputs:
+    - phase08.ts_sbas_ref_only.nc
+    - phase09.ts_isbas_ref_only.nc
+    outputs:
+    - density_by_class.csv
+    - comparison_report.json
+    paper: §4.1
+    group: inversion
+    tries:
+    - T14
+  phase11:
+    kind: phase
+    title: Comparative atmospheric correction — double-blind test
+    question: Does ERA5 correction beat a local reference zone?
+    status: finished
+    phase_status: current
+    runs_on: colab
+    code: notebooks/03_corrections/phase11_atmosphere.ipynb
+    code_ref: archive/pre-reorg-2026-10-12
+    inputs:
+    - era5_rzecin.nc
+    - phase08.ts_sbas_ref_only.nc
+    outputs:
+    - ts_isbas_tropo.nc
+    - ts_sbas_tropo.nc
+    - atmospheric_comparison.csv
+    paper: §A.4
+    group: corrections
+    tries:
+    - T33
+  phase12:
+    kind: phase
+    title: LOS to vertical decomposition
+    question: What is the measured incidence angle, and the conversion factor?
+    status: finished
+    phase_status: current
+    runs_on: colab
+    code: notebooks/03_corrections/phase12_los_vertical.ipynb
+    code_ref: archive/pre-reorg-2026-10-12
+    inputs:
+    - phase02.hyp3_cropped
+    - phase11.atmospheric_comparison.csv
+    - phase11.ts_sbas_tropo.nc
+    - phase11.ts_isbas_tropo.nc
+    - phase06.behavior_classes.nc
+    outputs:
+    - ts_vertical.nc
+    paper: §A.5 — the measured 32.26 deg, factor 1.183
+    group: corrections
+    tries:
+    - T35
+  phase16:
+    kind: phase
+    title: Two-geometry (ascending + descending) LOS decomposition
+    question: Does combining ascending and descending resolve vertical from east-west motion, removing phase12's untested
+      pure-vertical assumption?
+    status: finished
+    phase_status: exploratory
+    runs_on: colab
+    code: notebooks/03_corrections/phase16_two_los_decomposition.ipynb
+    code_ref: archive/pre-reorg-2026-10-12
+    inputs:
+    - phaseG.phaseG_aggregate_series.csv
+    - phaseG.phaseG_aggregate_series_descending.csv
+    outputs:
+    - phase16_two_los_decomposition.json
+    paper: Paper 2 (Diurnal Test), Ticket X-032
+    group: corrections
+    tries:
+    - T35
+  phase13:
+    kind: phase
+    title: Hydrological analysis and dielectric separation
+    question: Does the signal track water rather than motion?
+    status: superseded
+    phase_status: superseded
+    runs_on: colab
+    code: notebooks/04_hypotheses/phase13_hydrology.ipynb
+    code_ref: archive/pre-reorg-2026-10-12
+    inputs:
+    - era5_rzecin.nc
+    - phase04.s2_stack.nc
+    outputs:
+    - hydro_link.csv
+    paper: superseded by phaseI
+    group: hypotheses
+    tries:
+    - T30
+  phase14:
+    kind: phase
+    title: Uncertainties and final products
+    question: What are the final maps and their uncertainties?
+    status: finished
+    phase_status: current
+    runs_on: colab
+    code: notebooks/01_data/phase14_products.ipynb
+    code_ref: archive/pre-reorg-2026-10-12
+    inputs:
+    - phase12.ts_vertical.nc
+    outputs:
+    - final_summary_by_class.csv
+    - final_maps.png
+    paper: '-'
+    group: data
+    tries:
+    - T16
+  phase15:
+    kind: phase
+    title: Annual "seasonal-annual" pairs
+    question: Does matching the seasonal state bypass temporal decorrelation?
+    status: finished
+    phase_status: current
+    runs_on: colab
+    code: notebooks/02_inversion/phase15_annual_pairs.ipynb
+    code_ref: archive/pre-reorg-2026-10-12
+    inputs:
+    - phase01.s1_inventory.csv
+    outputs:
+    - annual_pairs_topk.csv
+    - jobs_annual.csv
+    paper: §4.1, Table 7 (estimator 3)
+    group: inversion
+    tries:
+    - T07
+  phaseA:
+    kind: phase
+    title: Hybrid network — the decisive InSAR test
+    question: Does combining short and long baselines recover usable pixels over the AOI?
+    status: finished
+    phase_status: current
+    runs_on: colab
+    code: notebooks/02_inversion/phaseA_hybrid_insar_test.ipynb
+    code_ref: archive/pre-reorg-2026-10-12
+    inputs:
+    - phase02.hyp3_cropped
+    outputs:
+    - hybrid_pairs.csv
+    - jobs_hybrid.csv
+    - hybrid_vertical_ts.nc
+    - phaseA_summary.json
+    paper: §4.1, Table 7 (estimator 4)
+    group: inversion
+    tries:
+    - T15
+  phaseB:
+    kind: phase
+    title: External check against EGMS
+    question: Does an independent ground-motion service see anything here?
+    status: finished
+    phase_status: exploratory
+    runs_on: colab
+    code: notebooks/05_robustness/phaseB_egms_check.ipynb
+    code_ref: archive/pre-reorg-2026-10-12
+    inputs: []
+    outputs:
+    - egms_summary.json
+    paper: '-'
+    group: robustness
+    tries:
+    - T20
+  phaseC1:
+    kind: phase
+    title: LiCSBAS — an independent SBAS pipeline
+    question: Does a completely separate implementation close the loop?
+    status: finished
+    phase_status: exploratory
+    runs_on: colab
+    code: notebooks/02_inversion/phaseC1_licsbas.ipynb
+    code_ref: archive/pre-reorg-2026-10-12
+    inputs:
+    - phase02.hyp3_cropped
+    outputs: []
+    paper: '-'
+    group: inversion
+    tries:
+    - T19
+  phaseC2:
+    kind: phase
+    title: Phase linking / DS-InSAR — first attempt
+    question: Does distributed-scatterer processing rescue the mat?
+    status: superseded
+    phase_status: superseded
+    runs_on: colab
+    code: notebooks/02_inversion/phaseC2_phaselinking.ipynb
+    code_ref: archive/pre-reorg-2026-10-12
+    inputs:
+    - phase02.hyp3_cropped
+    outputs: []
+    paper: superseded by phaseE2
+    group: inversion
+    tries:
+    - T18
+  phaseD:
+    kind: phase
+    title: Inside versus outside — is the floating mat a distinct target?
+    question: At matched land cover, does the mat decorrelate more than the same vegetation on stable ground?
+    status: finished
+    phase_status: current
+    runs_on: colab
+    code: notebooks/04_hypotheses/phaseD_inside_vs_outside.ipynb
+    code_ref: archive/pre-reorg-2026-10-12
+    inputs:
+    - phase02.hyp3_cropped
+    - phase05.water_mask.nc
+    - phase04.s2_stack.nc
+    outputs:
+    - phaseD_coh_by_zone.csv
+    - phaseD_coh_mean.nc
+    paper: §4.2, H2 — Table 9, Fig. 7
+    group: hypotheses
+    tries:
+    - T24
+  phaseDbis:
+    kind: phase
+    title: Mechanism and spatial comparison — interior, edge, exterior, lake
+    question: Is the boundary sharp, and where exactly does coherence step?
+    status: finished
+    phase_status: current
+    runs_on: colab
+    code: notebooks/04_hypotheses/phaseDbis_mechanism_spatial.ipynb
+    code_ref: archive/pre-reorg-2026-10-12
+    inputs:
+    - phaseD.phaseD_coh_by_zone.csv
+    outputs:
+    - phaseDbis_summary.json
+    paper: §4.2.3, Fig. 9
+    group: hypotheses
+    tries:
+    - T24
+  phaseDter:
+    kind: phase
+    title: Scattering mechanism and DS-InSAR feasibility
+    question: Is the mat radar-dark, or bright with unstable phase?
+    status: finished
+    phase_status: current
+    runs_on: colab
+    code: notebooks/04_hypotheses/phaseDter_scattering_scatterers.ipynb
+    code_ref: archive/pre-reorg-2026-10-12
+    inputs:
+    - rtc_dualpol_stack.nc
+    - phaseD.phaseD_coh_by_zone.csv
+    outputs:
+    - phaseDter_summary.json
+    paper: §4.2.4, Table 10
+    group: hypotheses
+    tries:
+    - T05
+  phaseE:
+    kind: phase
+    title: Phase linking with MiaplPy
+    question: Does the standard DS-InSAR toolchain run on these products?
+    status: superseded
+    phase_status: superseded
+    runs_on: colab
+    code: notebooks/02_inversion/phaseE_phaselinking_miaplpy.ipynb
+    code_ref: archive/pre-reorg-2026-10-12
+    inputs:
+    - phase02.hyp3_cropped
+    outputs: []
+    paper: superseded by phaseE2 — MiaplPy needs an SLC archive we do not have
+    group: inversion
+    tries:
+    - T18
+  phaseE2:
+    kind: phase
+    title: Lightweight EVD phase linking — the direct test of H1
+    question: Does the maximum-likelihood estimator, run on the delivered interferograms, recover the mat?
+    status: finished
+    phase_status: current
+    runs_on: colab
+    code: notebooks/02_inversion/phaseE2_evd_phaselinking.ipynb
+    code_ref: archive/pre-reorg-2026-10-12
+    inputs:
+    - phase02.hyp3_cropped
+    outputs:
+    - phaseE2_evd.nc
+    paper: §4.1.2, H1 — Table 8, Fig. 5, Fig. 6
+    group: inversion
+    tries:
+    - T17
+  phaseF:
+    kind: phase
+    title: L-band test (NISAR)
+    question: Does the mat become coherent at 24 cm?
+    status: finished
+    phase_status: exploratory
+    runs_on: colab
+    code: notebooks/05_robustness/phaseF_nisar_lband.ipynb
+    code_ref: archive/pre-reorg-2026-10-12
+    inputs: []
+    outputs:
+    - nisar_gunw_stack.nc
+    - phaseF_nisar_evd.nc
+    paper: §5.4 — prospective, the archive does not cover 2022-2024
+    group: robustness
+    tries:
+    - T50
+  phaseG:
+    kind: phase
+    title: Spatial aggregation — the change of observable
+    question: Does aggregating 499 pixels reveal a signal invisible pixel by pixel?
+    status: finished
+    phase_status: current
+    runs_on: colab
+    code: notebooks/04_hypotheses/phaseG_aggregation.ipynb
+    code_ref: archive/pre-reorg-2026-10-12
+    inputs:
+    - phaseD.phaseD_coh_by_zone.csv
+    - phase05.water_mask.nc
+    outputs:
+    - phaseG_aggregate_series.csv
+    - series_AC.csv
+    - series_BC.csv
+    - series_AB.csv
+    paper: §4.3, H3 — Table 14, Fig. 11
+    group: hypotheses
+    tries:
+    - T23
+  phaseH:
+    kind: phase
+    title: Predicting where Sentinel-1 fails
+    question: Which covariates predict temporal coherence inside the mat?
+    status: finished
+    phase_status: current
+    runs_on: colab
+    code: notebooks/04_hypotheses/phaseH_predict_failure.ipynb
+    code_ref: archive/pre-reorg-2026-10-12
+    inputs:
+    - phaseE2.phaseE2_evd.nc
+    - rtc_dualpol_stack.nc
+    outputs: []
+    paper: §4.2.5, Table 11, Fig. 10
+    group: hypotheses
+    tries:
+    - T41
+  phaseI:
+    kind: phase
+    title: Is the dielectric signal a hydrological sensor?
+    question: On deseasonalised anomalies, does the aggregated phase track surface wetness?
+    status: finished
+    phase_status: current
+    runs_on: colab
+    code: notebooks/04_hypotheses/phaseI_hydro_sensor.ipynb
+    code_ref: archive/pre-reorg-2026-10-12
+    inputs:
+    - phaseG.phaseG_aggregate_series.csv
+    - phase04.s2_stack.nc
+    - era5_rzecin.nc
+    outputs:
+    - pair_hydro.csv
+    - pair_hydro_v2.csv
+    paper: §4.4, H4 — Table 18, Fig. 14, Fig. 15
+    group: hypotheses
+    tries:
+    - T46
+  phaseM:
+    kind: phase
+    title: Mechanical vs. dielectric discrimination and forward simulation
+    question: Can the observed seasonal InSAR signal be separated into mechanical displacement and dielectric phase shift?
+    status: finished
+    phase_status: exploratory
+    runs_on: colab
+    code: notebooks/04_hypotheses/phaseM_mechanical_vs_dielectric.ipynb
+    code_ref: archive/pre-reorg-2026-10-12
+    inputs:
+    - phaseG.phaseG_aggregate_series.csv
+    - T15_subset_stability.csv
+    - T09_forcings.csv
+    outputs:
+    - mechanical_vs_dielectric_summary.csv
+    paper: §4.3, §5.2, Table T16
+    group: hypotheses
+    tries:
+    - T30
+  phaseJ:
+    kind: phase
+    title: Falsification — trying to demolish our own conclusion
+    question: Which of the eight alternative explanations survive?
+    status: finished
+    phase_status: current
+    runs_on: colab
+    code: notebooks/05_robustness/phaseJ_falsification.ipynb
+    code_ref: archive/pre-reorg-2026-10-12
+    inputs:
+    - phaseG.phaseG_aggregate_series.csv
+    - phaseD.phaseD_coh_by_zone.csv
+    outputs:
+    - nulls_300.csv
+    - nulls_nowinter.csv
+    - closure.csv
+    paper: Appendix A — Table A1
+    group: robustness
+    tries:
+    - T28
+    - T55
+  phaseK:
+    kind: phase
+    title: Referee response
+    question: Do the referees' objections change any reported number?
+    status: finished
+    phase_status: current
+    runs_on: colab
+    code: notebooks/05_robustness/phaseK_referee_response.ipynb
+    code_ref: archive/pre-reorg-2026-10-12
+    inputs:
+    - phaseJ.nulls_300.csv
+    - phaseG.phaseG_aggregate_series.csv
+    outputs:
+    - results/robustness/
+    paper: docs/paper/response_to_referees.md
+    group: robustness
+    tries:
+    - T23
+    - T55
+  phaseL:
+    kind: phase
+    title: The gate, and the tests that matter either way
+    question: Do the nine round-2 tests hold?
+    status: finished
+    phase_status: current
+    runs_on: colab
+    code: notebooks/05_robustness/phaseL_gate.ipynb
+    code_ref: archive/pre-reorg-2026-10-12
+    inputs:
+    - phaseK.results/robustness/
+    outputs:
+    - results/robustness/
+    - round2_report.md
+    paper: docs/paper/round2_report.md
+    group: robustness
+    tries:
+    - T23
+    - T55
+  export_figures_en:
+    kind: phase
+    title: Manuscript figure and table export (English), 300 dpi
+    question: '-'
+    status: removed
+    phase_status: tooling
+    runs_on: colab
+    code: notebooks/06_manuscript/export_figures_en.ipynb
+    code_ref: archive/pre-reorg-2026-10-12
+    inputs:
+    - phaseD.phaseD_coh_by_zone.csv
+    - phaseE2.phaseE2_evd.nc
+    - phaseG.phaseG_aggregate_series.csv
+    outputs:
+    - docs/paper/figures/
+    - results/tables/
+    paper: all figures; T*.csv go to results/tables/
+    group: manuscript
+  build_manuscript_docx:
+    kind: phase
+    title: Manuscript assembly to .docx
+    question: '-'
+    status: removed
+    phase_status: tooling
+    runs_on: colab
+    code: notebooks/06_manuscript/build_manuscript_docx.ipynb
+    code_ref: archive/pre-reorg-2026-10-12
+    inputs:
+    - export_figures_en.docs/paper/figures/
+    - export_figures_en.results/tables/
+    outputs:
+    - docs/paper/manuscript.docx
+    paper: the manuscript itself
+    group: manuscript
+  annual_pairs_x082:
+    kind: experiment
+    title: D-027 verdict — does the floating mat keep any coherence over a year when both dates are in winter?
+    status: finished
+    runs_on: mac
+    code: experiments/annual_pairs_x082.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/annual_pairs_x082.py
+    tickets:
+    - D-027
+    - X-082
+    chains:
+    - mechanism-tests
+    outputs:
+    - hub:08_deliverables/hrysiewicz_tests_x082
+    - hub:08_deliverables/hrysiewicz_tests_x082/annual_pairs
+    tries:
+    - T08
+    - T39
+    - T41
+    - T54
+  backscatter_x063:
+    kind: experiment
+    title: 'X-063: backscatter by zone on both tracks, 2020–2024 — phaseDter''s backscatter, run on this Mac.'
+    status: finished
+    runs_on: mac
+    code: experiments/backscatter_x063.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/backscatter_x063.py
+    tickets:
+    - C-048
+    - X-063
+    chains:
+    - diurnal-dual-geometry
+    inputs:
+    - drive:rtc_dualpol_stack.nc
+    - drive:s2_stack.nc
+    outputs:
+    - hub:08_deliverables/backscatter_x063
+    tries:
+    - T05
+  build_web_atlas:
+    kind: pipeline
+    title: Build the web-atlas data package from the Drive products and the repo.
+    status: current
+    runs_on: mac
+    code: pipelines/build_web_atlas.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python pipelines/build_web_atlas.py
+    inputs:
+    - drive (via drive_pristine)
+    - repo:results/tables
+    - repo:docs/paper/figures
+    - hub:06_data/cube
+    outputs:
+    - hub:08_deliverables/rzecin-atlas/data
+  closure_moisture_x070:
+    kind: experiment
+    title: 'X-070: closure phase as the moisture observable — does the mat''s non-closing phase measure its wetting?'
+    status: finished
+    runs_on: mac
+    code: experiments/closure_moisture_x070.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/closure_moisture_x070.py
+    tickets:
+    - X-062
+    - X-065
+    - X-066
+    - X-070
+    chains:
+    - field-data
+    outputs:
+    - hub:08_deliverables/closure_x070
+    tries:
+    - T29
+    - T51
+  coherence_moisture_x082:
+    kind: experiment
+    title: X-082 test 1 — does coherence follow the *change* in moisture between the two dates (Hrysiewicz et al. 2023) on
+      the Rzecin floating mat? Exploratory; plan and pass/fail criteria in ``08_deliverables/h
+    status: finished
+    runs_on: mac
+    code: experiments/coherence_moisture_x082.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/coherence_moisture_x082.py
+    tickets:
+    - X-082
+    chains:
+    - mechanism-tests
+    inputs:
+    - cube:gold/plots_acq.csv.gz
+    - cube:gold/plots_pair.csv.gz
+    outputs:
+    - hub:08_deliverables/hrysiewicz_tests_x082
+    - hub:08_deliverables/hrysiewicz_tests_x082/coherence_moisture
+    tries:
+    - T08
+    - T39
+    - T41
+    - T54
+  cube_analysis_x081:
+    kind: experiment
+    title: 'X-081 — the data cube 2017–2026 analysed: what it holds, how good it is, and what it can support (exploratory).'
+    status: finished
+    runs_on: mac
+    code: experiments/cube_analysis_x081.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/cube_analysis_x081.py
+    tickets:
+    - C-053
+    - C-057
+    - C-059
+    - C-060
+    - X-081
+    chains:
+    - data-cube
+    - decadal-dual-geometry-extension
+    inputs:
+    - cube:gold/plots_pair.csv.gz
+    - cube:silver/eco_40m.nc
+    - cube:silver/lst_40m.nc
+    - cube:silver/nisar_lband.nc
+    - cube:silver/s2_40m.nc
+    - cube:silver/site_hourly.csv.gz
+    - cube:silver/static_40m.nc
+    outputs:
+    - hub:08_deliverables/cube_analysis_x081
+    tries:
+    - T20
+  cube_build:
+    kind: pipeline
+    title: 'The data cube (C-053…C-057, chain data-cube): ingest → harmonise → gold → check, every step resumable.'
+    status: current
+    runs_on: mac
+    code: pipelines/cube_build.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python pipelines/cube_build.py
+    tickets:
+    - C-053
+    - C-057
+    chains:
+    - data-cube
+    outputs:
+    - hub:06_data/cube
+    inputs:
+    - drive:hyp3_cropped
+    - drive:hyp3_cropped_descending
+    - local:s1_*
+    - mirror:rtc_dualpol_*.nc
+    - hub:06_data/field/raw
+    - public sources (cube/raw)
+    tries:
+    - T20
+  field_boardwalk_x060:
+    kind: experiment
+    title: 'X-060 — the boardwalk: where it is on the radar grids, whether it shows, and what it does to P6.'
+    status: finished
+    runs_on: mac
+    code: experiments/field_boardwalk_x060.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/field_boardwalk_x060.py
+    tickets:
+    - X-060
+    chains:
+    - field-data
+    outputs:
+    - hub:08_deliverables/field_boardwalk_x060
+    tries:
+    - T40
+  field_dew_x050:
+    kind: experiment
+    title: 'X-050: does surface wetness at the overpass (dew, rain) explain why the descending (05:09 UTC) phase carries no
+      water-table / surface signal while the ascending (16:36 UTC) one does?'
+    status: finished
+    runs_on: mac
+    code: experiments/field_dew_x050.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/field_dew_x050.py
+    tickets:
+    - X-050
+    chains:
+    - diurnal-dual-geometry
+    inputs:
+    - drive:phaseD_coh_by_zone.csv
+    - drive:phaseD_coh_by_zone_descending.csv
+    outputs:
+    - hub:08_deliverables/field_dew_x050
+    tries:
+    - T42
+  field_events_x055:
+    kind: experiment
+    title: 'X-055: what a rain event does — to the water table, the mat surface and the radar.'
+    status: finished
+    runs_on: mac
+    code: experiments/field_events_x055.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/field_events_x055.py
+    tickets:
+    - X-055
+    chains:
+    - field-data
+    outputs:
+    - hub:08_deliverables/field_events_x055
+    tries:
+    - T43
+  field_first_deliverables:
+    kind: experiment
+    title: The supervisor's first field-data deliverables (Sentinel-1 at the 9 monitoring plots).
+    status: finished
+    runs_on: mac
+    code: experiments/field_first_deliverables.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/field_first_deliverables.py
+    inputs:
+    - drive:hybrid_vertical_ts.nc
+    - drive:phaseE2_evd.nc
+    - drive:ts_isbas_ref_only.nc
+    - drive:ts_sbas_ref_only.nc
+    outputs:
+    - hub:08_deliverables/field_first
+    tries:
+    - T13
+    - T36
+  field_fusion_v2_x066:
+    kind: experiment
+    title: 'X-066 — fusion v2: the floating mat''s vertical height, every mat pixel and every acquisition of both tracks,
+      as one exact posterior (``insar_wetlands.fusion2``), judged by the P6 laser on blocks it wa'
+    status: finished
+    runs_on: mac
+    code: experiments/field_fusion_v2_x066.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/field_fusion_v2_x066.py
+    tickets:
+    - D-020
+    - X-066
+    chains:
+    - diurnal-dual-geometry
+    - field-data
+    outputs:
+    - hub:08_deliverables/fusion_v2
+    tries:
+    - T03
+    - T52
+  field_fusion_x062:
+    kind: experiment
+    title: 'X-062 — the hybrid fusion system: every dataset combined into a mat-motion map, judged by the field.'
+    status: finished
+    runs_on: mac
+    code: experiments/field_fusion_x062.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/field_fusion_x062.py
+    tickets:
+    - X-062
+    chains:
+    - field-data
+    inputs:
+    - drive:phaseE2_evd.nc
+    - drive:rtc_dualpol_stack.nc
+    - drive:s2_stack.nc
+    outputs:
+    - hub:08_deliverables/field_fusion_x062
+    tries:
+    - T51
+  field_methods_vs_laser:
+    kind: experiment
+    title: 'X-052: the inversion outputs already computed, checked against the laser at P6/CR (no re-run).'
+    status: finished
+    runs_on: mac
+    code: experiments/field_methods_vs_laser.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/field_methods_vs_laser.py
+    tickets:
+    - D-016
+    - X-052
+    chains:
+    - decadal-dual-geometry-extension
+    - field-data
+    inputs:
+    - drive:phaseG_aggregate_series.csv
+    outputs:
+    - hub:08_deliverables/field_methods_laser
+    tries:
+    - T22
+  field_p6_cells_x079:
+    kind: experiment
+    title: X-079 — the nine 40 m cells around P6 against the laser, done from the data (exploratory).
+    status: finished
+    runs_on: mac
+    code: experiments/field_p6_cells_x079.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/field_p6_cells_x079.py
+    tickets:
+    - X-065
+    - X-079
+    chains:
+    - field-data
+    inputs:
+    - cube:silver/lidar_1m.nc
+    - cube:silver/static_40m.nc
+    outputs:
+    - hub:08_deliverables/field_p6_cells_x079
+    tries:
+    - T38
+    - T54
+  field_p6_figures_x080:
+    kind: experiment
+    title: X-080 — figures of P6 and its nine 40 m cells, from verified data only.
+    status: finished
+    runs_on: mac
+    code: experiments/field_p6_figures_x080.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/field_p6_figures_x080.py
+    tickets:
+    - X-058
+    - X-060
+    - X-079
+    - X-080
+    chains:
+    - field-data
+    inputs:
+    - cube:silver/static_40m.nc
+    outputs:
+    - hub:08_deliverables/field_p6_figures_x080
+    tries:
+    - T37
+  field_p6_laser_qc:
+    kind: experiment
+    title: X-058 — verify the P6/CR laser before any comparison with Sentinel-1.
+    status: finished
+    runs_on: mac
+    code: experiments/field_p6_laser_qc.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/field_p6_laser_qc.py
+    tickets:
+    - X-058
+    - X-059
+    chains:
+    - field-data
+    outputs:
+    - hub:08_deliverables/field_p6
+    tries:
+    - T37
+    - T38
+  field_p6_short_pairs_x065:
+    kind: experiment
+    title: 'X-065: does the P6 phase follow the laser in a year the fusion never saw, and how does it depend on the revisit?
+      2021 (Sentinel-1A + 1B: 6-day and 12-day pairs, D-020 crops) next to 2022–2024 (12- and'
+    status: finished
+    runs_on: mac
+    code: experiments/field_p6_short_pairs_x065.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/field_p6_short_pairs_x065.py
+    tickets:
+    - C-048
+    - D-020
+    - X-058
+    - X-059
+    - X-062
+    - X-065
+    chains:
+    - diurnal-dual-geometry
+    - field-data
+    outputs:
+    - hub:08_deliverables/field_p6_short_pairs_x065
+    tries:
+    - T38
+  field_p6_validation:
+    kind: experiment
+    title: 'X-059 — P6/CR, the primary validation site: laser ↔ WTD ↔ Sentinel-1 phase ↔ coherence.'
+    status: finished
+    runs_on: mac
+    code: experiments/field_p6_validation.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/field_p6_validation.py
+    tickets:
+    - X-059
+    chains:
+    - field-data
+    inputs:
+    - drive:phaseD_coh_by_zone.csv
+    - drive:phaseD_coh_by_zone_descending.csv
+    outputs:
+    - hub:08_deliverables/field_p6
+    tries:
+    - T37
+    - T38
+  field_pixel_x053:
+    kind: experiment
+    title: 'X-053: where on the mat does the radar follow the water? Per-pixel maps, 2020–2024.'
+    status: finished
+    runs_on: mac
+    code: experiments/field_pixel_x053.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/field_pixel_x053.py
+    tickets:
+    - D-020
+    - X-049
+    - X-053
+    chains:
+    - diurnal-dual-geometry
+    - field-data
+    inputs:
+    - drive:phaseE2_evd.nc
+    - drive:s2_stack.nc
+    outputs:
+    - hub:08_deliverables/field_pixel_x053
+    tries:
+    - T03
+  field_plots_x061:
+    kind: experiment
+    title: 'X-061 — plot roles: P6–P9 on the floating mat (main), P1–P5 water-table reference.'
+    status: finished
+    runs_on: mac
+    code: experiments/field_plots_x061.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/field_plots_x061.py
+    tickets:
+    - X-059
+    - X-061
+    chains:
+    - field-data
+    outputs:
+    - hub:08_deliverables/field_plots_x061
+    tries:
+    - T38
+  field_series_x054:
+    kind: experiment
+    title: 'X-054: the aggregated zone series over five years (2020–2024), both tracks.'
+    status: finished
+    runs_on: mac
+    code: experiments/field_series_x054.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/field_series_x054.py
+    tickets:
+    - D-020
+    - X-050
+    - X-054
+    chains:
+    - diurnal-dual-geometry
+    outputs:
+    - hub:08_deliverables/field_series_x054
+    tries:
+    - T03
+    - T27
+  field_t10_x051:
+    kind: experiment
+    title: 'X-051: T10 (coherence vs water-table change, freeze gain) with the MEASURED water table.'
+    status: finished
+    runs_on: mac
+    code: experiments/field_t10_x051.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/field_t10_x051.py
+    tickets:
+    - X-051
+    chains:
+    - field-data
+    inputs:
+    - drive:phaseD_coh_by_zone.csv
+    - drive:phaseD_coh_by_zone_descending.csv
+    outputs:
+    - hub:08_deliverables/field_t10_x051
+    tries:
+    - T41
+  field_uav_x049:
+    kind: experiment
+    title: 'X-049: do vegetation and surface conditions (UAV, LAI) explain why the plots behave differently in C-band radar?'
+    status: finished
+    runs_on: mac
+    code: experiments/field_uav_x049.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/field_uav_x049.py
+    tickets:
+    - X-049
+    chains:
+    - field-data
+    outputs:
+    - hub:08_deliverables/field_uav_x049
+    tries:
+    - T44
+  field_x047_x048:
+    kind: experiment
+    title: 'X-047 / X-048: does Sentinel-1 respond to the measured water table, and does its phase see the laser-measured
+      surface motion at P6/CR?'
+    status: finished
+    runs_on: mac
+    code: experiments/field_x047_x048.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/field_x047_x048.py
+    tickets:
+    - X-047
+    - X-048
+    chains:
+    - field-data
+    outputs:
+    - hub:08_deliverables/field_x047_x048
+    tries:
+    - T36
+  fusion_v2_experiments_x067:
+    kind: experiment
+    title: 'X-067 — can fusion v2 do better? Each change against v2 as published, judged the same way: P6 vs the laser on
+      held-out dates (2020–2021 time blocks; 2025 fully held out), ascending-only vs descending-'
+    status: finished
+    runs_on: mac
+    code: experiments/fusion_v2_experiments_x067.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/fusion_v2_experiments_x067.py
+    tickets:
+    - X-067
+    chains:
+    - field-data
+    outputs:
+    - hub:08_deliverables/fusion_v2/experiments_x067
+    tries:
+    - T52
+  fusion_v2_flags_2025:
+    kind: experiment
+    title: 'X-066 support: weather flags for 2025, where the field station record (2020–2024) ends.'
+    status: finished
+    runs_on: mac
+    code: experiments/fusion_v2_flags_2025.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/fusion_v2_flags_2025.py
+    tickets:
+    - D-023
+    - X-050
+    - X-066
+    chains:
+    - diurnal-dual-geometry
+    - field-data
+    outputs:
+    - hub:08_deliverables/fusion_v2
+    tries:
+    - T03
+    - T52
+  fusion_v3_wp0_x073:
+    kind: experiment
+    title: 'X-073 — fusion v3 WP0: which phase reference, and how noisy is each pair? (exploratory, Mac-safe, reads the cube)'
+    status: finished
+    runs_on: mac
+    code: experiments/fusion_v3_wp0_x073.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/fusion_v3_wp0_x073.py
+    tickets:
+    - X-073
+    chains:
+    - fusion-v3
+    inputs:
+    - cube:gold/plots_pair.csv.gz
+    - cube:silver/static_40m.nc
+    outputs:
+    - hub:08_deliverables/fusion_v3
+    - hub:08_deliverables/fusion_v3/wp0
+    tries:
+    - T04
+    - T32
+    - T34
+    - T47
+    - T48
+    - T49
+    - T53
+  fusion_v3_wp1_x074:
+    kind: experiment
+    title: 'X-074 — fusion v3 WP1: is the laser a clean truth, and what lifts the mat? (exploratory, Mac-safe, reads the cube)'
+    status: finished
+    runs_on: mac
+    code: experiments/fusion_v3_wp1_x074.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/fusion_v3_wp1_x074.py
+    tickets:
+    - X-074
+    chains:
+    - fusion-v3
+    inputs:
+    - cube:gold/plots_acq.csv.gz
+    - cube:silver/s2_plots.csv.gz
+    - cube:silver/site_hourly.csv.gz
+    outputs:
+    - hub:08_deliverables/fusion_v3
+    - hub:08_deliverables/fusion_v3/wp1
+    tries:
+    - T04
+    - T32
+    - T34
+    - T37
+    - T47
+    - T48
+    - T49
+    - T53
+  fusion_v3_wp2_x075:
+    kind: experiment
+    title: 'X-075 — fusion v3 WP2: how much of the phase is motion, when is motion detectable, can the rest be removed? (exploratory,
+      Mac-safe, reads the cube; the phase referenced to the hard targets, WP0)'
+    status: finished
+    runs_on: mac
+    code: experiments/fusion_v3_wp2_x075.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/fusion_v3_wp2_x075.py
+    tickets:
+    - X-075
+    chains:
+    - fusion-v3
+    inputs:
+    - cube:gold/plots_acq.csv.gz
+    - cube:gold/plots_pair.csv.gz
+    outputs:
+    - hub:08_deliverables/fusion_v3
+    - hub:08_deliverables/fusion_v3/wp2
+    tries:
+    - T04
+    - T32
+    - T34
+    - T47
+    - T48
+    - T49
+    - T53
+  fusion_v3_wp3_x076:
+    kind: experiment
+    title: 'X-076 — fusion v3 WP3: does the mat move differently in different places? (exploratory, Mac-safe, reads the cube)'
+    status: finished
+    runs_on: mac
+    code: experiments/fusion_v3_wp3_x076.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/fusion_v3_wp3_x076.py
+    tickets:
+    - X-076
+    chains:
+    - fusion-v3
+    outputs:
+    - hub:08_deliverables/fusion_v3
+    - hub:08_deliverables/fusion_v3/wp3
+    tries:
+    - T04
+    - T32
+    - T34
+    - T47
+    - T48
+    - T49
+    - T53
+  fusion_v3_wp4_x077:
+    kind: experiment
+    title: 'X-077 — fusion v3 WP4: phase cycles and the L-band anchor (exploratory, Mac-safe, reads the cube)'
+    status: finished
+    runs_on: mac
+    code: experiments/fusion_v3_wp4_x077.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/fusion_v3_wp4_x077.py
+    tickets:
+    - X-077
+    chains:
+    - fusion-v3
+    inputs:
+    - cube:gold/plots_pair_nisar.csv.gz
+    - cube:silver/nisar_lband.nc
+    outputs:
+    - hub:08_deliverables/fusion_v3
+    - hub:08_deliverables/fusion_v3/wp4
+    tries:
+    - T04
+    - T32
+    - T34
+    - T47
+    - T48
+    - T49
+    - T50
+    - T53
+  fusion_v3_wp5_x078:
+    kind: experiment
+    title: 'X-078 — fusion v3 WP5: the estimator, assembled only from what passed WP0–WP4 (exploratory, branch fusion-x062).'
+    status: finished
+    runs_on: mac
+    code: experiments/fusion_v3_wp5_x078.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/fusion_v3_wp5_x078.py
+    tickets:
+    - X-078
+    chains:
+    - fusion-v3
+    inputs:
+    - cube:gold/truth_laser_hourly.csv.gz
+    - cube:silver/static_40m.nc
+    outputs:
+    - hub:08_deliverables/fusion_v3/wp5
+    tries:
+    - T53
+  lake_open_water_x064:
+    kind: experiment
+    title: X-064 — the lake control with a pure open-water mask.
+    status: finished
+    runs_on: mac
+    code: experiments/lake_open_water_x064.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/lake_open_water_x064.py
+    tickets:
+    - X-063
+    - X-064
+    chains:
+    - diurnal-dual-geometry
+    inputs:
+    - drive:s2_stack.nc
+    outputs:
+    - hub:08_deliverables/lake_x064
+    tries:
+    - T05
+    - T45
+  nisar_lband_x068:
+    kind: experiment
+    title: 'X-068: NISAR L-band over Rzecin, Oct 2025 – Jan 2026 — does the 24-cm radar see the mat better than C-band?'
+    status: finished
+    runs_on: mac
+    code: experiments/nisar_lband_x068.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/nisar_lband_x068.py
+    tickets:
+    - X-035
+    - X-068
+    chains:
+    - decadal-dual-geometry-extension
+    outputs:
+    - hub:08_deliverables/nisar_x068
+    tries:
+    - T50
+  nisar_summer_x069:
+    kind: experiment
+    title: 'X-069: NISAR L-band in summer 2026 — does L-band keep the floating mat coherent where C-band loses it?'
+    status: finished
+    runs_on: mac
+    code: experiments/nisar_summer_x069.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/nisar_summer_x069.py
+    tickets:
+    - X-068
+    - X-069
+    chains:
+    - decadal-dual-geometry-extension
+    outputs:
+    - hub:08_deliverables/nisar_x069
+    tries:
+    - T50
+  p6_validation_x082:
+    kind: experiment
+    title: X-082 test 2 — the P6 phase against the laser, scored the way Hrysiewicz et al. (2024) score InSAR against peat
+      cameras, so the two can be compared. Exploratory; plan in ``08_deliverables/hrysiewicz_t
+    status: finished
+    runs_on: mac
+    code: experiments/p6_validation_x082.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/p6_validation_x082.py
+    tickets:
+    - X-058
+    - X-065
+    - X-082
+    chains:
+    - field-data
+    - mechanism-tests
+    inputs:
+    - cube:gold/plots_pair.csv.gz
+    - cube:silver/site_hourly.csv.gz
+    - cube:silver/static_40m.nc
+    outputs:
+    - hub:08_deliverables/hrysiewicz_tests_x082
+    - hub:08_deliverables/hrysiewicz_tests_x082/p6_validation
+    tries:
+    - T08
+    - T37
+    - T39
+    - T41
+    - T54
+  rtc_10m_window:
+    kind: pipeline
+    title: Sentinel-1 RTC γ⁰ at its native 10 m over the site, summer 2022–2024, both tracks (X-060, X-064).
+    status: current
+    runs_on: mac
+    code: pipelines/rtc_10m_window.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python pipelines/rtc_10m_window.py
+    tickets:
+    - X-060
+    - X-064
+    chains:
+    - diurnal-dual-geometry
+    - field-data
+    outputs:
+    - mirror:rtc10m_summer_2022_2024_*.nc
+    tries:
+    - T40
+  rtc_download:
+    kind: pipeline
+    title: Sentinel-1 RTC backscatter (γ⁰ VV, VH, VH−VV) for one track, on the HyP3 crop grid.
+    status: current
+    runs_on: mac
+    code: pipelines/rtc_download.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python pipelines/rtc_download.py
+    outputs:
+    - mirror:rtc_dualpol_*.nc
+    - mirror:rtc_coverage_*.csv
+  s1_extension_candidates:
+    kind: pipeline
+    title: Candidate Sentinel-1 burst pairs for extending the record back to 2020–2021 (D-020 / X-050).
+    status: current
+    runs_on: mac
+    code: pipelines/s1_extension_candidates.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python pipelines/s1_extension_candidates.py
+    tickets:
+    - D-020
+    - X-050
+    chains:
+    - diurnal-dual-geometry
+    outputs:
+    - hub:06_data/local_small/s1_extension_2020_2021
+    tries:
+    - T03
+  v3_scoping_x072:
+    kind: experiment
+    title: 'X-072: what the data cube says before fusion v3 is modelled (exploratory, Mac-safe, reads only the cube).'
+    status: finished
+    runs_on: mac
+    code: experiments/v3_scoping_x072.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/v3_scoping_x072.py
+    tickets:
+    - X-072
+    chains:
+    - data-cube
+    inputs:
+    - cube:gold/plots_acq.csv.gz
+    - cube:gold/plots_pair.csv.gz
+    - cube:gold/truth_laser_hourly.csv.gz
+    outputs:
+    - hub:08_deliverables/fusion_v3
+    - hub:08_deliverables/fusion_v3/scoping
+    tries:
+    - T04
+    - T32
+    - T34
+    - T47
+    - T48
+    - T49
+    - T53

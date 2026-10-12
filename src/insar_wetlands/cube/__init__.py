@@ -15,7 +15,7 @@ Rules the code enforces, so no model re-solves them:
   a model reads it; conversion to millimetres goes through one constant (``core.WAVELENGTH_MM``);
 * flags are columns with their source, never filtered-out rows.
 
-This package is public; it contains no field values. ``scripts/cube_build.py`` runs it.
+This package is public; it contains no field values. ``pipelines/cube_build.py`` runs it.
 """
 from __future__ import annotations
 
