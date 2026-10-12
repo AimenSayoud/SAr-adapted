@@ -24,75 +24,10 @@ from insar_wetlands.egms import (
     load_egms_timeseries_csv,
     verdict,
 )
-from insar_wetlands.hybrid_network import (
-    build_hybrid_pairs,
-    network_summary,
-)
 
 # =========================================================================
 # hybrid_network — build_hybrid_pairs & network_summary
 # =========================================================================
-
-def test_build_hybrid_pairs_combines_short_and_annual_without_duplicates():
-    """Hybrid network must contain both short and annual pairs, properly tagged
-
-    and strictly deduplicated.
-    """
-    # 3 years of synthetic 12-day Sentinel-1 dates covering April targets
-    dates = pd.date_range("2021-03-15", "2023-05-15", freq="12D")
-    dates_series = pd.Series(dates)
-
-    hybrid = build_hybrid_pairs(
-        dates_series,
-        short_max_days=48,
-        max_pairs_per_date=3,
-        annual_target_month=4,
-        annual_target_day=15,
-        annual_window_days=20,
-        max_gap_years=2,
-    )
-
-    assert isinstance(hybrid, pd.DataFrame)
-    for col in ["ref_date", "sec_date", "dt_days", "pair", "kind"]:
-        assert col in hybrid.columns
-
-    # Check deduplication
-    assert len(hybrid) == len(hybrid.drop_duplicates("pair"))
-
-    # Both types must be present
-    kinds = set(hybrid["kind"].unique())
-    assert kinds == {"short", "annual"}
-
-    # Short pairs must be within short_max_days
-    short_pairs = hybrid[hybrid["kind"] == "short"]
-    assert (short_pairs["dt_days"] <= 48).all()
-    assert len(short_pairs) > 0
-
-    # Annual pairs must span across years (~365 days or ~730 days)
-    annual_pairs = hybrid[hybrid["kind"] == "annual"]
-    assert (annual_pairs["dt_days"] >= 300).all()
-    assert len(annual_pairs) > 0
-
-
-def test_network_summary_computes_consistent_invariants():
-    """network_summary accurately counts short/annual pairs and temporal span."""
-    pairs_data = [
-        {"pair": "20220101_20220113", "dt_days": 12, "kind": "short"},
-        {"pair": "20220113_20220125", "dt_days": 12, "kind": "short"},
-        {"pair": "20220101_20220125", "dt_days": 24, "kind": "short"},
-        {"pair": "20220415_20230416", "dt_days": 366, "kind": "annual"},
-    ]
-    df = pd.DataFrame(pairs_data)
-
-    summary = network_summary(df)
-
-    assert summary["n_pairs_total"] == 4
-    assert summary["n_short"] == 3
-    assert summary["n_annual"] == 1
-    assert summary["dt_days_min"] == 12
-    assert summary["dt_days_max"] == 366
-    assert summary["n_dates"] == 5  # 20220101, 20220113, 20220125, 20220415, 20230416
-    assert summary["span_days"] == (pd.Timestamp("2023-04-16") - pd.Timestamp("2022-01-01")).days
 
 
 # =========================================================================

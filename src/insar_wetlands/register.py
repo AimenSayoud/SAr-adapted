@@ -155,3 +155,62 @@ def summary(reg: dict[str, Entry]) -> str:
     from collections import Counter
     c = Counter((e.kind, e.status) for e in reg.values())
     return "\n".join(f"  {k:10s} {s:10s} {n}" for (k, s), n in sorted(c.items()))
+
+
+# ------------------------------------------------------------------------------------------------- command line
+def run_entry(name: str, args: list[str] | None = None, reg: dict[str, Entry] | None = None) -> int:
+    """Run one register entry on this machine. Colab-only and removed entries are refused with the reason."""
+    import os
+    import sys
+    reg = reg or load_register()
+    e = reg.get(name)
+    if e is None:
+        raise SystemExit(f"no register entry {name!r} (python -m insar_wetlands.register list)")
+    if e.runs_on != "mac":
+        raise SystemExit(f"{name} runs on Colab: open colab/{name}.ipynb (see colab/README.md)")
+    if not e.in_tree:
+        raise SystemExit(f"{name} is not in the tree: its code is at {e.code_ref}:{e.code}")
+    if e.status == "superseded":
+        raise SystemExit(f"{name} is superseded: run what replaced it, not this")
+    env = dict(os.environ, PYTHONPATH=str(REPO / "src"))
+    cmd = [sys.executable, str(REPO / e.code), *(args or [])]
+    print(">>", " ".join(cmd), flush=True)
+    return subprocess.call(cmd, env=env, cwd=REPO)
+
+
+def main(argv: list[str] | None = None) -> int:
+    import argparse
+    ap = argparse.ArgumentParser(prog="python -m insar_wetlands.register",
+                                 description="The code register: check it, find entries, run one.")
+    sub = ap.add_subparsers(dest="cmd", required=True)
+    sub.add_parser("check", help="validate the register and find undeclared scripts")
+    ls = sub.add_parser("list", help="list entries, optionally filtered")
+    ls.add_argument("--ticket"), ls.add_argument("--chain"), ls.add_argument("--try", dest="try_id"), ls.add_argument("--kind")
+    sh = sub.add_parser("show", help="one entry in full")
+    sh.add_argument("name")
+    rn = sub.add_parser("run", help="run one entry on this machine")
+    rn.add_argument("name")
+    rn.add_argument("args", nargs=argparse.REMAINDER)
+    a = ap.parse_args(argv)
+    reg = load_register()
+    if a.cmd == "check":
+        bad = validate(reg) + [f"undeclared: {u}" for u in untracked_scripts(reg)]
+        print(summary(reg))
+        print("\n".join("  " + b for b in bad) if bad else "  register is sound")
+        return 1 if bad else 0
+    if a.cmd == "list":
+        for e in find(reg, ticket=a.ticket, chain=a.chain, try_id=a.try_id, kind=a.kind):
+            print(f"{e.id:30s} {e.kind:10s} {e.status:10s} {e.runs_on:6s} {','.join(e.tickets):18s} {e.title[:70]}")
+        return 0
+    if a.cmd == "show":
+        e = reg.get(a.name)
+        if e is None:
+            raise SystemExit(f"no register entry {a.name!r}")
+        print(yaml.safe_dump({e.id: {k: v for k, v in e.__dict__.items() if v not in (None, [], {}, "") and k != "id"}},
+                             sort_keys=False, allow_unicode=True, width=120))
+        return 0
+    return run_entry(a.name, [x for x in a.args if x != "--"], reg)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

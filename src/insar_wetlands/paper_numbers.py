@@ -251,7 +251,6 @@ PENDING: dict[str, str] = {}
 
 def hand_written_text(paper_dir: str | Path) -> str:
     """The manuscript sections a human types numbers into."""
-    from .paper_build import collect_sections
     return "\n".join(f.read_text(encoding="utf-8")
                      for f in collect_sections(paper_dir)
                      if f.name not in GENERATED_SECTIONS)
@@ -324,3 +323,29 @@ def format_report(bad: list[dict], cov: dict | None = None) -> str:
                      "it in PENDING with a reason.")
     lines.append("  The exported CSV is the source of truth: update the text.")
     return "\n".join(lines)
+
+
+# The section reader formerly in paper_build (the manuscript build was removed on 2026-10-13; the text is frozen).
+SECTION_ORDER = [
+    "00_title_abstract.md",
+    "01_introduction.md",
+    "02_study_area_and_data.md",
+    "03_methods.md",
+    "04_results.md",
+    "05_discussion.md",
+    "06_conclusions.md",
+    "07_appendix_alternatives.md",
+    "08_references.md",
+    "09_appendix_data.md",
+]
+
+
+def collect_sections(paper_dir: str | Path,
+                     order: list[str] | None = None) -> list[Path]:
+    """Return the existing section files, in manuscript order.
+
+    Missing files are skipped silently (a section may not be written yet), so a gap shows in the
+    guard's coverage, not as an error."""
+    paper_dir = Path(paper_dir)
+    return [paper_dir / n for n in (order or SECTION_ORDER)
+            if (paper_dir / n).exists()]

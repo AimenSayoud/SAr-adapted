@@ -33,19 +33,9 @@ from insar_wetlands.compare import (
     fit_velocity,
     spatial_continuity,
 )
-from insar_wetlands.laser import (
-    decompose,
-    load_laser,
-    validate_against_laser,
-)
 from insar_wetlands.masking.s2_fusion import (
     SCL_INVALID,
     _item_sort_key,
-)
-from insar_wetlands.products import (
-    breathing_classification,
-    seasonal_amplitude,
-    summary_table,
 )
 from insar_wetlands.validation import (
     annual_chain_closure,
@@ -57,75 +47,6 @@ from insar_wetlands.validation import (
 # =========================================================================
 # laser.py
 # =========================================================================
-
-def test_load_laser_sign_and_daily_resampling(tmp_path: Path):
-    """load_laser inverts sensor-to-ground distance when sign=-1.0 and resamples daily."""
-    csv_file = tmp_path / "laser.csv"
-    # Two readings on day 1 (mean=105.0), one reading on day 2 (90.0)
-    csv_file.write_text(
-        "date,elevation_mm\n"
-        "2022-06-01 08:00:00,100.0\n"
-        "2022-06-01 16:00:00,110.0\n"
-        "2022-06-02 12:00:00,90.0\n"
-    )
-
-    # Positive sign
-    s_pos = load_laser(csv_file, sign=1.0)
-    assert len(s_pos) == 2
-    assert abs(s_pos.loc["2022-06-01"] - 105.0) < 1e-4
-    assert abs(s_pos.loc["2022-06-02"] - 90.0) < 1e-4
-
-    # Negative sign (distance to surface -> surface elevation)
-    s_neg = load_laser(csv_file, sign=-1.0)
-    assert abs(s_neg.loc["2022-06-01"] - (-105.0)) < 1e-4
-    assert abs(s_neg.loc["2022-06-02"] - (-90.0)) < 1e-4
-
-
-def test_laser_decompose_recovers_known_trend_and_amplitude():
-    """Joint harmonic + trend fit prevents aliasing seasonal breathing into subsidence."""
-    # 4 years of daily points
-    dates = pd.date_range("2020-01-01", "2024-01-01", freq="1D")
-    ty = (dates - dates[0]).total_seconds().values / (365.25 * 86400)
-
-    # True signals: -3.5 mm/yr trend, 12.0 mm peak-to-peak amplitude (sinusoid: 6 * sin)
-    true_trend = -3.5 * ty + 20.0
-    true_seasonal = 6.0 * np.sin(2 * np.pi * ty)
-    series = pd.Series(true_trend + true_seasonal, index=dates)
-
-    res = decompose(series, n_harmonics=1)
-
-    assert abs(res["trend_mm_yr"] - (-3.5)) < 1e-3
-    assert abs(res["amplitude_mm"] - 12.0) < 1e-2
-    assert res["trend_se_mm_yr"] < 0.05
-    # Check that seasonal has zero mean
-    assert abs(res["seasonal"].mean()) < 0.1
-
-
-def test_validate_against_laser_correlations():
-    """Validates paired InSAR and laser series: Pearson r, RMSE, and date matching."""
-    dates = pd.date_range("2022-01-01", periods=10, freq="12D")
-    laser_vals = np.array([10.0, 15.0, 12.0, 8.0, 6.0, 14.0, 18.0, 11.0, 9.0, 13.0])
-    laser_series = pd.Series(laser_vals, index=dates)
-
-    # Perfectly correlated InSAR series (with 50 mm arbitrary reference offset)
-    insar_perfect = pd.Series(laser_vals + 50.0, index=dates)
-    v_perf = validate_against_laser(insar_perfect, laser_series, tolerance_days=1)
-    assert v_perf["n"] == 10
-    assert abs(v_perf["r"] - 1.0) < 1e-6
-    assert abs(v_perf["r2"] - 1.0) < 1e-6
-    assert abs(v_perf["rmse_mm"] - 0.0) < 1e-6
-    assert abs(v_perf["bias_mm"] - 50.0) < 1e-6
-
-    # Perfectly anti-correlated InSAR series
-    insar_anti = pd.Series(-laser_vals, index=dates)
-    v_anti = validate_against_laser(insar_anti, laser_series, tolerance_days=1)
-    assert abs(v_anti["r"] - (-1.0)) < 1e-6
-
-    # Sparse series with fewer than 3 coincidences returns NaN
-    insar_sparse = pd.Series([10.0, 15.0], index=dates[:2])
-    v_sparse = validate_against_laser(insar_sparse, laser_series, tolerance_days=1)
-    assert np.isnan(v_sparse["r"])
-    assert "trop peu de coincidences" in v_sparse["note"]
 
 
 # =========================================================================
@@ -256,83 +177,6 @@ def test_density_report_and_agreement_and_spatial_continuity():
 # products.py
 # =========================================================================
 
-def test_breathing_classification_all_four_classes():
-    """breathing_classification categorises pixels into 1 (stable), 2 (breathing),
-
-    3 (subsidence), and 4 (both).
-    """
-    coords = {"y": [0.0, 10.0], "x": [0.0, 10.0]}
-
-    # Class 1: stable (v = -0.5 >= -2.0, amp = 5.0 <= 10.0)
-    # Class 2: breathing (v = -0.5 >= -2.0, amp = 15.0 > 10.0)
-    # Class 3: subsidence (v = -6.0 < -2.0, se = 1.0 -> |v| > 2*se, amp = 5.0 <= 10.0)
-    # Class 4: both (v = -6.0 < -2.0, se = 1.0 -> |v| > 2*se, amp = 15.0 > 10.0)
-    v = np.array([
-        [-0.5, -0.5],
-        [-6.0, -6.0],
-    ])
-    se = np.array([
-        [0.5, 0.5],
-        [1.0, 1.0],
-    ])
-    amp = np.array([
-        [5.0, 15.0],
-        [5.0, 15.0],
-    ])
-
-    vel_ds = xr.Dataset({
-        "velocity_mm_yr": (("y", "x"), v),
-        "velocity_se_mm_yr": (("y", "x"), se),
-    }, coords=coords)
-    amp_da = xr.DataArray(amp, dims=("y", "x"), coords=coords)
-
-    classes = breathing_classification(
-        vel_ds, amp_da,
-        subsidence_thr_mm_yr=-2.0,
-        breathing_thr_mm=10.0,
-    )
-
-    assert classes.isel(y=0, x=0) == 1
-    assert classes.isel(y=0, x=1) == 2
-    assert classes.isel(y=1, x=0) == 3
-    assert classes.isel(y=1, x=1) == 4
-
-
-def test_breathing_classification_non_significant_subsidence_defaults_to_stable():
-    """When velocity is < -2.0 but not statistically significant (|v| <= 2*se),
-
-    it must be classified as stable (1) instead of subsidence (3).
-    """
-    coords = {"y": [0.0], "x": [0.0]}
-    # v = -2.5 is below -2.0 threshold, BUT se = 2.0 so |v| < 2*se (4.0) -> not significant
-    vel_ds = xr.Dataset({
-        "velocity_mm_yr": (("y", "x"), [[-2.5]]),
-        "velocity_se_mm_yr": (("y", "x"), [[2.0]]),
-    }, coords=coords)
-    amp_da = xr.DataArray([[-5.0]], dims=("y", "x"), coords=coords)
-
-    classes = breathing_classification(vel_ds, amp_da, subsidence_thr_mm_yr=-2.0, breathing_thr_mm=10.0)
-    assert classes.isel(y=0, x=0) == 1
-
-
-def test_products_summary_table_structure():
-    """summary_table generates expected rows for all land cover classes."""
-    coords = {"y": [0.0, 10.0], "x": [0.0, 10.0]}
-    vel_ds = xr.Dataset({
-        "velocity_mm_yr": (("y", "x"), np.zeros((2, 2))),
-        "velocity_se_mm_yr": (("y", "x"), np.ones((2, 2)) * 0.5),
-        "rmse_mm": (("y", "x"), np.ones((2, 2)) * 1.2),
-    }, coords=coords)
-    amp_da = xr.DataArray(np.ones((2, 2)) * 8.0, dims=("y", "x"), coords=coords)
-    cls_da = xr.DataArray(np.array([[1, 2], [3, 4]]), dims=("y", "x"), coords=coords)
-    aoi_da = xr.DataArray(np.ones((2, 2), bool), dims=("y", "x"), coords=coords)
-
-    df = summary_table(vel_ds, amp_da, cls_da, aoi_da)
-    assert isinstance(df, pd.DataFrame)
-    assert set(df["class"]) == {"A", "B", "C_peat_core", "D_transition", "E_water"}
-    assert "vel_mean_mm_yr" in df.columns
-    assert "amp_median_mm" in df.columns
-
 
 # =========================================================================
 # validation.py
@@ -401,24 +245,6 @@ def test_correlate_insar_hydrology():
     assert abs(res["r2"] - 1.0) < 1e-5
 
 
-def test_seasonal_amplitude_recovers_known_cycle():
-    """seasonal_amplitude computes median peak-to-peak amplitude across multi-year series."""
-    # 2 years, 24 dates per year (freq='15D')
-    dates = pd.date_range("2021-01-01", "2022-12-31", freq="15D")
-    t_years = ((dates - dates[0]) / pd.Timedelta("365.25D")).values
-    # 1 pixel with -5 mm/yr trend and 14 mm peak-to-peak seasonal cycle (7 * sin)
-    signal = -5.0 * t_years + 7.0 * np.sin(2 * np.pi * t_years)
-    ts_mm = xr.DataArray(
-        signal[:, None, None],
-        dims=("time", "y", "x"),
-        coords={"time": dates, "y": [0.0], "x": [0.0]},
-    )
-    amp = seasonal_amplitude(ts_mm)
-    assert amp.name == "seasonal_amplitude_mm"
-    # Should recover ~14.0 mm peak-to-peak amplitude
-    assert abs(float(amp.isel(y=0, x=0)) - 14.0) < 0.5
-
-
 def test_ols_velocity_is_biased_by_a_pure_seasonal_cycle():
     """The fact behind the fix, pinned so it cannot be forgotten.
 
@@ -445,7 +271,7 @@ def test_ols_velocity_is_biased_by_a_pure_seasonal_cycle():
 
 def test_annual_trend_is_not_contaminated_by_the_cycle():
     """The joint fit recovers the true trend whatever the seasonal amplitude."""
-    from insar_wetlands.products import annual_trend
+    from insar_wetlands.compare import annual_trend
 
     dates = pd.date_range("2021-01-01", "2023-12-31", freq="12D")
     t = ((dates - dates[0]) / pd.Timedelta("365.25D")).values
