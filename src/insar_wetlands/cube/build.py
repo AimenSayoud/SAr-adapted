@@ -1,5 +1,5 @@
 """M2 — the harmonised (silver) layer: one space (40 m template; 2026 also at its native 20 m), one time base (UTC),
-one set of units; flags as columns. Called by ``scripts/cube_build.py harmonise <what>``.
+one set of units; flags as columns. Called by ``pipelines/cube_build.py harmonise <what>``.
 
 | product | content |
 |---|---|

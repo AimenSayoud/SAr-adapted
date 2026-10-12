@@ -15,7 +15,7 @@ BIB     := $(HUB)/02_literature/bibliography/references.bib
 
 RUN := PYTHONPATH=$(SRC) $(PY) -c
 
-.PHONY: help lint test check check-generated phases readme assemble appendix docx all clean web-atlas
+.PHONY: help lint test check check-generated phases readme assemble appendix docx all clean web-atlas register run
 
 help:
 	@echo "make lint      - ruff, on the focused rule set in pyproject"
@@ -110,8 +110,27 @@ clean:
 # Runs no MintPy, phase linking or null realisations.
 ATLAS_OUT ?= ../../08_deliverables/rzecin-atlas/data
 web-atlas:
-	PYTHONPATH=$(SRC) $(PY) scripts/build_web_atlas.py --out $(ATLAS_OUT) \
+	PYTHONPATH=$(SRC) $(PY) pipelines/build_web_atlas.py --out $(ATLAS_OUT) \
 		--attach reproduction_report=../local/results/reproduction_report.json \
 		--attach zone_sensitivity=../local/results/zone_sensitivity.json \
 		--attach asc_desc=../local/results/asc_desc/asc_desc_web.json \
 		--attach era5_sensitivity=../local/results/x043_era5_sensitivity.json
+
+# The register (config/register.yaml): every phase, experiment and pipeline, with where its code is.
+register:
+	@$(RUN) "from insar_wetlands.register import load_register, validate, untracked_scripts, summary; \
+	import sys; r = load_register(); bad = validate(r) + ['undeclared: ' + u for u in untracked_scripts(r)]; \
+	print(summary(r)); print('\n'.join('  ' + b for b in bad) if bad else '  register is sound'); \
+	sys.exit(1 if bad else 0)"
+
+# Run one register entry on this Mac: make run E=<entry id> [ARGS="..."]. Colab-only entries are refused.
+run:
+	@test -n "$(E)" || (echo "usage: make run E=<register entry> [ARGS=...]"; exit 2)
+	@$(RUN) "from insar_wetlands.register import load_register; import sys, shlex, subprocess, os; \
+	e = load_register().get('$(E)'); \
+	sys.exit('no register entry $(E)') if e is None else None; \
+	sys.exit('$(E) runs on Colab: use colab/' + '$(E)' + '.ipynb') if e.runs_on != 'mac' else None; \
+	sys.exit('$(E) is not in the tree (code_ref ' + e.code_ref + ')') if not e.in_tree else None; \
+	env = dict(os.environ, PYTHONPATH='$(SRC)'); \
+	cmd = [sys.executable, e.code] + shlex.split('$(ARGS)'); print('>>', ' '.join(cmd)); \
+	sys.exit(subprocess.call(cmd, env=env))"
