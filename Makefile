@@ -22,7 +22,7 @@ help:
 	@sed -n '3,10p' Makefile
 
 test:
-	PYTHONPATH=$(SRC) $(PYTEST) tests -q -p no:warnings
+	PYTHONPATH=$(SRC) $(PYTEST) tests -p no:warnings
 
 lint:
 	$(RUFF) check src tests experiments pipelines
