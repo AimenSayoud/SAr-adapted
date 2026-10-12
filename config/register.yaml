@@ -1628,6 +1628,8 @@ entries:
     - X-096
     chains:
     - insar-test-protocol
+    tries:
+    - T57
     inputs:
     - cube:silver/ifg_*_*.nc
     - cube:silver/static_40m.nc
