@@ -1594,3 +1594,26 @@ entries:
     - T48
     - T49
     - T53
+  baseline_x099:
+    kind: experiment
+    title: X-099 — the benchmark baseline of the InSAR full test (plain chain and fusion v3 at P6, common scorer)
+    status: current
+    runs_on: mac
+    code: experiments/baseline_x099.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/baseline_x099.py
+    tickets:
+    - X-099
+    chains:
+    - insar-full-test
+    tries:
+    - T54
+    - T53
+    inputs:
+    - cube:gold/plots_pair.csv.gz
+    - cube:silver/site_hourly.csv.gz
+    - cube:silver/static_40m.nc
+    - hub:08_deliverables/fusion_v3/wp5/series_p6.csv
+    outputs:
+    - hub:08_deliverables/insar_full_test/baseline
+
