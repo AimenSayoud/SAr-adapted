@@ -1635,4 +1635,41 @@ entries:
     - cube:silver/static_40m.nc
     outputs:
     - hub:08_deliverables/insar_full_test/loss_of_lock
+  slc_bursts_x100:
+    kind: experiment
+    title: X-100 — SLC pilot step 1, Sentinel-1 single-burst SLCs over Rzecin for 2021 (inventory on the Mac, download on Colab)
+    status: current
+    runs_on: colab
+    code: experiments/slc_bursts_x100.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/slc_bursts_x100.py download
+    tickets:
+    - X-100
+    chains:
+    - slc-pilot
+    inputs:
+    - repo:data/slc_pilot/inventory_2021.csv
+    - ASF SLC-BURST (Earthdata)
+    outputs:
+    - colab VM /content/slc_pilot (not kept)
+    - drive:slc_pilot/2021/download_manifest.csv
+  slc_cslc_x101:
+    kind: experiment
+    title: X-101 — SLC pilot step 2, the 2021 bursts geocoded onto one grid over Rzecin (COMPASS CSLC; download, SAFE, orbits, DEM in one Colab session)
+    status: current
+    runs_on: colab
+    code: experiments/slc_cslc_x101.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/slc_cslc_x101.py
+    tickets:
+    - X-101
+    - X-100
+    chains:
+    - slc-pilot
+    inputs:
+    - repo:data/slc_pilot/inventory_2021.csv
+    - ASF SLC-BURST (Earthdata)
+    - cube:silver/static_40m.nc
+    outputs:
+    - drive:slc_pilot/2021/cslc
 
