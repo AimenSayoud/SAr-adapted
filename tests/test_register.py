@@ -68,3 +68,33 @@ def test_the_real_register_is_sound():
     reg = load_register()
     assert validate(reg, check_git=False) == []
     assert untracked_scripts(reg) == []
+
+
+def test_a_run_leaves_a_record_with_commit_and_outputs(tmp_path, monkeypatch):
+    import json
+    import time
+
+    from insar_wetlands import paths, register
+    hub = tmp_path / "hub"
+    (hub / "08_deliverables" / "x").mkdir(parents=True)
+    monkeypatch.setattr(paths, "hub_root", lambda: hub)
+    e = register.Entry(id="x_demo", kind="experiment", status="current", runs_on="mac", code="experiments/x.py",
+                       outputs=["hub:08_deliverables/x"], tickets=["X-999"])
+    t0 = time.time()
+    (hub / "08_deliverables" / "x" / "table.csv").write_text("a\n1\n")
+    rec = register.record_run(e, ["--flag"], 0, t0)
+    m = json.loads((rec / "manifest.json").read_text())
+    assert rec.parent == hub / "05_code" / "runs" / "x_demo"
+    assert m["exit_code"] == 0 and m["args"] == ["--flag"] and m["tickets"] == ["X-999"]
+    assert [f["path"].endswith("table.csv") for f in m["outputs_written"]] == [True]
+    assert "commit" in m["git"] and "python" in m["environment"]
+
+
+def test_a_colab_launcher_runs_its_entry_through_the_register(monkeypatch):
+    from insar_wetlands import colab, register
+    fake = {"x_heavy": register.Entry(id="x_heavy", kind="experiment", status="open", runs_on="colab",
+                                      code="experiments/x_heavy.py", title="t", tickets=["X-100"])}
+    monkeypatch.setattr(colab, "load_register", lambda: fake)
+    nb = colab.launcher("x_heavy", ref="main")
+    src = "".join("".join(c["source"]) for c in nb["cells"])
+    assert 'REF = "main"' in src and "insar_wetlands.register run x_heavy" in src and "drive.mount" in src
