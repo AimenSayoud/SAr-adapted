@@ -82,8 +82,8 @@ def main() -> None:
     st = xr.open_dataset(CUBE / "silver" / "static_40m.nc")
     zone = st.zone.values
     hard = st.hard_target.values.astype(bool) if "hard_target" in st else np.zeros_like(zone, bool)
-    p6 = np.argwhere(st.plot_cell.values.astype(str) == "P6")
-    r6, c6 = (int(p6[0][0]), int(p6[0][1])) if len(p6) else (None, None)
+    px = pd.read_csv(HUB / "08_deliverables" / "field_first" / "plot_pixels.csv").set_index("plot")
+    r6, c6 = int(px.loc["P6", "row"]), int(px.loc["P6", "col"])        # the P6 cell, as X-082 reads it
     masks = {"mat": zone == ZONE_A, "grassland": zone == ZONE_C, "hard_targets": hard}
     gap_rows, seg_rows, rel_rows, sens_rows = [], [], [], []
     for track in TRACKS:
@@ -101,7 +101,7 @@ def main() -> None:
                                  "days": (epochs[i + 1] - epochs[i]).days,
                                  "season": SEASON_OF_MONTH[epochs[i + 1].month],
                                  **{f"bridged_{k}": float(v[i]) for k, v in share.items()},
-                                 "bridged_p6": bool(br[i, r6, c6]) if r6 is not None else None})
+                                 "bridged_p6": bool(br[i, r6, c6])})
             if r6 is not None:
                 seg_rows.append(segments(epochs, br[:, r6, c6]).assign(track=track))
             seasons = np.array([SEASON_OF_MONTH[e.month] for e in epochs[1:]])
