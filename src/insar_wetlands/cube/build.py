@@ -58,7 +58,8 @@ F32 = {"dtype": "float32", "zlib": True, "complevel": 4}
 def ifg_root(ctx, period: str, track: str) -> Path:
     if period == "2022_2024":
         return make_paths(cfg=ctx.cfg, track=track).cropped
-    return LOCAL / f"s1_{period}" / f"hyp3_cropped_{track}"
+    from ..paths import s1_crops
+    return s1_crops(period, track)
 
 
 def _enc(ds: xr.Dataset, spec: dict | None = None, ints=()) -> dict:

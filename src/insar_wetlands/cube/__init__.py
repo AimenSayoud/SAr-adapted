@@ -19,14 +19,13 @@ This package is public; it contains no field values. ``pipelines/cube_build.py``
 """
 from __future__ import annotations
 
-import os
 from pathlib import Path
 
 
 def cube_root(root: str | Path | None = None) -> Path:
-    """The hub's ``06_data/cube``: explicit argument, ``RZECIN_CUBE_ROOT``, or the hub containing this repository."""
+    """The hub's ``06_data/cube``: explicit argument, ``RZECIN_CUBE_ROOT``, the hub around this repository, or (Colab)
+    its Drive backup copy — resolved by ``paths.cube_root``."""
     if root is not None:
         return Path(root)
-    if os.environ.get("RZECIN_CUBE_ROOT"):
-        return Path(os.environ["RZECIN_CUBE_ROOT"])
-    return Path(__file__).resolve().parents[5] / "06_data" / "cube"
+    from ..paths import cube_root as _resolve
+    return _resolve()

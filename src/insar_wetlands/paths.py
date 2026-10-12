@@ -65,6 +65,59 @@ def resolve_drive(root: str | Path | None = None, cfg: dict | None = None,
     return (repo or repo_root()) / "data" / "_local"
 
 
+# ------------------------------------------------------------------------------------- the hub's data roots
+# The cube and the HyP3 crops outside 2022–2024 are made on the Mac (hub ``06_data/cube``, ``05_code/local/s1_*``) and
+# copied to Drive ``insar_rzecin/mac_backup/`` (05_code/local/scripts/backup_mac_to_drive.py). On Colab those copies
+# are the only way to reach them; they are read there, never written (a write would be overwritten by the next backup
+# and would not exist on the Mac). Each root can be forced by an environment variable.
+CUBE_ENV, S1_ENV, HUB_ENV = "RZECIN_CUBE_ROOT", "RZECIN_S1_ROOT", "RZECIN_HUB"
+MAC_BACKUP = COLAB_DRIVE / "mac_backup"
+S1_PERIODS_ON_DRIVE = ("2022_2024",)          # the Colab working area holds only these crops (hyp3_cropped*/)
+
+
+def on_colab() -> bool:
+    return COLAB_DRIVE.is_dir() and Path("/content").is_dir()
+
+
+def hub_root() -> Path | None:
+    """The private hub around this repository (``<hub>/05_code/SAr-adapted``), or ``RZECIN_HUB``; None on Colab."""
+    if os.environ.get(HUB_ENV):
+        return Path(os.environ[HUB_ENV]).expanduser()
+    here = Path(__file__).resolve().parents[2]
+    return here.parents[1] if here.parent.name == "05_code" else None
+
+
+def cube_root() -> Path:
+    """The data cube: ``RZECIN_CUBE_ROOT``, else the hub's ``06_data/cube``, else (Colab) its Drive backup copy."""
+    if os.environ.get(CUBE_ENV):
+        return Path(os.environ[CUBE_ENV]).expanduser()
+    hub = hub_root()
+    if hub is not None and (hub / "06_data" / "cube").is_dir():
+        return hub / "06_data" / "cube"
+    return MAC_BACKUP / "06_data" / "cube"
+
+
+def s1_local_root() -> Path:
+    """Where the HyP3 crops outside 2022–2024 are: ``RZECIN_S1_ROOT``, the hub's ``05_code/local``, or (Colab) the
+    Drive backup copy of it."""
+    if os.environ.get(S1_ENV):
+        return Path(os.environ[S1_ENV]).expanduser()
+    hub = hub_root()
+    if hub is not None and (hub / "05_code" / "local").is_dir():
+        return hub / "05_code" / "local"
+    return MAC_BACKUP / "05_code" / "local"
+
+
+def s1_crops(period: str, track: str, drive: Path | None = None) -> Path:
+    """The folder of HyP3 crops (one sub-folder per pair) for a period (``2017_2019`` … ``2026``, ``annual``) and track.
+    2022–2024 lives in the Drive working area (``hyp3_cropped`` / ``hyp3_cropped_descending``); the rest under
+    ``s1_local_root()/s1_<period>/hyp3_cropped_<track>``."""
+    if period in S1_PERIODS_ON_DRIVE:
+        root = Path(drive) if drive else resolve_drive()
+        return root / ("hyp3_cropped" if track == "ascending" else f"hyp3_cropped_{track}")
+    return s1_local_root() / f"s1_{period}" / f"hyp3_cropped_{track}"
+
+
 @dataclass(frozen=True)
 class Paths:
     """Every directory the pipeline uses, resolved once.

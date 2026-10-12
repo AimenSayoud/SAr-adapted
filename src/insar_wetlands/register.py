@@ -114,8 +114,9 @@ def untracked_scripts(reg: dict[str, Entry], repo: str | Path | None = None) -> 
     declared = {e.code for e in reg.values() if e.in_tree}
     files = [p for d in ("experiments", "pipelines") for p in (repo / d).glob("*.py")]
     files += list((repo / "colab").glob("*.ipynb")) if (repo / "colab").exists() else []
+    launchers = {f"colab/{n}.ipynb" for n, e in reg.items() if e.runs_on == "colab"}
     return sorted(str(p.relative_to(repo)) for p in files
-                  if str(p.relative_to(repo)) not in declared and not p.name.startswith("_"))
+                  if str(p.relative_to(repo)) not in declared | launchers and not p.name.startswith("_"))
 
 
 def find(reg: dict[str, Entry], ticket: str | None = None, chain: str | None = None,
@@ -166,7 +167,8 @@ def run_entry(name: str, args: list[str] | None = None, reg: dict[str, Entry] | 
     e = reg.get(name)
     if e is None:
         raise SystemExit(f"no register entry {name!r} (python -m insar_wetlands.register list)")
-    if e.runs_on != "mac":
+    from .paths import on_colab
+    if e.runs_on == "colab" and not on_colab():
         raise SystemExit(f"{name} runs on Colab: open colab/{name}.ipynb (see colab/README.md)")
     if not e.in_tree:
         raise SystemExit(f"{name} is not in the tree: its code is at {e.code_ref}:{e.code}")
@@ -175,7 +177,52 @@ def run_entry(name: str, args: list[str] | None = None, reg: dict[str, Entry] | 
     env = dict(os.environ, PYTHONPATH=str(REPO / "src"))
     cmd = [sys.executable, str(REPO / e.code), *(args or [])]
     print(">>", " ".join(cmd), flush=True)
-    return subprocess.call(cmd, env=env, cwd=REPO)
+    import time
+    t0 = time.time()
+    code = subprocess.call(cmd, env=env, cwd=REPO)
+    rec = record_run(e, args or [], code, t0)
+    print(f"run record: {rec}", flush=True)
+    return code
+
+
+def runs_root() -> Path:
+    """Where run records go: the hub's ``05_code/runs`` on the Mac (private: outputs hold field values), the Drive's
+    ``runs/`` on Colab."""
+    from .paths import hub_root, on_colab, resolve_drive
+    hub = hub_root()
+    if hub is not None and not on_colab():
+        return hub / "05_code" / "runs"
+    return resolve_drive() / "runs"
+
+
+def record_run(e: Entry, args: list[str], exit_code: int, started: float) -> Path:
+    """One manifest per execution: entry, command, commit (and whether the tree was dirty), environment, duration,
+    exit code, and every file under the entry's declared output folders written during the run."""
+    import json
+    import time
+    from datetime import datetime, timezone
+
+    from .paths import hub_root
+    from .run_archive import describe_file, environment_snapshot, git_state, run_id
+    git = git_state(REPO)
+    rid = run_id(datetime.fromtimestamp(started, timezone.utc), git.get("short"))
+    out_dir = runs_root() / e.id / rid
+    out_dir.mkdir(parents=True, exist_ok=True)
+    hub = hub_root()
+    written = []
+    for o in e.outputs:
+        root, _, rel = str(o).partition(":")
+        base = (hub / rel) if (root == "hub" and hub is not None) else None
+        if base is None or not base.exists():
+            continue
+        files = [base] if base.is_file() else [f for f in base.rglob("*") if f.is_file()]
+        written += [describe_file(f) for f in files if f.stat().st_mtime >= started - 1]
+    manifest = {"entry": e.id, "kind": e.kind, "tickets": e.tickets, "tries": e.tries, "code": e.code,
+                "args": args, "exit_code": exit_code, "started_utc": datetime.fromtimestamp(started, timezone.utc)
+                .isoformat(timespec="seconds"), "duration_s": round(time.time() - started, 1), "git": git,
+                "environment": environment_snapshot(), "outputs_written": written}
+    (out_dir / "manifest.json").write_text(json.dumps(manifest, indent=2, ensure_ascii=False, default=str))
+    return out_dir
 
 
 def main(argv: list[str] | None = None) -> int:

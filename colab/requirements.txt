@@ -1,0 +1,10 @@
+# What a Colab session needs beyond its preinstalled stack (numpy, pandas, scipy, scikit-learn, matplotlib, requests).
+# Unpinned on purpose: every run records the versions it used (run_archive.environment_snapshot) in its run manifest.
+xarray
+netcdf4
+h5py
+rioxarray
+rasterio
+pyproj
+shapely
+pyyaml
