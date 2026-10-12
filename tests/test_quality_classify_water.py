@@ -18,16 +18,10 @@ import pandas as pd
 import pytest
 import xarray as xr
 
-from insar_wetlands.classify import CLASS_NAMES, classify, pick_reference_pixel
 from insar_wetlands.masking.water_mask import (
     flooded_fraction,
     optical_to_s1_dates,
     water_mask,
-)
-from insar_wetlands.quality import (
-    pair_dry_mask,
-    quality_index,
-    weight_matrix_for_pixel,
 )
 
 Y, X = 4, 5
@@ -52,80 +46,6 @@ def water_series(dates, per_date_flags) -> xr.DataArray:
 # quality — W_i
 # =========================================================================
 
-def test_a_pair_is_dry_only_when_both_of_its_dates_are_dry():
-    """The whole point of the corrected W_i: a pair is usable only if neither
-    of its acquisitions was under water."""
-    dates = ["2024-01-01", "2024-01-13", "2024-01-25"]
-    # one pixel, wet on the middle date only
-    flags = [[[False]], [[True]], [[False]]]
-    water = water_series(dates, flags)
-    pairs = ["20240101_20240113",   # second date wet  -> not dry
-             "20240113_20240125",   # first date wet   -> not dry
-             "20240101_20240125"]   # both dry         -> dry
-    dry = pair_dry_mask(water, pairs)
-    assert dry.sel(pair="20240101_20240113").item() is np.False_ or not dry.sel(pair="20240101_20240113").item()
-    assert not dry.sel(pair="20240113_20240125").item()
-    assert dry.sel(pair="20240101_20240125").item()
-
-
-def test_conditional_coherence_ignores_the_wet_pairs():
-    """A pixel that is coherent when dry must not be dragged down by the pairs
-    in which it was flooded — the double-penalty this formulation fixes."""
-    dates = ["2024-01-01", "2024-01-13", "2024-01-25"]
-    water = water_series(dates, [[[False]], [[True]], [[False]]])
-    pairs = ["20240101_20240113", "20240113_20240125", "20240101_20240125"]
-    # coherence: 0.10 on the two wet pairs, 0.90 on the dry one
-    corr = xr.DataArray(np.array([[[0.10]], [[0.10]], [[0.90]]]),
-                        dims=("pair", "y", "x"),
-                        coords={"pair": pairs, "y": [0], "x": [0]})
-    ff = grid([[0.0]])
-
-    q = quality_index(corr, water, ff)
-
-    assert q["coh_conditional_dry"].item() == pytest.approx(0.90)
-    # the naive average would have been 0.367 — the value this design rejects
-    assert q["coh_all_pairs"].item() == pytest.approx(0.3667, abs=1e-3)
-    assert q["n_dry_pairs"].item() == 1.0
-
-
-def test_W_is_conditional_coherence_times_the_dry_fraction():
-    """W_i = coh_dry × (1 − flooded_fraction), stated in the module docstring."""
-    dates = ["2024-01-01", "2024-01-13"]
-    water = water_series(dates, [[[False]], [[False]]])
-    pairs = ["20240101_20240113"]
-    corr = xr.DataArray(np.array([[[0.80]]]), dims=("pair", "y", "x"),
-                        coords={"pair": pairs, "y": [0], "x": [0]})
-    q = quality_index(corr, water, grid([[0.25]]))
-    assert q["W"].item() == pytest.approx(0.80 * 0.75)
-
-
-def test_W_is_zero_for_a_permanently_flooded_pixel():
-    dates = ["2024-01-01", "2024-01-13"]
-    water = water_series(dates, [[[True]], [[True]]])
-    corr = xr.DataArray(np.array([[[0.95]]]), dims=("pair", "y", "x"),
-                        coords={"pair": ["20240101_20240113"], "y": [0], "x": [0]})
-    q = quality_index(corr, water, grid([[1.0]]))
-    assert q["W"].item() == pytest.approx(0.0)
-    assert q["n_dry_pairs"].item() == 0.0
-
-
-def test_W_stays_within_zero_and_one():
-    """It is a weight. A value outside [0, 1] would silently distort the
-    inversion rather than fail."""
-    dates = ["2024-01-01", "2024-01-13"]
-    water = water_series(dates, [[[False]], [[False]]])
-    corr = xr.DataArray(np.array([[[1.4]]]), dims=("pair", "y", "x"),
-                        coords={"pair": ["20240101_20240113"], "y": [0], "x": [0]})
-    q = quality_index(corr, water, grid([[-0.2]]))
-    assert 0.0 <= q["W"].item() <= 1.0
-
-
-def test_weight_matrix_drops_pairs_below_the_coherence_floor():
-    corr = np.array([0.9, 0.5, 0.2, 0.8])
-    dry = np.array([True, False, True, True])
-    w = weight_matrix_for_pixel(corr, dry, gamma_min=0.30)
-    assert w.tolist() == [0.9, 0.0, 0.0, 0.8]   # wet dropped, and 0.2 < 0.30
-
 
 # =========================================================================
 # classify — the five behavioural classes
@@ -135,65 +55,6 @@ def config(permanent=0.80, intermittent=0.15, coh_stable=0.45) -> dict:
     return {"classification": {"permanent_water_frac": permanent,
                                "intermittent_frac": intermittent,
                                "stable_coherence": coh_stable}}
-
-
-def test_each_class_is_assigned_where_its_definition_says():
-    ff = grid([[0.90, 0.50, 0.05],      # inside:  E, D, C
-               [0.90, 0.50, 0.05]])     # outside: A/B by coherence only
-    coh = grid([[0.10, 0.10, 0.10],
-                [0.60, 0.20, 0.60]])
-    aoi = grid([[1, 1, 1], [0, 0, 0]]).astype(bool)
-
-    cls = classify(ff, coh, aoi, config())
-
-    assert cls.values[0].tolist() == [5, 4, 3]          # E, D, C inside
-    assert cls.values[1].tolist() == [1, 2, 1]          # A, B, A outside
-    assert set(CLASS_NAMES) == {1, 2, 3, 4, 5}
-
-
-def test_hydrological_classes_never_appear_outside_the_aoi():
-    """A frequently-wet pixel outside the peatland is a ditch or a field, not a
-    transition zone. The module comment says so; this pins it."""
-    ff = grid([[0.95, 0.40]])
-    coh = grid([[0.60, 0.60]])
-    aoi = grid([[0, 0]]).astype(bool)
-    cls = classify(ff, coh, aoi, config())
-    assert set(np.unique(cls.values)) <= {1, 2}
-
-
-def test_the_thresholds_are_honoured_at_their_boundaries():
-    """`permanent` is >=, `intermittent` is <=; a pixel exactly on either
-    boundary must fall on the documented side."""
-    ff = grid([[0.80, 0.15]])
-    coh = grid([[0.10, 0.10]])
-    aoi = grid([[1, 1]]).astype(bool)
-    cls = classify(ff, coh, aoi, config(permanent=0.80, intermittent=0.15))
-    assert cls.values[0].tolist() == [5, 3]
-
-
-def test_thresholds_come_from_the_config_not_from_constants():
-    ff = grid([[0.50]])
-    coh = grid([[0.10]])
-    aoi = grid([[1]]).astype(bool)
-    assert classify(ff, coh, aoi, config(permanent=0.40)).item() == 5
-    assert classify(ff, coh, aoi, config(permanent=0.90)).item() == 4
-
-
-def test_reference_pixel_is_the_most_coherent_class_A_pixel_nearby():
-    cls = grid([[1, 1, 2], [1, 3, 3]])
-    coh = grid([[0.50, 0.95, 0.99], [0.20, 0.99, 0.99]])
-    ref = pick_reference_pixel(cls, coh, centroid_xy=(1.0, 0.0), max_dist_m=5.0)
-    assert (ref["y"], ref["x"]) == (0.0, 1.0)      # 0.99s are not class A
-    assert ref["coherence"] == pytest.approx(0.95)
-
-
-def test_reference_pixel_falls_back_when_nothing_is_close_enough():
-    """Better a distant class-A pixel than no reference at all — but the
-    fallback must be deliberate, not accidental."""
-    cls = grid([[1, 3], [3, 3]])
-    coh = grid([[0.77, 0.10], [0.10, 0.10]])
-    ref = pick_reference_pixel(cls, coh, centroid_xy=(50.0, 50.0), max_dist_m=1.0)
-    assert ref["coherence"] == pytest.approx(0.77)
 
 
 # =========================================================================

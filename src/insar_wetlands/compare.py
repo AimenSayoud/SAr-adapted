@@ -82,3 +82,35 @@ def spatial_continuity(vel: xr.DataArray) -> float:
         diffs.append(d)
     all_d = np.concatenate([d[np.isfinite(d)] for d in diffs])
     return float(np.median(all_d)) if all_d.size else np.nan
+
+
+# From products.py (phase 14, removed 2026-10-13): kept because its test pins the right trend estimator under a
+# seasonal cycle.
+def annual_trend(ts_mm: xr.DataArray) -> xr.DataArray:
+    """Tendance lineaire (mm/an) estimee CONJOINTEMENT au cycle annuel.
+
+    Pourquoi pas `fit_velocity`. Une regression lineaire seule sur un signal
+    periodique ne rend pas ~0 : sa pente depend de la PHASE du cycle dans la
+    fenetre d'observation. Sur deux periodes entieres d'un sinus pur de
+    tendance nulle, la pente OLS vaut -0.477 par unite d'amplitude et par an
+    (elle est nulle seulement en phase cosinus). Pour un cycle de 7 mm cela
+    fait -3.3 mm/an de tendance entierement fictive.
+
+    On ajuste donc y = c + d*t + a*cos(2*pi*t) + b*sin(2*pi*t) et on ne retient
+    que d : le terme harmonique absorbe le cycle, ce qui laisse la tendance
+    non contaminee. C'est le meme modele que `aggregate.seasonal_amplitude`.
+    """
+    t = ((ts_mm.time - ts_mm.time[0]) / pd.Timedelta("365.25D")).values
+    y = ts_mm.values                                        # (t, y, x)
+    shp = y.shape[1:]
+    flat = y.reshape(len(t), -1)
+    valid = np.isfinite(flat).all(axis=0)
+    M = np.column_stack([np.ones_like(t), t,
+                         np.cos(2 * np.pi * t), np.sin(2 * np.pi * t)])
+    beta, *_ = np.linalg.lstsq(M, np.nan_to_num(flat), rcond=None)
+    d = beta[1].astype(float)
+    d[~valid] = np.nan
+    return xr.DataArray(d.reshape(shp), dims=("y", "x"),
+                        coords={k: ts_mm.coords[k] for k in ("y", "x")
+                                if k in ts_mm.coords},
+                        name="trend_mm_yr")

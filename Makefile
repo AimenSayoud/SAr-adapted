@@ -1,136 +1,58 @@
-# Command-line entry points for the checks and the build.
+# SAr-adapted — the commands. Everything that runs is an entry of config/register.yaml.
 #
-# These already existed as Python functions and notebook cells. The point of
-# this file is that they can now run without opening Colab, and that `make all`
-# makes the number check impossible to skip.
+#   make test                     synthetic ground-truth test suite
+#   make lint                     ruff on src and tests
+#   make check                    number guard: registered numbers vs the results tables (and the frozen manuscript)
+#   make register                 validate the register; list undeclared scripts
+#   make list [TICKET=X-082] [CHAIN=fusion-v3]   find entries
+#   make run E=<entry> [ARGS=..]  run one entry on this Mac (Colab entries: colab/<entry>.ipynb)
+#   make cube STEP=check          the data cube (ingest | harmonise | gold | check)
+#   make web-atlas                the atlas data package
 
 PY      := python3
 SRC     := src
 PAPER   := docs/paper
-FIGURES := $(PAPER)/figures
-TABLES  := results/tables
-HUB     := $(HOME)/Documents/Research_Hub
-OUT     := $(HUB)/03_paper01_rzecin/current
-BIB     := $(HUB)/02_literature/bibliography/references.bib
-
-RUN := PYTHONPATH=$(SRC) $(PY) -c
-
-.PHONY: help lint test check check-generated phases readme assemble appendix docx all clean web-atlas register run
-
-help:
-	@echo "make lint      - ruff, on the focused rule set in pyproject"
-	@echo "make test      - run the synthetic ground-truth test suite"
-	@echo "make check     - verify manuscript numbers against the exported CSVs"
-	@echo "make check-generated - assert generated manuscript and appendix have not drifted"
-	@echo "make phases    - validate config/phases.yaml and print the pipeline"
-	@echo "make readme    - regenerate the README phase table from phases.yaml"
-	@echo "make appendix  - regenerate Appendix B from figures/T*.csv"
-	@echo "make assemble  - concatenate sections into _manuscript.md"
-	@echo "make docx      - build the .docx into the hub (runs check first)"
-	@echo "make all       - test, check, check-generated, appendix, assemble, docx"
-
+RUN     := PYTHONPATH=$(SRC) $(PY)
 RUFF    := $(shell command -v ruff 2>/dev/null || echo $(HOME)/Library/Python/3.14/bin/ruff)
 PYTEST  := $(shell command -v pytest 2>/dev/null || echo $(HOME)/Library/Python/3.14/bin/pytest)
 
-lint:
-	$(RUFF) check src tests
+.PHONY: help test lint check register list run cube web-atlas
+
+help:
+	@sed -n '3,10p' Makefile
 
 test:
-	PYTHONPATH=$(SRC) $(PYTEST) tests -q
+	PYTHONPATH=$(SRC) $(PYTEST) tests -q -p no:warnings
 
-# The transcription guard. Compares every registered number against the CSV it
-# came from, and fails if a superseded value is still in the prose.
+lint:
+	$(RUFF) check src tests experiments pipelines
+
+# The transcription guard: every registered number against the CSV it came from; a superseded value still in the
+# frozen manuscript fails. The atlas's numbers.json is built from the same registry.
 check:
-	@$(RUN) "from insar_wetlands.paper_numbers import check_manuscript_numbers, coverage_metric, format_report; \
-	import sys; bad = check_manuscript_numbers('$(PAPER)'); \
-	cov = coverage_metric('$(PAPER)'); \
+	@$(RUN) -c "from insar_wetlands.paper_numbers import check_manuscript_numbers, coverage_metric, format_report; \
+	import sys; bad = check_manuscript_numbers('$(PAPER)'); cov = coverage_metric('$(PAPER)'); \
 	print(format_report(bad, cov)); sys.exit(1 if bad or cov['coverage_pct'] < 2.0 else 0)"
 
-# The declared pipeline: catches an undeclared notebook, a dependency on a
-# superseded phase, a cycle, or a missing notebook file.
-phases:
-	@$(RUN) "from insar_wetlands.phases import load_phases, validate, summary, execution_order; \
-	import sys; ps = load_phases('config/phases.yaml'); \
-	bad = validate(ps, repo='.'); \
-	print(summary(ps)); \
-	print('\n'.join('  ' + b for b in bad) if bad else '  declaration is sound'); \
-	sys.exit(1 if bad else 0)"
+register:
+	@$(RUN) -m insar_wetlands.register check
 
-readme: phases
-	@$(RUN) "from insar_wetlands.phases import load_phases, readme_table; \
-	from pathlib import Path; import re; \
-	table = readme_table(load_phases('config/phases.yaml')); \
-	p = Path('README.md'); t = p.read_text(); \
-	start, end = '<!-- PHASES:START -->', '<!-- PHASES:END -->'; \
-	body = start + chr(10) + table + chr(10) + end; \
-	t = re.sub(start + '.*?' + end, body, t, flags=re.S) if start in t else t + chr(10)*2 + body + chr(10); \
-	p.write_text(t); print('README phase table regenerated')"
+list:
+	@$(RUN) -m insar_wetlands.register list $(if $(TICKET),--ticket $(TICKET)) $(if $(CHAIN),--chain $(CHAIN)) $(if $(KIND),--kind $(KIND))
 
-appendix:
-	@$(RUN) "from insar_wetlands.paper_build import build_data_appendix; \
-	r = build_data_appendix('$(TABLES)', '$(PAPER)/09_appendix_data.md'); print(r)"
+run:
+	@test -n "$(E)" || (echo "usage: make run E=<register entry> [ARGS=...]"; exit 2)
+	@$(RUN) -m insar_wetlands.register run $(E) -- $(ARGS)
 
-assemble:
-	@$(RUN) "from insar_wetlands.paper_build import assemble_markdown; \
-	r = assemble_markdown('$(PAPER)', '$(PAPER)/_manuscript.md'); \
-	print(r['n_sections'], 'sections,', len(r['images']), 'images'); \
-	print('MISSING IMAGES:', r['missing_images']) if r['missing_images'] else None"
+cube:
+	$(RUN) pipelines/cube_build.py $(or $(STEP),check)
 
-check-generated: appendix assemble
-	@git diff --exit-code $(PAPER)/09_appendix_data.md $(PAPER)/_manuscript.md \
-		|| (echo "ERROR: Generated manuscript files have drifted from source. Run 'make appendix assemble' and commit the result." && exit 1)
-
-REF_DOC := $(PAPER)/reference.docx
-
-# check runs first on purpose: a document with a stale number should never
-# reach a file someone might send.
-docx: check check-generated appendix assemble
-	@test -f $(BIB) || (echo "ERROR: Missing bibliography at $(BIB). See 02_literature/SETUP.md §1." && exit 1)
-	@mkdir -p $(OUT)
-	pandoc $(PAPER)/_manuscript.md \
-	  --reference-doc=$(REF_DOC) \
-	  --citeproc \
-	  --bibliography=$(BIB) \
-	  --resource-path=$(PAPER):$(FIGURES) \
-	  --fail-if-warnings \
-	  -o $(OUT)/manuscript.raw.docx
-	@$(RUN) "from insar_wetlands.docx_academic import polish_academic_docx; \
-	r = polish_academic_docx('$(OUT)/manuscript.raw.docx', '$(OUT)/manuscript.docx'); \
-	print(f'Academic docx polished: {r[\"tables_polished\"]} tables, {r[\"headings_cleaned\"]} headings, {r[\"captions_styled\"]} captions, {r[\"figures_centered\"]} figures')"
-	@rm -f $(OUT)/manuscript.raw.docx
-	@echo "built: 03_paper01_rzecin/current/manuscript.docx"
-
-all: lint test phases docx
-
-clean:
-	rm -f $(PAPER)/_manuscript.md
-
-# Web-atlas data package (C-035). Reads the Drive (or a local mirror via
-# INSAR_DRIVE_ROOT) read-only; writes quantised layers + manifest.json to ATLAS_OUT.
-# Runs no MintPy, phase linking or null realisations.
+# Web-atlas data package (C-035). Reads the Drive (or a local mirror via INSAR_DRIVE_ROOT) read-only; writes quantised
+# layers + manifest.json to ATLAS_OUT. Runs no MintPy, phase linking or null realisations.
 ATLAS_OUT ?= ../../08_deliverables/rzecin-atlas/data
 web-atlas:
-	PYTHONPATH=$(SRC) $(PY) pipelines/build_web_atlas.py --out $(ATLAS_OUT) \
+	$(RUN) pipelines/build_web_atlas.py --out $(ATLAS_OUT) \
 		--attach reproduction_report=../local/results/reproduction_report.json \
 		--attach zone_sensitivity=../local/results/zone_sensitivity.json \
 		--attach asc_desc=../local/results/asc_desc/asc_desc_web.json \
 		--attach era5_sensitivity=../local/results/x043_era5_sensitivity.json
-
-# The register (config/register.yaml): every phase, experiment and pipeline, with where its code is.
-register:
-	@$(RUN) "from insar_wetlands.register import load_register, validate, untracked_scripts, summary; \
-	import sys; r = load_register(); bad = validate(r) + ['undeclared: ' + u for u in untracked_scripts(r)]; \
-	print(summary(r)); print('\n'.join('  ' + b for b in bad) if bad else '  register is sound'); \
-	sys.exit(1 if bad else 0)"
-
-# Run one register entry on this Mac: make run E=<entry id> [ARGS="..."]. Colab-only entries are refused.
-run:
-	@test -n "$(E)" || (echo "usage: make run E=<register entry> [ARGS=...]"; exit 2)
-	@$(RUN) "from insar_wetlands.register import load_register; import sys, shlex, subprocess, os; \
-	e = load_register().get('$(E)'); \
-	sys.exit('no register entry $(E)') if e is None else None; \
-	sys.exit('$(E) runs on Colab: use colab/' + '$(E)' + '.ipynb') if e.runs_on != 'mac' else None; \
-	sys.exit('$(E) is not in the tree (code_ref ' + e.code_ref + ')') if not e.in_tree else None; \
-	env = dict(os.environ, PYTHONPATH='$(SRC)'); \
-	cmd = [sys.executable, e.code] + shlex.split('$(ARGS)'); print('>>', ' '.join(cmd)); \
-	sys.exit(subprocess.call(cmd, env=env))"
