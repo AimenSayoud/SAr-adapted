@@ -1616,4 +1616,21 @@ entries:
     - hub:08_deliverables/fusion_v3/wp5/series_p6.csv
     outputs:
     - hub:08_deliverables/insar_full_test/baseline
+  loss_of_lock_x096:
+    kind: experiment
+    title: X-096 — the loss-of-lock atlas (gaps no coherent pair spans; P6 segments for X-093)
+    status: current
+    runs_on: mac
+    code: experiments/loss_of_lock_x096.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/loss_of_lock_x096.py
+    tickets:
+    - X-096
+    chains:
+    - insar-test-protocol
+    inputs:
+    - cube:silver/ifg_*_*.nc
+    - cube:silver/static_40m.nc
+    outputs:
+    - hub:08_deliverables/insar_full_test/loss_of_lock
 
