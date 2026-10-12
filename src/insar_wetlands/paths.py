@@ -15,7 +15,8 @@ Resolution order for the data root, most explicit first:
 2. the ``INSAR_DRIVE_ROOT`` environment variable — how tests and local runs override;
 3. ``paths.drive_data_root`` in ``config/config.yaml``, if that directory exists;
 4. the Colab mount point, if it exists;
-5. ``<repo>/data/_local`` as a last resort, so a local run works rather than failing.
+5. on the Mac, the hub's read-only Drive snapshot ``05_code/local/drive_pristine`` (never the live mount);
+6. ``<repo>/data/_local`` as a last resort, so a local run works rather than failing.
 
 Step 3 checks existence deliberately: the committed config names the Colab path,
 which is meaningless off Colab, and falling through to a working local directory
@@ -62,7 +63,19 @@ def resolve_drive(root: str | Path | None = None, cfg: dict | None = None,
     if COLAB_DRIVE.is_dir():
         return COLAB_DRIVE
 
+    pristine = _hub_snapshot(repo)
+    if pristine is not None:
+        return pristine
+
     return (repo or repo_root()) / "data" / "_local"
+
+
+def _hub_snapshot(repo: Path | None = None) -> Path | None:
+    """On the Mac: the read-only snapshot of the Drive (``<hub>/05_code/local/drive_pristine``), never the live
+    CloudStorage mount — a run must not be able to overwrite a Drive product in place."""
+    here = Path(repo).resolve() if repo else Path(__file__).resolve().parents[2]
+    snap = here.parent / "local" / "drive_pristine" if here.parent.name == "05_code" else None
+    return snap if snap is not None and snap.is_dir() else None
 
 
 # ------------------------------------------------------------------------------------- the hub's data roots
