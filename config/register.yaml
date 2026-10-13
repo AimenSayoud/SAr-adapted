@@ -1718,3 +1718,19 @@ entries:
     - hub:08_deliverables/field_first/plot_pixels.csv
     outputs:
     - hub:08_deliverables/insar_full_test/phase_sim
+  physics_terms_x091:
+    kind: experiment
+    title: X-091(a) — gas (pressure-fall ebullition) and frost terms in the buoyancy prior at P6, year-blocked
+    status: current
+    runs_on: mac
+    code: experiments/physics_terms_x091.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/physics_terms_x091.py
+    tickets:
+    - X-091
+    chains:
+    - insar-full-test
+    inputs:
+    - cube:silver/site_hourly.csv.gz
+    outputs:
+    - hub:08_deliverables/insar_full_test/physics_terms
