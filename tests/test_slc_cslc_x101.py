@@ -97,6 +97,7 @@ def test_runconfig_polarization_list_becomes_string(tmp_path):
     M.fix_runconfig(f)
     d = yaml.safe_load(f.read_text())
     assert d["runconfig"]["groups"]["processing"] == {"polarization": "co-pol", "x": 1}
+    assert d["runconfig"]["groups"]["output"]["chunk_size"] == [M.CHUNK, M.CHUNK]
     assert d["runconfig"]["name"] == "cslc_s1_workflow_default"
 
 
