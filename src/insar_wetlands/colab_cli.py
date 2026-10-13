@@ -9,6 +9,7 @@ Mac, step by step, so an agent can do everything except the one step Colab reser
     python -m insar_wetlands.colab_cli netrc -s <session> [--machine urs.earthdata.nasa.gov]  # credentials file
     python -m insar_wetlands.colab_cli run <entry> -s <session> [--timeout 21600] [-- args]
     python -m insar_wetlands.colab_cli stop -s <session>
+    python -m insar_wetlands.colab_cli release                          # free VMs the CLI lost track of (orphans)
 
 Rules from ``colab/TROUBLESHOOTING.md`` and the CLI's own guide (``colab skill``):
 - ``drive.mount()`` deadlocks headless (issue 2): Drive is mounted by ``colab drivemount``, by the person.
@@ -125,11 +126,30 @@ print(">>> exit", p.wait(), flush=True)
     return vm_python(code, session, timeout=timeout)
 
 
+def cmd_release() -> int:
+    """Release VMs still assigned on the server that the CLI no longer tracks (orphans, shown as ``[?]`` by
+    ``colab sessions``; ``colab stop`` cannot reach them). Uses the CLI's own authenticated client."""
+    from colab_cli.common import state  # noqa: PLC0415
+    tracked = {s.endpoint for s in state.store.list().values()}
+    rc = 0
+    for a in state.client.list_assignments():
+        if a.endpoint in tracked:
+            continue
+        try:
+            state.client.unassign(a.endpoint)
+            print(f"released orphan {a.endpoint}", flush=True)
+        except Exception as e:  # noqa: BLE001
+            print(f"could not release {a.endpoint}: {e}", flush=True)
+            rc = 1
+    print("assigned now:", [a.endpoint for a in state.client.list_assignments()], flush=True)
+    return rc
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="python -m insar_wetlands.colab_cli", description=__doc__.splitlines()[0])
-    ap.add_argument("step", choices=["new", "bootstrap", "netrc", "run", "stop"])
+    ap.add_argument("step", choices=["new", "bootstrap", "netrc", "run", "stop", "release"])
     ap.add_argument("entry", nargs="?", default="")
-    ap.add_argument("-s", "--session", required=True)
+    ap.add_argument("-s", "--session", default="")
     ap.add_argument("--ref", default="fusion-x062")
     ap.add_argument("--conda", default="", help="conda-forge packages for a micromamba environment on the VM")
     ap.add_argument("--machine", default="urs.earthdata.nasa.gov")
@@ -137,6 +157,10 @@ def main(argv: list[str] | None = None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
     rest = argv[argv.index("--") + 1:] if "--" in argv else []          # arguments for the entry itself
     a = ap.parse_args(argv[:argv.index("--")] if "--" in argv else argv)
+    if a.step == "release":
+        return cmd_release()
+    if not a.session:
+        ap.error("-s/--session is required for this step")
     if a.step == "new":
         return cmd_new(a.entry, a.session)
     if a.step == "bootstrap":
