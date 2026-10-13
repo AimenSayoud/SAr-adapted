@@ -168,7 +168,8 @@ def main() -> None:
                 rel_rows.append({"track": track, "date_set": name, "class": cls, "pairs": len(above),
                                  "median_share_above_floor": float(np.nanmedian(g.share))})
         # PS candidates in P6's cell and its neighbours: increments against the laser
-        sel = tg.assign(ps=all_ps)[lambda d: d.ps & [(a, b) in p6_cells for a, b in zip(d.cell_row, d.cell_col)]]
+        in_p6 = np.array([(a, b) in p6_cells for a, b in zip(tg.cell_row, tg.cell_col)], bool)
+        sel = tg.assign(ps=all_ps)[all_ps & in_p6]
         for _, g in sel.iterrows():
             recs = []
             for a, b in zip(range(len(dates) - 1), range(1, len(dates))):
