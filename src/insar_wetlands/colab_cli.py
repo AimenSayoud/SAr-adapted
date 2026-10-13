@@ -73,6 +73,8 @@ if not os.path.exists("{MAMBA}"):
 if not os.path.exists("{VM_ENV}/bin/python"):
     sh("{MAMBA} create -q -y -p {VM_ENV} -c conda-forge {CONDA_BASE} {conda}")
 sh("{VM_ENV}/bin/pip install -q --no-deps -e {VM_REPO}")
+if not os.path.exists("{VM_ENV}/share/proj/us_nga_egm08_25.tif"):   # EGM2008 grid: geoid → ellipsoid heights
+    sh("PROJ_DATA={VM_ENV}/share/proj {VM_ENV}/bin/projsync --file us_nga_egm08_25.tif --target-dir {VM_ENV}/share/proj")
 sh("cd {VM_REPO} && PATH={VM_ENV}/bin:$PATH {VM_ENV}/bin/python -c 'from insar_wetlands import paths; print(\\"drive\\", paths.resolve_drive()); print(\\"cube\\", paths.cube_root())'")
 '''
     else:
@@ -108,6 +110,8 @@ import os, subprocess
 conda = os.path.exists("{VM_ENV}/bin/python")
 env = dict(os.environ, PYTHONPATH="{VM_REPO}/src", PYTHONUNBUFFERED="1", MPLBACKEND="Agg",  # kernel's inline backend
            # is unknown to the environment's matplotlib and breaks any import that pulls it in
+           **({{"PROJ_DATA": "{VM_ENV}/share/proj", "PROJ_LIB": "{VM_ENV}/share/proj", "GDAL_DATA": "{VM_ENV}/share/gdal",
+               "PROJ_NETWORK": "ON"}} if conda else {{}}),   # the env is not activated: point PROJ/GDAL at its data
            PATH=("{VM_ENV}/bin:" if conda else "") + os.environ["PATH"])
 py = "{VM_ENV}/bin/python" if conda else "python"
 p = subprocess.Popen([py, "-m", "insar_wetlands.register", "run", "{entry}", *{["--", *args] if args else []!r}],

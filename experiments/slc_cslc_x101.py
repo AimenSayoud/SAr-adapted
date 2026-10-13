@@ -7,7 +7,8 @@ design, COMPASS). Per track, in batches of dates, so a disconnected session lose
    (``--all-anns`` is what s1-reader, COMPASS's reader, needs). Earthdata credentials from Colab's key manager.
 2. **Orbits**: ``eof --force-asf`` (ASF's public orbit bucket; the default source, Copernicus Data Space, would need
    another account and prompt for it).
-3. **DEM** (once): ``sardem`` Copernicus GLO-30, WGS84 ellipsoid heights, over the AOI plus a margin.
+3. **DEM** (once): ``sardem`` Copernicus GLO-30 (EGM2008 heights) over the AOI plus a margin, then the EGM2008
+   undulation added here to give the WGS84 ellipsoid heights COMPASS needs (sardem's own conversion is silently lost).
 4. **CSLC**: COMPASS ``s1_geocode_stack.py`` writes one run file per date; each is executed. COMPASS takes its output
    grid from a burst database; a one-row-per-burst SQLite database holding the AOI box (the cube's 40 m grid extent in
    EPSG:32633) is written here, so only the AOI is geocoded, at 5 m × 10 m.
@@ -31,6 +32,7 @@ import sqlite3
 import subprocess
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import yaml
 
@@ -40,6 +42,7 @@ WORK = Path("/content/slc_pilot")
 EPSG, XPOST, YPOST = 32633, 5, 10
 MARGIN_M = 200.0          # AOI margin around the cube grid (m)
 DEM_MARGIN_DEG = 0.05
+GEOID_N_RANGE = (25.0, 45.0)   # EGM2008 undulation around Rzecin is about 34 m
 BATCH = 8                 # dates per batch: disk stays small, a disconnect loses at most one batch
 DATE_RE = re.compile(r"(20\d{6})")
 
@@ -97,12 +100,43 @@ def burst_db(path: Path, ids: list[str], utm_box) -> Path:
     return path
 
 
+def geoid_undulation(lon, lat) -> np.ndarray:
+    """EGM2008 geoid height above the WGS84 ellipsoid (m), from PROJ's grid (us_nga_egm08_25.tif)."""
+    from pyproj import Transformer  # noqa: PLC0415
+    t = Transformer.from_crs("EPSG:4326+3855", "EPSG:4979", always_xy=True)
+    _, _, h = t.transform(np.asarray(lon, float), np.asarray(lat, float), np.zeros(np.shape(lon)))
+    return np.asarray(h, float)
+
+
+def to_ellipsoid(src: Path, dst: Path) -> Path:
+    """Copernicus heights are above EGM2008; COMPASS needs WGS84 ellipsoid heights. sardem's own conversion targets a 2-D
+    CRS, so GDAL silently drops the vertical shift (checked 2026-10-13: the DEM came out orthometric); the undulation
+    is added here, and refused if PROJ returns an implausible value (no grid gives 0 without an error)."""
+    import rasterio  # noqa: PLC0415
+    with rasterio.open(src) as r:
+        z = r.read(1).astype("float64")
+        prof = r.profile
+        rows, cols = np.mgrid[0:r.height, 0:r.width]
+        lon, lat = rasterio.transform.xy(r.transform, rows.ravel(), cols.ravel(), offset="center")
+    n = geoid_undulation(lon, lat).reshape(z.shape)
+    if not (GEOID_N_RANGE[0] <= np.nanmin(n) and np.nanmax(n) <= GEOID_N_RANGE[1]):
+        raise RuntimeError(f"geoid undulation {np.nanmin(n):.2f}–{np.nanmax(n):.2f} m outside {GEOID_N_RANGE}: "
+                           "PROJ has no EGM2008 grid (projsync --file us_nga_egm08_25.tif)")
+    prof.update(dtype="float32")
+    with rasterio.open(dst, "w", **prof) as w:
+        w.write((z + n).astype("float32"), 1)
+    print(f"DEM to ellipsoid: + {np.nanmean(n):.2f} m (EGM2008)", flush=True)
+    return dst
+
+
 def dem(lonlat_box) -> Path:
-    f = WORK / "dem.tif"
+    f = WORK / "dem_ellipsoid.tif"
     if not f.exists():
         w, s, e, n = lonlat_box
+        egm = WORK / "dem_egm2008.tif"
         sh(["sardem", "--bbox", w - DEM_MARGIN_DEG, s - DEM_MARGIN_DEG, e + DEM_MARGIN_DEG, n + DEM_MARGIN_DEG,
-            "--data-source", "COP", "-o", f])
+            "--data-source", "COP", "--keep-egm", "-o", egm])
+        to_ellipsoid(egm, f)
     return f
 
 
