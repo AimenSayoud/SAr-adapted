@@ -58,3 +58,31 @@ def test_keep_puts_the_date_in_the_name(tmp_path):
     rows = M.keep(work, dest, "ascending", True)
     assert M.done_dates(dest) == {"20210107", "20210113"}
     assert len(rows) == 2 and not (dest / "tmp_20210107.h5").exists()
+
+
+def _tiny_dem(path):
+    import numpy as np
+    import rasterio
+    from rasterio.transform import from_origin
+    with rasterio.open(path, "w", driver="GTiff", height=3, width=4, count=1, dtype="float32", crs="EPSG:4326",
+                       transform=from_origin(16.30, 52.77, 0.001, 0.001)) as w:
+        w.write(np.full((3, 4), 94.0, "float32"), 1)
+
+
+def test_dem_gets_the_geoid_added(tmp_path, monkeypatch):
+    import numpy as np
+    import rasterio
+    _tiny_dem(tmp_path / "egm.tif")
+    monkeypatch.setattr(M, "geoid_undulation", lambda lon, lat: np.full(np.shape(lon), 34.5))
+    M.to_ellipsoid(tmp_path / "egm.tif", tmp_path / "ell.tif")
+    with rasterio.open(tmp_path / "ell.tif") as r:
+        assert np.allclose(r.read(1), 128.5)
+
+
+def test_missing_geoid_grid_is_refused(tmp_path, monkeypatch):
+    import numpy as np
+    import pytest
+    _tiny_dem(tmp_path / "egm.tif")
+    monkeypatch.setattr(M, "geoid_undulation", lambda lon, lat: np.zeros(np.shape(lon)))   # PROJ without the grid
+    with pytest.raises(RuntimeError, match="no EGM2008 grid"):
+        M.to_ellipsoid(tmp_path / "egm.tif", tmp_path / "ell.tif")
