@@ -1830,3 +1830,23 @@ entries:
     - hub:08_deliverables/field_first/plot_pixels.csv
     outputs:
     - hub:08_deliverables/insar_full_test/slc_p6
+  slc_ps_shp_x103:
+    kind: experiment
+    title: X-103 — persistent scatterers and statistically homogeneous neighbours on the mat from the full-resolution 2021 CSLCs, by sub-season
+    status: current
+    runs_on: mac
+    code: experiments/slc_ps_shp_x103.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/slc_ps_shp_x103.py
+    tickets:
+    - X-103
+    chains:
+    - slc-pilot
+    inputs:
+    - drive:slc_pilot/2021/cslc
+    - cube:silver/static_40m.nc
+    - cube:silver/site_hourly.csv.gz
+    - cube:gold/plots_pair.csv.gz
+    - hub:08_deliverables/field_first/plot_pixels.csv
+    outputs:
+    - hub:08_deliverables/insar_full_test/slc_ps_shp

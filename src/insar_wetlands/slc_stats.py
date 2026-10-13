@@ -34,27 +34,51 @@ def ks_critical(t: int, c: float = KS_C_05) -> float:
     return c * np.sqrt(2.0 / t)
 
 
-def shp_count(amp: np.ndarray, rows: np.ndarray, cols: np.ndarray, half_r: int, half_c: int,
-              crit: float | None = None) -> np.ndarray:
-    """Number of statistically homogeneous neighbours of each target pixel (rows[i], cols[i]) within a
-    (2·half_r+1) × (2·half_c+1) window, by the KS test on the amplitude time series. amp: (T, R, C) real."""
+def window_offsets(half_r: int, half_c: int) -> list[tuple[int, int]]:
+    return [(dr, dc) for dr in range(-half_r, half_r + 1) for dc in range(-half_c, half_c + 1) if (dr, dc) != (0, 0)]
+
+
+def shp_mask(amp: np.ndarray, rows: np.ndarray, cols: np.ndarray, half_r: int, half_c: int,
+             crit: float | None = None) -> tuple[np.ndarray, list[tuple[int, int]]]:
+    """(n_targets, n_offsets) boolean: is the neighbour at each window offset statistically homogeneous with the target
+    pixel (rows[i], cols[i]), by the KS test on the amplitude time series? amp: (T, R, C) real. Returns the offsets."""
     t = amp.shape[0]
     crit = ks_critical(t) if crit is None else crit
+    offs = window_offsets(half_r, half_c)
     centre = amp[:, rows, cols].T
-    count = np.zeros(len(rows), int)
-    for dr in range(-half_r, half_r + 1):
-        for dc in range(-half_c, half_c + 1):
-            if dr == 0 and dc == 0:
-                continue
-            rr, cc = rows + dr, cols + dc
-            ok = (rr >= 0) & (rr < amp.shape[1]) & (cc >= 0) & (cc < amp.shape[2])
-            nb = np.full_like(centre, np.nan)
-            nb[ok] = amp[:, rr[ok], cc[ok]].T
-            good = ok & np.isfinite(nb).all(axis=1) & np.isfinite(centre).all(axis=1)
-            if good.any():
-                d = ks_statistic(centre[good], nb[good])
-                count[np.flatnonzero(good)[d < crit]] += 1
-    return count
+    out = np.zeros((len(rows), len(offs)), bool)
+    for k, (dr, dc) in enumerate(offs):
+        rr, cc = rows + dr, cols + dc
+        ok = (rr >= 0) & (rr < amp.shape[1]) & (cc >= 0) & (cc < amp.shape[2])
+        nb = np.full_like(centre, np.nan)
+        nb[ok] = amp[:, rr[ok], cc[ok]].T
+        good = ok & np.isfinite(nb).all(axis=1) & np.isfinite(centre).all(axis=1)
+        if good.any():
+            out[np.flatnonzero(good), k] = ks_statistic(centre[good], nb[good]) < crit
+    return out, offs
+
+
+def shp_count(amp: np.ndarray, rows: np.ndarray, cols: np.ndarray, half_r: int, half_c: int,
+              crit: float | None = None) -> np.ndarray:
+    """Number of statistically homogeneous neighbours of each target pixel (see ``shp_mask``)."""
+    return shp_mask(amp, rows, cols, half_r, half_c, crit)[0].sum(axis=1)
+
+
+def shp_coherence(s1: np.ndarray, s2: np.ndarray, rows: np.ndarray, cols: np.ndarray, mask: np.ndarray,
+                  offs: list[tuple[int, int]]) -> np.ndarray:
+    """Coherence of each target pixel over itself and its SHP neighbours (``mask`` from ``shp_mask``)."""
+    def acc(r, c, w):
+        ok = (r >= 0) & (r < s1.shape[0]) & (c >= 0) & (c < s1.shape[1]) & w
+        a, b = np.zeros(len(r), complex), np.zeros(len(r), complex)
+        a[ok], b[ok] = s1[r[ok], c[ok]], s2[r[ok], c[ok]]
+        a, b = np.nan_to_num(a), np.nan_to_num(b)
+        return a * np.conj(b), np.abs(a) ** 2, np.abs(b) ** 2
+    num, p1, p2 = acc(rows, cols, np.ones(len(rows), bool))
+    for k, (dr, dc) in enumerate(offs):
+        n_, a_, b_ = acc(rows + dr, cols + dc, mask[:, k])
+        num, p1, p2 = num + n_, p1 + a_, p2 + b_
+    den = np.sqrt(p1 * p2)
+    return np.where(den > 0, np.abs(num) / den, np.nan)
 
 
 def boxcar_coherence(s1: np.ndarray, s2: np.ndarray, size: tuple[int, int]) -> np.ndarray:

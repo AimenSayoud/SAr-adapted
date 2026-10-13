@@ -43,3 +43,13 @@ def test_boxcar_coherence_identical_is_one_and_noise_floor():
     b = rng.normal(size=(4000, 9)) + 1j * rng.normal(size=(4000, 9))
     g = np.abs((a * np.conj(b)).sum(1)) / np.sqrt((np.abs(a) ** 2).sum(1) * (np.abs(b) ** 2).sum(1))
     assert 0.03 < np.mean(g > f9) < 0.07
+
+
+def test_shp_coherence_of_identical_signals_is_one():
+    rng = np.random.default_rng(4)
+    s = rng.normal(size=(12, 12)) + 1j * rng.normal(size=(12, 12))
+    amp = np.abs(rng.normal(size=(30, 12, 12)) + 1j * rng.normal(size=(30, 12, 12)))
+    rows, cols = np.array([5, 6]), np.array([5, 6])
+    mask, offs = S.shp_mask(amp, rows, cols, 1, 2)
+    assert mask.shape == (2, len(offs)) and len(offs) == 14
+    assert np.allclose(S.shp_coherence(s, s, rows, cols, mask, offs), 1.0)
