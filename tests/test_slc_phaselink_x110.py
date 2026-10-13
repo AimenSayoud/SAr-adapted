@@ -24,12 +24,15 @@ def test_cell_sums_of_a_constant_phase_raster(tmp_path):
     assert s.shape == (3, 4) and np.allclose(np.angle(s), 0.4) and np.allclose(np.abs(s), 32)
 
 
-def test_chain_from_phase_is_wrapped_differences():
+def test_chain_from_phase_matches_the_pair_convention():
+    """Ground truth: increments of a per-date phase series equal the phase of the pairs s_t · conj(s_t+1) formed from
+    SLCs carrying that phase — the convention of the chain it is compared with."""
     import p6_validation_x082 as X
-    ph = np.array([0.0, 0.5, 1.2, -3.0])
-    q = P.chain_from_phase(["20210101", "20210107", "20210113", "20210119"], ph)
-    d = np.angle(np.exp(1j * np.diff(ph)))
-    assert np.allclose(q.est_mm.to_numpy(), d * X.PHASE_TO_MM)
+    ph = np.array([0.0, 0.5, 1.2, -3.0, 2.9])
+    slc = np.exp(1j * ph)
+    pairs = np.angle(slc[:-1] * np.conj(slc[1:]))
+    q = P.chain_from_phase(["20210101", "20210107", "20210113", "20210119", "20210125"], ph)
+    assert np.allclose(q.est_mm.to_numpy(), pairs * X.PHASE_TO_MM)
 
 
 def test_linked_files_picks_dates_only(tmp_path):
