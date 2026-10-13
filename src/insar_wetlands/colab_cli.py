@@ -127,9 +127,9 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--conda", default="", help="conda-forge packages for a micromamba environment on the VM")
     ap.add_argument("--machine", default="urs.earthdata.nasa.gov")
     ap.add_argument("--timeout", type=int, default=21600)
-    ap.add_argument("rest", nargs=argparse.REMAINDER)
-    a = ap.parse_args(argv)
-    rest = a.rest[1:] if a.rest[:1] == ["--"] else a.rest
+    argv = list(sys.argv[1:] if argv is None else argv)
+    rest = argv[argv.index("--") + 1:] if "--" in argv else []          # arguments for the entry itself
+    a = ap.parse_args(argv[:argv.index("--")] if "--" in argv else argv)
     if a.step == "new":
         return cmd_new(a.entry, a.session)
     if a.step == "bootstrap":
