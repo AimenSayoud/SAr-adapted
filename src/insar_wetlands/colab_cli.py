@@ -87,10 +87,12 @@ sh("cd {VM_REPO} && bash colab/setup.sh")
 
 def cmd_netrc(session: str, machine: str) -> int:
     """Upload only the ``machine`` line of the local ~/.netrc to the VM's /root/.netrc. Nothing is printed."""
+    import netrc  # noqa: PLC0415
     src = Path.home() / ".netrc"
-    lines = [ln for ln in src.read_text().splitlines() if ln.split()[:2] == ["machine", machine]] if src.exists() else []
-    if not lines:
-        raise SystemExit(f"no 'machine {machine}' line in ~/.netrc")
+    auth = netrc.netrc(str(src)).authenticators(machine) if src.exists() else None   # one- or multi-line entries
+    if not auth or not auth[0] or not auth[2]:
+        raise SystemExit(f"no complete 'machine {machine}' entry (login and password) in ~/.netrc")
+    lines = [f"machine {machine} login {auth[0]} password {auth[2]}"]
     with tempfile.TemporaryDirectory() as d:
         f = Path(d) / "netrc"
         f.touch(mode=0o600)
