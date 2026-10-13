@@ -46,6 +46,7 @@ DEM_MARGIN_DEG = 0.05
 GEOID_N_RANGE = (25.0, 45.0)   # EGM2008 undulation around Rzecin is about 34 m
 CHUNK = 32                     # HDF5 chunk for every CSLC dataset (small AOI)
 DEM_TOL_M = 3.0                # ellipsoid DEM vs cube orthometric + N on the mat
+BURST_TIMEOUT_S, TRIES = 600, 3   # one burst normally downloads in under a minute
 BATCH = 8                 # dates per batch: disk stays small, a disconnect loses at most one batch
 DATE_RE = re.compile(r"(20\d{6})")
 
@@ -186,7 +187,17 @@ def build_safes(granules: list[str], safe_dir: Path) -> None:
         date = DATE_RE.search(g).group(1)
         if glob.glob(str(safe_dir / f"*{date}*.SAFE")):
             continue
-        sh(["burst2safe", g, "--all-anns", "--output-dir", safe_dir], cwd=safe_dir)
+        for attempt in range(1, TRIES + 1):        # a download hung for 20+ min on the VM (2026-10-13): bound it
+            try:
+                sh(["timeout", str(BURST_TIMEOUT_S), "burst2safe", g, "--all-anns", "--output-dir", safe_dir],
+                   cwd=safe_dir)
+                break
+            except subprocess.CalledProcessError:
+                for f in list(safe_dir.glob(f"*{date}*.SAFE")):          # a half-built SAFE is not a SAFE
+                    shutil.rmtree(f, ignore_errors=True)
+                if attempt == TRIES:
+                    raise
+                print(f"burst2safe {g}: attempt {attempt} failed or timed out; retrying", flush=True)
     for f in list(safe_dir.glob("*.tiff")) + list(safe_dir.glob("*.xml")):     # burst downloads left beside the SAFEs
         f.unlink()
 
