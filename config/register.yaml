@@ -1789,3 +1789,23 @@ entries:
     - cube:silver/static_40m.nc
     outputs:
     - drive:slc_pilot/2021/qc
+  hyp3_placement_x109:
+    kind: experiment
+    title: X-109 — placement of the cube's HyP3 grids (RTC backscatter, interferogram coherence) against the airborne LiDAR canopy
+    status: current
+    runs_on: mac
+    code: experiments/hyp3_placement_x109.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/hyp3_placement_x109.py
+    tickets:
+    - X-109
+    chains:
+    - insar-full-test
+    inputs:
+    - cube:silver/rtc_ascending.nc
+    - cube:silver/rtc_descending.nc
+    - cube:silver/ifg_2020_2021_*.nc
+    - cube:silver/ifg_2022_2024_*.nc
+    - cube:silver/static_40m.nc
+    outputs:
+    - hub:08_deliverables/insar_full_test/hyp3_placement
