@@ -44,3 +44,20 @@ Never put a secret in a notebook, a commit or a run record.
 
 `TROUBLESHOOTING.md` lists ten failure modes seen on this project: Drive-mount deadlocks, session locks, git
 identity, secrets in headless runs and others, each with its fix.
+
+## Terminal route (headless, from the Mac) — `insar_wetlands.colab_cli`
+
+The same run without a browser, through the `colab` CLI (google-colab-cli; `colab skill` prints its guide). An agent
+can do every step except mounting Drive, which Colab reserves for a person:
+
+```bash
+python -m insar_wetlands.colab_cli new slc_cslc_x101 -s x101           # allocate a CPU VM
+colab drivemount -s x101 /content/drive                                # THE PERSON: open the URL, approve, Enter
+python -m insar_wetlands.colab_cli bootstrap slc_cslc_x101 -s x101 --conda "compass isce3 s1reader burst2safe sentineleof sardem gdal"
+python -m insar_wetlands.colab_cli netrc -s x101                       # Earthdata line of ~/.netrc → VM, as a file
+python -m insar_wetlands.colab_cli run slc_cslc_x101 -s x101 --timeout 21600
+python -m insar_wetlands.colab_cli stop -s x101                        # always: an idle VM burns compute units
+```
+
+Credentials never appear in executed code (the CLI keeps a history of it); conda tools go into a micromamba
+environment on the VM instead of condacolab (whose kernel restart breaks a headless session).

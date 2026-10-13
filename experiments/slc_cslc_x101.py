@@ -67,10 +67,12 @@ def credentials() -> None:
     """Earthdata login for burst2safe: the environment variables, also written to ~/.netrc."""
     # the launcher's secrets cell sets them; google.colab.userdata cannot be read from this subprocess (it hangs)
     vals = {k: os.environ.get(k) for k in ("EARTHDATA_USERNAME", "EARTHDATA_PASSWORD")}
-    if not all(vals.values()):
-        raise SystemExit("EARTHDATA_USERNAME / EARTHDATA_PASSWORD not in the environment: run the launcher's secrets "
-                         "cell (add both in Colab's key manager, 🔑, with notebook access)")
     netrc = Path.home() / ".netrc"
+    if not all(vals.values()):
+        if netrc.exists() and "urs.earthdata.nasa.gov" in netrc.read_text():
+            return                  # uploaded by colab_cli netrc (headless route); burst2safe reads it
+        raise SystemExit("Earthdata credentials missing: run the launcher's secrets cell (browser route) or "
+                         "`python -m insar_wetlands.colab_cli netrc` (terminal route)")
     netrc.write_text(f"machine urs.earthdata.nasa.gov login {vals['EARTHDATA_USERNAME']} "
                      f"password {vals['EARTHDATA_PASSWORD']}\n")
     netrc.chmod(0o600)
