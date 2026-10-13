@@ -1909,7 +1909,7 @@ entries:
   slc_vh_x105:
     kind: experiment
     title: X-105 — VH beside VV 6-day interferograms from the 2021 CSLCs, by scattering regime and at P6 (laser vs water table)
-    status: current
+    status: finished
     runs_on: mac
     code: experiments/slc_vh_x105.py
     code_ref: HEAD
