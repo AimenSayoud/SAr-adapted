@@ -86,3 +86,14 @@ def test_missing_geoid_grid_is_refused(tmp_path, monkeypatch):
     monkeypatch.setattr(M, "geoid_undulation", lambda lon, lat: np.zeros(np.shape(lon)))   # PROJ without the grid
     with pytest.raises(RuntimeError, match="no EGM2008 grid"):
         M.to_ellipsoid(tmp_path / "egm.tif", tmp_path / "ell.tif")
+
+
+def test_runconfig_polarization_list_becomes_string(tmp_path):
+    import yaml
+    f = tmp_path / "geo_runconfig_20210101_t175_374052_iw1.yaml"
+    f.write_text(yaml.safe_dump({"runconfig": {"name": "cslc_s1_workflow_default",
+                                               "groups": {"processing": {"polarization": ["co-pol"], "x": 1}}}}))
+    M.fix_runconfig(f)
+    d = yaml.safe_load(f.read_text())
+    assert d["runconfig"]["groups"]["processing"] == {"polarization": "co-pol", "x": 1}
+    assert d["runconfig"]["name"] == "cslc_s1_workflow_default"

@@ -163,6 +163,16 @@ def build_safes(granules: list[str], safe_dir: Path) -> None:
         f.unlink()
 
 
+def fix_runconfig(path: Path) -> None:
+    """s1_geocode_stack.py takes -p as a list and writes ``polarization: [co-pol]``, which COMPASS's own schema
+    (s1_cslc_geo.yaml) rejects — it wants the string. Checked 2026-10-13 on COMPASS 0.5.6: every date failed."""
+    cfg = yaml.safe_load(path.read_text())
+    proc = cfg["runconfig"]["groups"]["processing"]
+    if isinstance(proc.get("polarization"), list):
+        proc["polarization"] = proc["polarization"][0]
+        path.write_text(yaml.safe_dump(cfg, sort_keys=False))
+
+
 def geocode(bid: str, safe_dir: Path, dem_file: Path, db: Path, lonlat_box, pol: str,
             corrections: bool) -> tuple[Path, list[str], bool]:
     """COMPASS on one batch. Returns (work dir, dates done, corrections used). If a date fails with COMPASS's LUT
@@ -181,6 +191,8 @@ def geocode(bid: str, safe_dir: Path, dem_file: Path, db: Path, lonlat_box, pol:
         runs = sorted(glob.glob(str(work / "run_files" / "run_*.sh")))
         if not runs:
             raise RuntimeError(f"COMPASS wrote no run files for {bid} in {safe_dir}")
+        for rc in glob.glob(str(work / "runconfigs" / "*.yaml")):
+            fix_runconfig(Path(rc))
         return runs
 
     runs, failed = stack(corrections), []
