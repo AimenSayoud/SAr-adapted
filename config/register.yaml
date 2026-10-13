@@ -1870,3 +1870,39 @@ entries:
     - hub:08_deliverables/field_first/plot_pixels.csv
     outputs:
     - hub:08_deliverables/insar_full_test/slc_long_pairs
+  slc_phaselink_x110:
+    kind: experiment
+    title: X-110 link step (Colab) — Dolphin phase linking (EMI, EVD) on the 2021 VV CSLCs, linked phase kept per 40 m cell
+    status: current
+    runs_on: colab
+    code: experiments/slc_phaselink_x110.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/slc_phaselink_x110.py link
+    tickets:
+    - X-110
+    chains:
+    - slc-pilot
+    inputs:
+    - drive:slc_pilot/2021/cslc
+    - cube:silver/static_40m.nc
+    outputs:
+    - drive:slc_pilot/2021/phase_linking
+  slc_phaselink_score_x110:
+    kind: experiment
+    title: X-110 score step (Mac) — the linked series vs the chain of the same CSLCs at P6, against the laser
+    status: current
+    runs_on: mac
+    code: experiments/slc_phaselink_x110.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/slc_phaselink_x110.py score
+    tickets:
+    - X-110
+    chains:
+    - slc-pilot
+    inputs:
+    - drive:slc_pilot/2021/phase_linking
+    - drive:slc_pilot/2021/cslc
+    - cube:gold/plots_pair.csv.gz
+    - hub:08_deliverables/field_first/plot_pixels.csv
+    outputs:
+    - hub:08_deliverables/insar_full_test/slc_phase_linking
