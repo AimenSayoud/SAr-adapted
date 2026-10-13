@@ -1,6 +1,13 @@
 # Google Colab & Google Drive Operations Manual
 ## Complete Guide, Troubleshooting & Error Prevention
 
+> **Read first (2026-10-13).** This manual records the headless `colab-cli` workflow used with the phase notebooks
+> until 2026-10-13. The way to run on Colab now is `colab/README.md`: one generated launcher per register entry,
+> opened in Colab and *Run all*. Sections 1 and 3 describe the retired setup — `environment/`, `notebooks/`,
+> `config/phases.yaml` and `make docx` no longer exist (they are at the tag `archive/pre-reorg-2026-10-12`; setup is
+> now `colab/setup.sh` and `colab/requirements.txt`). The failure modes of section 2 (Drive mount, secrets,
+> ephemeral disk, pip) still apply to any Colab session.
+
 > **Scope**: Standard Operating Procedure (SOP) for headless Google Colab execution and Google Drive integration using `colab-cli` (`google-colab-cli`), based on real execution experience on the Rzecin InSAR research pipeline (`SAr-adapted`).
 
 ---

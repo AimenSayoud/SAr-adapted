@@ -1811,8 +1811,14 @@ def main() -> None:
     W.chart("numbers", nums, title="Key result numbers", group="Charts", status="core",
             description="paper_numbers.REGISTRY resolved against T*.csv. The only result numbers "
                         "the site prints in text.")
-    phases = yaml.safe_load((REPO / "config/phases.yaml").read_text())
-    W.chart("phases", phases, title="Declared pipeline (config/phases.yaml)", group="Pipeline", status="core")
+    from insar_wetlands.register import load_register
+    phases = {e.id: {"title": e.title, "group": e.extra.get("group") or e.kind, "kind": e.kind,
+                     "question": e.question, "status": e.status, "runs_on": e.runs_on, "tickets": e.tickets,
+                     "code": e.code if e.in_tree else f"{e.code} @ {e.code_ref}"}
+              for e in load_register().values()}
+    W.chart("phases", phases, title="Code register (config/register.yaml)", group="Pipeline", status="core",
+            description="Every phase, experiment and pipeline that runs or has run; code removed from the tree "
+                        "is named with the git tag that keeps it.")
     runs = []
     for mf in sorted((D / "runs").glob("*/*/manifest.json")):
         try:

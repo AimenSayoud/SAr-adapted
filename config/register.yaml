@@ -355,6 +355,8 @@ entries:
     - phase16_two_los_decomposition.json
     paper: Paper 2 (Diurnal Test), Ticket X-032
     group: corrections
+    tickets:
+    - X-032
     tries:
     - T35
   phase13:
@@ -497,6 +499,8 @@ entries:
     - phaseD_coh_mean.nc
     paper: §4.2, H2 — Table 9, Fig. 7
     group: hypotheses
+    tickets:
+    - X-038
     tries:
     - T24
   phaseDbis:
@@ -603,6 +607,8 @@ entries:
     - series_AB.csv
     paper: §4.3, H3 — Table 14, Fig. 11
     group: hypotheses
+    tickets:
+    - X-038
     tries:
     - T23
   phaseH:
@@ -659,6 +665,8 @@ entries:
     - mechanical_vs_dielectric_summary.csv
     paper: §4.3, §5.2, Table T16
     group: hypotheses
+    tickets:
+    - X-026
     tries:
     - T30
   phaseJ:
