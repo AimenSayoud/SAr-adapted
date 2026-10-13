@@ -30,3 +30,13 @@ def test_chain_from_phase_is_wrapped_differences():
     q = P.chain_from_phase(["20210101", "20210107", "20210113", "20210119"], ph)
     d = np.angle(np.exp(1j * np.diff(ph)))
     assert np.allclose(q.est_mm.to_numpy(), d * X.PHASE_TO_MM)
+
+
+def test_linked_files_picks_dates_only(tmp_path):
+    d = tmp_path / "t175_374052_iw1" / "linked_phase"
+    (d / "20210101_20210326").mkdir(parents=True)
+    for n in ("20210107.slc.tif", "20210101.slc.tif", "compressed_20210101_20210401_20210624.tif",
+              "temporal_coherence_20210101_20210326.tif"):
+        (d / n).write_bytes(b"")
+    (d / "20210101_20210326" / "20210113.slc.tif").write_bytes(b"")
+    assert [f.name for f in P.linked_files(tmp_path)] == ["20210101.slc.tif", "20210107.slc.tif"]
