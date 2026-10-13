@@ -1906,3 +1906,24 @@ entries:
     - hub:08_deliverables/field_first/plot_pixels.csv
     outputs:
     - hub:08_deliverables/insar_full_test/slc_phase_linking
+  slc_vh_x105:
+    kind: experiment
+    title: X-105 — VH beside VV 6-day interferograms from the 2021 CSLCs, by scattering regime and at P6 (laser vs water table)
+    status: current
+    runs_on: mac
+    code: experiments/slc_vh_x105.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/slc_vh_x105.py
+    tickets:
+    - X-105
+    chains:
+    - slc-pilot
+    inputs:
+    - drive:slc_pilot/2021/cslc
+    - drive:slc_pilot/2021/cslc_vh
+    - cube:silver/rtc_ascending.nc
+    - cube:silver/rtc_descending.nc
+    - cube:gold/plots_pair.csv.gz
+    - hub:08_deliverables/field_first/plot_pixels.csv
+    outputs:
+    - hub:08_deliverables/insar_full_test/slc_vh
