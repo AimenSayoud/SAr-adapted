@@ -7,8 +7,9 @@ design, COMPASS). Per track, in batches of dates, so a disconnected session lose
    (``--all-anns`` is what s1-reader, COMPASS's reader, needs). Earthdata credentials from Colab's key manager.
 2. **Orbits**: ``eof --force-asf`` (ASF's public orbit bucket; the default source, Copernicus Data Space, would need
    another account and prompt for it).
-3. **DEM** (once): ``sardem`` Copernicus GLO-30 (EGM2008 heights) over the AOI plus a margin, then the EGM2008
-   undulation added here to give the WGS84 ellipsoid heights COMPASS needs (sardem's own conversion is silently lost).
+3. **DEM** (once): ``sardem`` Copernicus GLO-30 over the AOI plus a margin, the EGM2008 undulation added here, and the
+   result checked against the cube's own heights + N on the mat (sardem's geoid handling cannot be trusted: it skips
+   the shift silently, or with --keep-egm applies it the wrong way).
 4. **CSLC**: COMPASS ``s1_geocode_stack.py`` writes one run file per date; each is executed. COMPASS takes its output
    grid from a burst database; a one-row-per-burst SQLite database holding the AOI box (the cube's 40 m grid extent in
    EPSG:32633) is written here, so only the AOI is geocoded, at 5 m × 10 m.
@@ -43,6 +44,7 @@ EPSG, XPOST, YPOST = 32633, 5, 10
 MARGIN_M = 200.0          # AOI margin around the cube grid (m)
 DEM_MARGIN_DEG = 0.05
 GEOID_N_RANGE = (25.0, 45.0)   # EGM2008 undulation around Rzecin is about 34 m
+DEM_TOL_M = 3.0                # ellipsoid DEM vs cube orthometric + N on the mat
 BATCH = 8                 # dates per batch: disk stays small, a disconnect loses at most one batch
 DATE_RE = re.compile(r"(20\d{6})")
 
@@ -129,14 +131,39 @@ def to_ellipsoid(src: Path, dst: Path) -> Path:
     return dst
 
 
+def check_ellipsoid(dem_file: Path) -> float:
+    """Independent check: on the mat, the DEM must equal the cube's own Copernicus heights (orthometric, EGM2008) plus
+    the geoid undulation. sardem silently skips its geoid shift, and with --keep-egm shifts the wrong way (both seen on
+    the VM 2026-10-13); only this comparison, not the tool's word, decides that the heights are ellipsoidal."""
+    import rasterio  # noqa: PLC0415
+    import xarray as xr  # noqa: PLC0415
+    from pyproj import Transformer  # noqa: PLC0415
+
+    from insar_wetlands.cube import cube_root  # noqa: PLC0415
+    with xr.open_dataset(cube_root() / "silver" / "static_40m.nc") as st:
+        h = st.dem_glo30_m.where(st.zone == 1)
+        stacked = h.stack(p=("y", "x")).dropna("p")
+        sel = stacked.isel(p=np.linspace(0, stacked.sizes["p"] - 1, 40).astype(int))
+        xs, ys, ortho = sel.x.values, sel.y.values, sel.values
+    lon, lat = Transformer.from_crs(EPSG, 4326, always_xy=True).transform(xs, ys)
+    with rasterio.open(dem_file) as r:
+        got = np.array([v[0] for v in r.sample(list(zip(lon, lat)))], float)
+    diff = float(np.median(got - (ortho + geoid_undulation(lon, lat))))
+    if abs(diff) > DEM_TOL_M:
+        raise RuntimeError(f"DEM is not ellipsoidal: median (DEM - (cube orthometric + N)) = {diff:.2f} m on the mat")
+    print(f"DEM check on the mat: median difference to cube orthometric + N = {diff:.2f} m", flush=True)
+    return diff
+
+
 def dem(lonlat_box) -> Path:
     f = WORK / "dem_ellipsoid.tif"
     if not f.exists():
         w, s, e, n = lonlat_box
-        egm = WORK / "dem_egm2008.tif"
+        raw = WORK / "dem_sardem.tif"             # sardem's default output: Copernicus heights, orthometric in practice
         sh(["sardem", "--bbox", w - DEM_MARGIN_DEG, s - DEM_MARGIN_DEG, e + DEM_MARGIN_DEG, n + DEM_MARGIN_DEG,
-            "--data-source", "COP", "--keep-egm", "-o", egm])
-        to_ellipsoid(egm, f)
+            "--data-source", "COP", "-o", raw])
+        to_ellipsoid(raw, f)
+    check_ellipsoid(f)
     return f
 
 
