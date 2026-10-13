@@ -106,7 +106,8 @@ def cmd_run(entry: str, session: str, timeout: int, args: list[str]) -> int:
     code = f'''
 import os, subprocess
 conda = os.path.exists("{VM_ENV}/bin/python")
-env = dict(os.environ, PYTHONPATH="{VM_REPO}/src", PYTHONUNBUFFERED="1",
+env = dict(os.environ, PYTHONPATH="{VM_REPO}/src", PYTHONUNBUFFERED="1", MPLBACKEND="Agg",  # kernel's inline backend
+           # is unknown to the environment's matplotlib and breaks any import that pulls it in
            PATH=("{VM_ENV}/bin:" if conda else "") + os.environ["PATH"])
 py = "{VM_ENV}/bin/python" if conda else "python"
 p = subprocess.Popen([py, "-m", "insar_wetlands.register", "run", "{entry}", *{["--", *args] if args else []!r}],
