@@ -11,6 +11,10 @@ phase ``arg(tau)``, ``tau`` the time mean of ``exp(i Phi)`` over the sequential 
 pairs minus the n-span pair, from wrapped phase); M3 the share of level-2 triplets whose unwrapped closure differs from
 the wrapped one by a whole cycle (pairs referenced to hard targets); M4 mean coherence of pairs of 48 days or more.
 
+Open water (WorldCover water share >= 0.9) is carried as a reference class, added after the first run and not part
+of the pre-registered rule: it holds no phase, so where its HyP3 coherence or closure amplitude equals the mat's, a
+condition measured on the mat cannot be told from the filtered product's floor.
+
 No laser is read. Reads the cube's silver interferograms and static layers; writes only to the hub:
 ``08_deliverables/insar_full_test/bias_precheck/``.
 
@@ -38,6 +42,7 @@ COH_MIN, TAU_AMP_MIN, TAU_ARG_MIN = 0.3, 0.3, 0.3
 UNW_ZHENG_MAX, UNW_MA_MAX = 0.10, 0.5
 EPOCH_SHARE_MIN, CLASS_SHARE_MIN = 0.8, 0.5
 LONG_DAYS = 48
+WATER_SHARE = 0.9          # open-water reference class (post hoc, descriptive)
 MIN_CLOSURES = 5
 
 
@@ -104,7 +109,8 @@ def tau(phi: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     return np.abs(z), np.angle(z)
 
 
-def unwrap_inconsistency(d: xr.Dataset, used: list[tuple[int, ...]], phi_w: np.ndarray, hard: np.ndarray) -> np.ndarray:
+def unwrap_inconsistency(d: xr.Dataset, used: list[tuple[int, ...]], phi_w: np.ndarray, hard: np.ndarray,
+                         ) -> np.ndarray:
     """(k, y, x) boolean: the level-2 triplet's unwrapped closure departs from its wrapped closure by >= 1 cycle.
 
     Each pair's unwrapped phase is referenced to its median over hard targets; the remaining per-triplet constant is
@@ -141,10 +147,11 @@ def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     st = xr.open_dataset(CUBE / "silver" / "static_40m.nc")
     zone, hard = st.zone.values, st.hard_target.values.astype(bool)
-    masks = {"mat": zone == 1, "grassland": zone == 3, "hard_targets": hard}
+    masks = {"mat": zone == 1, "grassland": zone == 3, "hard_targets": hard,
+             "open_water": st.wc_water.values >= WATER_SHARE}
     px = pd.read_csv(HUB / "08_deliverables" / "field_first" / "plot_pixels.csv").set_index("plot")
     p6 = (int(px.loc["P6", "row"]), int(px.loc["P6", "col"]))
-    cond, conn, maps = [], [], {}
+    cond, conn, maps, unw_n = [], [], {}, []
 
     def add(corr, c, track, setname, seas, m, thr, holds, measure):
         for cls, (val, share) in class_value(m, masks, p6, holds).items():
@@ -192,6 +199,8 @@ def main() -> None:
                 maps[f"tau_arg_{track}_{name}_n{n}"] = arg
                 if n == 2:
                     bad = unwrap_inconsistency(d, used, phi, hard)
+                    unw_n.append({"track": track, "set": name, "triplets": len(used),
+                                  "with_hard_target_reference": int(np.isfinite(bad[:, hard]).any(axis=1).sum())})
                     s = season(ends)
                     for seas, sel in (("all", np.ones(len(s), bool)), ("winter", s == "winter"),
                                       ("snow-free", s == "snow-free")):
@@ -228,15 +237,16 @@ def main() -> None:
                 if sel.any():
                     add("ansari2020", "a: coherence of pairs >= 48 d > 0.3", track, "long pairs", seas,
                         np.nanmean(v[sel], axis=0), COH_MIN, lambda v: v > COH_MIN, "M4")
-    cond = pd.DataFrame(cond)
-    conn = pd.DataFrame(conn)
+    cond = pd.DataFrame(cond).astype({"median": float, "share_holds": float, "threshold": float})
+    conn = pd.DataFrame(conn).astype({"median_coherence": float})
+    pd.DataFrame(unw_n).to_csv(OUT / "unwrap_triplets.csv", index=False)
     verd = verdicts(cond)
     cond.to_csv(OUT / "conditions.csv", index=False)
     conn.to_csv(OUT / "coherence_by_connection.csv", index=False)
     verd.to_csv(OUT / "verdicts.csv", index=False)
     xr.Dataset({k: (("y", "x"), v.astype("float32")) for k, v in maps.items()},
                coords={"y": st.y, "x": st.x}).to_netcdf(OUT / "closure_maps.nc")
-    (OUT / "README.md").write_text(readme(cond, conn, verd), encoding="utf-8")
+    (OUT / "README.md").write_text(readme(cond, conn, verd, pd.DataFrame(unw_n)), encoding="utf-8")
     print(f"wrote {OUT}")
 
 
@@ -278,8 +288,10 @@ def _md(df: pd.DataFrame, nd: int = 2) -> str:
                      ["| " + " | ".join(map(str, r)) + " |" for r in d.itertuples(index=False)])
 
 
-def readme(cond: pd.DataFrame, conn: pd.DataFrame, verd: pd.DataFrame) -> str:
+def readme(cond: pd.DataFrame, conn: pd.DataFrame, verd: pd.DataFrame, unw_n: pd.DataFrame) -> str:
     key = verd[verd["class"].isin(["mat", "P6", "grassland", "hard_targets"])]
+    floor = cond[(cond.season == "all") & cond["class"].isin(["mat", "open_water"])].pivot_table(
+        index=["correction", "condition", "track", "set"], columns="class", values="median").reset_index()
     c_all = cond[cond.season == "all"].pivot_table(index=["correction", "condition", "track", "set"], columns="class",
                                                    values="share_holds").reset_index()
     cc = conn[(conn.season == "all")].pivot_table(index=["track", "set", "days"], columns="class",
@@ -298,11 +310,24 @@ of the cube (Goldstein-filtered; coherence biased high at low coherence, so a pa
 
 {_md(c_all)}
 
+## Reference: open water (added after the first run; not part of the pre-registered rule)
+
+Median of each measure on the mat and on open water (WorldCover water share >= {WATER_SHARE}). Open water holds no
+phase; where its value matches the mat's, the condition is not measurable on this product.
+
+{_md(floor)}
+
 ## Median coherence by connection length (all seasons)
 
 {_md(cc)}
 
-Files: `verdicts.csv`, `conditions.csv` (every condition by set, season, class: median, share of pixels where it holds,
+## Unwrapped triplets with a hard-target reference
+
+A triplet whose pairs have no unwrapped value on the hard targets cannot be referenced and is left out of M3.
+
+{_md(unw_n)}
+
+Files: `verdicts.csv`, `unwrap_triplets.csv`, `conditions.csv` (every condition by set, season, class: median, share of pixels where it holds,
 holds), `coherence_by_connection.csv` (by season too), `closure_maps.nc` (|tau|, arg tau per set and level; share of
 inconsistent unwrapped triplets per pixel).
 """
