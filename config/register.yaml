@@ -1701,7 +1701,7 @@ entries:
   phase_sim_x095:
     kind: experiment
     title: X-095 — phase simulated from the P6 laser (conroy2022 benchmark), what cycle choice and segment-and-tie can recover in principle
-    status: current
+    status: finished
     runs_on: mac
     code: experiments/phase_sim_x095.py
     code_ref: HEAD
@@ -1754,7 +1754,7 @@ entries:
   scattering_regime_x098:
     kind: experiment
     title: X-098 — scattering regime per acquisition (Z-score VV, VV/VH; tsyganskaya2018) and whether the pair phase reads the water level or the surface, by regime
-    status: open
+    status: finished
     runs_on: mac
     code: experiments/scattering_regime_x098.py
     code_ref: HEAD
