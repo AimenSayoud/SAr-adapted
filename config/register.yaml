@@ -1777,7 +1777,7 @@ entries:
     runs_on: colab
     code: experiments/slc_qc_x101.py
     code_ref: HEAD
-    command: PYTHONPATH=src python experiments/slc_qc_x101.py --prereg-commit a4b36ec
+    command: PYTHONPATH=src python experiments/slc_qc_x101.py --prereg-commit c4e043a
     tickets:
     - X-101
     chains:
