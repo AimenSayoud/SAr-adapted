@@ -34,11 +34,11 @@ PLACE_TOL_M = 20.0
 DATE_RE = re.compile(r"(20\d{6})")
 
 
-def cslc(path: Path) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+def cslc(path: Path, pol: str = "VV") -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     import h5py  # noqa: PLC0415
     with h5py.File(path, "r") as h:
         d = h["data"]
-        return d["VV"][()].astype("complex64"), d["x_coordinates"][()], d["y_coordinates"][()]
+        return d[pol][()].astype("complex64"), d["x_coordinates"][()], d["y_coordinates"][()]
 
 
 def axis_index(x: np.ndarray, y: np.ndarray, gx: np.ndarray, gy: np.ndarray) -> tuple[np.ndarray, np.ndarray]:

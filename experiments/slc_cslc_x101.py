@@ -169,9 +169,10 @@ def dem(lonlat_box) -> Path:
     return f
 
 
-def drive_dest(track: str) -> Path:
+def drive_dest(track: str, pol: str = "VV") -> Path:
+    """VV in ``cslc/<track>``, VH in ``cslc_vh/<track>``: COMPASS names files by burst and date only."""
     from insar_wetlands.paths import resolve_drive  # noqa: PLC0415
-    d = resolve_drive() / "slc_pilot" / "2021" / "cslc" / track
+    d = resolve_drive() / "slc_pilot" / "2021" / ("cslc" if pol == "VV" else f"cslc_{pol.lower()}") / track
     d.mkdir(parents=True, exist_ok=True)
     return d
 
@@ -289,7 +290,7 @@ def main(argv: list[str] | None = None) -> None:
     inv["date"] = pd.to_datetime(inv.time_utc).dt.strftime("%Y%m%d")
     summary = {}
     for t in a.tracks:
-        dest = drive_dest(t)
+        dest = drive_dest(t, a.pol)
         g = inv[(inv.track == t) & (inv.polarization == a.pol)].drop_duplicates("date").sort_values("date")
         todo = g[~g.date.isin(done_dates(dest))]
         if a.max_dates:

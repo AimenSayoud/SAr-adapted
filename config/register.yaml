@@ -1679,6 +1679,7 @@ entries:
     - cube:silver/static_40m.nc
     outputs:
     - drive:slc_pilot/2021/cslc
+    - drive:slc_pilot/2021/cslc_vh
 
   bias_precheck_x097:
     kind: experiment
