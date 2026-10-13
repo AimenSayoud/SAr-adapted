@@ -6,8 +6,8 @@ each 40 m cube cell (32 looks), its coherence, and a Goldstein–Werner filtered
 32 × 32-cell windows on the 40 m grid — an approximation of ISCE's filter, which runs before geocoding). The phase
 difference to the HyP3 pair of the same dates (cube silver, wrapped) is measured on hard targets and stable cells and
 compared with the Cramér–Rao noise expected from coherence. Rule fixed in the hub's pre-registration
-(``08_deliverables/insar_full_test/preregistration/X-101.yaml``, commit passed as ``--prereg-commit``; the hub is not on
-the VM).
+(``08_deliverables/insar_full_test/preregistration/X-101_qc_v2.yaml``; v1: ``X-101.yaml``; the commit is passed as
+``--prereg-commit``, the hub is not on the VM).
 
 Writes to Drive ``insar_rzecin/slc_pilot/2021/qc/`` (tables + README); the hub copy is fetched with ``colab download``.
 
@@ -30,6 +30,7 @@ CELL = 40.0
 L_HYP3, L_OURS = 20, 32
 ALPHA, WIN, STEP = 0.5, 32, 8
 OFFSET_MAX = 0.3
+PLACE_TOL_M = 20.0
 DATE_RE = re.compile(r"(20\d{6})")
 
 
@@ -150,13 +151,66 @@ def qc_track(track: str, st: xr.Dataset) -> pd.DataFrame:
                 m_k, s_k = circ_stats(np.angle(np.exp(1j * (diff[masks[k]] - m_h))))
                 rec[f"{name}_offset_{k}_rad"] = m_k
                 rec[f"{name}_spread_{k}_rad"] = s_k
-        g = coh_h[hard]
+        g = coh_h[hard]       # v1 yardstick: HyP3's coherence (biased high: computed on its filtered interferogram)
+        rec["expected_spread_hard_rad_v1"] = float(np.nanmedian(np.sqrt(crb(g, L_HYP3) ** 2 + crb(g, L_OURS) ** 2)))
+        g = coh[hard]         # v2 yardstick: our unfiltered coherence
         rec["expected_spread_hard_rad"] = float(np.nanmedian(np.sqrt(crb(g, L_HYP3) ** 2 + crb(g, L_OURS) ** 2)))
         for k, m in masks.items():
             rec[f"coh_hyp3_{k}"] = float(np.nanmedian(coh_h[m]))
             rec[f"coh_ours_{k}"] = float(np.nanmedian(coh[m]))
         rows_out.append(rec)
     return pd.DataFrame(rows_out)
+
+
+def amp40(path: Path, gx: np.ndarray, gy: np.ndarray) -> np.ndarray:
+    s, x, y = cslc(path)
+    shape = (len(gy), len(gx))
+    r, c = axis_index(x, y, gx, gy)
+    rr, cc = np.meshgrid(r, c, indexing="ij")
+    ok = (rr >= 0) & (cc >= 0) & np.isfinite(s)
+    idx = (rr * shape[1] + cc)[ok]
+    n = shape[0] * shape[1]
+    pw = np.bincount(idx, (np.abs(s) ** 2)[ok], n)
+    k = np.bincount(idx, minlength=n)
+    a = (pw / np.maximum(k, 1)).reshape(shape)
+    a[k.reshape(shape) < L_OURS // 2] = np.nan
+    return 10 * np.log10(a)
+
+
+def best_shift(a: np.ndarray, b: np.ndarray, rng: float = 3.0, step: float = 0.125) -> tuple[float, float, float]:
+    """(r, dy, dx) in cells: the shift of ``a`` that best correlates with ``b``."""
+    from scipy.ndimage import shift as ndshift  # noqa: PLC0415
+    m = np.isfinite(a) & np.isfinite(b)
+    fill = np.nan_to_num(a, nan=np.nanmean(a))
+    out = (-2.0, 0.0, 0.0)
+    for dy in np.arange(-rng, rng + 1e-9, step):
+        for dx in np.arange(-rng, rng + 1e-9, step):
+            r = np.corrcoef(ndshift(fill, (dy, dx), order=1, mode="nearest")[m], b[m])[0, 1]
+            if r > out[0]:
+                out = (float(r), float(dy), float(dx))
+    return out
+
+
+def placement(st: xr.Dataset, tracks: list[str]) -> pd.DataFrame:
+    """Mean June–August amplitude against the airborne LiDAR canopy: shift in metres (east +, north +)."""
+    rows = []
+    for t in tracks:
+        folder = resolve_drive() / "slc_pilot" / "2021" / "cslc" / t
+        fs = [f for f in sorted(folder.glob("*.h5")) if "static" not in f.name.lower() and DATE_RE.search(f.name)
+              and DATE_RE.search(f.name).group(1)[4:6] in ("06", "07", "08")]
+        img = np.nanmean([amp40(f, st.x.values, st.y.values) for f in fs], axis=0)
+        r, dy, dx = best_shift(img, st.lidar_vegh_p90_m.values.astype(float))
+        rows.append({"track": t, "dates": len(fs), "r": r, "dx_m": dx * CELL, "dy_m": -dy * CELL})
+    return pd.DataFrame(rows)
+
+
+def placement_ok(pl: pd.DataFrame) -> bool:
+    d = pl.set_index("track")
+    if not {"ascending", "descending"} <= set(d.index):
+        return False
+    a, b = d.loc["ascending"], d.loc["descending"]
+    return bool(np.sign(a.dx_m) != np.sign(b.dx_m) and abs(a.dx_m + b.dx_m) <= PLACE_TOL_M
+                and abs(a.dy_m) <= PLACE_TOL_M and abs(b.dy_m) <= PLACE_TOL_M)
 
 
 def verdict(t: pd.DataFrame) -> pd.DataFrame:
@@ -179,11 +233,18 @@ def main(argv: list[str] | None = None) -> None:
     st = xr.open_dataset(cube_root() / "silver" / "static_40m.nc")
     t = pd.concat([qc_track(tr, st) for tr in a.tracks], ignore_index=True)
     v = verdict(t)
+    v["expected_spread_hard_rad_v1"] = [t[t.track == tr].expected_spread_hard_rad_v1.median() for tr in v.track]
+    pl = placement(st, a.tracks)
+    ok = placement_ok(pl)
+    v["placement_ok"] = ok
+    v["agrees"] = v.agrees & ok
     out = resolve_drive() / "slc_pilot" / "2021" / "qc"
     out.mkdir(parents=True, exist_ok=True)
     t.to_csv(out / "pairs.csv", index=False)
     v.to_csv(out / "verdict.csv", index=False)
-    (out / "README.md").write_text(readme(t, v, a.prereg_commit), encoding="utf-8")
+    pl.to_csv(out / "placement.csv", index=False)
+    (out / "README.md").write_text(readme(t, v, a.prereg_commit, pl), encoding="utf-8")
+    print(pl.to_string(index=False))
     print(v.to_string(index=False))
     print(f"wrote {out}")
 
@@ -197,7 +258,7 @@ def _md(df: pd.DataFrame, nd: int = 3) -> str:
                      ["| " + " | ".join(map(str, r)) + " |" for r in d.itertuples(index=False)])
 
 
-def readme(t: pd.DataFrame, v: pd.DataFrame, prereg: str) -> str:
+def readme(t: pd.DataFrame, v: pd.DataFrame, prereg: str, pl: pd.DataFrame | None = None) -> str:
     cols = ["track", "t1", "t2", "filtered_spread_hard_rad", "expected_spread_hard_rad", "unfiltered_spread_hard_rad",
             "filtered_offset_stable_rad", "coh_hyp3_hard_targets", "coh_ours_hard_targets", "coh_hyp3_mat", "coh_ours_mat"]
     coh = t.groupby("track")[[c for c in t.columns if c.startswith("coh_")]].median().reset_index()
@@ -207,11 +268,17 @@ Generated by `experiments/slc_qc_x101.py` on Colab; do not edit. Pre-registratio
 `08_deliverables/insar_full_test/preregistration/X-101.yaml` (commit {prereg}). Ours: COMPASS CSLCs (5 m x 10 m), 32 looks
 per 40 m cube cell, Goldstein–Werner alpha {ALPHA} (an approximation of HyP3's ISCE filter); HyP3: the cube's wrapped
 pairs. Spread = circular std over hard targets of (ours − HyP3) after removing its mean there; expected = Cramér–Rao
-from HyP3's coherence, L = {L_HYP3} and {L_OURS}, independent noise (a generous bound: both come from the same SLCs).
+from OUR unfiltered coherence (v2; v1 used HyP3's, biased high by its filter — shown as `_v1`), L = {L_HYP3} and
+{L_OURS}, independent noise (a generous bound: both come from the same SLCs).
 
 ## Verdict
 
 {_md(v)}
+
+## Placement against the airborne LiDAR canopy (mean June–August amplitude; correct = opposite east-west signs,
+|dx asc + dx desc| <= {PLACE_TOL_M:.0f} m, |dy| <= {PLACE_TOL_M:.0f} m)
+
+{_md(pl) if pl is not None else "—"}
 
 ## Coherence, median over pairs (ours unfiltered at 32 looks, HyP3 as delivered)
 

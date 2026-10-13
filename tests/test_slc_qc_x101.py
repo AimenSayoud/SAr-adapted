@@ -54,3 +54,23 @@ def test_verdict_rule():
     assert bool(Q.verdict(t).agrees.iloc[0])
     t["filtered_spread_hard_rad"] = 0.5
     assert not bool(Q.verdict(t).agrees.iloc[0])
+
+
+def test_placement_rule():
+    import pandas as pd
+    ok = pd.DataFrame({"track": ["ascending", "descending"], "dx_m": [20.0, -20.0], "dy_m": [15.0, 15.0]})
+    assert Q.placement_ok(ok)
+    off = pd.DataFrame({"track": ["ascending", "descending"], "dx_m": [-20.0, 20.0 + 45], "dy_m": [0.0, 0.0]})
+    assert not Q.placement_ok(off)
+    same_sign = pd.DataFrame({"track": ["ascending", "descending"], "dx_m": [20.0, 10.0], "dy_m": [0.0, 0.0]})
+    assert not Q.placement_ok(same_sign)
+
+
+def test_best_shift_finds_a_known_offset():
+    rng = np.random.default_rng(3)
+    b = rng.normal(size=(40, 40))
+    from scipy.ndimage import gaussian_filter, shift
+    b = gaussian_filter(b, 2)
+    a = shift(b, (0.0, -1.0), order=1, mode="nearest")          # a is b moved one cell west
+    r, dy, dx = Q.best_shift(a, b, rng=2.0, step=0.25)
+    assert abs(dx - 1.0) < 0.26 and abs(dy) < 0.26 and r > 0.9
