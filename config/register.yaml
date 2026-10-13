@@ -1699,3 +1699,22 @@ entries:
     - hub:08_deliverables/field_first/plot_pixels.csv
     outputs:
     - hub:08_deliverables/insar_full_test/bias_precheck
+  phase_sim_x095:
+    kind: experiment
+    title: X-095 — phase simulated from the P6 laser (conroy2022 benchmark), what cycle choice and segment-and-tie can recover in principle
+    status: current
+    runs_on: mac
+    code: experiments/phase_sim_x095.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/phase_sim_x095.py
+    tickets:
+    - X-095
+    chains:
+    - insar-test-protocol
+    inputs:
+    - cube:gold/plots_pair.csv.gz
+    - cube:silver/site_hourly.csv.gz
+    - cube:silver/static_40m.nc
+    - hub:08_deliverables/field_first/plot_pixels.csv
+    outputs:
+    - hub:08_deliverables/insar_full_test/phase_sim
