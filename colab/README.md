@@ -61,3 +61,12 @@ python -m insar_wetlands.colab_cli stop -s x101                        # always:
 
 Credentials never appear in executed code (the CLI keeps a history of it); conda tools go into a micromamba
 environment on the VM instead of condacolab (whose kernel restart breaks a headless session).
+
+Learned on the first terminal run (X-101, 2026-10-13):
+- A hung step: do **not** use `colab restart-kernel` — on CLI 0.6.0 it answered 404 and the CLI dropped the session
+  (the VM stayed on the server as an orphan `[?]` that `colab stop` cannot reach; end it in the browser:
+  colab.research.google.com → *Runtime → Manage sessions* → terminate). Long steps carry their own timeouts instead
+  (burst downloads: 10 min, 3 tries).
+- The conda environment on the VM is used without activation: `colab_cli run` sets `PROJ_DATA`, `GDAL_DATA`,
+  `PROJ_NETWORK=ON` and `MPLBACKEND=Agg`; output of child processes reaches the terminal only through `colab_cli run`.
+- A new VM means `colab drivemount` again (the one human step) and `colab_cli bootstrap` again (about 10 minutes).
