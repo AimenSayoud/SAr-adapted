@@ -1833,7 +1833,7 @@ entries:
   slc_ps_shp_x103:
     kind: experiment
     title: X-103 — persistent scatterers and statistically homogeneous neighbours on the mat from the full-resolution 2021 CSLCs, by sub-season
-    status: current
+    status: finished
     runs_on: mac
     code: experiments/slc_ps_shp_x103.py
     code_ref: HEAD
@@ -1853,7 +1853,7 @@ entries:
   slc_longpairs_x104:
     kind: experiment
     title: X-104 — long pairs (>= 48 d, high-water-table reference and matched water table) at full resolution on the mat, small-window and SHP coherence vs the noise floor
-    status: current
+    status: finished
     runs_on: mac
     code: experiments/slc_longpairs_x104.py
     code_ref: HEAD
