@@ -98,3 +98,25 @@ def test_runconfig_polarization_list_becomes_string(tmp_path):
     d = yaml.safe_load(f.read_text())
     assert d["runconfig"]["groups"]["processing"] == {"polarization": "co-pol", "x": 1}
     assert d["runconfig"]["name"] == "cslc_s1_workflow_default"
+
+
+def test_dem_check_refuses_orthometric(tmp_path, monkeypatch):
+    """A DEM equal to the cube's orthometric heights (no geoid added) must be refused; one with N added passes."""
+    import numpy as np
+    import pytest
+    import rasterio
+    import xarray as xr
+    from rasterio.transform import from_origin
+    from insar_wetlands.cube import cube_root
+    st = xr.open_dataset(cube_root() / "silver" / "static_40m.nc")
+    ortho = float(np.nanmedian(st.dem_glo30_m.where(st.zone == 1)))
+    monkeypatch.setattr(M, "geoid_undulation", lambda lon, lat: np.full(np.shape(lon), 34.5))
+    for name, val, ok in (("ortho.tif", ortho, False), ("ell.tif", ortho + 34.5, True)):
+        with rasterio.open(tmp_path / name, "w", driver="GTiff", height=200, width=200, count=1, dtype="float32",
+                           crs="EPSG:4326", transform=from_origin(16.25, 52.80, 0.001, 0.0005)) as w:
+            w.write(np.full((200, 200), val, "float32"), 1)
+        if ok:
+            assert abs(M.check_ellipsoid(tmp_path / name)) < M.DEM_TOL_M
+        else:
+            with pytest.raises(RuntimeError, match="not ellipsoidal"):
+                M.check_ellipsoid(tmp_path / name)
