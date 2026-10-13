@@ -1770,3 +1770,22 @@ entries:
     - cube:silver/static_40m.nc
     outputs:
     - hub:08_deliverables/insar_full_test/scattering_regime
+  slc_qc_x101:
+    kind: experiment
+    title: X-101 QC — our CSLC pairs multilooked and Goldstein-filtered like HyP3, against HyP3 on hard targets and stable ground
+    status: open
+    runs_on: colab
+    code: experiments/slc_qc_x101.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/slc_qc_x101.py --prereg-commit a4b36ec
+    tickets:
+    - X-101
+    chains:
+    - slc-pilot
+    inputs:
+    - drive:slc_pilot/2021/cslc
+    - cube:silver/ifg_2020_2021_*.nc
+    - cube:silver/ifg_2022_2024_*.nc
+    - cube:silver/static_40m.nc
+    outputs:
+    - drive:slc_pilot/2021/qc
