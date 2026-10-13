@@ -1,21 +1,21 @@
 """X-101 — SLC pilot step 2 (Colab): the 2021 bursts geocoded onto one grid over Rzecin (coregistered CSLCs).
 
-One Colab session, because the VM disk is wiped between sessions and the raw bursts (tens of GB) never go to Drive:
+Geocoding every date onto the same map grid with precise orbits and a DEM is what coregisters them (the OPERA CSLC-S1
+design, COMPASS). Per track, in batches of dates, so a disconnected session loses at most one batch:
 
-1. **SAFE**: ``burst2safe`` builds a minimal SAFE per date from the X-100 inventory's burst granules (VV by default).
-2. **Orbits**: ``eof`` (sentineleof) fetches the precise orbit of each SAFE.
-3. **DEM**: ``sardem`` makes a Copernicus GLO-30 DEM over the box plus a margin.
-4. **CSLC**: COMPASS ``s1_geocode_stack.py`` writes one run-config per date and burst on a common geocoded grid
-   (EPSG:32633, 5 m × 10 m) over the AOI box; the run files are executed. Geocoding every date onto the same grid with
-   precise orbits and the DEM is what coregisters them (OPERA CSLC-S1 design).
-5. **Keep**: the CSLC HDF5 files (one per date, a few MB each over the box) are copied to Drive
-   ``insar_rzecin/slc_pilot/2021/cslc/<track>/``, with a manifest; the raw bursts and SAFEs stay on the VM.
+1. **SAFE**: ``burst2safe <granule> --all-anns`` builds a one-burst SAFE per date from the X-100 inventory
+   (``--all-anns`` is what s1-reader, COMPASS's reader, needs). Earthdata credentials from Colab's key manager.
+2. **Orbits**: ``eof --force-asf`` (ASF's public orbit bucket; the default source, Copernicus Data Space, would need
+   another account and prompt for it).
+3. **DEM** (once): ``sardem`` Copernicus GLO-30, WGS84 ellipsoid heights, over the AOI plus a margin.
+4. **CSLC**: COMPASS ``s1_geocode_stack.py`` writes one run file per date; each is executed. COMPASS takes its output
+   grid from a burst database; a one-row-per-burst SQLite database holding the AOI box (the cube's 40 m grid extent in
+   EPSG:32633) is written here, so only the AOI is geocoded, at 5 m × 10 m.
+5. **Keep**: each CSLC HDF5 (a few MB over the AOI) and the static layers go to Drive
+   ``insar_rzecin/slc_pilot/2021/cslc/<track>/`` as soon as the batch is done; then the batch's SAFEs are deleted.
+   Dates already on Drive are skipped, so re-running after a disconnect resumes.
 
-The QC against HyP3 (multilooked, filtered pairs of the same dates on hard targets) is X-101's verification and runs
-next, in ``slc_qc_x101`` (Mac or Colab), on the files kept here.
-
-**First run = the test of this chain**: these tools were not run on this project before. A failure is recorded in the
-run record; fix and re-run from the step that failed (each step skips what it already produced).
+The QC against HyP3 on hard targets is X-101's verification and runs next (``slc_qc_x101``) on the files kept here.
 
     (Colab) python -m insar_wetlands.register run slc_cslc_x101 -- --tracks ascending descending
 """
@@ -24,7 +24,10 @@ from __future__ import annotations
 import argparse
 import glob
 import json
+import os
+import re
 import shutil
+import sqlite3
 import subprocess
 from pathlib import Path
 
@@ -35,124 +38,190 @@ REPO = Path(__file__).resolve().parents[1]
 INVENTORY = REPO / "data" / "slc_pilot" / "inventory_2021.csv"
 WORK = Path("/content/slc_pilot")
 EPSG, XPOST, YPOST = 32633, 5, 10
-MARGIN_DEG = 0.05
+MARGIN_M = 200.0          # AOI margin around the cube grid (m)
+DEM_MARGIN_DEG = 0.05
+BATCH = 8                 # dates per batch: disk stays small, a disconnect loses at most one batch
+DATE_RE = re.compile(r"(20\d{6})")
 
 
-def sh(cmd: list[str] | str, **kw) -> None:
-    print(">>", cmd if isinstance(cmd, str) else " ".join(cmd), flush=True)
-    subprocess.run(cmd, check=True, shell=isinstance(cmd, str), **kw)
+def sh(cmd: list[str], **kw) -> None:
+    print(">>", " ".join(map(str, cmd)), flush=True)
+    subprocess.run([str(c) for c in cmd], check=True, **kw)
 
 
-def aoi_bbox() -> tuple[float, float, float, float]:
-    """(west, south, east, north) in degrees: the cube's 40 m grid (EPSG:32633), so the CSLCs cover the mat, its
-    references (grassland, hard targets) and every cell the HyP3 comparison uses."""
+def aoi() -> tuple[tuple[float, float, float, float], tuple[float, float, float, float]]:
+    """The cube's 40 m grid extent plus a margin: (UTM 33N box, lon/lat box), each as (xmin, ymin, xmax, ymax)."""
     import xarray as xr  # noqa: PLC0415
     from pyproj import Transformer  # noqa: PLC0415
 
     from insar_wetlands.cube import cube_root  # noqa: PLC0415
     with xr.open_dataset(cube_root() / "silver" / "static_40m.nc") as st:
         x, y = st.x.values, st.y.values
+    utm = (float(x.min()) - MARGIN_M, float(y.min()) - MARGIN_M, float(x.max()) + MARGIN_M, float(y.max()) + MARGIN_M)
     tr = Transformer.from_crs(EPSG, 4326, always_xy=True)
-    lon, lat = tr.transform([x.min() - 20, x.max() + 20, x.min() - 20, x.max() + 20],
-                            [y.min() - 20, y.min() - 20, y.max() + 20, y.max() + 20])
-    return min(lon), min(lat), max(lon), max(lat)
+    lon, lat = tr.transform([utm[0], utm[2], utm[0], utm[2]], [utm[1], utm[1], utm[3], utm[3]])
+    return utm, (min(lon), min(lat), max(lon), max(lat))
 
 
-def credentials() -> dict:
-    out = {}
-    try:
-        from google.colab import userdata  # noqa: PLC0415
-        for k in ("EARTHDATA_USERNAME", "EARTHDATA_PASSWORD"):
-            out[k] = userdata.get(k)
-    except Exception:
-        import os
-        out = {k: os.environ.get(k) for k in ("EARTHDATA_USERNAME", "EARTHDATA_PASSWORD")}
-    if not all(out.values()):
-        raise SystemExit("EARTHDATA_USERNAME / EARTHDATA_PASSWORD missing from Colab's key manager")
+def credentials() -> None:
+    """Earthdata login for burst2safe: the environment variables, also written to ~/.netrc."""
+    # the launcher's secrets cell sets them; google.colab.userdata cannot be read from this subprocess (it hangs)
+    vals = {k: os.environ.get(k) for k in ("EARTHDATA_USERNAME", "EARTHDATA_PASSWORD")}
+    if not all(vals.values()):
+        raise SystemExit("EARTHDATA_USERNAME / EARTHDATA_PASSWORD not in the environment: run the launcher's secrets "
+                         "cell (add both in Colab's key manager, 🔑, with notebook access)")
     netrc = Path.home() / ".netrc"
-    netrc.write_text(f"machine urs.earthdata.nasa.gov login {out['EARTHDATA_USERNAME']} "
-                     f"password {out['EARTHDATA_PASSWORD']}\n")
+    netrc.write_text(f"machine urs.earthdata.nasa.gov login {vals['EARTHDATA_USERNAME']} "
+                     f"password {vals['EARTHDATA_PASSWORD']}\n")
     netrc.chmod(0o600)
-    return out
 
 
-def safes(track: str, pols: list[str]) -> Path:
-    inv = pd.read_csv(INVENTORY)
-    inv = inv[(inv.track == track) & inv.polarization.isin(pols)]
-    d = WORK / track / "safe"
-    d.mkdir(parents=True, exist_ok=True)
-    inv["date"] = pd.to_datetime(inv.time_utc).dt.strftime("%Y%m%d")
-    for date, g in inv.groupby("date"):
-        if glob.glob(str(d / f"*{date}*.SAFE")):
-            continue
-        sh(["burst2safe", *g.granule.tolist(), "--output-dir", str(d)])
-    return d
+def jpl_id(burst_id: str) -> str:
+    """'175_374052_IW1' → 't175_374052_iw1', the form s1-reader prints and COMPASS looks up."""
+    t, n, sw = burst_id.split("_")
+    return f"t{int(t):03d}_{n}_{sw.lower()}"
 
 
-def orbits(safe_dir: Path) -> Path:
-    o = safe_dir.parent / "orbits"
-    o.mkdir(exist_ok=True)
-    sh(["eof", "--search-path", str(safe_dir), "--save-dir", str(o)])
-    return o
+def burst_db(path: Path, ids: list[str], utm_box) -> Path:
+    """The burst database COMPASS reads its output grid from, holding only the AOI box for our bursts."""
+    path.unlink(missing_ok=True)
+    con = sqlite3.connect(path)
+    con.execute("CREATE TABLE burst_id_map (burst_id_jpl TEXT PRIMARY KEY, epsg INTEGER, "
+                "xmin REAL, ymin REAL, xmax REAL, ymax REAL)")
+    for i in ids:
+        con.execute("INSERT INTO burst_id_map VALUES (?, ?, ?, ?, ?, ?)", (i, EPSG, *utm_box))
+    con.commit()
+    con.close()
+    return path
 
 
-def dem(bbox) -> Path:
+def dem(lonlat_box) -> Path:
     f = WORK / "dem.tif"
     if not f.exists():
-        w, s, e, n = bbox
-        sh(["sardem", "--bbox", str(w - MARGIN_DEG), str(s - MARGIN_DEG), str(e + MARGIN_DEG), str(n + MARGIN_DEG),
-            "--data-source", "COP", "-o", str(f)])
+        w, s, e, n = lonlat_box
+        sh(["sardem", "--bbox", w - DEM_MARGIN_DEG, s - DEM_MARGIN_DEG, e + DEM_MARGIN_DEG, n + DEM_MARGIN_DEG,
+            "--data-source", "COP", "-o", f])
     return f
 
 
-def cslc(track: str, burst_id: str, safe_dir: Path, orbit_dir: Path, dem_file: Path, bbox, pol: str) -> Path:
-    work = WORK / track / "compass"
-    work.mkdir(parents=True, exist_ok=True)
-    bid = "t" + burst_id.lower()
-    w, s, e, n = bbox
-    sh(["s1_geocode_stack.py", "-s", str(safe_dir), "-o", str(orbit_dir), "-d", str(dem_file), "-w", str(work),
-        "-b", bid, "-p", pol, "--bbox", str(w), str(s), str(e), str(n), "-e", str(EPSG),
-        "-x", str(XPOST), "-y", str(YPOST)])
-    for rf in sorted(glob.glob(str(work / "run_files" / "*.sh"))):
-        sh(["bash", rf])
-    return work
-
-
-def keep(track: str, work: Path) -> pd.DataFrame:
+def drive_dest(track: str) -> Path:
     from insar_wetlands.paths import resolve_drive  # noqa: PLC0415
-    dest = resolve_drive() / "slc_pilot" / "2021" / "cslc" / track
-    dest.mkdir(parents=True, exist_ok=True)
-    rows = []
-    for h5 in sorted(glob.glob(str(work / "**" / "*.h5"), recursive=True)):
-        if "static" in Path(h5).name.lower():
+    d = resolve_drive() / "slc_pilot" / "2021" / "cslc" / track
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
+def done_dates(dest: Path) -> set[str]:
+    return {m.group(1) for f in dest.glob("*.h5") if "static" not in f.name.lower()
+            for m in [DATE_RE.search(f.name)] if m}
+
+
+def build_safes(granules: list[str], safe_dir: Path) -> None:
+    safe_dir.mkdir(parents=True, exist_ok=True)
+    for g in granules:
+        date = DATE_RE.search(g).group(1)
+        if glob.glob(str(safe_dir / f"*{date}*.SAFE")):
             continue
-        out = dest / Path(h5).name
+        sh(["burst2safe", g, "--all-anns", "--output-dir", safe_dir], cwd=safe_dir)
+    for f in list(safe_dir.glob("*.tiff")) + list(safe_dir.glob("*.xml")):     # burst downloads left beside the SAFEs
+        f.unlink()
+
+
+def geocode(bid: str, safe_dir: Path, dem_file: Path, db: Path, lonlat_box, pol: str,
+            corrections: bool) -> tuple[Path, list[str], bool]:
+    """COMPASS on one batch. Returns (work dir, dates done, corrections used). If a date fails with COMPASS's LUT
+    corrections (tides, ionosphere, … — optional inputs), that date is redone without them and recorded so."""
+    work = safe_dir.parent / "compass"
+    orbit_dir = safe_dir.parent / "orbits"
+    orbit_dir.mkdir(exist_ok=True)
+    sh(["eof", "--search-path", safe_dir, "--save-dir", orbit_dir, "--force-asf"])
+    w, s, e, n = lonlat_box
+
+    def stack(flag: bool) -> list[str]:
+        shutil.rmtree(work, ignore_errors=True)
+        sh(["s1_geocode_stack.py", "-s", safe_dir, "--unzipped", "-d", dem_file, "-o", orbit_dir, "-w", work,
+            "-b", bid, "-p", "co-pol" if pol in ("VV", "HH") else "cross-pol", "-dx", XPOST, "-dy", YPOST,
+            "--bbox", w, s, e, n, "-e", EPSG, "--burst-db-file", db, *([] if flag else ["-nc"])])
+        runs = sorted(glob.glob(str(work / "run_files" / "run_*.sh")))
+        if not runs:
+            raise RuntimeError(f"COMPASS wrote no run files for {bid} in {safe_dir}")
+        return runs
+
+    runs, failed = stack(corrections), []
+    for rf in runs:
+        try:
+            sh(["bash", rf])
+        except subprocess.CalledProcessError:
+            if not corrections:
+                raise
+            failed.append(rf)
+    if failed:                      # redo the whole batch without corrections, so a batch is made one way
+        print(f"{len(failed)} run(s) failed with corrections; redoing this batch with -nc", flush=True)
+        for rf in stack(False):
+            sh(["bash", rf])
+        corrections = False
+    return work, [DATE_RE.search(Path(r).name).group(1) for r in runs], corrections
+
+
+def keep(work: Path, dest: Path, track: str, corrections: bool) -> list[dict]:
+    """Copy every CSLC (and the static layers) to Drive, the date always in the file name so a re-run can skip it."""
+    rows = []
+    for h5 in sorted(Path(work).rglob("*.h5")):
+        rel = h5.relative_to(work)
+        if "scratch" in rel.parts:
+            continue
+        m = DATE_RE.search(str(rel))
+        name = h5.name if (DATE_RE.search(h5.name) or "static" in h5.name.lower() or not m) else f"{m.group(1)}_{h5.name}"
+        out = dest / name
         if not out.exists():
             shutil.copy2(h5, out)
-        rows.append({"track": track, "file": str(out), "bytes": out.stat().st_size})
-    man = pd.DataFrame(rows)
-    man.to_csv(dest / "manifest.csv", index=False)
-    print(f"{track}: {len(man)} CSLC files, {man.bytes.sum() / 1e6:.0f} MB → {dest}")
-    return man
+        rows.append({"track": track, "date": m.group(1) if m else "", "file": out.name, "bytes": out.stat().st_size,
+                     "lut_corrections": corrections})
+    return rows
 
 
 def main(argv: list[str] | None = None) -> None:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--tracks", nargs="+", default=["ascending", "descending"])
-    ap.add_argument("--pols", nargs="+", default=["VV"])
+    ap.add_argument("--pol", default="VV", choices=["VV", "VH"])
+    ap.add_argument("--max-dates", type=int, default=0, help="process at most this many new dates per track (test)")
     a = ap.parse_args(argv)
     credentials()
-    bbox = aoi_bbox()
-    print("AOI bbox", bbox)
-    bursts = yaml.safe_load((REPO / "config" / "config.yaml").read_text())["sentinel1"]["tracks"]
-    dem_file = dem(bbox)
+    utm_box, lonlat_box = aoi()
+    print("AOI (EPSG:32633)", utm_box, "lon/lat", lonlat_box)
+    tracks = yaml.safe_load((REPO / "config" / "config.yaml").read_text())["sentinel1"]["tracks"]
+    WORK.mkdir(parents=True, exist_ok=True)
+    db = burst_db(WORK / "burst_aoi.sqlite3", [jpl_id(tracks[t]["burst_id"]) for t in a.tracks], utm_box)
+    dem_file = dem(lonlat_box)
+    inv = pd.read_csv(INVENTORY)
+    inv["date"] = pd.to_datetime(inv.time_utc).dt.strftime("%Y%m%d")
     summary = {}
     for t in a.tracks:
-        sd = safes(t, a.pols)
-        od = orbits(sd)
-        work = cslc(t, bursts[t]["burst_id"], sd, od, dem_file, bbox, a.pols[0])
-        summary[t] = len(keep(t, work))
-    print(json.dumps(summary))
+        dest = drive_dest(t)
+        g = inv[(inv.track == t) & (inv.polarization == a.pol)].drop_duplicates("date").sort_values("date")
+        todo = g[~g.date.isin(done_dates(dest))]
+        if a.max_dates:
+            todo = todo.head(a.max_dates)
+        print(f"{t}: {len(g)} dates in the inventory, {len(done_dates(dest))} already on Drive, {len(todo)} to do now",
+              flush=True)
+        rows = []
+        for i in range(0, len(todo), BATCH):
+            batch = todo.iloc[i:i + BATCH]
+            safe_dir = WORK / t / f"batch_{i // BATCH:02d}" / "safe"
+            build_safes(batch.granule.tolist(), safe_dir)
+            work, _, used = geocode(jpl_id(tracks[t]["burst_id"]), safe_dir, dem_file, db, lonlat_box, a.pol,
+                                    corrections=True)
+            rows += keep(work, dest, t, used)
+            shutil.rmtree(safe_dir.parent, ignore_errors=True)
+            print(f"{t}: batch {i // BATCH + 1} kept; {len(done_dates(dest))} dates on Drive", flush=True)
+        man = pd.DataFrame(rows)
+        if len(man):
+            old = dest / "manifest.csv"
+            if old.exists():
+                man = pd.concat([pd.read_csv(old), man]).drop_duplicates("file", keep="last")
+            man.to_csv(old, index=False)
+        summary[t] = len(done_dates(dest))
+    print(json.dumps({"dates_on_drive": summary}))
 
 
 if __name__ == "__main__":

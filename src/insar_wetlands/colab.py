@@ -15,6 +15,8 @@ from pathlib import Path
 from .register import REPO, load_register
 
 REPO_URL = "https://github.com/AimenSayoud/SAr-adapted.git"
+# what colab/requirements.txt gives a pip session, installed from conda-forge instead when the entry needs conda tools
+CONDA_BASE = "xarray netcdf4 h5py rioxarray rasterio pyproj shapely pyyaml pandas scipy matplotlib requests"
 
 
 def _md(text: str) -> dict:
@@ -27,7 +29,7 @@ def _code(text: str) -> dict:
 
 
 def launcher(entry: str, ref: str = "fusion-x062", extra: str = "", pip: str = "", args: str = "",
-             conda: str = "") -> dict:
+             conda: str = "", secrets: str = "") -> dict:
     e = load_register().get(entry)
     if e is None:
         raise SystemExit(f"no register entry {entry!r}")
@@ -49,7 +51,7 @@ this public repository."""),
                "runtime then **restarts by itself**. After the restart, *Run all* again: the cell sees conda and "
                "goes on."),
            _code("!pip install -q condacolab\nimport condacolab\ncondacolab.install()"),
-           _code(f"!mamba install -q -y -c conda-forge {conda}")] if conda else []),
+           _code(f"!mamba install -q -y -c conda-forge {conda} {CONDA_BASE}")] if conda else []),
         _code(f"""
 from google.colab import drive
 drive.mount("/content/drive")
@@ -61,7 +63,16 @@ subprocess.run(["git", "fetch", "-q", "origin"], check=True)
 subprocess.run(["git", "checkout", "-q", REF], check=True)
 subprocess.run(["git", "pull", "-q", "--ff-only"], check=False)
 print(subprocess.run(["git", "log", "-1", "--oneline"], capture_output=True, text=True).stdout)"""),
-        _code(f"!bash colab/setup.sh {extra}".strip() + (f"\n!pip install -q {pip}" if pip else "")),
+        _code(f"!bash colab/setup.sh {'conda' if conda else extra}".strip() + (f"\n!pip install -q {pip}" if pip else "")),
+        *([_md("**Secrets.** Add " + ", ".join(f"`{k}`" for k in secrets.split()) + " in Colab's key manager (🔑 in "
+               "the left bar) and switch on *Notebook access*. The next cell passes them to the run as environment "
+               "variables (a subprocess cannot read the key manager); nothing is printed or saved."),
+           _code("from google.colab import userdata\nimport os\n"
+                 f"for k in {secrets.split()!r}:\n"
+                 "    try:\n        os.environ[k] = userdata.get(k)\n"
+                 "    except Exception as e:\n"
+                 "        raise SystemExit(f'add the secret {k} in the key manager and give this notebook access ({type(e).__name__})')\n"
+                 "print('secrets set:', ', '.join(" + repr(secrets.split()) + "))")] if secrets else []),
         _code(f"!PYTHONPATH=src python -m insar_wetlands.register run {entry}" + (f" -- {args}" if args else "")),
         _code(f"""
 import glob, json
@@ -81,9 +92,10 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--pip", default="", help="extra pip packages for this launcher only (e.g. heavy SAR tools)")
     ap.add_argument("--args", default="", help="arguments passed to the entry")
     ap.add_argument("--conda", default="", help="conda-forge packages (installed through condacolab; one restart)")
+    ap.add_argument("--secrets", default="", help="Colab key-manager names passed to the run as environment variables")
     a = ap.parse_args(argv)
     out = REPO / "colab" / f"{a.entry}.ipynb"
-    out.write_text(json.dumps(launcher(a.entry, a.ref, a.extra, a.pip, a.args, a.conda), indent=1, ensure_ascii=False) + "\n")
+    out.write_text(json.dumps(launcher(a.entry, a.ref, a.extra, a.pip, a.args, a.conda, a.secrets), indent=1, ensure_ascii=False) + "\n")
     print(f"wrote {out.relative_to(REPO)}")
     return 0
 
