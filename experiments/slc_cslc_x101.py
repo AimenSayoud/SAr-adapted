@@ -122,7 +122,7 @@ def to_ellipsoid(src: Path, dst: Path) -> Path:
     if not (GEOID_N_RANGE[0] <= np.nanmin(n) and np.nanmax(n) <= GEOID_N_RANGE[1]):
         raise RuntimeError(f"geoid undulation {np.nanmin(n):.2f}–{np.nanmax(n):.2f} m outside {GEOID_N_RANGE}: "
                            "PROJ has no EGM2008 grid (projsync --file us_nga_egm08_25.tif)")
-    prof.update(dtype="float32")
+    prof.update(dtype="float32", crs="EPSG:4326")   # ellipsoidal now; sardem's compound CRS (EPSG:9518) is unknown to isce3
     with rasterio.open(dst, "w", **prof) as w:
         w.write((z + n).astype("float32"), 1)
     print(f"DEM to ellipsoid: + {np.nanmean(n):.2f} m (EGM2008)", flush=True)
