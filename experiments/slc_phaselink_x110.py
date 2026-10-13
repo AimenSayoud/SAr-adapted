@@ -209,7 +209,7 @@ def score_mode() -> None:
                 continue
             d = xr.open_dataset(f)
             z = d.linked_re.values + 1j * d.linked_im.values
-            ld = list(d.date.values.astype(str))
+            ld = [str(v) for v in d.date.values]                 # plain str: pd.Timestamp refuses numpy.str_
             ref = np.array([np.nanmean(z[i][hard] / np.maximum(np.abs(z[i][hard]), 1e-12)) for i in range(len(ld))])
             ph = np.angle(z * np.conj(ref)[:, None, None])
             for cell in cells:
