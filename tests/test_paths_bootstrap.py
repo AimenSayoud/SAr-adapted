@@ -365,3 +365,26 @@ def test_context_aoi_property(fake_repo, tmp_path, monkeypatch):
 
 
 
+
+
+def test_cache_leaves_the_read_only_snapshot(fake_repo, tmp_path, monkeypatch):
+    """C-047: on the Mac a run reading the Drive snapshot must not write its cache into it."""
+    hub = tmp_path / "hub"
+    snap = hub / "05_code" / "local" / "drive_pristine"
+    snap.mkdir(parents=True)
+    monkeypatch.setenv("RZECIN_HUB", str(hub))
+    p = Paths(repo=fake_repo, drive=snap)
+    assert p.cache == hub / "05_code" / "local" / "cache"
+    assert snap not in p.cache.parents
+
+
+def test_strict_zones_raise_without_worldcover(fake_repo, tmp_path, monkeypatch):
+    """C-047: zones without WorldCover differ from the published ones; strict mode refuses them."""
+    import insar_wetlands.stratify as st
+    def boom(*a, **k):
+        raise OSError("no tile")
+    monkeypatch.setattr(st, "load_worldcover", boom)
+    ctx = start("x", mount=False, git=False, repo=fake_repo, drive_root=tmp_path / "drive", strict_zones=True)
+    ctx.__dict__["template"] = None
+    with pytest.raises(RuntimeError, match="WorldCover unavailable"):
+        _ = ctx.zones

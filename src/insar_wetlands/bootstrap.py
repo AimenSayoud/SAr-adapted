@@ -24,6 +24,7 @@ because an acquisition phase needs none of it and should not pay for it.
 from __future__ import annotations
 
 import logging
+import os
 import sys
 import time
 from dataclasses import dataclass, field
@@ -75,6 +76,7 @@ class Context:
     paths: Paths
     log: logging.Logger
     track: str | None = None
+    strict_zones: bool = False          # raise instead of defining zones without WorldCover (C-047)
     _extra: dict[str, Any] = field(default_factory=dict)
     started: float = field(default_factory=time.time)
 
@@ -135,7 +137,11 @@ class Context:
         try:
             wc = load_worldcover(self.template, self.cfg, cache_dir=self.paths.cache)
         except Exception as e:                       # noqa: BLE001 - reported, not swallowed
-            self.log.warning("WorldCover unavailable, continuing without it: %s", e)
+            if self.strict_zones or os.environ.get("INSAR_STRICT_ZONES"):
+                raise RuntimeError("WorldCover unavailable: the zones would differ from the published ones "
+                                   f"(zone C changes size without it): {e}") from e
+            self.log.warning("WorldCover unavailable, continuing without it — zones differ from the published "
+                             "ones (set INSAR_STRICT_ZONES=1 to fail instead): %s", e)
 
         s2f = None
         try:
@@ -233,7 +239,8 @@ def start(phase: str,
           git: bool = True,
           config_path: str | Path | None = None,
           drive_root: str | Path | None = None,
-          repo: str | Path | None = None) -> Context:
+          repo: str | Path | None = None,
+          strict_zones: bool = False) -> Context:
     """Prepare a phase and return its `Context`.
 
     Parameters
@@ -300,6 +307,6 @@ def start(phase: str,
     except Exception:
         pass
 
-    return Context(phase=phase, cfg=cfg, paths=paths, log=log, track=track)
+    return Context(phase=phase, cfg=cfg, paths=paths, log=log, track=track, strict_zones=strict_zones)
 
 

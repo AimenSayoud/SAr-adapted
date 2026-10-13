@@ -156,7 +156,15 @@ class Paths:
         """Downloaded auxiliary rasters (WorldCover tiles, DEM extracts).
 
         Replaces the hardcoded ``/content/worldcover``. Lives on the Drive so a
-        tile survives the Colab session that fetched it."""
+        tile survives the Colab session that fetched it — except on the Mac when the
+        data root is the read-only snapshot or the live Drive mount, which a run must
+        never write into (C-047): there it is the hub's ``05_code/local/cache``."""
+        hub = hub_root()
+        if hub is not None and not on_colab():
+            snap = (hub / "05_code" / "local" / "drive_pristine").resolve()
+            d = self.drive.resolve()
+            if d == snap or snap in d.parents or "CloudStorage" in str(d):
+                return self._made(hub / "05_code" / "local" / "cache")
         return self._made(self.drive / "cache")
 
     @property
