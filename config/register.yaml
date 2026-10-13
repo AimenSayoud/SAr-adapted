@@ -1734,3 +1734,21 @@ entries:
     - cube:silver/site_hourly.csv.gz
     outputs:
     - hub:08_deliverables/insar_full_test/physics_terms
+  segment_tie_x093:
+    kind: experiment
+    title: X-093(a) — cut the real P6 chain where its phase leaves the water-table model (or frozen/snow pairs), tie segments to the model
+    status: current
+    runs_on: mac
+    code: experiments/segment_tie_x093.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/segment_tie_x093.py
+    tickets:
+    - X-093
+    chains:
+    - insar-full-test
+    inputs:
+    - cube:gold/plots_pair.csv.gz
+    - cube:silver/site_hourly.csv.gz
+    - hub:08_deliverables/insar_full_test/phase_sim
+    outputs:
+    - hub:08_deliverables/insar_full_test/segment_tie
