@@ -136,9 +136,12 @@ def link() -> None:
 # ------------------------------------------------------------------------------------------------ score (Mac)
 
 def chain_from_phase(dates: list[str], phase: np.ndarray) -> pd.DataFrame:
-    """Consecutive increments (mm) of a referenced phase series: wrapped differences (cycle 0)."""
+    """Consecutive increments (mm) of a referenced per-date phase series, wrapped (cycle 0), in the same convention as
+    a pair formed s_t · conj(s_t+1) — phase(t) − phase(t+1) — so the linked series and the chain of pairs compare like
+    for like. (The first scoring used phase(t+1) − phase(t): every linked series came out anti-correlated with the
+    laser; corrected 2026-10-13, see the X-110 ticket.)"""
     import p6_validation_x082 as X  # noqa: PLC0415
-    d = np.angle(np.exp(1j * (phase[1:] - phase[:-1])))
+    d = np.angle(np.exp(1j * (phase[:-1] - phase[1:])))
     return pd.DataFrame({"t1": [pd.Timestamp(a, tz="UTC") for a in dates[:-1]],
                          "t2": [pd.Timestamp(b, tz="UTC") for b in dates[1:]], "est_mm": d * X.PHASE_TO_MM})
 
