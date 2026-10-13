@@ -1663,7 +1663,7 @@ entries:
   slc_cslc_x101:
     kind: experiment
     title: X-101 — SLC pilot step 2, the 2021 bursts geocoded onto one grid over Rzecin (burst2safe, ASF orbits, COP DEM, COMPASS CSLC on the AOI; resumable batches)
-    status: current
+    status: finished
     runs_on: colab
     code: experiments/slc_cslc_x101.py
     code_ref: HEAD
@@ -1773,7 +1773,7 @@ entries:
   slc_qc_x101:
     kind: experiment
     title: X-101 QC — our CSLC pairs multilooked and Goldstein-filtered like HyP3, against HyP3 on hard targets and stable ground
-    status: current
+    status: finished
     runs_on: mac
     code: experiments/slc_qc_x101.py
     code_ref: HEAD
@@ -1812,7 +1812,7 @@ entries:
   slc_p6_x102:
     kind: experiment
     title: X-102 — the 6-day phase at P6 from our own coregistered SLCs (single look, small looks, 40 m + filter) vs HyP3, scored against the laser
-    status: current
+    status: finished
     runs_on: mac
     code: experiments/slc_p6_x102.py
     code_ref: HEAD
