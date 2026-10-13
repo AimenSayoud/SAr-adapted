@@ -83,6 +83,13 @@ def cell_sums(raster: Path, st: xr.Dataset) -> np.ndarray:
     return np.where(cnt >= 16, s, np.nan)
 
 
+def linked_files(work: Path) -> list[Path]:
+    """Dolphin 0.42 layout: ``<work>/<burst id>/linked_phase/YYYYMMDD.slc.tif``, one per date (compressed SLCs and the
+    per-ministack folders beside them are not dates)."""
+    import re  # noqa: PLC0415
+    return sorted(f for f in work.glob("*/linked_phase/*.slc.tif") if re.fullmatch(r"\d{8}\.slc\.tif", f.name))
+
+
 def link() -> None:
     st = xr.open_dataset(cube_root() / "silver" / "static_40m.nc")
     dest = resolve_drive() / "slc_pilot" / "2021" / "phase_linking"
@@ -105,14 +112,17 @@ def link() -> None:
                 print(f"{target.name} on Drive; skipped", flush=True)
                 continue
             work = WORK / f"{track}_{est}"
-            cfg = dolphin_config(files, work, use_evd)
-            subprocess.run(["dolphin", "run", str(cfg)], check=True)
-            linked = sorted((work / "linked_phase").glob("*.tif"))
-            linked = [f for f in linked if Q.DATE_RE.search(f.name)]
-            dates = [Q.DATE_RE.findall(f.name)[-1] for f in linked]
+            if not linked_files(work):                  # Dolphin's outputs survive a failed extraction: reuse them
+                cfg = dolphin_config(files, work, use_evd)
+                subprocess.run(["dolphin", "run", str(cfg)], check=True)
+            cfg = work / "dolphin_config.yaml"
+            linked = linked_files(work)
+            if not linked:
+                raise RuntimeError(f"Dolphin wrote no per-date linked phase under {work}")
+            dates = [f.name[:8] for f in linked]
             z = np.stack([cell_sums(f, st) for f in linked])
-            tc = sorted(work.rglob("temporal_coherence*.tif"))
-            tcoh = cell_sums(tc[0], st) if tc else np.full(z.shape[1:], np.nan)
+            tc = sorted(work.glob("*/linked_phase/temporal_coherence_*.tif"))   # one per ministack
+            tcoh = np.nanmean([cell_sums(f, st) for f in tc], axis=0) if tc else np.full(z.shape[1:], np.nan)
             ds = xr.Dataset({"linked_re": (("date", "y", "x"), z.real.astype("float32")),
                              "linked_im": (("date", "y", "x"), z.imag.astype("float32")),
                              "temporal_coherence": (("y", "x"), tcoh.astype("float32"))},
