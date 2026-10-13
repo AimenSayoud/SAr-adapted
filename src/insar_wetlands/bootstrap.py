@@ -178,9 +178,9 @@ class Context:
     def executed_notebook(self) -> Path | None:
         """This run's executed copy of its notebook, if one was written during the run.
 
-        `colab exec -f notebooks/<group>/<name>.ipynb` writes ``<name>_output.ipynb`` beside
-        it. The notebook comes from ``config/register.yaml``; a copy older than this run
-        belongs to an earlier execution and is ignored (C-028)."""
+        Historical phases only (the notebooks left the tree on 2026-10-13): `colab exec -f <notebook>`
+        wrote ``<name>_output.ipynb`` beside it. The notebook comes from ``config/register.yaml``; a copy
+        older than this run belongs to an earlier execution and is ignored (C-028)."""
         try:
             from .register import load_register
             ph = load_register(self.paths.repo / "config" / "register.yaml").get(self.phase)
