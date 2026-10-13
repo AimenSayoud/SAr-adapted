@@ -77,6 +77,7 @@ def test_dem_gets_the_geoid_added(tmp_path, monkeypatch):
     M.to_ellipsoid(tmp_path / "egm.tif", tmp_path / "ell.tif")
     with rasterio.open(tmp_path / "ell.tif") as r:
         assert np.allclose(r.read(1), 128.5)
+        assert r.crs.to_epsg() == 4326          # plain 2-D lon/lat, not the compound geoid CRS
 
 
 def test_missing_geoid_grid_is_refused(tmp_path, monkeypatch):
