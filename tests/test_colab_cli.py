@@ -10,6 +10,7 @@ def test_netrc_upload_sends_one_machine_and_cleans_up(tmp_path, monkeypatch):
     home.mkdir()
     (home / ".netrc").write_text("machine other.example login a password SECRET1\n"
                                  "machine urs.earthdata.nasa.gov login u password SECRET2\n")
+    (home / ".netrc").chmod(0o600)
     monkeypatch.setattr(Path, "home", lambda: home)
     seen, sent_code = {}, []
 
@@ -25,3 +26,16 @@ def test_netrc_upload_sends_one_machine_and_cleans_up(tmp_path, monkeypatch):
     assert seen["text"] == "machine urs.earthdata.nasa.gov login u password SECRET2\n"
     assert seen["mode"] == 0o600 and not seen["path"].exists()
     assert all("SECRET" not in c for c in sent_code)
+
+
+def test_netrc_multiline_entry_is_sent_whole(tmp_path, monkeypatch):
+    home = tmp_path / "home"
+    home.mkdir()
+    (home / ".netrc").write_text("machine urs.earthdata.nasa.gov\n    login u\n    password SECRET2\n")
+    (home / ".netrc").chmod(0o600)
+    monkeypatch.setattr(Path, "home", lambda: home)
+    seen = {}
+    monkeypatch.setattr(C, "colab", lambda *a, stdin=None, timeout=None: seen.setdefault("t", Path(a[3]).read_text()) and 0)
+    monkeypatch.setattr(C, "vm_python", lambda code, session, timeout=0: 0)
+    C.cmd_netrc("s", "urs.earthdata.nasa.gov")
+    assert seen["t"] == "machine urs.earthdata.nasa.gov login u password SECRET2\n"
