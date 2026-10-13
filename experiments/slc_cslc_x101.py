@@ -182,16 +182,20 @@ def done_dates(dest: Path) -> set[str]:
             for m in [DATE_RE.search(f.name)] if m}
 
 
-def build_safes(granules: list[str], safe_dir: Path) -> None:
+def build_safes(groups: list[list[str] | str], safe_dir: Path) -> None:
+    """One SAFE per date from that date's burst granules. Cross-pol needs the co-pol burst in the same SAFE:
+    COMPASS builds its burst map from VV even when processing VH (seen on the VM 2026-10-13)."""
     safe_dir.mkdir(parents=True, exist_ok=True)
-    for g in granules:
-        date = DATE_RE.search(g).group(1)
+    for group in groups:
+        group = [group] if isinstance(group, str) else list(group)
+        g = " + ".join(group)
+        date = DATE_RE.search(group[0]).group(1)
         if glob.glob(str(safe_dir / f"*{date}*.SAFE")):
             continue
         for attempt in range(1, TRIES + 1):        # a download hung for 20+ min on the VM (2026-10-13): bound it
             try:
-                sh(["timeout", str(BURST_TIMEOUT_S), "burst2safe", g, "--all-anns", "--output-dir", safe_dir],
-                   cwd=safe_dir)
+                sh(["timeout", str(BURST_TIMEOUT_S * len(group)), "burst2safe", *group, "--all-anns",
+                    "--output-dir", safe_dir], cwd=safe_dir)
                 break
             except subprocess.CalledProcessError:
                 for f in list(safe_dir.glob(f"*{date}*.SAFE")):          # a half-built SAFE is not a SAFE
@@ -301,7 +305,12 @@ def main(argv: list[str] | None = None) -> None:
         for i in range(0, len(todo), BATCH):
             batch = todo.iloc[i:i + BATCH]
             safe_dir = WORK / t / f"batch_{i // BATCH:02d}" / "safe"
-            build_safes(batch.granule.tolist(), safe_dir)
+            if a.pol == "VV":
+                groups = batch.granule.tolist()
+            else:                          # cross-pol: the date's VV burst goes into the same SAFE
+                vv = inv[(inv.track == t) & (inv.polarization == "VV")].set_index("date").granule
+                groups = [[vv[d], gr] for d, gr in zip(batch.date, batch.granule) if d in vv.index]
+            build_safes(groups, safe_dir)
             work, _, used = geocode(jpl_id(tracks[t]["burst_id"]), safe_dir, dem_file, db, lonlat_box, a.pol,
                                     corrections=True)
             rows += keep(work, dest, t, used)
