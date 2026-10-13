@@ -120,3 +120,10 @@ def test_dem_check_wants_the_copernicus_heights(tmp_path):
         else:
             with pytest.raises(RuntimeError, match="does not hold the Copernicus heights"):
                 M.check_dem(tmp_path / name)
+
+
+def test_vh_goes_to_its_own_folder(monkeypatch, tmp_path):
+    import insar_wetlands.paths as paths
+    monkeypatch.setattr(paths, "resolve_drive", lambda *a, **k: tmp_path)
+    assert M.drive_dest("ascending", "VV") == tmp_path / "slc_pilot" / "2021" / "cslc" / "ascending"
+    assert M.drive_dest("ascending", "VH") == tmp_path / "slc_pilot" / "2021" / "cslc_vh" / "ascending"
