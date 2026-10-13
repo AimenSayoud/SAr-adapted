@@ -127,3 +127,14 @@ def test_vh_goes_to_its_own_folder(monkeypatch, tmp_path):
     monkeypatch.setattr(paths, "resolve_drive", lambda *a, **k: tmp_path)
     assert M.drive_dest("ascending", "VV") == tmp_path / "slc_pilot" / "2021" / "cslc" / "ascending"
     assert M.drive_dest("ascending", "VH") == tmp_path / "slc_pilot" / "2021" / "cslc_vh" / "ascending"
+
+
+def test_build_safes_passes_a_dates_granules_together(tmp_path, monkeypatch):
+    calls = []
+    monkeypatch.setattr(M, "sh", lambda cmd, **kw: calls.append([str(c) for c in cmd]))
+    M.build_safes([["S1_374052_IW1_20210101T163611_VV_3243-BURST", "S1_374052_IW1_20210101T163611_VH_3243-BURST"]],
+                  tmp_path)
+    assert len(calls) == 1
+    cmd = calls[0]
+    assert "burst2safe" in cmd and cmd.count("--all-anns") == 1
+    assert any("_VV_" in c for c in cmd) and any("_VH_" in c for c in cmd)
