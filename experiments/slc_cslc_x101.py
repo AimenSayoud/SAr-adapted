@@ -44,6 +44,7 @@ EPSG, XPOST, YPOST = 32633, 5, 10
 MARGIN_M = 200.0          # AOI margin around the cube grid (m)
 DEM_MARGIN_DEG = 0.05
 GEOID_N_RANGE = (25.0, 45.0)   # EGM2008 undulation around Rzecin is about 34 m
+CHUNK = 32                     # HDF5 chunk for every CSLC dataset (small AOI)
 DEM_TOL_M = 3.0                # ellipsoid DEM vs cube orthometric + N on the mat
 BATCH = 8                 # dates per batch: disk stays small, a disconnect loses at most one batch
 DATE_RE = re.compile(r"(20\d{6})")
@@ -191,13 +192,18 @@ def build_safes(granules: list[str], safe_dir: Path) -> None:
 
 
 def fix_runconfig(path: Path) -> None:
-    """s1_geocode_stack.py takes -p as a list and writes ``polarization: [co-pol]``, which COMPASS's own schema
-    (s1_cslc_geo.yaml) rejects — it wants the string. Checked 2026-10-13 on COMPASS 0.5.6: every date failed."""
+    """Two COMPASS 0.5.6 issues met on the VM (2026-10-13): s1_geocode_stack.py writes ``polarization: [co-pol]``,
+    which COMPASS's own schema rejects (it wants the string); and its fixed 128 x 128 chunks exceed the small AOI's
+    calibration LUT grids."""
     cfg = yaml.safe_load(path.read_text())
-    proc = cfg["runconfig"]["groups"]["processing"]
+    groups = cfg["runconfig"]["groups"]
+    proc = groups["processing"]
     if isinstance(proc.get("polarization"), list):
         proc["polarization"] = proc["polarization"][0]
-        path.write_text(yaml.safe_dump(cfg, sort_keys=False))
+    # COMPASS chunks every dataset 128 x 128; over a 6 km AOI the geocoded calibration LUTs are smaller than that and
+    # h5py refuses the chunk (seen on the VM: (128, 128) vs (110, 58))
+    groups.setdefault("output", {})["chunk_size"] = [CHUNK, CHUNK]
+    path.write_text(yaml.safe_dump(cfg, sort_keys=False))
 
 
 def geocode(bid: str, safe_dir: Path, dem_file: Path, db: Path, lonlat_box, pol: str,
