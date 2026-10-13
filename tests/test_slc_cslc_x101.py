@@ -101,8 +101,8 @@ def test_runconfig_polarization_list_becomes_string(tmp_path):
     assert d["runconfig"]["name"] == "cslc_s1_workflow_default"
 
 
-def test_dem_check_refuses_orthometric(tmp_path, monkeypatch):
-    """A DEM equal to the cube's orthometric heights (no geoid added) must be refused; one with N added passes."""
+def test_dem_check_wants_the_copernicus_heights(tmp_path):
+    """The chain geolocates correctly only on the delivered (orthometric) heights: equal passes, +N is refused."""
     import numpy as np
     import pytest
     import rasterio
@@ -111,13 +111,12 @@ def test_dem_check_refuses_orthometric(tmp_path, monkeypatch):
     from insar_wetlands.cube import cube_root
     st = xr.open_dataset(cube_root() / "silver" / "static_40m.nc")
     ortho = float(np.nanmedian(st.dem_glo30_m.where(st.zone == 1)))
-    monkeypatch.setattr(M, "geoid_undulation", lambda lon, lat: np.full(np.shape(lon), 34.5))
-    for name, val, ok in (("ortho.tif", ortho, False), ("ell.tif", ortho + 34.5, True)):
+    for name, val, ok in (("ortho.tif", ortho, True), ("ell.tif", ortho + 34.5, False)):
         with rasterio.open(tmp_path / name, "w", driver="GTiff", height=200, width=200, count=1, dtype="float32",
                            crs="EPSG:4326", transform=from_origin(16.25, 52.80, 0.001, 0.0005)) as w:
             w.write(np.full((200, 200), val, "float32"), 1)
         if ok:
-            assert abs(M.check_ellipsoid(tmp_path / name)) < M.DEM_TOL_M
+            assert abs(M.check_dem(tmp_path / name)) < M.DEM_TOL_M
         else:
-            with pytest.raises(RuntimeError, match="not ellipsoidal"):
-                M.check_ellipsoid(tmp_path / name)
+            with pytest.raises(RuntimeError, match="does not hold the Copernicus heights"):
+                M.check_dem(tmp_path / name)
