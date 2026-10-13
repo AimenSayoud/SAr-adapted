@@ -1681,3 +1681,21 @@ entries:
     outputs:
     - drive:slc_pilot/2021/cslc
 
+  bias_precheck_x097:
+    kind: experiment
+    title: X-097 — pre-check for X-085, do the mat and P6 meet what the short-pair bias corrections need (coherent connections, closure amplitude, consistent unwrapping, long pairs)
+    status: current
+    runs_on: mac
+    code: experiments/bias_precheck_x097.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/bias_precheck_x097.py
+    tickets:
+    - X-097
+    chains:
+    - insar-full-test
+    inputs:
+    - cube:silver/ifg_*_*.nc
+    - cube:silver/static_40m.nc
+    - hub:08_deliverables/field_first/plot_pixels.csv
+    outputs:
+    - hub:08_deliverables/insar_full_test/bias_precheck
