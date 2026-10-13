@@ -1736,7 +1736,7 @@ entries:
   segment_tie_x093:
     kind: experiment
     title: X-093(a) — cut the real P6 chain where its phase leaves the water-table model (or frozen/snow pairs), tie segments to the model
-    status: current
+    status: open
     runs_on: mac
     code: experiments/segment_tie_x093.py
     code_ref: HEAD
