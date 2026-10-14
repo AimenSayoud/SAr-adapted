@@ -1930,7 +1930,7 @@ entries:
   matched_wt_x094:
     kind: experiment
     title: X-094 — long HyP3 pairs matched (or not) on the mat's water-table state, coherence above the open-water floor, P6 phase vs laser
-    status: open
+    status: finished
     runs_on: mac
     code: experiments/matched_wt_x094.py
     code_ref: HEAD
