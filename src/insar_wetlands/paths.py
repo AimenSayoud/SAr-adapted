@@ -122,7 +122,7 @@ def s1_local_root() -> Path:
 
 
 def s1_crops(period: str, track: str, drive: Path | None = None) -> Path:
-    """The folder of HyP3 crops (one sub-folder per pair) for a period (``2017_2019`` … ``2026``, ``annual``) and track.
+    """The folder of HyP3 crops (one sub-folder per pair) for a period (``2017_2019`` … ``2026``, ``annual``, ``matched_wt``) and track.
     2022–2024 lives in the Drive working area (``hyp3_cropped`` / ``hyp3_cropped_descending``); the rest under
     ``s1_local_root()/s1_<period>/hyp3_cropped_<track>``."""
     if period in S1_PERIODS_ON_DRIVE:
