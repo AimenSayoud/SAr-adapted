@@ -3,7 +3,7 @@ one set of units; flags as columns. Called by ``pipelines/cube_build.py harmonis
 
 | product | content |
 |---|---|
-| ``ifg_<period>_<track>.nc`` | every HyP3 pair on disk (period ``annual``: D-027's winter 1- and 2-year pairs): wrapped / unwrapped phase (rad, unreferenced), coherence, connected component; look-vector angles and DEM |
+| ``ifg_<period>_<track>.nc`` | every HyP3 pair on disk (period ``annual``: D-027's winter 1- and 2-year pairs; ``matched_wt``: X-094's long pairs matched or not on the water table): wrapped / unwrapped phase (rad, unreferenced), coherence, connected component; look-vector angles and DEM |
 | ``ifg_2026_<track>_20m.nc`` | the same at 20 m (D-024) |
 | ``rtc_<track>.nc`` | γ⁰ VV, VH (dB), VH/VV, RVI, platform and exact time, 2017 → |
 | ``s2_40m.nc``, ``s2_plots.csv.gz`` | NDVI, NDRE, NDMI, NDWI, MNDWI (mean, SD, valid share), snow share, every scene |
@@ -38,8 +38,9 @@ REPO = Path(__file__).resolve().parents[3]
 TRACKS = ("ascending", "descending")
 CUBE_START = "2017-01-01"                                 # first day of every time series (C-060; was 2020-01-01)
 PERIODS = ("2017_2019", "2020_2021", "2022_2024", "2025", "2026")
-# Interferogram stacks: the date periods plus D-027's winter annual / two-year pairs, which span periods.
-IFG_SETS = PERIODS + ("annual",)
+# Interferogram stacks: the date periods plus D-027's winter annual / two-year pairs and X-094's long pairs matched (or
+# not) on the water-table state (D-029), which span periods.
+IFG_SETS = PERIODS + ("annual", "matched_wt")
 RTC_FILES = {"ascending": ["rtc_dualpol_2017_2019.nc", "rtc_dualpol_2020_2024.nc", "rtc_dualpol_2025_2025.nc",
                            "rtc_dualpol_2026_2026.nc"],
              "descending": ["rtc_dualpol_2017_2019_descending.nc", "rtc_dualpol_2020_2024_descending.nc",
