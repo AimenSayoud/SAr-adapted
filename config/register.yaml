@@ -1980,3 +1980,20 @@ entries:
     - hub:08_deliverables/insar_full_test/baseline/winters.csv
     outputs:
     - hub:08_deliverables/insar_full_test/winter_forward
+  winter_physics_x116:
+    kind: experiment
+    title: X-116 — the buoyancy coefficient against interval length (regression dilution) and whether the long-interval coefficient carries the mat's winter level step at P6
+    status: open
+    runs_on: mac
+    code: experiments/winter_physics_x116.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/winter_physics_x116.py
+    tickets:
+    - X-116
+    chains:
+    - mat-method-v4
+    inputs:
+    - cube:silver/site_hourly.csv.gz
+    - hub:08_deliverables/insar_full_test/baseline/winters.csv
+    outputs:
+    - hub:08_deliverables/insar_full_test/winter_physics
