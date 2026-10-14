@@ -1983,7 +1983,7 @@ entries:
   winter_physics_x116:
     kind: experiment
     title: X-116 — the buoyancy coefficient against interval length (regression dilution) and whether the long-interval coefficient carries the mat's winter level step at P6
-    status: open
+    status: finished
     runs_on: mac
     code: experiments/winter_physics_x116.py
     code_ref: HEAD
