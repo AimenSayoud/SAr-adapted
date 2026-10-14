@@ -1945,3 +1945,21 @@ entries:
     - hub:06_data/local_small/s1_matched_wt
     outputs:
     - hub:08_deliverables/insar_full_test/matched_wt
+  spams_baseline_x112:
+    kind: experiment
+    title: X-112 — SPAMS (meteorology-only soft-soil model) as a published baseline for the mat's prior at P6, year-blocked against buoyancy and the ERA5 bucket
+    status: open
+    runs_on: mac
+    code: experiments/spams_baseline_x112.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/spams_baseline_x112.py
+    tickets:
+    - X-112
+    chains:
+    - mat-method-v4
+    inputs:
+    - cube:silver/site_hourly.csv.gz
+    - cube:silver/s2_plots.csv.gz
+    - cube:gold/plots_acq.csv.gz
+    outputs:
+    - hub:08_deliverables/insar_full_test/spams_baseline
