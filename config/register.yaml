@@ -1966,7 +1966,7 @@ entries:
   winter_forward_x111:
     kind: experiment
     title: X-111 — forward model first; can buoyancy on the logger, the ERA5 bucket or SPAMS carry the mat's level across winters at P6, where the 6-day chain loses it
-    status: open
+    status: finished
     runs_on: mac
     code: experiments/winter_forward_x111.py
     code_ref: HEAD
