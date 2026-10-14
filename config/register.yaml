@@ -1948,7 +1948,7 @@ entries:
   spams_baseline_x112:
     kind: experiment
     title: X-112 — SPAMS (meteorology-only soft-soil model) as a published baseline for the mat's prior at P6, year-blocked against buoyancy and the ERA5 bucket
-    status: open
+    status: finished
     runs_on: mac
     code: experiments/spams_baseline_x112.py
     code_ref: HEAD
