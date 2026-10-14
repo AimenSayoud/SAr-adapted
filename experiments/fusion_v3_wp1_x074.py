@@ -53,12 +53,14 @@ def daily() -> pd.DataFrame:
                       "frozen": truthy(h.flag_frozen_soil_om).resample("1D").mean()})
     d.loc[d.laser_n < 12, "laser_cm"] = np.nan
     d.index = d.index.tz_convert(None).normalize()
-    s2 = pd.read_csv(S / "s2_plots.csv.gz", parse_dates=["time_utc"])
+    s2 = pd.read_csv(S / "s2_plots.csv.gz")
+    s2["time_utc"] = pd.to_datetime(s2.time_utc, utc=True, format="ISO8601")   # mixed precision in the cube
     s2 = s2[(s2["plot"] == "P6") & (s2.valid_3x3 >= 0.5)].copy()
     s2["day"] = s2.time_utc.dt.tz_convert(None).dt.normalize()
     nd = s2.groupby("day").ndre_3x3.mean()
     d["ndre"] = nd.reindex(d.index).interpolate(limit=10, limit_direction="both")
-    a = pd.read_csv(G / "plots_acq.csv.gz", low_memory=False, parse_dates=["time_utc"])
+    a = pd.read_csv(G / "plots_acq.csv.gz", low_memory=False)
+    a["time_utc"] = pd.to_datetime(a.time_utc, utc=True, format="ISO8601")
     a = a[a["plot"] == "P6"].copy()
     a["day"] = a.time_utc.dt.tz_convert(None).dt.normalize()
     vv = a.groupby(["day", "track"]).vv_db_3x3.mean().unstack()
