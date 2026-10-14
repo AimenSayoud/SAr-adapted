@@ -1997,3 +1997,21 @@ entries:
     - hub:08_deliverables/insar_full_test/baseline/winters.csv
     outputs:
     - hub:08_deliverables/insar_full_test/winter_physics
+  memory_response_x117:
+    kind: experiment
+    title: X-117 — a memory-response forward model of the mat (buoyancy on an exponentially smoothed water table plus a laser-drift rate) — interval invariance and the winter step at P6
+    status: open
+    runs_on: mac
+    code: experiments/memory_response_x117.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/memory_response_x117.py
+    tickets:
+    - X-117
+    chains:
+    - mat-method-v4
+    inputs:
+    - cube:silver/site_hourly.csv.gz
+    - hub:08_deliverables/insar_full_test/baseline/winters.csv
+    - hub:08_deliverables/insar_full_test/winter_physics/winter_steps.csv
+    outputs:
+    - hub:08_deliverables/insar_full_test/memory_response
