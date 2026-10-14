@@ -1963,3 +1963,20 @@ entries:
     - cube:gold/plots_acq.csv.gz
     outputs:
     - hub:08_deliverables/insar_full_test/spams_baseline
+  winter_forward_x111:
+    kind: experiment
+    title: X-111 — forward model first; can buoyancy on the logger, the ERA5 bucket or SPAMS carry the mat's level across winters at P6, where the 6-day chain loses it
+    status: open
+    runs_on: mac
+    code: experiments/winter_forward_x111.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/winter_forward_x111.py
+    tickets:
+    - X-111
+    chains:
+    - mat-method-v4
+    inputs:
+    - cube:silver/site_hourly.csv.gz
+    - hub:08_deliverables/insar_full_test/baseline/winters.csv
+    outputs:
+    - hub:08_deliverables/insar_full_test/winter_forward
