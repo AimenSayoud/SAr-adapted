@@ -2015,3 +2015,22 @@ entries:
     - hub:08_deliverables/insar_full_test/winter_physics/winter_steps.csv
     outputs:
     - hub:08_deliverables/insar_full_test/memory_response
+  relevel_x113:
+    kind: experiment
+    title: X-113 — spring re-levelling of the 6-day chain at P6 with declared forward-model anchors, scored per datum against the laser
+    status: open
+    runs_on: mac
+    code: experiments/relevel_x113.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/relevel_x113.py
+    tickets:
+    - X-113
+    chains:
+    - mat-method-v4
+    inputs:
+    - cube:silver/ifg_2020_2021_ascending.nc
+    - cube:silver/site_hourly.csv.gz
+    - hub:08_deliverables/insar_full_test/winter_forward/steps.csv
+    - hub:08_deliverables/insar_full_test/winter_physics/winter_steps.csv
+    outputs:
+    - hub:08_deliverables/insar_full_test/relevel
