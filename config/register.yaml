@@ -1927,3 +1927,21 @@ entries:
     - hub:08_deliverables/field_first/plot_pixels.csv
     outputs:
     - hub:08_deliverables/insar_full_test/slc_vh
+  matched_wt_x094:
+    kind: experiment
+    title: X-094 — long HyP3 pairs matched (or not) on the mat's water-table state, coherence above the open-water floor, P6 phase vs laser
+    status: open
+    runs_on: mac
+    code: experiments/matched_wt_x094.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/matched_wt_x094.py
+    tickets:
+    - X-094
+    chains:
+    - insar-full-test
+    inputs:
+    - cube:silver/ifg_matched_wt_*.nc
+    - cube:silver/static_40m.nc
+    - hub:06_data/local_small/s1_matched_wt
+    outputs:
+    - hub:08_deliverables/insar_full_test/matched_wt
