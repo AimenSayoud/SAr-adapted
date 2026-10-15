@@ -1,0 +1,117 @@
+"""X-120 refine — T75 at 1 m: the HyP3 interferogram offset measured pair by pair against our right-placed 2021 SLC
+coherence, set against the half geocoding cell the processing code predicts. Decides the shift of the cube correction.
+
+Rule: ``preregistration/X-120_refine.yaml``. Reads the CSLCs (``INSAR_DRIVE_ROOT``) and the cube; writes to the hub,
+``insar_full_test/hyp3_half_cell_confirm/refine/``.
+
+    INSAR_DRIVE_ROOT=<hub>/05_code/local/drive_mirror make run E=hyp3_half_cell_refine_x120
+"""
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+import xarray as xr
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import slc_qc_x101 as Q  # noqa: E402  (CSLC reader, our 40 m looks, HyP3 pairs)
+
+from insar_wetlands import placement as P  # noqa: E402
+from insar_wetlands.cube import cube_root  # noqa: E402
+from insar_wetlands.paths import hub_root, resolve_drive  # noqa: E402
+from insar_wetlands.scoring import assert_preregistered  # noqa: E402
+
+HUB = hub_root()
+FT = HUB / "08_deliverables" / "insar_full_test"
+OUT = FT / "hyp3_half_cell_confirm" / "refine"
+PREREG = FT / "preregistration" / "X-120_refine.yaml"
+COARSE = np.arange(-40.0, 40.01, 5.0)
+FINE = np.arange(-6.0, 6.01, 1.0)
+TOL = 3.0
+LAT_SOUTH, LAT_SITE = 52.6, 52.763
+
+
+def best(hy: np.ndarray, ours: np.ndarray, x, y) -> tuple[float, float, float, float]:
+    score = lambda dx, dy: P.corr(P.relocate(hy, x, y, dx, dy), ours)  # noqa: E731
+    cdx, cdy, _, _ = P.best_shift(score, COARSE)
+    sx = cdx + FINE
+    sy = cdy + FINE
+    surf = np.array([[score(a, b) for a in sx] for b in sy])
+    k = np.unravel_index(np.nanargmax(surf), surf.shape)
+    return float(sx[k[1]]), float(sy[k[0]]), float(surf[k]), float(score(0.0, 0.0))
+
+
+def main() -> None:
+    assert_preregistered(PREREG, [OUT / "verdict.csv"])
+    OUT.mkdir(parents=True, exist_ok=True)
+    st = xr.open_dataset(cube_root() / "silver" / "static_40m.nc")
+    gx, gy = st.x.values, st.y.values
+    pdx, pdy = P.hyp3_isce2_predicted_shift(30.0, LAT_SOUTH, LAT_SITE)
+    rows = []
+    for track in ("ascending", "descending"):
+        folder = resolve_drive() / "slc_pilot" / "2021" / "cslc" / track
+        files = {Q.DATE_RE.search(f.name).group(1): f for f in sorted(folder.glob("*.h5"))
+                 if "static" not in f.name.lower() and Q.DATE_RE.search(f.name)}
+        dates = sorted(files)
+        hy = Q.hyp3_pairs(track)
+        for a, b in zip(dates[:-1], dates[1:]):
+            if (a, b) not in hy:
+                continue
+            s1, x, y = Q.cslc(files[a])
+            s2, _, _ = Q.cslc(files[b])
+            rr, cc = Q.axis_index(x, y, gx, gy)
+            _, coh = Q.look(s1, s2, rr, cc, (len(gy), len(gx)))
+            dx, dy, r, r0 = best(np.asarray(hy[(a, b)][1], float), coh, gx, gy)
+            rp = P.corr(P.relocate(np.asarray(hy[(a, b)][1], float), gx, gy, pdx, pdy), coh)
+            rows.append({"track": track, "t1": a, "t2": b, "dx_m": dx, "dy_m": dy, "r_best": r, "r_predicted": rp,
+                         "r_unshifted": r0})
+            print(track, a, b, dx, dy, round(r, 3), flush=True)
+    p = pd.DataFrame(rows)
+    rng = np.random.default_rng(0)
+    V = []
+    for track, g in p.groupby("track"):
+        rec = {"track": track, "pairs": len(g), "pred_dx_m": round(pdx, 2), "pred_dy_m": round(pdy, 2)}
+        ok = len(g) >= 30
+        for ax, pr in (("dx_m", pdx), ("dy_m", pdy)):
+            v = g[ax].to_numpy()
+            med = float(np.median(v))
+            boot = np.median(rng.choice(v, (2000, len(v)), replace=True), 1)
+            lo, hi = np.percentile(boot, [2.5, 97.5])
+            rec.update({f"median_{ax}": med, f"ci_lo_{ax}": float(lo), f"ci_hi_{ax}": float(hi)})
+            ok &= abs(med - pr) <= TOL and lo <= pr + TOL and hi >= pr - TOL
+        rec.update({"r_best_median": float(g.r_best.median()), "r_predicted_median": float(g.r_predicted.median()),
+                    "r_unshifted_median": float(g.r_unshifted.median()), "consistent_with_prediction": bool(ok)})
+        V.append(rec)
+    V = pd.DataFrame(V)
+    both = bool(V.consistent_with_prediction.all()) and len(V) == 2
+    V["outcome"] = ("predicted shift confirmed: correct by the prediction" if both
+                    else "not confirmed: correct by the measured per-track median (data-fitted)")
+    p.to_csv(OUT / "pairs.csv", index=False)
+    V.to_csv(OUT / "verdict.csv", index=False)
+    md = lambda df: "\n".join(["| " + " | ".join(map(str, df.columns)) + " |", "|" + "---|" * len(df.columns)] +  # noqa: E731
+                              ["| " + " | ".join(f"{x:.2f}" if isinstance(x, float) else str(x) for x in r) + " |"
+                               for r in df.itertuples(index=False)])
+    p["month"] = p.t1.str[4:6]
+    by_m = p.groupby(["track", "month"])[["dx_m", "dy_m"]].median().reset_index()
+    (OUT / "README.md").write_text(f"""# X-120 refine — the HyP3 offset at 1 m against our right-placed SLC coherence (generated)
+
+Generated by `experiments/hyp3_half_cell_refine_x120.py`; do not edit. Rule: `../../preregistration/X-120_refine.yaml`.
+Per consecutive 2021 pair shared by HyP3 and the X-101 CSLCs: the shift (dx east, dy north; HyP3's content of a cell
+labelled L lies at L + (dx, dy)) that best correlates HyP3's coherence, moved back bilinearly, with our 40 m unfiltered
+coherence; 5 m then 1 m steps. Prediction: half the hyp3_isce2/ISCE2 geocoding cell (`placement.hyp3_isce2_predicted_shift`).
+
+## Verdict
+
+{md(V)}
+
+## By month of the first date (medians)
+
+{md(by_m)}
+""", encoding="utf-8")
+    print(V.to_string(index=False))
+
+
+if __name__ == "__main__":
+    main()
