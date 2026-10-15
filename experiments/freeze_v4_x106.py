@@ -133,8 +133,8 @@ def attribution(frozen: dict, W: pd.DataFrame) -> pd.DataFrame:
     chain carries outside the re-levelled span (v4 re-levels between its own epochs, which cannot depend on the laser)."""
     d, R = SB.table(), spams_level(frozen)
     out = []
-    for r in W[W.estimate == "v4"].itertuples(index=False):
-        f, t, y = pd.Timestamp(r[2]), pd.Timestamp(r[3]), int(r.winter[:4])
+    for _, r in W[W.estimate == "v4"].iterrows():
+        f, t, y = pd.Timestamp(r["from"]), pd.Timestamp(r["to"]), int(r.winter[:4])
         valid = (d.dh_mm.notna() & ~d.frozen_win & d.year.isin(DESIGN) & ~d.year.isin({y, y + 1})).to_numpy()
         P, E = d.rain_era5_mm.to_numpy(), d.et0_mm.to_numpy()
         par = spams.fit(P, E, d.dh_mm.to_numpy(), valid, LAG)
