@@ -2106,3 +2106,21 @@ entries:
     - cube:silver/static_40m.nc
     outputs:
     - hub:08_deliverables/insar_full_test/vv_vh
+  half_cell_p6_x118:
+    kind: experiment
+    title: X-118 — the P6 chain read at the half-cell-corrected HyP3 position (T75) against the labelled cell
+    status: open
+    runs_on: mac
+    code: experiments/half_cell_p6_x118.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/half_cell_p6_x118.py
+    tickets:
+    - X-118
+    chains:
+    - mat-method-v4
+    inputs:
+    - cube:silver/ifg_2020_2021_ascending.nc
+    - cube:gold/plots_pair.csv.gz
+    - hub:08_deliverables/insar_full_test/hyp3_placement/decisive/verdict.csv
+    outputs:
+    - hub:08_deliverables/insar_full_test/half_cell_p6
