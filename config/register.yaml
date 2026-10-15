@@ -2091,7 +2091,7 @@ entries:
   vv_vh_x115:
     kind: experiment
     title: X-115 — VV and VH 6-day phase combined (inverse-variance) at P6 on the 2021 CSLCs, against VV alone
-    status: open
+    status: finished
     runs_on: mac
     code: experiments/vv_vh_x115.py
     code_ref: HEAD
