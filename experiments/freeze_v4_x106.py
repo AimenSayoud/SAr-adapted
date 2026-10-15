@@ -127,6 +127,25 @@ def report(frozen: dict, prot: Protocol) -> tuple[pd.DataFrame, pd.DataFrame]:
     return pd.DataFrame(rows), pd.concat(wins, ignore_index=True)
 
 
+def attribution(frozen: dict, W: pd.DataFrame) -> pd.DataFrame:
+    """Why v4's in-sample winter steps differ from X-119's A: per scored winter, SPAMS's step between the scored (laser)
+    epochs with the frozen fit and with X-119's fit (without the winter's two years), and the part of v4's step the
+    chain carries outside the re-levelled span (v4 re-levels between its own epochs, which cannot depend on the laser)."""
+    d, R = SB.table(), spams_level(frozen)
+    out = []
+    for r in W[W.estimate == "v4"].itertuples(index=False):
+        f, t, y = pd.Timestamp(r[2]), pd.Timestamp(r[3]), int(r.winter[:4])
+        valid = (d.dh_mm.notna() & ~d.frozen_win & d.year.isin(DESIGN) & ~d.year.isin({y, y + 1})).to_numpy()
+        P, E = d.rain_era5_mm.to_numpy(), d.et0_mm.to_numpy()
+        par = spams.fit(P, E, d.dh_mm.to_numpy(), valid, LAG)
+        Rx = pd.Series(spams.reversible(P, E, par["x_p"], par["x_e"], par["tau"]), index=d.index)
+        out.append({"track": r.track, "winter": r.winter, "laser_change_mm": r.laser_change_mm,
+                    "v4_change_mm": r.insar_change_mm, "spams_frozen_scored_mm": R[t] - R[f],
+                    "spams_without_winter_years_mm": Rx[t] - Rx[f],
+                    "chain_outside_relevel_mm": r.insar_change_mm - (R[t] - R[f])})
+    return pd.DataFrame(out)
+
+
 def main() -> None:
     assert_preregistered(PREREG, [OUT / "summary.csv"])
     OUT.mkdir(parents=True, exist_ok=True)
@@ -136,7 +155,8 @@ def main() -> None:
     summ = (S.groupby(["estimate", "track"]).rmse_detrended_mm.median().rename("season_rmse_median_mm").to_frame()
             .join(W.assign(ae=W.difference_mm.abs()).groupby(["estimate", "track"]).ae.mean().rename("winter_mae_mm"))
             .reset_index())
-    for name, df in (("seasons", S), ("winters", W), ("summary", summ)):
+    A = attribution(frozen, W)
+    for name, df in (("seasons", S), ("winters", W), ("summary", summ), ("attribution", A)):
         df.to_csv(OUT / f"{name}.csv", index=False)
     md = lambda df: "\n".join(["| " + " | ".join(map(str, df.columns)) + " |", "|" + "---|" * len(df.columns)] +
                               ["| " + " | ".join(f"{x:.2f}" if isinstance(x, float) else str(x) for x in r) + " |"
@@ -154,6 +174,15 @@ years. Vertical mm against the laser.
 ## Winter steps
 
 {md(W[['track', 'estimate', 'winter', 'laser_change_mm', 'insar_change_mm', 'difference_mm']])}
+
+## Attribution against X-119's A
+
+X-119's A re-levelled between the scored (laser) epochs with a SPAMS fit made without the winter's two years. The frozen
+v4 re-levels between its own chain epochs (the protocol's winter, read on the chain: it cannot depend on the laser) with
+one SPAMS fit on all design years. `chain_outside_relevel_mm` is what the chain adds between the scored and the
+re-levelled epochs; the two SPAMS columns show how much the anchor's step depends on the years it is fitted on.
+
+{md(A)}
 """, encoding="utf-8")
     print(summ.to_string(index=False))
     print(f"frozen: {PARAMS}")
