@@ -94,7 +94,46 @@ def load_layer(cropped_root: str | Path, layer: str,
     sec = pd.to_datetime([p.split("_")[1] for p in kept])
     stack = stack.assign_coords(ref_date=("pair", ref), sec_date=("pair", sec))
     stack.name = layer
+    if hyp3_relocation_on() and layer in _hyp3_kinds():
+        stack = _relocate_hyp3(stack, layer, tif)
     return stack
+
+
+# ---------------------------------------------------------------- X-120: the HyP3 content back under its labels
+RELOCATE_ENV = "RZECIN_HYP3_RELOCATE"
+
+
+def hyp3_relocation_on() -> bool:
+    """Off by default, so finished entries reproduce from the crops as delivered; ``RZECIN_HYP3_RELOCATE=1`` makes every
+    HyP3 crop read through ``load_layer`` / ``load_static_layer`` relocated under its labels (X-120, DECISIONS
+    2026-10-15). The cube is built relocated either way."""
+    import os
+    return os.environ.get(RELOCATE_ENV, "") not in ("", "0")
+
+
+def _hyp3_kinds() -> dict:
+    from .placement import HYP3_LAYER_KIND
+    return HYP3_LAYER_KIND
+
+
+def hyp3_track_of(tif: Path) -> str:
+    """The track of a HyP3 burst product from its file name (``S1_<burst>_IW..``) and the configured burst ids."""
+    from .config import load_config
+    tracks = load_config().get("sentinel1", {}).get("tracks", {})
+    for name, t in tracks.items():
+        bid = str(t.get("burst_id", "")).split("_")
+        if len(bid) > 1 and f"S1_{bid[1]}_" in Path(tif).name:
+            return name
+    raise ValueError(f"no configured track for {Path(tif).name}")
+
+
+def _relocate_hyp3(da: xr.DataArray, layer: str, tif: Path) -> xr.DataArray:
+    from .placement import HYP3_CONTENT_SHIFT_M, relocate
+    res = int(round(abs(float(da.x[1] - da.x[0]))))
+    dx, dy = HYP3_CONTENT_SHIFT_M[res][hyp3_track_of(tif)]
+    kind = _hyp3_kinds()[layer]
+    vals = (da.values > 0).astype(float) if kind == "mask" else da.values.astype(float)
+    return da.copy(data=relocate(vals, da.x.values, da.y.values, dx, dy, kind=kind)).astype("float32")
 
 
 def load_static_layer(cropped_root: str | Path, layer: str) -> xr.DataArray:
@@ -105,8 +144,10 @@ def load_static_layer(cropped_root: str | Path, layer: str) -> xr.DataArray:
     for pair in list_pairs(root):
         tif = _find_layer(root / pair, layer)
         if tif is not None:
-            return rioxarray.open_rasterio(tif, masked=True).squeeze(
-                "band", drop=True)
+            da = rioxarray.open_rasterio(tif, masked=True).squeeze("band", drop=True)
+            if hyp3_relocation_on() and layer in _hyp3_kinds():
+                da = _relocate_hyp3(da, layer, tif)
+            return da
     raise FileNotFoundError(f"couche '{layer}' absente de {root}")
 
 
