@@ -2073,7 +2073,7 @@ entries:
   placement_decisive_x109:
     kind: experiment
     title: X-109 decisive test — the HyP3 interferogram grid against our right-placed 2021 SLC coherence, per pair, both tracks
-    status: open
+    status: finished
     runs_on: mac
     code: experiments/placement_decisive_x109.py
     code_ref: HEAD
