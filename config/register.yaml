@@ -2166,7 +2166,7 @@ entries:
   hyp3_half_cell_x120:
     kind: experiment
     title: X-120 — is the HyP3 half-cell shift a labelling error? Coherence and the DEM layer against LiDAR and WorldCover, every year set and track, against the shift predicted from the processing code
-    status: open
+    status: finished
     runs_on: mac
     code: experiments/hyp3_half_cell_x120.py
     code_ref: HEAD
@@ -2184,7 +2184,7 @@ entries:
   hyp3_half_cell_refine_x120:
     kind: experiment
     title: X-120 refine — T75 at 1 m, the HyP3 interferogram offset against our right-placed 2021 SLC coherence, set against the code's predicted half geocoding cell; decides the cube correction
-    status: open
+    status: finished
     runs_on: mac
     code: experiments/hyp3_half_cell_refine_x120.py
     code_ref: HEAD
