@@ -85,3 +85,56 @@ def best_shift(score, steps: np.ndarray) -> tuple[float, float, float, np.ndarra
     surf = np.array([[score(dx, dy) for dx in steps] for dy in steps])
     k = np.unravel_index(np.nanargmax(surf), surf.shape)
     return float(steps[k[1]]), float(steps[k[0]]), float(surf[k]), surf
+
+
+def relocate(values: np.ndarray, x: np.ndarray, y: np.ndarray, dx: float, dy: float, kind: str = "mean",
+             min_weight: float = 0.5) -> np.ndarray:
+    """Put a gridded product's content back where it belongs. ``values`` (..., y, x) on a regular north-up grid whose
+    cell labelled L holds content for ground at L + (dx, dy); returns, on the same labels, the content for the ground
+    under each label — bilinear interpolation of the source at L − (dx, dy).
+
+    ``kind``: "mean" (coherence, unwrapped phase, angles, heights), "phase" (wrapped phase, interpolated as a phasor) or
+    "mask" (0/1 layers: interpolated, then ≥ 0.5). Neighbours that are NaN drop out and the weights are renormalised;
+    a cell is NaN when less than ``min_weight`` of its weight is finite, or when it falls outside the source grid."""
+    v = np.asarray(values, float)
+    gx, gy = float(x[1] - x[0]), float(y[1] - y[0])
+    fc, fr = -dx / gx, -dy / gy                    # source index offset of each target cell (columns, rows)
+    c0, r0 = int(np.floor(fc)), int(np.floor(fr))
+    wc, wr = fc - c0, fr - r0
+    ny, nx = v.shape[-2:]
+
+    def take(a, dr, dc):
+        out = np.full(a.shape, np.nan)
+        rs, cs = r0 + dr, c0 + dc
+        ys, ye = max(0, -rs), min(ny, ny - rs)
+        xs, xe = max(0, -cs), min(nx, nx - cs)
+        if ys < ye and xs < xe:
+            out[..., ys:ye, xs:xe] = a[..., ys + rs:ye + rs, xs + cs:xe + cs]
+        return out
+
+    if kind == "phase":
+        parts = [np.cos(v), np.sin(v)]
+    elif kind in ("mean", "mask"):
+        parts = [v]
+    else:
+        raise ValueError(kind)
+    weights = {(0, 0): (1 - wr) * (1 - wc), (0, 1): (1 - wr) * wc, (1, 0): wr * (1 - wc), (1, 1): wr * wc}
+    num = [np.zeros(v.shape) for _ in parts]
+    den = np.zeros(v.shape)
+    for (dr, dc), w in weights.items():
+        if w == 0:
+            continue
+        sh = [take(p, dr, dc) for p in parts]
+        ok = np.isfinite(sh[0])
+        for k, s in enumerate(sh):
+            num[k] += np.where(ok, w * s, 0.0)
+        den += np.where(ok, w, 0.0)
+    with np.errstate(invalid="ignore", divide="ignore"):
+        if kind == "phase":
+            out = np.arctan2(num[1], num[0])
+        else:
+            out = num[0] / den
+    out[den < min_weight] = np.nan
+    if kind == "mask":
+        out = np.where(np.isfinite(out), (out >= 0.5).astype(float), np.nan)
+    return out
