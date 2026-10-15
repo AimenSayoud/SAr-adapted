@@ -2055,7 +2055,7 @@ entries:
   bias_correction_x085:
     kind: experiment
     title: X-085 — the Maghsoudi short-pair bias correction on unfiltered 2021 SLC pairs at P6 (40 m cell, hard-target reference), scored against the laser
-    status: open
+    status: finished
     runs_on: mac
     code: experiments/bias_correction_x085.py
     code_ref: HEAD
