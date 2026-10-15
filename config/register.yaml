@@ -2127,7 +2127,7 @@ entries:
   v4_head_to_head_x119:
     kind: experiment
     title: X-119 — the v4 architecture head-to-head at P6 (chain, chain re-levelled by SPAMS, v3 with 12-day pairs and a weather-driven prior, and that with the SPAMS winter anchor)
-    status: open
+    status: finished
     runs_on: mac
     code: experiments/v4_head_to_head_x119.py
     code_ref: HEAD
