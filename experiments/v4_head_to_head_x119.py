@@ -219,7 +219,7 @@ def main() -> None:
                 cA.loc[cA.index >= ib, "seg"] = cA.seg[ia]           # re-levelled: one segment across the winter
             _, w = score_series(cA, prot, winter=wname)
             winter_rows += [{"track": track, "estimate": ORDER[1], **r} for r in w.to_dict("records")]
-        season_rows += [{"track": track, "estimate": ORDER[1], **r} for r in season_rows
+        season_rows += [{**r, "estimate": ORDER[1]} for r in season_rows
                         if r["track"] == track and r["estimate"] == "chain"]  # A = the chain within seasons
         season_rows = [dict(r) for r in season_rows]
         for v in variants:
