@@ -2124,3 +2124,23 @@ entries:
     - hub:08_deliverables/insar_full_test/hyp3_placement/decisive/verdict.csv
     outputs:
     - hub:08_deliverables/insar_full_test/half_cell_p6
+  v4_head_to_head_x119:
+    kind: experiment
+    title: X-119 — the v4 architecture head-to-head at P6 (chain, chain re-levelled by SPAMS, v3 with 12-day pairs and a weather-driven prior, and that with the SPAMS winter anchor)
+    status: open
+    runs_on: mac
+    code: experiments/v4_head_to_head_x119.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/v4_head_to_head_x119.py
+    tickets:
+    - X-119
+    chains:
+    - mat-method-v4
+    inputs:
+    - cube:gold/plots_pair.csv.gz
+    - cube:silver/site_hourly.csv.gz
+    - cube:silver/ifg_2020_2021_ascending.nc
+    - hub:08_deliverables/fusion_v3/wp0/noise_model_fits.csv
+    - hub:08_deliverables/insar_full_test/hyp3_placement/decisive/verdict.csv
+    outputs:
+    - hub:08_deliverables/insar_full_test/v4_head_to_head
