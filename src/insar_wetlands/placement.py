@@ -17,6 +17,16 @@ import numpy as np
 
 EARTH_CIRCUMFERENCE_M = 40_030_173.59204114   # hyp3_isce2 dem.distance_meters_to_degrees
 
+# The shift of the HyP3 burst products we hold (hyp3_isce2 3.0.2), by pixel spacing (m) and track: the content of a
+# cell labelled L lies at L + (dx east, dy north). X-120's refined, pre-registered measurement against our right-placed
+# 2021 SLC coherence (DECISIONS 2026-10-15); the 20 m products by two thirds (their geocoding cell).
+HYP3_CONTENT_SHIFT_M: dict[int, dict[str, tuple[float, float]]] = {
+    40: {"ascending": (-21.0, 23.0), "descending": (-16.0, 20.0)},
+    20: {"ascending": (-14.0, 15.33), "descending": (-10.67, 13.33)},
+}
+HYP3_LAYER_KIND = {"wrapped_phase": "phase", "unw_phase": "mean", "corr": "mean", "conncomp": "mask",
+                   "lv_theta": "mean", "lv_phi": "mean"}       # the DEM layer is placed right and is not moved
+
 
 def hyp3_isce2_predicted_shift(dem_pixel_m: float, lat_south_deg: float, lat_site_deg: float) -> tuple[float, float]:
     """(dx east, dy north) in metres at which the content of a HyP3 cell labelled L lies: half a geocoding cell west and

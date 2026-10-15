@@ -45,10 +45,7 @@ IFG_SETS = PERIODS + ("annual", "matched_wt")
 # label it as the whole cell, so a cell's content lies at its label + (dx east, dy north). The cube puts the radar
 # layers' content back under their labels (placement.relocate); the DEM layer is placed right and is not moved. The
 # shift per product spacing and track is set by X-120's refined test (DECISIONS 2026-10-15). ``None``: as delivered.
-HYP3_CONTENT_SHIFT_M: dict[int, dict[str, tuple[float, float]]] | None = {
-    40: {"ascending": (-21.0, 23.0), "descending": (-16.0, 20.0)},           # X-120 refine, measured per track
-    20: {"ascending": (-14.0, 15.33), "descending": (-10.67, 13.33)},         # two thirds: the 20 m geocoding cell
-}
+from ..placement import HYP3_CONTENT_SHIFT_M  # noqa: E402  (X-120 refine; set to None here to build as delivered)
 RTC_FILES = {"ascending": ["rtc_dualpol_2017_2019.nc", "rtc_dualpol_2020_2024.nc", "rtc_dualpol_2025_2025.nc",
                            "rtc_dualpol_2026_2026.nc"],
              "descending": ["rtc_dualpol_2017_2019_descending.nc", "rtc_dualpol_2020_2024_descending.nc",
@@ -154,8 +151,9 @@ def harmonise_ifg(ctx, silver: Path, log=print) -> None:
 def relocate_hyp3(lay: dict, st: dict, track: str, log=print) -> tuple[dict, dict]:
     """The HyP3 radar layers with their content put back under their labels (X-120); the DEM untouched. The
     connected component becomes 0/1 (unwrapped or not): only that is used downstream."""
-    if HYP3_CONTENT_SHIFT_M is None:
-        return lay, st
+    from .. import stack as _stack
+    if HYP3_CONTENT_SHIFT_M is None or _stack.hyp3_relocation_on():
+        return lay, st                                   # as delivered, or already relocated by load_layer
     from ..placement import relocate
     da = lay["corr"]
     res = int(round(float(da.x[1] - da.x[0])))
