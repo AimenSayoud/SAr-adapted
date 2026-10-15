@@ -2163,3 +2163,21 @@ entries:
     - hub:08_deliverables/insar_full_test/hyp3_placement/decisive/verdict.csv
     outputs:
     - hub:08_deliverables/insar_full_test/v4
+  hyp3_half_cell_x120:
+    kind: experiment
+    title: X-120 — is the HyP3 half-cell shift a labelling error? Coherence and the DEM layer against LiDAR and WorldCover, every year set and track, against the shift predicted from the processing code
+    status: open
+    runs_on: mac
+    code: experiments/hyp3_half_cell_x120.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/hyp3_half_cell_x120.py
+    tickets:
+    - X-120
+    chains:
+    - insar-full-test
+    inputs:
+    - cube:silver/ifg_2022_2024_ascending.nc
+    - cube:silver/lidar_1m.nc
+    - cube:silver/static_40m.nc
+    outputs:
+    - hub:08_deliverables/insar_full_test/hyp3_half_cell_confirm
