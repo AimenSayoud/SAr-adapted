@@ -41,6 +41,11 @@ PERIODS = ("2017_2019", "2020_2021", "2022_2024", "2025", "2026")
 # Interferogram stacks: the date periods plus D-027's winter annual / two-year pairs and X-094's long pairs matched (or
 # not) on the water-table state (D-029), which span periods.
 IFG_SETS = PERIODS + ("annual", "matched_wt")
+# X-120: the HyP3 burst products (hyp3_isce2 3.0.2 on ISCE2) carry each value at the corner of its geocoding cell but
+# label it as the whole cell, so a cell's content lies at its label + (dx east, dy north). The cube puts the radar
+# layers' content back under their labels (placement.relocate); the DEM layer is placed right and is not moved. The
+# shift per product spacing and track is set by X-120's refined test (DECISIONS 2026-10-15). ``None``: as delivered.
+HYP3_CONTENT_SHIFT_M: dict[int, dict[str, tuple[float, float]]] | None = None
 RTC_FILES = {"ascending": ["rtc_dualpol_2017_2019.nc", "rtc_dualpol_2020_2024.nc", "rtc_dualpol_2025_2025.nc",
                            "rtc_dualpol_2026_2026.nc"],
              "descending": ["rtc_dualpol_2017_2019_descending.nc", "rtc_dualpol_2020_2024_descending.nc",
@@ -129,6 +134,7 @@ def harmonise_ifg(ctx, silver: Path, log=print) -> None:
             lay = {name: load_layer(root, name, pairs) for name in ("wrapped_phase", "unw_phase", "corr", "conncomp")}
             native = lay["corr"].sizes["x"] != len(tx)
             st = {name: load_static_layer(root, name) for name in ("lv_theta", "lv_phi", "dem")}
+            lay, st = relocate_hyp3(lay, st, track, log)
             if native:
                 _write_ifg(lay, st, plat, track, silver / f"ifg_{period}_{track}_20m.nc", log)
                 lay = {"wrapped_phase": stack_to_template(lay["wrapped_phase"], tx, ty),
@@ -140,6 +146,28 @@ def harmonise_ifg(ctx, silver: Path, log=print) -> None:
                 lay = {k: stack_to_template(v, tx, ty) if k != "conncomp" else v for k, v in lay.items()}
                 st = {k: _static_to_template(v, tx, ty) for k, v in st.items()}
             _write_ifg(lay, st, plat, track, out, log)
+
+
+def relocate_hyp3(lay: dict, st: dict, track: str, log=print) -> tuple[dict, dict]:
+    """The HyP3 radar layers with their content put back under their labels (X-120); the DEM untouched. The
+    connected component becomes 0/1 (unwrapped or not): only that is used downstream."""
+    if HYP3_CONTENT_SHIFT_M is None:
+        return lay, st
+    from ..placement import relocate
+    da = lay["corr"]
+    res = int(round(float(da.x[1] - da.x[0])))
+    dx, dy = HYP3_CONTENT_SHIFT_M[res][track]
+    x, y = da.x.values, da.y.values
+    kinds = {"wrapped_phase": "phase", "unw_phase": "mean", "corr": "mean", "conncomp": "mask"}
+    out = {}
+    for k, v in lay.items():
+        vals = (v.values > 0).astype(float) if k == "conncomp" else v.values.astype(float)
+        out[k] = v.copy(data=relocate(vals, x, y, dx, dy, kind=kinds[k]).astype(v.dtype if k != "conncomp" else float))
+    st2 = dict(st)
+    for k in ("lv_theta", "lv_phi"):
+        st2[k] = st[k].copy(data=relocate(st[k].values.astype(float), st[k].x.values, st[k].y.values, dx, dy))
+    log(f"  relocated by ({dx:+.1f} E, {dy:+.1f} N) m at {res} m (X-120)")
+    return out, st2
 
 
 def _static_to_template(da, tx, ty):
@@ -178,7 +206,10 @@ def _write_ifg(lay: dict, st: dict, plat: pd.Series, track: str, out: Path, log)
     for c in ("t1", "t2"):
         ds[c] = ds[c].astype("datetime64[ns]")
     ds.attrs = {"phase_units": "rad, HyP3 sign, unreferenced (per-pair constants as delivered)", "track": track,
-                "crs": "EPSG:32633", "wavelength_mm": core.WAVELENGTH_MM}
+                "crs": "EPSG:32633", "wavelength_mm": core.WAVELENGTH_MM,
+                "geolocation": ("as delivered by HyP3" if HYP3_CONTENT_SHIFT_M is None else
+                                "radar layers relocated under their labels (X-120: HyP3 corner-labelling); DEM as delivered;"
+                                " conncomp 0/1")}
     ds.to_netcdf(out, encoding=_enc(ds, ints=("conncomp",)))
     log(f"  wrote {out.name} {dict(ds.sizes)}")
 
