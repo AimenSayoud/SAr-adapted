@@ -31,9 +31,10 @@ from sklearn.pipeline import make_pipeline  # noqa: E402
 from sklearn.preprocessing import StandardScaler  # noqa: E402
 
 from insar_wetlands.cube.core import rad_to_los_mm  # noqa: E402
+from insar_wetlands.cube import cube_root  # noqa: E402  (RZECIN_CUBE_ROOT honoured, X-121 control)
 
 HUB = Path(__file__).resolve().parents[3]
-G, S = HUB / "06_data" / "cube" / "gold", HUB / "06_data" / "cube" / "silver"
+G, S = cube_root() / "gold", cube_root() / "silver"
 OUT = HUB / "08_deliverables" / "fusion_v3" / "wp3"
 WP2 = HUB / "08_deliverables" / "fusion_v3" / "wp2"
 RNG = np.random.default_rng(76)

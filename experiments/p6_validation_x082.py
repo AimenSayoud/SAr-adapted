@@ -31,9 +31,10 @@ import xarray as xr  # noqa: E402
 
 from insar_wetlands import field  # noqa: E402
 from insar_wetlands.inversion.isbas import PHASE_TO_MM  # noqa: E402
+from insar_wetlands.cube import cube_root  # noqa: E402
 
 HUB = field.field_root().parents[1]
-CUBE = HUB / "06_data" / "cube"
+CUBE = cube_root()                         # RZECIN_CUBE_ROOT honoured (X-121 control); default the hub cube
 OUT = HUB / "08_deliverables" / "hrysiewicz_tests_x082" / "p6_validation"
 THEIRS = HUB / "02_literature" / "notes" / "hrysiewicz2024_table3.csv"
 V3 = HUB / "08_deliverables" / "fusion_v3" / "wp5" / "series_p6.csv"

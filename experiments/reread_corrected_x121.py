@@ -59,8 +59,13 @@ def git_status() -> set[str]:
     return {line[3:] for line in r.stdout.splitlines()}
 
 
+SNAPSHOT = HUB / "06_data" / "cube_snapshots" / "as_delivered_2026-10-15"
+
+
 def main() -> None:
-    assert_preregistered(PREREG, [OUT / "runs.json"])
+    control = "--control" in sys.argv          # amendment: today's code on the as-delivered inputs
+    out_root = OUT / "_control_as_delivered" if control else OUT
+    assert_preregistered(PREREG, [out_root / "runs.json"])
     reg = load()
     entries = {n: reg[n] for n in ORDER}
     dirs = sorted({d for e in entries.values() for d in hub_dirs(e)}, key=lambda p: len(p.parts))
@@ -73,7 +78,9 @@ def main() -> None:
             shutil.copytree(d, backup / d.relative_to(HUB))
         before.update(files_under(d))
     git0 = git_status()
-    env = dict(os.environ, RZECIN_HYP3_RELOCATE="1", PYTHONPATH=str(REPO / "src"))
+    env = dict(os.environ, RZECIN_HYP3_RELOCATE="0" if control else "1", PYTHONPATH=str(REPO / "src"))
+    if control:
+        env["RZECIN_CUBE_ROOT"] = str(SNAPSHOT)
     runs = []
     for name in ORDER:
         t0 = datetime.now(timezone.utc).isoformat()
@@ -89,7 +96,7 @@ def main() -> None:
                 continue
             src = HUB / rel
             owner = next((n for n in ORDER for dd in hub_dirs(entries[n]) if dd in src.parents or dd == src.parent), "other")
-            dst = OUT / owner / src.relative_to(next(dd for dd in dirs if dd in src.parents))
+            dst = out_root / owner / src.relative_to(next(dd for dd in dirs if dd in src.parents))
             dst.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(src, dst)
             if rel in before:
@@ -98,8 +105,8 @@ def main() -> None:
                 src.unlink()                             # created by the re-run: now lives only in reread_corrected
             moved.append({"file": rel, "to": str(dst.relative_to(HUB)), "was_new": rel not in before})
     outside = sorted(p for p in git_status() - git0 if not p.startswith(str(OUT.relative_to(HUB))))
-    OUT.mkdir(parents=True, exist_ok=True)
-    (OUT / "runs.json").write_text(json.dumps({"backup": str(backup.relative_to(HUB)), "runs": runs, "moved": moved,
+    out_root.mkdir(parents=True, exist_ok=True)
+    (out_root / "runs.json").write_text(json.dumps({"backup": str(backup.relative_to(HUB)), "runs": runs, "moved": moved,
                                                "changed_outside_declared": outside}, indent=1), encoding="utf-8")
     print(f"moved {len(moved)} files; outside the declared folders: {outside}")
 
