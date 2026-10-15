@@ -2144,3 +2144,22 @@ entries:
     - hub:08_deliverables/insar_full_test/hyp3_placement/decisive/verdict.csv
     outputs:
     - hub:08_deliverables/insar_full_test/v4_head_to_head
+  freeze_v4_x106:
+    kind: experiment
+    title: X-106 — freeze the mat method v4 (chain at the corrected P6 position + SPAMS spring re-levelling), parameter file in the hub, design-year report
+    status: open
+    runs_on: mac
+    code: experiments/freeze_v4_x106.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/freeze_v4_x106.py
+    tickets:
+    - X-106
+    chains:
+    - mat-method-v4
+    inputs:
+    - cube:gold/plots_pair.csv.gz
+    - cube:silver/site_hourly.csv.gz
+    - cube:silver/ifg_2017_2019_ascending.nc
+    - hub:08_deliverables/insar_full_test/hyp3_placement/decisive/verdict.csv
+    outputs:
+    - hub:08_deliverables/insar_full_test/v4
