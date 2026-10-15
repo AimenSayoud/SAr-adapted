@@ -60,3 +60,45 @@ def test_hyp3_prediction_half_cell_west_north():
     assert -15.5 < dx < -14.5 and 24.5 < dy < 25.0       # ~30 m × ~49 m geocoding cell at Rzecin
     dx20, dy20 = P.hyp3_isce2_predicted_shift(20.0, 52.6, 52.763)
     assert np.isclose(dx20 / dx, 2 / 3) and np.isclose(dy20 / dy, 2 / 3)
+
+
+def test_relocate_is_exact_on_a_linear_field_and_undoes_a_mislabelling():
+    x = np.arange(20.0, 4000, 40.0)
+    y = np.arange(3980.0, 0, -40.0)
+    X, Y = np.meshgrid(x, y)
+    truth = 0.01 * X - 0.02 * Y + 3.0                      # the field at each label
+    dx, dy = -14.9, 24.7
+    mislabelled = 0.01 * (X + dx) - 0.02 * (Y + dy) + 3.0  # content of ground at L + (dx, dy)
+    fixed = P.relocate(mislabelled, x, y, dx, dy)
+    inner = np.s_[2:-2, 2:-2]
+    assert np.allclose(fixed[inner], truth[inner])
+    assert np.isnan(fixed[-1]).all()      # the southern row: more than half its source lies outside the grid
+
+
+def test_relocate_phase_as_phasor_and_nan_neighbours():
+    x = np.arange(20.0, 400, 40.0)
+    y = np.arange(380.0, 0, -40.0)
+    v = np.full((len(y), len(x)), np.pi - 0.05)
+    v[:, ::2] = -np.pi + 0.05                               # values either side of ±π: a phasor mean stays near π
+    out = P.relocate(v, x, y, -20.0, 0.0, kind="phase")
+    assert np.all(np.abs(np.abs(out[:, 1:]) - np.pi) < 0.1)
+    w = np.ones((len(y), len(x)))
+    w[5, 5] = np.nan
+    out = P.relocate(w, x, y, -10.0, 10.0)
+    assert np.allclose(out[1:-1, 1:-1][np.isfinite(out[1:-1, 1:-1])], 1.0)
+
+
+def test_relocate_recovers_the_true_cells_of_a_fine_scene_better_than_the_labels():
+    xf, yf, water, trees, _ = _scene()
+    f = P.FineField(water + 0.5 * trees, xf, yf)
+    x = np.arange(120.0, 1880, 40.0)
+    y = np.arange(1880.0, 120, -40.0)
+    X, Y = np.meshgrid(x, y)
+    dx, dy = -14.9, 24.7
+    true = f.box_mean(X.ravel(), Y.ravel(), 20).reshape(X.shape)
+    mis = f.box_mean(X.ravel() + dx, Y.ravel() + dy, 20).reshape(X.shape)
+    fixed = P.relocate(mis, x, y, dx, dy)
+    inner = np.s_[2:-2, 2:-2]
+    e_mis = np.sqrt(np.nanmean((mis - true)[inner] ** 2))
+    e_fix = np.sqrt(np.nanmean((fixed - true)[inner] ** 2))
+    assert e_fix < 0.6 * e_mis
