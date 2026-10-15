@@ -111,5 +111,107 @@ def main() -> None:
     print(f"moved {len(moved)} files; outside the declared folders: {outside}")
 
 
+# ------------------------------------------------------------------------------ the comparison (control vs corrected)
+
+SPECS = [  # (test, entry, file under the entry's output folder, keys, values)
+    ("X-059", "field_p6_validation", "p6_stats.csv", ["track", "window", "subset"],
+     ["n_pairs", "r_s1_vs_laser", "p_s1_vs_laser", "slope_ols", "slope_tls"]),
+    ("X-065", "field_p6_short_pairs_x065", "phase_vs_laser_by_revisit.csv", ["track", "period", "dt_days"],
+     ["n", "r", "same_sign", "m", "m_sd"]),
+    ("X-060", "field_boardwalk_x060", "p6_windows.csv", ["track", "window", "subset"],
+     ["n_pairs", "r_s1_vs_laser", "p_s1_vs_laser", "slope_tls"]),
+    ("X-060", "field_boardwalk_x060", "boardwalk_tests_summary.csv", ["variable", "track", "res_m"],
+     ["median_anomaly_boardwalk", "share_beyond_null_90", "p_mannwhitney"]),
+    ("X-061", "field_plots_x061", "plots_groups.csv", ["track", "period", "extraction", "subset", "group"],
+     ["median_r_s1_vs_dwtd", "n_p05_s1_vs_dwtd", "median_slope_mm_per_cm", "median_r_coh_vs_abs_dwtd",
+      "n_p05_coh_vs_abs_dwtd"]),
+    ("X-079", "field_p6_cells_x079", "cells.csv", ["track", "period", "cell"],
+     ["n", "r", "p_circ", "slope_tls", "tls_lo95", "tls_hi95", "m"]),
+    ("X-079", "field_p6_cells_x079", "drivers.csv", ["track", "period", "slope", "against"], ["r", "p_perm"]),
+    ("X-076", "fusion_v3_wp3_x076", "wp3/e31_shape_vs_raft.csv",
+     ["period", "track", "grid", "revisit_days", "shape", "subset"], ["slope", "r", "perm_p", "above_patch_null"]),
+    ("X-094", "matched_wt_x094", "verdict.csv", ["track"], ["matched_share_mat", "unmatched_share_mat", "keeps_phase"]),
+    ("X-097", "bias_precheck_x097", "verdicts.csv", ["correction", "track", "class"], ["verdict"]),
+    ("X-099", "baseline_x099", "levels.csv", ["track", "reference", "view"],
+     ["pearson_detrended", "rmse_detrended_mm", "amplitude_ratio"]),
+    ("X-099", "baseline_x099", "increments.csv", ["track", "reference"],
+     ["pearson_increments", "rmse_increments_mm", "slope_through_origin", "within_quarter_wave"]),
+    ("X-099", "baseline_x099", "winters.csv", ["track", "reference", "winter"], ["difference_mm"]),
+    ("X-102", "slc_p6_x102", "verdict.csv", ["variant"], ["rmse_change_asc", "rmse_change_desc", "result"]),
+    ("X-102", "slc_p6_x102", "scores.csv", ["track", "variant"], ["rmse_increments_mm", "pearson_increments"]),
+]
+
+
+def _version(entry: str, rel: str, which: str):
+    import pandas as pd
+    reg = load()
+    orig = hub_dirs(reg[entry])[0] / rel
+    cands = ([OUT / "_control_as_delivered" / entry / rel] if which == "control" else [OUT / entry / rel]) + [orig]
+    f = next((c for c in cands if c.exists()), None)
+    return (pd.read_csv(f), f) if f is not None else (None, None)
+
+
+def _flag(stat: str, a, b) -> str:
+    import math
+    if isinstance(a, str) or isinstance(b, str) or isinstance(a, bool) or isinstance(b, bool):
+        return "changed" if str(a) != str(b) else ""
+    if a is None or b is None or (isinstance(a, float) and math.isnan(a)) or (isinstance(b, float) and math.isnan(b)):
+        return "" if (a is None or a != a) and (b is None or b != b) else "one side missing"
+    if stat.startswith("p_") or stat in ("perm_p", "p_perm", "p_circ"):
+        return "crosses 0.05" if (a < 0.05) != (b < 0.05) else ""
+    if stat in ("r", "slope", "slope_tls", "slope_ols", "m", "r_s1_vs_laser", "pearson_increments", "difference_mm",
+                "median_r_s1_vs_dwtd", "median_r_coh_vs_abs_dwtd", "median_slope_mm_per_cm", "pearson_detrended",
+                "median_anomaly_boardwalk") and a * b < 0 and max(abs(a), abs(b)) > 0.05:
+        return "sign flips"
+    return ""
+
+
+def compare() -> None:
+    import pandas as pd
+    rows = []
+    for test, entry, rel, keys, vals in SPECS:
+        c, fc = _version(entry, rel, "control")
+        k, fk = _version(entry, rel, "corrected")
+        if c is None or k is None:
+            continue
+        m = c.merge(k, on=keys, how="outer", suffixes=("__c", "__k"))
+        for _, r in m.iterrows():
+            for v in vals:
+                a, b = r.get(v + "__c"), r.get(v + "__k")
+                rows.append({"test": test, "table": f"{entry}/{rel}", "key": " · ".join(str(r[x]) for x in keys),
+                             "stat": v, "control": a, "corrected": b,
+                             "delta": (b - a) if isinstance(a, (int, float)) and isinstance(b, (int, float))
+                             and not isinstance(a, bool) else None, "flag": _flag(v, a, b)})
+    D = pd.DataFrame(rows)
+    D.to_csv(OUT / "comparison.csv", index=False)
+    S = (D.assign(flagged=D.flag != "").groupby(["test", "table"]).agg(values=("stat", "size"),
+                                                                        flagged=("flagged", "sum")).reset_index())
+    F = D[D.flag != ""]
+    fmt = lambda x: f"{x:.3f}" if isinstance(x, float) else str(x)  # noqa: E731
+    md = lambda df: "\n".join(["| " + " | ".join(map(str, df.columns)) + " |", "|" + "---|" * len(df.columns)] +  # noqa: E731
+                              ["| " + " | ".join(fmt(x) for x in r) + " |" for r in df.itertuples(index=False)])
+    (OUT / "COMPARISON.md").write_text(f"""# X-121 — the cell- and plot-scale tests, as delivered vs corrected (generated)
+
+Generated by `experiments/reread_corrected_x121.py --compare`; do not edit. Rule: `../preregistration/X-121.yaml`
+(with its amendment). **control** = today's code on the as-delivered inputs (`_control_as_delivered/`, or the committed
+deliverable where the control reproduced it exactly); **corrected** = the same code on the HyP3-corrected inputs.
+Every value: `comparison.csv`. A flag marks a sign that flips, a p-value that crosses 0.05, a verdict or boolean that
+changes, or a value present on one side only — the reading of each test is in the ticket (X-121) and the try.
+
+## Values and flags per table
+
+{md(S)}
+
+## Flagged values
+
+{md(F[["test", "table", "key", "stat", "control", "corrected", "flag"]]) if len(F) else "None."}
+""", encoding="utf-8")
+    print(S.to_string(index=False))
+    print(F.groupby(["test", "flag"]).size().to_string())
+
+
 if __name__ == "__main__":
-    main()
+    if "--compare" in sys.argv:
+        compare()
+    else:
+        main()
