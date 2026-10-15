@@ -2202,7 +2202,7 @@ entries:
   reread_corrected_x121:
     kind: experiment
     title: X-121 — re-run the cell- and plot-scale tests unchanged on the HyP3-corrected inputs (X-120), originals kept, corrected outputs in reread_corrected/
-    status: open
+    status: finished
     runs_on: mac
     code: experiments/reread_corrected_x121.py
     code_ref: HEAD
