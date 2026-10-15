@@ -131,7 +131,7 @@ def main() -> None:
             if ds is None or ds.sizes["pair"] < 10:
                 rows.append({"set": s, "track": t, "pairs": 0 if ds is None else ds.sizes["pair"], "counted": False})
                 continue
-            pdx, pdy = pred20 if s == "2026_20m" else pred40
+            pdx, pdy = pred20 if s.startswith("2026") else pred40   # the 40 m 2026 set is averaged from 20 m
             r = coherence_case(ds, F, rng)
             r.update({"set": s, "track": t, "pred_dx_m": round(pdx, 2), "pred_dy_m": round(pdy, 2), "counted": True,
                       "within_tol": abs(r["dx_m"] - pdx) <= TOL and abs(r["dy_m"] - pdy) <= TOL,
