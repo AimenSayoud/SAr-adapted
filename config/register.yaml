@@ -2070,3 +2070,21 @@ entries:
     - cube:silver/site_hourly.csv.gz
     outputs:
     - hub:08_deliverables/insar_full_test/bias_correction
+  placement_decisive_x109:
+    kind: experiment
+    title: X-109 decisive test — the HyP3 interferogram grid against our right-placed 2021 SLC coherence, per pair, both tracks
+    status: open
+    runs_on: mac
+    code: experiments/placement_decisive_x109.py
+    code_ref: HEAD
+    command: INSAR_DRIVE_ROOT=<hub>/05_code/local/drive_mirror PYTHONPATH=src python experiments/placement_decisive_x109.py
+    tickets:
+    - X-109
+    chains:
+    - insar-full-test
+    inputs:
+    - drive:slc_pilot/2021/cslc
+    - cube:silver/ifg_2020_2021_ascending.nc
+    - cube:silver/static_40m.nc
+    outputs:
+    - hub:08_deliverables/insar_full_test/hyp3_placement/decisive
