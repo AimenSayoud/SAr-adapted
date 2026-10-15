@@ -2109,7 +2109,7 @@ entries:
   half_cell_p6_x118:
     kind: experiment
     title: X-118 — the P6 chain read at the half-cell-corrected HyP3 position (T75) against the labelled cell
-    status: open
+    status: finished
     runs_on: mac
     code: experiments/half_cell_p6_x118.py
     code_ref: HEAD
