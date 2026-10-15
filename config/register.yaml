@@ -2088,3 +2088,21 @@ entries:
     - cube:silver/static_40m.nc
     outputs:
     - hub:08_deliverables/insar_full_test/hyp3_placement/decisive
+  vv_vh_x115:
+    kind: experiment
+    title: X-115 — VV and VH 6-day phase combined (inverse-variance) at P6 on the 2021 CSLCs, against VV alone
+    status: open
+    runs_on: mac
+    code: experiments/vv_vh_x115.py
+    code_ref: HEAD
+    command: INSAR_DRIVE_ROOT=<hub>/05_code/local/drive_mirror PYTHONPATH=src python experiments/vv_vh_x115.py
+    tickets:
+    - X-115
+    chains:
+    - mat-method-v4
+    inputs:
+    - drive:slc_pilot/2021/cslc
+    - drive:slc_pilot/2021/cslc_vh
+    - cube:silver/static_40m.nc
+    outputs:
+    - hub:08_deliverables/insar_full_test/vv_vh
