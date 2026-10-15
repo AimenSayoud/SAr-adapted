@@ -2147,7 +2147,7 @@ entries:
   freeze_v4_x106:
     kind: experiment
     title: X-106 — freeze the mat method v4 (chain at the corrected P6 position + SPAMS spring re-levelling), parameter file in the hub, design-year report
-    status: open
+    status: finished
     runs_on: mac
     code: experiments/freeze_v4_x106.py
     code_ref: HEAD
