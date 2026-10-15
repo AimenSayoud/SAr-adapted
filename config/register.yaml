@@ -2181,3 +2181,21 @@ entries:
     - cube:silver/static_40m.nc
     outputs:
     - hub:08_deliverables/insar_full_test/hyp3_half_cell_confirm
+  hyp3_half_cell_refine_x120:
+    kind: experiment
+    title: X-120 refine — T75 at 1 m, the HyP3 interferogram offset against our right-placed 2021 SLC coherence, set against the code's predicted half geocoding cell; decides the cube correction
+    status: open
+    runs_on: mac
+    code: experiments/hyp3_half_cell_refine_x120.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/hyp3_half_cell_refine_x120.py
+    tickets:
+    - X-120
+    chains:
+    - insar-full-test
+    inputs:
+    - drive:slc_pilot/2021/cslc
+    - cube:silver/static_40m.nc
+    - cube:silver/ifg_2020_2021_ascending.nc
+    outputs:
+    - hub:08_deliverables/insar_full_test/hyp3_half_cell_confirm/refine
