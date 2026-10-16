@@ -5,7 +5,8 @@ no numbers: the quantities it names are measured in Figs. 2, 4 and 5 and in §§
 (buoyancy). C-band rays at the tracks' incidence scatter from the mat surface, so a pair's phase follows the surface;
 only where stems stand in open water (the lake's reed margin) can a double bounce carry the water level. Coherence
 changes with the wetness of the surface. (b) A year of acquisitions: consecutive short pairs follow the motion, pairs
-that skip an acquisition and long pairs lose it, and across the winter the chain's level comes from the weather.
+that skip an acquisition and long pairs lose it, and across the winter the chain's level must come from outside the
+radar (§5.2; the estimator of §6 takes it from the weather).
 Writes only to the hub ``08_deliverables/article_plan/figures/final/``.
 
     make run E=article_fig_f3
@@ -48,13 +49,14 @@ def panel_section(ax) -> None:
     ax.plot([2.6, 17.8], [w1, w1], color=WATER, lw=0.8, ls=(0, (3, 2)), zorder=1)
     ax.add_patch(Polygon([(0, 0), (0, 3.9), (1.6, 3.9), (3.0, 2.4), (3.4, 0)], fc=BANK, ec="none", zorder=2))
     ax.text(0.8, 0.6, "firm\nground", ha="center", fontsize=6.5, color=fs.MUTED, zorder=3)
-    top2 = w2 + 0.8
-    mat = Polygon([(3.05, top2), (12.6, top2), (12.6, top2 - 1.45), (3.25, top2 - 1.45)], fc=PEAT, ec="none", zorder=3)
+    top2 = w2 + 0.35                                   # a floating mat sits low: small freeboard, base below both
+    base = top2 - 1.95                                 # water levels at either date (it floats on date 1 too)
+    mat = Polygon([(3.05, top2), (12.6, top2), (12.6, base), (3.35, base)], fc=PEAT, ec="none", zorder=3)
     ax.add_patch(mat)
     ax.plot([3.05, 13.2], [top2 - rise, top2 - rise], color=fs.INK, lw=0.7, ls=(0, (2, 1.5)), zorder=4)
     ax.plot([12.6, 13.2], [top2, top2], color=fs.INK, lw=0.7, zorder=4)
     stems(ax, 3.3, 12.3, top2, 30, h=0.3)
-    ax.text(7.9, top2 - 1.1, "floating mat: roots and peat", ha="center", va="center", fontsize=6.5, color="white",
+    ax.text(7.9, base + 0.45, "floating mat: roots and peat", ha="center", va="center", fontsize=6.5, color="white",
             zorder=5)
     stems(ax, 14.0, 15.2, w2 - 0.9, 8, h=1.6, lw=0.9)                       # reeds in the lake margin
     ax.text(16.2, 1.0, "residual lake", ha="center", fontsize=6.5, color=WATER)
@@ -121,7 +123,7 @@ def panel_pairs(ax) -> None:
     for k in range(winter[0] - 1, winter[1] + 1):
         arc(k, k + 1, fs.MUTED, lw=0.8)
     arrow(ax, (winter[0] - 1, -1.15), (winter[1] + 1, -1.15), color="#8250df", lw=1.0)
-    ax.text((winter[0] + winter[1]) / 2, -1.45, "the chain's level across the winter comes from the weather",
+    ax.text((winter[0] + winter[1]) / 2, -1.45, "across the winter the level must come from outside the radar",
             ha="center", va="top", fontsize=6.5, color="#8250df")
     for k in range(winter[1] + 1, n - 1):
         arc(k, k + 1, fs.CLASS["mat"])

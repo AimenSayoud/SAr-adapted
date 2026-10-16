@@ -1,7 +1,7 @@
 """F4, final version — which pairs hold the mat's motion: the pair phase at P6 against the laser, by pair length, track
 and period, in the groups of Table 2.
 
-(a) One scatter per track and group: consecutive six-day pairs (2020–2021), next-but-one twelve-day pairs of the same
+(a) One scatter per track and group: consecutive six-day pairs (2021: the laser starts 27 May 2021), next-but-one twelve-day pairs of the same
 years, consecutive twelve-day pairs (2022–2024) and next-but-one twenty-four-day pairs of those years; the 1:1 line and,
 shaded, laser changes beyond a quarter of the C-band wavelength, which one pair cannot follow unambiguously. (b) Every
 group's correlation with its bootstrap 95 % interval (Table 2, ``article_plan/tables/revisit_correlations.csv``). Values
@@ -29,14 +29,14 @@ DLV = HUB / "08_deliverables"
 OUT = DLV / "article_plan" / "figures" / "final"
 PAIRS = DLV / "insar_full_test" / "reread_rtc" / "field_p6_short_pairs_x065" / "p6_pairs_2020_2024.csv"
 TABLE2 = DLV / "article_plan" / "tables" / "revisit_correlations.csv"
-GROUPS = (("2020–2021", 6, "consecutive"), ("2020–2021", 12, "next-but-one"),
+GROUPS = (("2021", 6, "consecutive"), ("2021", 12, "next-but-one"),
           ("2022–2024", 12, "consecutive"), ("2022–2024", 24, "next-but-one"))
 TRACKS = ("ascending", "descending")
 
 
 def main() -> None:
     d = pd.read_csv(PAIRS).dropna(subset=["s1", "laser_los"])
-    d["period"] = np.where(d.year <= 2021, "2020–2021", "2022–2024")       # as Table 2
+    d["period"] = np.where(d.year <= 2021, "2021", "2022–2024")   # as Table 2; the laser starts 27 May 2021
     t2 = pd.read_csv(TABLE2).set_index(["track", "period", "revisit_days"])
     qw = WAVELENGTH_MM / 4
     shown = d[d.dt.isin({dt for _, dt, _ in GROUPS})]
@@ -61,7 +61,8 @@ def main() -> None:
                            zorder=3)
                 row = t2.loc[(tr, per, dt)]
                 ax.text(0.97, 0.03, f"r = {row.r:.2f}\n[{row.r_lo95:.2f}, {row.r_hi95:.2f}]\nn = {int(row.n)}",
-                        transform=ax.transAxes, ha="right", va="bottom", fontsize=6.5, linespacing=1.15, zorder=2)
+                        transform=ax.transAxes, ha="right", va="bottom", fontsize=6.5, linespacing=1.15, zorder=5,
+                        bbox=dict(fc="white", ec="none", alpha=0.85, pad=1.2))
                 ax.set_xlim(-lim, lim), ax.set_ylim(-lim, lim)
                 ax.set_aspect("equal")
                 if r == 0:
