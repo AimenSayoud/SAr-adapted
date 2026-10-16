@@ -2092,6 +2092,23 @@ entries:
     - hub:08_deliverables/insar_full_test/reread_corrected/field_p6_cells_x079
     outputs:
     - hub:08_deliverables/article_plan/figures/final
+  article_fig_f4:
+    kind: experiment
+    title: C-068 — F4 final, which pairs hold the motion (pair phase vs laser at P6 in Table 2's groups; correlations with intervals)
+    status: open
+    runs_on: mac
+    code: experiments/article_fig_f4.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/article_fig_f4.py
+    tickets:
+    - C-068
+    chains:
+    - article-plan
+    inputs:
+    - hub:08_deliverables/insar_full_test/reread_rtc/field_p6_short_pairs_x065/p6_pairs_2020_2024.csv
+    - hub:08_deliverables/article_plan/tables/revisit_correlations.csv
+    outputs:
+    - hub:08_deliverables/article_plan/figures/final
   bias_correction_x085:
     kind: experiment
     title: X-085 — the Maghsoudi short-pair bias correction on unfiltered 2021 SLC pairs at P6 (40 m cell, hard-target reference), scored against the laser
