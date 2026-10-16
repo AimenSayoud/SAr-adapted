@@ -335,6 +335,35 @@ def f6() -> None:
     plt.close(fig)
 
 
+def tables() -> None:
+    """The article's data tables (``article_plan/tables/``): per track, the consecutive pairs at P6 the chain uses and
+    the acquisitions they join; the site's climate over the archive (ERA5 at the site, X-081)."""
+    import sys
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    import p6_validation_x082 as X
+    out = HUB / "08_deliverables" / "article_plan" / "tables"
+    out.mkdir(parents=True, exist_ok=True)
+    g = pd.read_csv(CUBE / "gold" / "plots_pair.csv.gz", low_memory=False,
+                    usecols=["track", "grid", "plot", "t1", "t2", "platforms", "revisit_days"])
+    g = g[(g["plot"] == "P6") & (g.grid == "40m")].copy()
+    for c in ("t1", "t2"):
+        g[c] = pd.to_datetime(g[c], format="ISO8601", utc=True)
+    rows = []
+    for track, d in g.groupby("track"):
+        dd = d[X.consecutive(d) & ~d.platforms.astype(str).str.contains("S1D")]
+        rows.append({"track": track, "first": dd.t1.min().date(), "last": dd.t2.max().date(),
+                     "acquisitions": int(pd.concat([dd.t1, dd.t2]).dt.normalize().nunique()),
+                     "consecutive_pairs": len(dd), "pairs_6_day": int((dd.revisit_days == 6).sum()),
+                     "pairs_12_day": int((dd.revisit_days == 12).sum()),
+                     "pairs_longer": int((dd.revisit_days > 12).sum())})
+    pd.DataFrame(rows).to_csv(out / "data_by_track.csv", index=False)
+    w = pd.read_csv(HUB / "08_deliverables" / "cube_analysis_x081" / "weather_by_year.csv")
+    pd.DataFrame([{"years": f"{w.year.min()}–{w.year.max()}", "precip_mm_median": w.precip_mm.median(),
+                   "precip_mm_min": w.precip_mm.min(), "precip_mm_max": w.precip_mm.max(),
+                   "snow_share_median": w.snow_share.median(), "frozen_share_median": w.frozen_share.median()}]
+                 ).to_csv(out / "climate.csv", index=False)
+
+
 def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     st, masks, water = static()
@@ -349,6 +378,7 @@ def main() -> None:
     f3()
     f4()
     f6()
+    tables()
     print(f"wrote {OUT}")
 
 
