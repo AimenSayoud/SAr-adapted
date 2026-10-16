@@ -2234,3 +2234,21 @@ entries:
     - cube:silver/rtc_descending.nc
     outputs:
     - hub:08_deliverables/insar_full_test/rtc_placement
+  reread_rtc_x123:
+    kind: experiment
+    title: X-123 — re-run the cell- and plot-level backscatter results with the RTC corrected (X-122), against a control pass on the RTC as delivered; originals kept, outputs in reread_rtc/
+    status: open
+    runs_on: mac
+    code: experiments/reread_rtc_x123.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/reread_rtc_x123.py
+    tickets:
+    - X-123
+    chains:
+    - insar-full-test
+    inputs:
+    - mirror:rtc_dualpol_*.nc
+    - cube:silver/rtc_ascending.nc
+    - cube:silver/rtc_descending.nc
+    outputs:
+    - hub:08_deliverables/insar_full_test/reread_rtc
