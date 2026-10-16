@@ -125,12 +125,18 @@ def test_relocate_rtc_undoes_a_known_shift_in_linear_power_and_keeps_ratio_and_r
     assert np.allclose(10 ** (out.vv_db.values[inner] / 10), vv_true[2:-2, 2:-2], rtol=1e-4)
     assert np.allclose(out.vh_vv_db.values[inner], out.vh_db.values[inner] - out.vv_db.values[inner], atol=1e-4)
     assert np.allclose(out.rvi.values[inner], (4 * vh_true / (vv_true + vh_true))[2:-2, 2:-2], rtol=1e-3)
-    # the opt-in reader: off by default, on with the switch, and never twice
-    p = tmp_path / "r.nc"
+    # the opt-in reader: off by default; on, it reads the placed stack beside the file, refusing one with other dates
+    p = tmp_path / "rtc_dualpol_2020_2024_descending.nc"
     ds.to_netcdf(p)
+    assert P.placed_name(p.name) == "rtc_dualpol_2020_2024_placed_descending.nc"
+    assert P.placed_name("rtc_dualpol_2020_2024.nc") == "rtc_dualpol_2020_2024_placed.nc"
     monkeypatch.delenv(P.RTC_RELOCATE_ENV, raising=False)
     assert np.array_equal(P.open_rtc(p).vv_db.values, ds.vv_db.values)
+    out.to_netcdf(tmp_path / P.placed_name(p.name))
     monkeypatch.setenv(P.RTC_RELOCATE_ENV, "1")
     assert np.allclose(P.open_rtc(p).vv_db.values[inner], out.vv_db.values[inner])
-    out.to_netcdf(tmp_path / "r_relocated.nc")
-    assert np.allclose(P.open_rtc(tmp_path / "r_relocated.nc").vv_db.values[inner], out.vv_db.values[inner])
+    out.isel(time=slice(0, 0)).to_netcdf(tmp_path / P.placed_name("rtc_dualpol_2025_2025_descending.nc"))
+    ds.to_netcdf(tmp_path / "rtc_dualpol_2025_2025_descending.nc")
+    import pytest
+    with pytest.raises(ValueError):
+        P.open_rtc(tmp_path / "rtc_dualpol_2025_2025_descending.nc")

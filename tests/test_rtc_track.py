@@ -205,3 +205,27 @@ def test_zone_backscatter_series_medians_rvi_and_valid_count():
     assert np.isnan(s.loc[(pd.Timestamp("2020-01-13"), "B")].vv_db)      # 0 of 1
     assert np.isnan(s.loc[(pd.Timestamp("2020-01-13"), "D")].vv_db)      # 1 of 3 < 50 %
     assert "C" not in s.index.get_level_values("zone")
+
+
+def test_place_on_puts_a_shifted_source_back_under_its_labels_without_interpolating():
+    """A 10 m source whose content of a cell labelled M lies at M + (dx, dy); sampled (nearest) at the corrected
+    positions it gives, at each 40 m label L, the field at L to within the 10 m sampling; as delivered it gives the field
+    at L + (dx, dy); and every output value is one of the source's own samples."""
+    from insar_wetlands.masking.rtc import place_on
+    dx, dy = 11.0, -19.0
+    f = lambda x, y: 0.001 * (x - 500000) + 0.002 * (y - 5800000)  # noqa: E731  (a plane: errors scale with metres)
+    xs = np.arange(500005.0, 502000, 10.0)
+    ys = np.arange(5801995.0, 5800000, -10.0)
+    X, Y = np.meshgrid(xs, ys)
+    src = xr.DataArray(f(X + dx, Y + dy), dims=("y", "x"), coords={"x": xs, "y": ys}).rio.write_crs("EPSG:32633")
+    tx = np.arange(500220.0, 501800, 40.0)
+    ty = np.arange(5801780.0, 5800200, -40.0)
+    tpl = xr.DataArray(np.zeros((len(ty), len(tx))), dims=("y", "x"), coords={"x": tx, "y": ty}).rio.write_crs("EPSG:32633")
+    TX, TY = np.meshgrid(tx, ty)
+    placed = place_on(src, tpl, "nearest", (dx, dy)).values
+    as_is = place_on(src, tpl, "nearest").values
+    tol = 0.001 * 5 + 0.002 * 5 + 1e-9                     # half a 10 m sample on each axis
+    assert np.abs(placed - f(TX, TY)).max() <= tol
+    assert np.abs(as_is - f(TX + dx, TY + dy)).max() <= tol
+    assert np.isin(np.round(placed, 9), np.round(src.values, 9)).all()
+    assert np.array_equal(place_on(src, tpl, "nearest", (dx, dy)).x.values, tx)

@@ -183,29 +183,47 @@ def dualpol_db(vv: xr.DataArray, vh: xr.DataArray) -> xr.Dataset:
                        "ratio_vh_vv_db": vh_db - vv_db})
 
 
+def place_on(da: xr.DataArray, template: xr.DataArray, resampling: str = "nearest",
+             shift_m: tuple[float, float] | None = None) -> xr.DataArray:
+    """``da`` (a source raster with a CRS) on the template grid. With ``shift_m`` = (dx, dy), the content the source
+    labels L + ... is fetched from L − (dx, dy) and labelled L: the source is sampled on the template moved by
+    −(dx, dy), then given the template's own coordinates. That puts back under its labels a source whose content of a
+    cell labelled M lies at M + (dx, dy) (X-122) without interpolating the sampled values."""
+    from affine import Affine
+    from rasterio.enums import Resampling
+    how = Resampling[resampling]
+    if not shift_m:
+        return da.rio.reproject_match(template, resampling=how)
+    dx, dy = shift_m
+    moved = template.assign_coords(x=template.x.values - dx, y=template.y.values - dy)
+    moved = moved.rio.write_crs(template.rio.crs).rio.write_transform(
+        template.rio.transform() * Affine.translation(
+            -dx / template.rio.resolution()[0], -dy / template.rio.resolution()[1]))
+    out = da.rio.reproject_match(moved, resampling=how)
+    return out.assign_coords(x=template.x.values, y=template.y.values).rio.write_transform(template.rio.transform())
+
+
 def mpc_loader(template: xr.DataArray, resampling: str = "nearest",
-               retries: int = 3, wait_s: float = 10.0):
+               retries: int = 3, wait_s: float = 10.0, shift_m: tuple[float, float] | None = None):
     """``load(href)`` → linear γ⁰ on the template grid: signed URL, AOI window only, retried.
 
     ``nearest`` is what the ascending 2022–2024 stack used (one 10 m sample per 40 m cell);
     ``average`` averages the 10 m power over the cell (less speckle). Resampling happens in
-    linear power, before the dB conversion.
+    linear power, before the dB conversion. ``shift_m``: sample at the corrected positions (``place_on``).
     """
     import time
 
     import planetary_computer as pc
     import rioxarray  # noqa: F401 — registers .rio
-    from rasterio.enums import Resampling
 
     bounds = template.rio.transform_bounds("EPSG:4326")
-    how = Resampling[resampling]
 
     def load(href: str) -> xr.DataArray:
         for attempt in range(retries):
             try:
                 da = rioxarray.open_rasterio(pc.sign(href), masked=True).squeeze("band", drop=True)
                 da = da.rio.clip_box(*bounds, crs="EPSG:4326")
-                return da.rio.reproject_match(template, resampling=how).load()
+                return place_on(da, template, resampling, shift_m).load()
             except Exception:
                 if attempt == retries - 1:
                     raise
@@ -228,7 +246,7 @@ def _flush_items(existing: xr.Dataset | None, new: list, out_nc: Path) -> xr.Dat
 def build_rtc_track_stack(items: list, template: xr.DataArray, out_nc: str | Path, *,
                           track: str, relative_orbit: int, bbox=None,
                           resampling: str = "nearest", load=None,
-                          checkpoint_every: int = 20) -> Path:
+                          checkpoint_every: int = 20, shift_m: tuple[float, float] | None = None) -> Path:
     """Dual-pol γ⁰ stack (VV, VH, VH−VV in dB) of one track on the HyP3 crop grid.
 
     Same variables as ``build_rtc_dualpol_stack`` (the ascending 2022–2024 stack), plus
@@ -246,15 +264,17 @@ def build_rtc_track_stack(items: list, template: xr.DataArray, out_nc: str | Pat
     out_nc.parent.mkdir(parents=True, exist_ok=True)
     attrs = {"source": f"Microsoft Planetary Computer, collection sentinel-1-rtc ({MPC_STAC})",
              "track": track, "relative_orbit": int(relative_orbit), "resampling": resampling,
-             "grid": f"{template.rio.crs} {template.sizes['y']}x{template.sizes['x']}"}
+             "grid": f"{template.rio.crs} {template.sizes['y']}x{template.sizes['x']}",
+             "placement": (f"X-122: sampled at L − ({shift_m[0]:+.0f}, {shift_m[1]:+.0f}) m" if shift_m else "as delivered")}
     existing = xr.load_dataset(out_nc) if out_nc.exists() else None
     if existing is not None:
-        clash = {k: (existing.attrs.get(k), attrs[k]) for k in ("track", "relative_orbit", "resampling")
-                 if str(existing.attrs.get(k)) != str(attrs[k])}
+        had = {k: existing.attrs.get(k, "as delivered" if k == "placement" else None)
+               for k in ("track", "relative_orbit", "resampling", "placement")}
+        clash = {k: (v, attrs[k]) for k, v in had.items() if str(v) != str(attrs[k])}
         if clash:
             raise ValueError(f"{out_nc} was built with other settings {clash}; write to a new file")
     done = set(pd.to_datetime(existing.time.values)) if existing is not None else set()
-    load = load or mpc_loader(template, resampling)
+    load = load or mpc_loader(template, resampling, shift_m=shift_m)
 
     new, failed, partial = [], [], []
     for day, candidates in items_by_day(items, bbox).items():
