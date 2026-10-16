@@ -79,27 +79,34 @@ def placed_name(name: str) -> str:
     return f"{stem}_placed.nc"
 
 
-def open_rtc(path, track: str | None = None):
-    """Open an RTC stack; with ``RZECIN_RTC_RELOCATE=1``, its placed counterpart instead — the same dates and
-    variables, the 10 m source sampled at the corrected positions (X-122, DECISIONS 2026-10-16), nothing interpolated.
-    The ascending 2022–2024 ``rtc_dualpol_stack.nc`` is equal to the 2020–2024 stack on its dates (X-063's check), so
-    it is read from the placed 2020–2024 stack on those dates. ``track`` is kept for the callers' symmetry."""
+def open_placed(path):
+    """The placed counterpart of the RTC stack at ``path`` on that stack's own dates and variables (a later download
+    can hold more dates; they are left out so a comparison sees the placement only). Raises if a date is missing."""
     from pathlib import Path
 
     import xarray as xr
     path = Path(path)
     ds = xr.open_dataset(path)
-    if not rtc_relocation_on():
-        return ds
-    if path.name == "rtc_dualpol_stack.nc":
-        placed = xr.open_dataset(path.with_name("rtc_dualpol_2020_2024_placed.nc"))
-        out = placed.sel(time=ds.time.values)[[v for v in ds.data_vars if v in placed]]
-    else:
-        out = xr.open_dataset(path.with_name(placed_name(path.name)))
-        if out.sizes.get("time") != ds.sizes.get("time"):
-            raise ValueError(f"{path.name}: the placed stack has {out.sizes.get('time')} dates, not "
-                             f"{ds.sizes.get('time')}; finish `rtc_download.py --placed` first")
+    src = path.with_name("rtc_dualpol_2020_2024_placed.nc" if path.name == "rtc_dualpol_stack.nc"
+                         else placed_name(path.name))
+    placed = xr.open_dataset(src)
+    have = set(placed.time.values)
+    missing = [str(t)[:10] for t in ds.time.values if t not in have]
+    if missing:
+        raise ValueError(f"{src.name} lacks {len(missing)} dates of {path.name} ({missing[:3]}…); "
+                         "finish `rtc_download.py --placed` first")
+    out = placed.sel(time=ds.time.values)[[v for v in ds.data_vars if v in placed]]
+    out.attrs = dict(ds.attrs, placement=placed.attrs.get("placement", ""))
     return out
+
+
+def open_rtc(path, track: str | None = None):
+    """Open an RTC stack; with ``RZECIN_RTC_RELOCATE=1``, its placed counterpart instead (``open_placed``): the same
+    dates and variables, the 10 m source sampled at the corrected positions (X-122, DECISIONS 2026-10-16), nothing
+    interpolated. ``track`` is kept for the callers' symmetry."""
+    import xarray as xr
+    return open_placed(path) if rtc_relocation_on() else xr.open_dataset(path)
+
 
 def hyp3_isce2_predicted_shift(dem_pixel_m: float, lat_south_deg: float, lat_site_deg: float) -> tuple[float, float]:
     """(dx east, dy north) in metres at which the content of a HyP3 cell labelled L lies: half a geocoding cell west and
