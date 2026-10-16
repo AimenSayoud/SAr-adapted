@@ -34,8 +34,14 @@ import p6_validation_x082 as X  # noqa: E402
 from insar_wetlands import v4  # noqa: E402
 from insar_wetlands.cube import cube_root  # noqa: E402
 from insar_wetlands.cube.core import rad_to_los_mm  # noqa: E402
-from insar_wetlands.scoring import (Protocol, assert_preregistered, chain, detrended_stats, level_views,  # noqa: E402
-                                    winter_steps)
+from insar_wetlands.scoring import (  # noqa: E402
+    Protocol,
+    assert_preregistered,
+    chain,
+    detrended_stats,
+    level_views,
+    winter_steps,
+)
 
 FT = HUB / "08_deliverables" / "insar_full_test"
 V4DIR = FT / "v4"

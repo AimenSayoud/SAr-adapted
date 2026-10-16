@@ -2272,7 +2272,7 @@ entries:
   freeze_v4n_x125:
     kind: experiment
     title: X-125 — v4n, v4 with a fixed neighbour-average read at P6; the block chosen on the design years and frozen before X-107 (tag v4n-frozen-2026-10-16)
-    status: open
+    status: finished
     runs_on: mac
     code: experiments/freeze_v4n_x125.py
     code_ref: HEAD
