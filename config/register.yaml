@@ -2143,6 +2143,21 @@ entries:
     - hub:08_deliverables/independent_review/01_tries/tries.csv
     outputs:
     - hub:08_deliverables/article_plan/figures/final
+  article_fig_f3:
+    kind: experiment
+    title: C-068 — F3 final, schematic of what C-band sees on a floating mat and which pairs keep its motion (no data)
+    status: open
+    runs_on: mac
+    code: experiments/article_fig_f3.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/article_fig_f3.py
+    tickets:
+    - C-068
+    chains:
+    - article-plan
+    inputs: []
+    outputs:
+    - hub:08_deliverables/article_plan/figures/final
   bias_correction_x085:
     kind: experiment
     title: X-085 — the Maghsoudi short-pair bias correction on unfiltered 2021 SLC pairs at P6 (40 m cell, hard-target reference), scored against the laser
