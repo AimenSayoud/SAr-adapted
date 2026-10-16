@@ -2109,6 +2109,23 @@ entries:
     - hub:08_deliverables/article_plan/tables/revisit_correlations.csv
     outputs:
     - hub:08_deliverables/article_plan/figures/final
+  article_fig_f5:
+    kind: experiment
+    title: C-068 — F5 final, coherence against each pair's open-water floor by pair length, and the six-day maps (merges draft F5 and F5b)
+    status: open
+    runs_on: mac
+    code: experiments/article_fig_f5.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/article_fig_f5.py
+    tickets:
+    - C-068
+    chains:
+    - article-plan
+    inputs:
+    - cube:silver/static_40m.nc
+    - cube:silver/ifg_2020_2021_ascending.nc
+    outputs:
+    - hub:08_deliverables/article_plan/figures/final
   bias_correction_x085:
     kind: experiment
     title: X-085 — the Maghsoudi short-pair bias correction on unfiltered 2021 SLC pairs at P6 (40 m cell, hard-target reference), scored against the laser
