@@ -30,6 +30,7 @@ failure on a map, not to rescue it: H1 is settled.
 
 from __future__ import annotations
 
+import datetime as _dt
 import hashlib
 import json
 from dataclasses import dataclass, field
@@ -299,6 +300,8 @@ def _jsonable(o):
         return o.tolist()
     if isinstance(o, (pd.Timestamp,)):
         return o.strftime("%Y-%m-%d")
+    if isinstance(o, _dt.date):                       # a ledger date YAML read unquoted
+        return o.isoformat()
     if isinstance(o, Path):
         return str(o)
     raise TypeError(type(o))
