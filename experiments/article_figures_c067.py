@@ -116,6 +116,12 @@ def f5b(st, masks, extra: dict) -> None:
     for ax, track in zip(axs, TRACKS):
         e = extra[track]
         share = e["above6"] / max(e["n6"], 1)
+        depth = st.depth_in_mat_m.values
+        md = np.nanmedian(depth[masks["mat"]])
+        DEPTH.append({"track": track, "split_depth_m": float(md),
+                      "interior_share_median": float(np.nanmedian(share[masks["mat"] & (depth > md)])),
+                      "edge_share_median": float(np.nanmedian(share[masks["mat"] & (depth <= md)])),
+                      "grassland_share_median": float(np.nanmedian(share[masks["grassland"]]))})
         show = np.where(masks["mat"] | masks["grassland"], share, np.nan)
         im = ax.imshow(show, extent=ext, cmap="viridis", vmin=0, vmax=1, origin="upper")
         ax.contour(st.x.values, st.y.values, masks["mat"].astype(float), levels=[0.5], colors="white", linewidths=0.8)
@@ -164,6 +170,7 @@ FT = HUB / "08_deliverables" / "insar_full_test"
 OUTCOME = {"holds": ("#1a7f37", "follows the motion"), "partly": ("#bf8700", "partly"), "helps": ("#1a7f37", "helps"),
            "lost": ("#cf222e", "loses it"), "not_motion": ("#8250df", "a signal, not the motion"),
            "not_applicable": ("#8c959f", "fails its own conditions"), "no_effect": ("#57606a", "no gain / no change")}
+DEPTH: list = []                        # filled by f5b, written by tables()
 PRODUCT = {"HyP3": "HyP3", "SLC": "own SLC", "both": "HyP3 + own SLC", "sim": "simulation"}
 
 
@@ -171,6 +178,8 @@ def latest(entry: str, rel: str) -> Path:
     """An entry's table as the article reads it: the latest re-read on corrected inputs, else the original."""
     for root in (FT / "reread_rtc", FT / "reread_corrected"):
         f = root / entry / rel
+        if not f.exists() and entry == "baseline_x099":
+            f = root / "baseline_x099" / rel
         if f.exists():
             return f
     return HUB / "08_deliverables" / entry / rel
@@ -384,6 +393,42 @@ def tables() -> None:
                      "pairs_12_day": int((dd.revisit_days == 12).sum()),
                      "pairs_longer": int((dd.revisit_days > 12).sum())})
     pd.DataFrame(rows).to_csv(out / "data_by_track.csv", index=False)
+    if DEPTH:
+        pd.DataFrame(DEPTH).to_csv(out / "short_pairs_by_depth.csv", index=False)
+    rows = []
+    for track in TRACKS:
+        f = OUT / f"F5_pairs_{track}.csv"
+        if f.exists():
+            t = pd.read_csv(f)
+            for lab, m in (("6-day", t.days == 6), ("12-day", t.days == 12), ("24 days and longer", t.days >= 24)):
+                rows.append({"track": track, "pairs": lab, "n": int(m.sum()),
+                             **{f"{k.replace(' ', '_')}_share_median": float(t.loc[m, k].median()) for k in CLASS}})
+    pd.DataFrame(rows).to_csv(out / "floor_shares.csv", index=False)
+    wn = pd.read_csv(latest("baseline_x099", "winters.csv"))
+    wn = wn[(wn.estimate == "plain chain") & (wn.reference == "hard_targets")]
+    (wn.assign(ae=wn.difference_mm.abs()).groupby("track")
+       .agg(winters=("winter", "size"), mae_mm=("ae", "mean"), laser_abs_mean_mm=("laser_change_mm", lambda v: v.abs().mean()))
+       .reset_index().to_csv(out / "winter_steps.csv", index=False))
+    d = pd.read_csv(latest("field_p6_short_pairs_x065", "p6_pairs_2020_2024.csv")).dropna(subset=["s1", "laser_los"])
+    d["period"] = np.where(d.year <= 2021, "2020–2021", "2022–2024")
+    rng = np.random.default_rng(0)
+    rev = []
+    for (track, period, dt), g in d.groupby(["track", "period", "dt"]):
+        if len(g) < 5:
+            continue
+        a, b = g.laser_los.to_numpy(), g.s1.to_numpy()
+        boot = [np.corrcoef(a[i], b[i])[0, 1] for i in (rng.integers(0, len(a), len(a)) for _ in range(2000))]
+        lo, hi = np.nanpercentile(boot, [2.5, 97.5])
+        rev.append({"track": track, "period": period, "revisit_days": int(dt), "n": len(g),
+                    "r": float(np.corrcoef(a, b)[0, 1]), "r_lo95": float(lo), "r_hi95": float(hi)})
+    pd.DataFrame(rev).to_csv(out / "revisit_correlations.csv", index=False)
+    from insar_wetlands.cube.core import WAVELENGTH_MM
+    qw = WAVELENGTH_MM / 4                                   # a quarter of the C-band wavelength, line of sight
+    six = d[d.dt == 6]
+    pd.DataFrame([{"track": t, "pairs": len(g), "median_abs_laser_los_mm": float(g.laser_los.abs().median()),
+                   "max_abs_laser_los_mm": float(g.laser_los.abs().max()),
+                   "share_beyond_quarter_wave": float((g.laser_los.abs() > qw).mean())}
+                  for t, g in six.groupby("track")]).to_csv(out / "laser_six_day.csv", index=False)
     w = pd.read_csv(HUB / "08_deliverables" / "cube_analysis_x081" / "weather_by_year.csv")
     pd.DataFrame([{"years": f"{w.year.min()}–{w.year.max()}", "precip_mm_median": w.precip_mm.median(),
                    "precip_mm_min": w.precip_mm.min(), "precip_mm_max": w.precip_mm.max(),
