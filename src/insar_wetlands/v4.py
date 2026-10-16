@@ -38,3 +38,31 @@ def relevel(c: pd.DataFrame, anchor_at, bounds: list[tuple[int, int]]) -> pd.Dat
         old = c.seg.iloc[b]
         c.loc[(c.index >= b) & (c.seg == old), "seg"] = c.seg.iloc[a]
     return c
+
+
+def block_cells(x: np.ndarray, y: np.ndarray, xq: float, yq: float, size: int) -> tuple[np.ndarray, np.ndarray]:
+    """Row and column indices of the cell block read by the neighbour-average variant (X-125) on a regular grid with
+    cell-centre coordinates ``x`` (ascending) and ``y`` (descending). ``size`` 2: the four cells whose centres surround
+    (xq, yq); ``size`` 3: the cell containing (xq, yq) and its eight neighbours."""
+    dx, dy = float(x[1] - x[0]), float(y[1] - y[0])
+    fc, fr = (xq - x[0]) / dx, (yq - y[0]) / dy                   # fractional column and row of the point
+    if size == 2:
+        c0, r0 = int(np.floor(fc)), int(np.floor(fr))
+        cols, rows = np.array([c0, c0 + 1]), np.array([r0, r0 + 1])
+    elif size == 3:
+        c0, r0 = int(np.rint(fc)), int(np.rint(fr))
+        cols, rows = np.arange(c0 - 1, c0 + 2), np.arange(r0 - 1, r0 + 2)
+    else:
+        raise ValueError("size must be 2 or 3")
+    if cols.min() < 0 or rows.min() < 0 or cols.max() >= len(x) or rows.max() >= len(y):
+        raise ValueError("block leaves the grid")
+    return rows, cols
+
+
+def block_mean(values: np.ndarray, rows: np.ndarray, cols: np.ndarray, min_share: float = 0.5) -> np.ndarray:
+    """Mean over the block of ``values`` (..., y, x), NaN where fewer than ``min_share`` of its cells are finite."""
+    b = values[..., rows[:, None], cols[None, :]].reshape(*values.shape[:-2], -1)
+    ok = np.isfinite(b)
+    with np.errstate(invalid="ignore"):
+        m = np.nanmean(np.where(ok, b, np.nan), axis=-1)
+    return np.where(ok.mean(axis=-1) >= min_share, m, np.nan)

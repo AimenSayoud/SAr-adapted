@@ -2269,3 +2269,21 @@ entries:
     - hub:06_data/cube_snapshots/as_delivered_2026-10-15
     outputs:
     - hub:08_deliverables/insar_full_test/hyp3_smoothing_check
+  freeze_v4n_x125:
+    kind: experiment
+    title: X-125 — v4n, v4 with a fixed neighbour-average read at P6; the block chosen on the design years and frozen before X-107 (tag v4n-frozen-2026-10-16)
+    status: open
+    runs_on: mac
+    code: experiments/freeze_v4n_x125.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/freeze_v4n_x125.py
+    tickets:
+    - X-125
+    chains:
+    - mat-method-v4
+    inputs:
+    - hub:06_data/cube_snapshots/as_delivered_2026-10-15
+    - hub:08_deliverables/insar_full_test/v4/v4_frozen_params.yaml
+    outputs:
+    - hub:08_deliverables/insar_full_test/v4/v4n_frozen_params.yaml
+    - hub:08_deliverables/insar_full_test/v4/v4n_design_report
