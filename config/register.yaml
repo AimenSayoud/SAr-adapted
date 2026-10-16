@@ -2252,3 +2252,20 @@ entries:
     - cube:silver/rtc_descending.nc
     outputs:
     - hub:08_deliverables/insar_full_test/reread_rtc
+  hyp3_smoothing_check_x124:
+    kind: experiment
+    title: X-124 — is the HyP3 half-cell gain placement or interpolation smoothing? Pre-smoothed shift search and the P6 chain at the corrected position against its mirrors, on the cube as delivered
+    status: open
+    runs_on: mac
+    code: experiments/hyp3_smoothing_check_x124.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/hyp3_smoothing_check_x124.py
+    tickets:
+    - X-124
+    chains:
+    - insar-full-test
+    inputs:
+    - drive:slc_pilot/2021/cslc
+    - hub:06_data/cube_snapshots/as_delivered_2026-10-15
+    outputs:
+    - hub:08_deliverables/insar_full_test/hyp3_smoothing_check
