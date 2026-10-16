@@ -335,6 +335,33 @@ def f6() -> None:
     plt.close(fig)
 
 
+def f2() -> None:
+    """F2 main: the mat's level (laser) and its water at P6 through the design years, datum segments marked."""
+    import yaml
+    t = pd.read_csv(CUBE / "gold" / "truth_laser_hourly.csv.gz", parse_dates=["time_utc"])
+    prot = yaml.safe_load((FT / "protocol.yaml").read_text())
+    fig, (a, b) = plt.subplots(2, 1, figsize=(7.2, 4.6), sharex=True, constrained_layout=True)
+    ok, snow, filled = t.laser_ok.astype(bool), t.laser_snow_72h.astype(bool), t.laser_filled.astype(bool)
+    a.plot(t.time_utc, t.laser_surface_cm.where(ok), color=INK, lw=0.7, label="mat surface (laser)")
+    a.plot(t.time_utc, t.laser_surface_raw_cm.where(snow), color=GRID, lw=0.7, label="snow period (not used)")
+    a.plot(t.time_utc, t.laser_surface_raw_cm.where(filled), color="#8250df", lw=1, ls="--",
+           label="filled in the delivery (not data)")
+    for x0, x1 in prot["datum_breaks"]:
+        for ax in (a, b):
+            ax.axvspan(pd.Timestamp(x0, tz="UTC"), pd.Timestamp(x1, tz="UTC"), color="#fff8c5", lw=0)
+    a.text(pd.Timestamp(prot["datum_breaks"][0][1], tz="UTC"), a.get_ylim()[1], " re-levelled: new datum",
+           fontsize=6, color=MUTED, va="top")
+    a.set_ylabel("mat surface (cm, + up)")
+    a.legend(fontsize=6, frameon=True, loc="upper right", ncol=1)
+    b.plot(t.time_utc, t.cr_raw, color="#0969da", lw=0.7)
+    b.set_ylabel("water level at P6\n(cm, raw logger)")
+    b.set_xlim(t.time_utc.min(), t.time_utc.max())
+    fig.suptitle("F2 (draft) — the mat rises and falls with its water, by centimetres (P6, design years; levels compared "
+                 "within a datum only)", fontsize=9, color=INK)
+    fig.savefig(OUT / "F2_laser_water.png", dpi=200, bbox_inches="tight")
+    plt.close(fig)
+
+
 def tables() -> None:
     """The article's data tables (``article_plan/tables/``): per track, the consecutive pairs at P6 the chain uses and
     the acquisitions they join; the site's climate over the archive (ERA5 at the site, X-081)."""
@@ -373,6 +400,7 @@ def main() -> None:
         tabs[track].to_csv(OUT / f"F5_pairs_{track}.csv", index=False)
     f5(tabs)
     f5b(st, masks, extra)
+    f2()
     f2_inset(st, masks)
     f1(st, masks)
     f3()
