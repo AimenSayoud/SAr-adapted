@@ -25,6 +25,7 @@ import matplotlib as mpl
 MM = 1 / 25.4
 WIDTH_MM = {"single": 90.0, "one_half": 140.0, "full": 190.0}        # Elsevier artwork sizing
 MIN_FONT_PT = 7.0                                                    # 6 pt allowed only for sub/superscripts
+RASTER_DPI = 600                                                     # rasterised layers inside the vector PDF
 
 INK, MUTED, GRID = "#1f2328", "#57606a", "#d0d7de"
 # One colour per class, in every figure (Okabe–Ito hues, distinguishable with colour-vision deficiency).
@@ -75,7 +76,9 @@ def export(fig, stem: Path, provenance: dict, png_dpi: int = 300) -> dict:
     so the printed width is the width it was drawn at. Returns the provenance record."""
     stem = Path(stem)
     stem.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(stem.with_suffix(".pdf"), metadata={"Creator": "insar_wetlands.figstyle"})
+    # dpi applies only to rasterised artists (dense scatters) and resampled images; `interpolation="none"` images keep
+    # their native resolution. 600 dpi meets Elsevier's 500 dpi for combination art.
+    fig.savefig(stem.with_suffix(".pdf"), dpi=RASTER_DPI, metadata={"Creator": "insar_wetlands.figstyle"})
     fig.savefig(stem.with_suffix(".png"), dpi=png_dpi)
     w, h = fig.get_size_inches()
     rec = {"figure": stem.name, "width_mm": round(w / MM, 1), "height_mm": round(h / MM, 1),
