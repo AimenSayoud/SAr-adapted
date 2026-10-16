@@ -45,8 +45,10 @@ IFG_SETS = PERIODS + ("annual", "matched_wt")
 # label it as the whole cell, so a cell's content lies at its label + (dx east, dy north). The cube puts the radar
 # layers' content back under their labels (placement.relocate); the DEM layer is placed right and is not moved. The
 # shift per product spacing and track is set by X-120's refined test (DECISIONS 2026-10-15). ``None``: as delivered.
-from ..placement import HYP3_CONTENT_SHIFT_M  # noqa: E402  (X-120 refine; set to None here to build as delivered)
-from ..placement import RTC_CONTENT_SHIFT_M  # noqa: E402  (X-122; set to None here to build the RTC as delivered)
+# X-122: the RTC is read from the placed stacks (the source sampled at the corrected positions, DECISIONS 2026-10-16).
+# Set either shift to None here to build that layer as delivered.
+from ..placement import HYP3_CONTENT_SHIFT_M, RTC_CONTENT_SHIFT_M, placed_name  # noqa: E402
+
 RTC_FILES = {"ascending": ["rtc_dualpol_2017_2019.nc", "rtc_dualpol_2020_2024.nc", "rtc_dualpol_2025_2025.nc",
                            "rtc_dualpol_2026_2026.nc"],
              "descending": ["rtc_dualpol_2017_2019_descending.nc", "rtc_dualpol_2020_2024_descending.nc",
@@ -244,7 +246,12 @@ def platform_by_date() -> pd.Series:
 def harmonise_rtc(ctx, silver: Path, log=print) -> None:
     for track, files in RTC_FILES.items():
         out = silver / f"rtc_{track}.nc"
-        parts = [xr.open_dataset(MIRROR / f) for f in files if (MIRROR / f).exists()]
+        # X-122, DECISIONS 2026-10-16: the placed stacks (the source sampled at the corrected positions)
+        names = [placed_name(f) for f in files] if RTC_CONTENT_SHIFT_M is not None else files
+        missing = [n for n in names if not (MIRROR / n).exists()]
+        if missing:
+            raise FileNotFoundError(f"rtc {track}: {missing} — run pipelines/rtc_download.py --placed first")
+        parts = [xr.open_dataset(MIRROR / f) for f in names]
         ds = xr.concat(parts, "time").sortby("time")
         ds = ds.isel(time=~pd.Index(ds.time.values).duplicated())
         items = ds.source_item.values.astype(str)
@@ -256,9 +263,7 @@ def harmonise_rtc(ctx, silver: Path, log=print) -> None:
                        coords={"time": ds.time.values, "x": ds.x.values, "y": ds.y.values,
                                "acq_time_utc": ("time", acq.tz_convert(None)), "platform": ("time", [i[:3] for i in items])})
         o.attrs = {"track": track, "crs": "EPSG:32633", "rvi": "4·σVH/(σVV+σVH), linear"}
-        if RTC_CONTENT_SHIFT_M is not None:              # X-122, DECISIONS 2026-10-16: content back under its labels
-            from ..placement import relocate_rtc
-            o = relocate_rtc(o, track)
+        o.attrs["placement"] = str(parts[0].attrs.get("placement", "as delivered"))
         o.to_netcdf(out, encoding=_enc(o))
         log(f"rtc {track}: {o.sizes['time']} dates → {out.name}")
 

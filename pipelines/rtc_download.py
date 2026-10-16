@@ -22,6 +22,7 @@ Drive is a separate step):
         --track descending --out-root ../local/drive_mirror \\
         --extra-cropped ../local/s1_2020_2021/hyp3_cropped_descending
     ... --check          # coverage table only, downloads nothing
+    ... --placed         # sampled at the corrected positions (X-122): rtc_dualpol_<period>_placed[_track].nc
 
 On Colab (Drive mounted), ``--out-root`` defaults to the data root: the stack lands beside the crops.
 """
@@ -45,13 +46,15 @@ from insar_wetlands.masking.rtc import (
     widen_bbox,
 )
 from insar_wetlands.paths import make_paths
+from insar_wetlands.placement import RTC_CONTENT_SHIFT_M
 from insar_wetlands.stack import list_pairs, load_layer
 
 
-def stack_names(start: str, end: str) -> tuple[str, str]:
-    """``rtc_dualpol_<y0>_<y1>.nc`` and its coverage table. Never the name of the 2022–2024
-    ascending stack (``rtc_dualpol_stack.nc``), whose consumers must not change under them."""
-    period = f"{pd.Timestamp(start).year}_{pd.Timestamp(end).year}"
+def stack_names(start: str, end: str, placed: bool = False) -> tuple[str, str]:
+    """``rtc_dualpol_<y0>_<y1>[_placed].nc`` and its coverage table. Never the name of the 2022–2024
+    ascending stack (``rtc_dualpol_stack.nc``), whose consumers must not change under them; the placed stacks
+    (``--placed``, X-122) get their own names, so the stacks as delivered stay as they are."""
+    period = f"{pd.Timestamp(start).year}_{pd.Timestamp(end).year}" + ("_placed" if placed else "")
     return f"rtc_dualpol_{period}.nc", f"rtc_coverage_{period}.csv"
 
 
@@ -74,6 +77,8 @@ def main() -> None:
                     help="more crop folders whose dates count as interferogram dates (e.g. 2020–2021)")
     ap.add_argument("--resampling", choices=("nearest", "average"), default="nearest")
     ap.add_argument("--check", action="store_true", help="coverage table only, no download")
+    ap.add_argument("--placed", action="store_true",
+                    help="sample the source at the corrected positions (placement.RTC_CONTENT_SHIFT_M, X-122)")
     args = ap.parse_args()
 
     cfg = load_config()
@@ -81,7 +86,8 @@ def main() -> None:
     out = make_paths(cfg=cfg, root=args.out_root or src.drive, track=args.track)
     if "drive_pristine" in out.drive.resolve().parts:
         raise SystemExit(f"{out.drive} is the read-only snapshot: pass --out-root")
-    stack_nc, coverage_csv = (out.track_file(n) for n in stack_names(args.start, args.end))
+    stack_nc, coverage_csv = (out.track_file(n) for n in stack_names(args.start, args.end, args.placed))
+    shift = RTC_CONTENT_SHIFT_M[args.track] if args.placed else None
 
     orbit = track_relative_orbit(cfg, args.track)
     bbox = buffered_bbox(cfg)
@@ -96,7 +102,7 @@ def main() -> None:
     if not args.check:
         template = load_layer(src.cropped, "corr", list_pairs(src.cropped)[:1]).isel(pair=0)
         build_rtc_track_stack(items, template, stack_nc, track=args.track, relative_orbit=orbit,
-                              bbox=bbox, resampling=args.resampling)
+                              bbox=bbox, resampling=args.resampling, shift_m=shift)
 
     on_disk = pd.to_datetime(xr.open_dataset(stack_nc).time.values) if stack_nc.exists() else []
     ifg = {d for d in interferogram_days([src.cropped, *args.extra_cropped])

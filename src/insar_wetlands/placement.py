@@ -36,13 +36,14 @@ RTC_RELOCATE_ENV = "RZECIN_RTC_RELOCATE"
 
 def rtc_relocation_on() -> bool:
     """Off by default, so finished entries reproduce from the RTC stacks as delivered; ``RZECIN_RTC_RELOCATE=1`` makes
-    every stack opened through ``open_rtc`` relocated under its labels. The cube is built relocated either way."""
+    every stack opened through ``open_rtc`` the placed one. The cube is built from the placed stacks either way."""
     import os
     return os.environ.get(RTC_RELOCATE_ENV, "") not in ("", "0")
 
 
 def relocate_rtc(ds, track: str):
-    """An RTC dataset (the Drive stacks: ``gamma0_vv_db``, ``gamma0_vh_db``, ``ratio_vh_vv_db``; or the cube's
+    """Not the correction (it smooths: the RTC is nearest-resampled, and interpolation averages neighbouring samples —
+    X-123 amendment); kept for that diagnostic. An RTC dataset (the Drive stacks: ``gamma0_vv_db``, ``gamma0_vh_db``, ``ratio_vh_vv_db``; or the cube's
     ``vv_db``, ``vh_db``, ``vh_vv_db``, ``rvi``) with its content put back under its labels. Power is relocated in
     linear units, then the dB values, the ratio and the RVI are recomputed from it. Other variables are kept."""
     dx, dy = RTC_CONTENT_SHIFT_M[track]
@@ -68,15 +69,37 @@ def relocate_rtc(ds, track: str):
     return out
 
 
-def open_rtc(path, track: str | None = None):
-    """Open an RTC stack; relocated (``relocate_rtc``) when ``RZECIN_RTC_RELOCATE=1``. ``track`` defaults to the file's
-    ``track`` attribute (the ascending 2022–2024 ``rtc_dualpol_stack.nc`` has none: pass it)."""
-    import xarray as xr
-    ds = xr.open_dataset(path)
-    if not rtc_relocation_on() or ds.attrs.get("relocated", "").startswith("X-122"):
-        return ds
-    return relocate_rtc(ds.load(), track or ds.attrs["track"])
+def placed_name(name: str) -> str:
+    """The placed stack (``pipelines/rtc_download.py --placed``) that stands for an RTC stack as delivered:
+    ``rtc_dualpol_2020_2024_descending.nc`` → ``rtc_dualpol_2020_2024_placed_descending.nc``."""
+    stem = name[:-3]
+    for t in ("_descending", "_ascending"):
+        if stem.endswith(t):
+            return f"{stem[:-len(t)]}_placed{t}.nc"
+    return f"{stem}_placed.nc"
 
+
+def open_rtc(path, track: str | None = None):
+    """Open an RTC stack; with ``RZECIN_RTC_RELOCATE=1``, its placed counterpart instead — the same dates and
+    variables, the 10 m source sampled at the corrected positions (X-122, DECISIONS 2026-10-16), nothing interpolated.
+    The ascending 2022–2024 ``rtc_dualpol_stack.nc`` is equal to the 2020–2024 stack on its dates (X-063's check), so
+    it is read from the placed 2020–2024 stack on those dates. ``track`` is kept for the callers' symmetry."""
+    from pathlib import Path
+
+    import xarray as xr
+    path = Path(path)
+    ds = xr.open_dataset(path)
+    if not rtc_relocation_on():
+        return ds
+    if path.name == "rtc_dualpol_stack.nc":
+        placed = xr.open_dataset(path.with_name("rtc_dualpol_2020_2024_placed.nc"))
+        out = placed.sel(time=ds.time.values)[[v for v in ds.data_vars if v in placed]]
+    else:
+        out = xr.open_dataset(path.with_name(placed_name(path.name)))
+        if out.sizes.get("time") != ds.sizes.get("time"):
+            raise ValueError(f"{path.name}: the placed stack has {out.sizes.get('time')} dates, not "
+                             f"{ds.sizes.get('time')}; finish `rtc_download.py --placed` first")
+    return out
 
 def hyp3_isce2_predicted_shift(dem_pixel_m: float, lat_south_deg: float, lat_site_deg: float) -> tuple[float, float]:
     """(dx east, dy north) in metres at which the content of a HyP3 cell labelled L lies: half a geocoding cell west and
