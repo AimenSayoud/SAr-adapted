@@ -44,8 +44,8 @@ def main() -> None:
     with fs.style():
         fig = plt.figure(figsize=fs.size("full", 96))
         outer = fig.add_gridspec(1, 2, width_ratios=[4.0, 1.25], wspace=0.42, left=0.075, right=0.985, bottom=0.2,
-                                 top=0.9)
-        gs = outer[0].subgridspec(2, 4, wspace=0.12, hspace=0.14)
+                                 top=0.86)
+        gs = outer[0].subgridspec(2, 4, wspace=0.12, hspace=0.3)
         axs = np.array([[fig.add_subplot(gs[r, c]) for c in range(4)] for r in range(2)])
         for r, tr in enumerate(TRACKS):
             col = fs.TRACK[tr]
@@ -60,13 +60,12 @@ def main() -> None:
                 ax.scatter(g.laser_los, g.s1, s=10, color=col if filled else "white", edgecolors=col, lw=0.7,
                            zorder=3)
                 row = t2.loc[(tr, per, dt)]
-                ax.text(0.97, 0.03, f"r = {row.r:.2f}\n[{row.r_lo95:.2f}, {row.r_hi95:.2f}]\nn = {int(row.n)}",
-                        transform=ax.transAxes, ha="right", va="bottom", fontsize=6.5, linespacing=1.15, zorder=5,
-                        bbox=dict(fc="white", ec="none", alpha=0.85, pad=1.2))
+                stats = f"r = {row.r:.2f} [{row.r_lo95:.2f}, {row.r_hi95:.2f}], n = {int(row.n)}"   # above the
+                # axes, so no point is hidden behind it and it hides none
                 ax.set_xlim(-lim, lim), ax.set_ylim(-lim, lim)
                 ax.set_aspect("equal")
-                if r == 0:
-                    ax.set_title(f"{dt} days, {kind}\n{per}", fontsize=7, linespacing=1.15, pad=3)
+                head = f"{dt} days, {kind}\n{per}\n" if r == 0 else ""
+                ax.set_title(head + stats, fontsize=6.3, linespacing=1.2, pad=3)
                 if c == 0:
                     ax.set_ylabel(f"{tr}\npair phase (mm, LOS)")
                 else:
@@ -75,7 +74,7 @@ def main() -> None:
                     ax.set_xlabel("laser (mm, LOS)")
                 else:
                     ax.tick_params(labelbottom=False)
-        fs.panel_label(axs[0, 0], "a", x=-0.08, y=1.17)
+        fs.panel_label(axs[0, 0], "a", x=-0.08, y=1.25)
         b = fig.add_subplot(outer[1])
         ylab = [f"{dt} d, {kind}\n{per}" for per, dt, kind in GROUPS]
         for k, tr in enumerate(TRACKS):
