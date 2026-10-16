@@ -2216,3 +2216,21 @@ entries:
     - drive:hyp3_cropped
     outputs:
     - hub:08_deliverables/insar_full_test/reread_corrected
+  rtc_placement_x122:
+    kind: experiment
+    title: X-122 — the cube's RTC backscatter grid against our right-placed 2021 SLC amplitude on the same dates, both tracks; settles T62
+    status: open
+    runs_on: mac
+    code: experiments/rtc_placement_x122.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/rtc_placement_x122.py
+    tickets:
+    - X-122
+    chains:
+    - insar-full-test
+    inputs:
+    - drive:slc_pilot/2021/cslc
+    - cube:silver/rtc_ascending.nc
+    - cube:silver/rtc_descending.nc
+    outputs:
+    - hub:08_deliverables/insar_full_test/rtc_placement

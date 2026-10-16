@@ -1,0 +1,133 @@
+"""X-122 — is the cube's RTC backscatter placed right? The same 2021 acquisitions seen by the RTC (Planetary Computer
+``sentinel-1-rtc``, nearest-resampled to the 40 m grid) and by our right-placed COMPASS CSLCs, date by date.
+
+Rule: ``preregistration/X-122.yaml``. Reads the CSLCs (``INSAR_DRIVE_ROOT``) and the cube; writes to the hub,
+``insar_full_test/rtc_placement/``.
+
+    INSAR_DRIVE_ROOT=<hub>/05_code/local/drive_mirror make run E=rtc_placement_x122
+"""
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+import xarray as xr
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import slc_qc_x101 as Q  # noqa: E402  (CSLC reader, our 40 m amplitude)
+
+from insar_wetlands import placement as P  # noqa: E402
+from insar_wetlands.cube import cube_root  # noqa: E402
+from insar_wetlands.paths import hub_root, resolve_drive  # noqa: E402
+from insar_wetlands.scoring import assert_preregistered  # noqa: E402
+
+HUB = hub_root()
+FT = HUB / "08_deliverables" / "insar_full_test"
+OUT = FT / "rtc_placement"
+PREREG = FT / "preregistration" / "X-122.yaml"
+COARSE = np.arange(-60.0, 60.01, 5.0)
+FINE = np.arange(-6.0, 6.01, 1.0)
+TOL = 10.0
+SEASON = {12: "winter", 1: "winter", 2: "winter", 3: "spring", 4: "spring", 5: "spring", 6: "summer", 7: "summer",
+          8: "summer", 9: "autumn", 10: "autumn", 11: "autumn"}
+
+
+def best(rtc: np.ndarray, ours: np.ndarray, x, y) -> tuple[float, float, float, float]:
+    score = lambda dx, dy: P.corr(P.relocate(rtc, x, y, dx, dy), ours)  # noqa: E731
+    cdx, cdy, _, _ = P.best_shift(score, COARSE)
+    sx, sy = cdx + FINE, cdy + FINE
+    surf = np.array([[score(a, b) for a in sx] for b in sy])
+    k = np.unravel_index(np.nanargmax(surf), surf.shape)
+    return float(sx[k[1]]), float(sy[k[0]]), float(surf[k]), float(score(0.0, 0.0))
+
+
+def amp40_pol(path: Path, gx, gy, pol: str) -> np.ndarray:
+    s, x, y = Q.cslc(path, pol)
+    shape = (len(gy), len(gx))
+    r, c = Q.axis_index(x, y, gx, gy)
+    rr, cc = np.meshgrid(r, c, indexing="ij")
+    ok = (rr >= 0) & (cc >= 0) & np.isfinite(s)
+    idx = (rr * shape[1] + cc)[ok]
+    n = shape[0] * shape[1]
+    pw = np.bincount(idx, (np.abs(s) ** 2)[ok], n)
+    k = np.bincount(idx, minlength=n)
+    a = (pw / np.maximum(k, 1)).reshape(shape)
+    a[k.reshape(shape) < Q.L_OURS // 2] = np.nan
+    return 10 * np.log10(a)
+
+
+def main() -> None:
+    assert_preregistered(PREREG, [OUT / "verdict.csv"])
+    OUT.mkdir(parents=True, exist_ok=True)
+    rows = []
+    for track in ("ascending", "descending"):
+        r = xr.open_dataset(cube_root() / "silver" / f"rtc_{track}.nc")
+        gx, gy = r.x.values, r.y.values
+        rdates = pd.DatetimeIndex(r.time.values).strftime("%Y%m%d")
+        folder = resolve_drive() / "slc_pilot" / "2021" / "cslc" / track
+        files = {Q.DATE_RE.search(f.name).group(1): f for f in sorted(folder.glob("*.h5"))
+                 if "static" not in f.name.lower() and Q.DATE_RE.search(f.name)}
+        for d in sorted(set(files) & set(rdates)):
+            i = int(np.flatnonzero(rdates == d)[0])
+            for pol, var in (("VV", "vv_db"), ("VH", "vh_db")):
+                ours = amp40_pol(files[d], gx, gy, pol)
+                rtc = r[var].isel(time=i).values.astype(float)
+                dx, dy, rb, r0 = best(rtc, ours, gx, gy)
+                rows.append({"track": track, "date": d, "pol": pol, "dx_m": dx, "dy_m": dy, "r_best": rb,
+                             "r_unshifted": r0})
+            print(track, d, rows[-2]["dx_m"], rows[-2]["dy_m"], round(rows[-2]["r_best"], 3), flush=True)
+    p = pd.DataFrame(rows)
+    p["season"] = pd.to_datetime(p.date).dt.month.map(SEASON)
+    rng = np.random.default_rng(0)
+    V = []
+    for (track, pol), g in p.groupby(["track", "pol"]):
+        rec = {"track": track, "pol": pol, "dates": len(g)}
+        ok = True
+        for ax in ("dx_m", "dy_m"):
+            v = g[ax].to_numpy()
+            med = float(np.median(v))
+            lo, hi = np.percentile(np.median(rng.choice(v, (2000, len(v)), replace=True), 1), [2.5, 97.5])
+            rec.update({f"median_{ax}": med, f"ci_lo_{ax}": float(lo), f"ci_hi_{ax}": float(hi)})
+            ok &= abs(med) <= TOL
+        rec.update({"r_best_median": float(g.r_best.median()), "r_unshifted_median": float(g.r_unshifted.median()),
+                    "enough_dates": len(g) >= 30, "placed_right": bool(ok)})
+        V.append(rec)
+    V = pd.DataFrame(V)
+    vv = V[V.pol == "VV"].copy()
+    vv["outcome"] = np.where(~vv.enough_dates, "stop: fewer than 30 shared dates",
+                             np.where(vv.placed_right, "placed right: no correction",
+                                      "offset: correct by the median shift (data-fitted)"))
+    by_s = p.groupby(["track", "pol", "season"])[["dx_m", "dy_m", "r_best"]].median().reset_index()
+    p.to_csv(OUT / "dates.csv", index=False)
+    vv.to_csv(OUT / "verdict.csv", index=False)
+    V.to_csv(OUT / "summary_vv_vh.csv", index=False)
+    md = lambda df: "\n".join(["| " + " | ".join(map(str, df.columns)) + " |", "|" + "---|" * len(df.columns)] +  # noqa: E731
+                              ["| " + " | ".join(f"{x:.2f}" if isinstance(x, float) else str(x) for x in r) + " |"
+                               for r in df.itertuples(index=False)])
+    (OUT / "README.md").write_text(f"""# X-122 — the RTC backscatter grid against our right-placed SLC amplitude, same dates (generated)
+
+Generated by `experiments/rtc_placement_x122.py`; do not edit. Rule: `../preregistration/X-122.yaml`. Per 2021 date
+held by both the cube's RTC (Planetary Computer `sentinel-1-rtc`, nearest to 40 m) and our COMPASS CSLCs: the shift
+(dx east, dy north; the RTC content of a cell labelled L lies at L + (dx, dy)) that best correlates the RTC γ⁰, moved
+back bilinearly, with our amplitude averaged over each 40 m cell; 5 m then 1 m steps. Placed right: |median| ≤ 10 m on
+both axes (VV decides; VH secondary).
+
+## Verdict (VV)
+
+{md(vv)}
+
+## VV and VH
+
+{md(V)}
+
+## By season (medians)
+
+{md(by_s)}
+""", encoding="utf-8")
+    print(V.to_string(index=False))
+
+
+if __name__ == "__main__":
+    main()
