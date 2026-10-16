@@ -2126,6 +2126,23 @@ entries:
     - cube:silver/ifg_2020_2021_ascending.nc
     outputs:
     - hub:08_deliverables/article_plan/figures/final
+  article_fig_f6:
+    kind: experiment
+    title: C-068 — F6 final, the systematic test as a verdict matrix (route × product × outcome, from f6_routes.yaml)
+    status: open
+    runs_on: mac
+    code: experiments/article_fig_f6.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/article_fig_f6.py
+    tickets:
+    - C-068
+    chains:
+    - article-plan
+    inputs:
+    - hub:08_deliverables/article_plan/f6_routes.yaml
+    - hub:08_deliverables/independent_review/01_tries/tries.csv
+    outputs:
+    - hub:08_deliverables/article_plan/figures/final
   bias_correction_x085:
     kind: experiment
     title: X-085 — the Maghsoudi short-pair bias correction on unfiltered 2021 SLC pairs at P6 (40 m cell, hard-target reference), scored against the laser
