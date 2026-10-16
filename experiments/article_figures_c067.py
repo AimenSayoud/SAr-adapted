@@ -429,6 +429,13 @@ def tables() -> None:
                    "max_abs_laser_los_mm": float(g.laser_los.abs().max()),
                    "share_beyond_quarter_wave": float((g.laser_los.abs() > qw).mean())}
                   for t, g in six.groupby("track")]).to_csv(out / "laser_six_day.csv", index=False)
+    import yaml
+    spec = yaml.safe_load((HUB / "08_deliverables" / "article_plan" / "f6_routes.yaml").read_text())
+    tries = pd.read_csv(HUB / "08_deliverables" / "independent_review" / "01_tries" / "tries.csv").set_index("id")
+    t1 = [{"group": g["name"], "route": r["route"], "product": PRODUCT[r["product"]], "outcome": OUTCOME[r["outcome"]][1],
+           "years": "; ".join(sorted({str(tries.loc[i, "period"]) for i in r["tries"] if i in tries.index})),
+           "tries": ", ".join(r["tries"])} for g in spec["groups"] for r in g["rows"]]
+    pd.DataFrame(t1).to_csv(out / "table1_systematic_test.csv", index=False)
     w = pd.read_csv(HUB / "08_deliverables" / "cube_analysis_x081" / "weather_by_year.csv")
     pd.DataFrame([{"years": f"{w.year.min()}–{w.year.max()}", "precip_mm_median": w.precip_mm.median(),
                    "precip_mm_min": w.precip_mm.min(), "precip_mm_max": w.precip_mm.max(),
