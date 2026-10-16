@@ -36,6 +36,7 @@ import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
 import xarray as xr  # noqa: E402
 
+from insar_wetlands.placement import open_rtc  # X-122: relocated when RZECIN_RTC_RELOCATE=1
 from insar_wetlands import field  # noqa: E402
 from insar_wetlands import field_link as fl  # noqa: E402
 from insar_wetlands.bootstrap import start  # noqa: E402
@@ -215,7 +216,7 @@ def main(argv=None):
     rtc_names = {"ascending": "rtc_dualpol_2020_2024.nc", "descending": "rtc_dualpol_2020_2024_descending.nc"}
     vh_mean = None
     for track in OVERPASS:
-        rtc = xr.load_dataset(Path(a.rtc) / rtc_names[track])
+        rtc = open_rtc(Path(a.rtc) / rtc_names[track], track).load()
         vv = ctx.to_grid(rtc["gamma0_vv_db"])
         times = pd.to_datetime(vv.time.values)
         s1b = np.array([str(i).startswith("S1B") for i in rtc.source_item.values])

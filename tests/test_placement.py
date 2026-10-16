@@ -102,3 +102,35 @@ def test_relocate_recovers_the_true_cells_of_a_fine_scene_better_than_the_labels
     e_mis = np.sqrt(np.nanmean((mis - true)[inner] ** 2))
     e_fix = np.sqrt(np.nanmean((fixed - true)[inner] ** 2))
     assert e_fix < 0.6 * e_mis
+
+
+def test_relocate_rtc_undoes_a_known_shift_in_linear_power_and_keeps_ratio_and_rvi_consistent(monkeypatch, tmp_path):
+    import xarray as xr
+    x = np.arange(20.0, 4000, 40.0)
+    y = np.arange(3980.0, 0, -40.0)
+    X, Y = np.meshgrid(x, y)
+    dx, dy = P.RTC_CONTENT_SHIFT_M["descending"]
+    vv_true = 0.05 + 1e-5 * X + 2e-5 * Y                      # linear γ⁰, linear in space: bilinear is exact
+    vh_true = 0.01 + 3e-6 * X + 1e-6 * Y
+    shifted = lambda f: f(X + dx, Y + dy)  # noqa: E731
+    vv = shifted(lambda a, b: 0.05 + 1e-5 * a + 2e-5 * b)
+    vh = shifted(lambda a, b: 0.01 + 3e-6 * a + 1e-6 * b)
+    db = lambda p: (10 * np.log10(p))[None].astype("float32")  # noqa: E731
+    ds = xr.Dataset({"vv_db": (("time", "y", "x"), db(vv)), "vh_db": (("time", "y", "x"), db(vh)),
+                     "vh_vv_db": (("time", "y", "x"), db(vh) - db(vv)),
+                     "rvi": (("time", "y", "x"), (4 * vh / (vv + vh))[None].astype("float32"))},
+                    coords={"time": [0], "x": x, "y": y}, attrs={"track": "descending"})
+    out = P.relocate_rtc(ds, "descending")
+    inner = np.s_[0, 2:-2, 2:-2]
+    assert np.allclose(10 ** (out.vv_db.values[inner] / 10), vv_true[2:-2, 2:-2], rtol=1e-4)
+    assert np.allclose(out.vh_vv_db.values[inner], out.vh_db.values[inner] - out.vv_db.values[inner], atol=1e-4)
+    assert np.allclose(out.rvi.values[inner], (4 * vh_true / (vv_true + vh_true))[2:-2, 2:-2], rtol=1e-3)
+    # the opt-in reader: off by default, on with the switch, and never twice
+    p = tmp_path / "r.nc"
+    ds.to_netcdf(p)
+    monkeypatch.delenv(P.RTC_RELOCATE_ENV, raising=False)
+    assert np.array_equal(P.open_rtc(p).vv_db.values, ds.vv_db.values)
+    monkeypatch.setenv(P.RTC_RELOCATE_ENV, "1")
+    assert np.allclose(P.open_rtc(p).vv_db.values[inner], out.vv_db.values[inner])
+    out.to_netcdf(tmp_path / "r_relocated.nc")
+    assert np.allclose(P.open_rtc(tmp_path / "r_relocated.nc").vv_db.values[inner], out.vv_db.values[inner])

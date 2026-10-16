@@ -30,9 +30,10 @@ from matplotlib.colors import LinearSegmentedColormap  # noqa: E402
 from scipy.stats import pearsonr, wilcoxon  # noqa: E402
 
 from insar_wetlands import field  # noqa: E402
+from insar_wetlands.cube import cube_root  # noqa: E402
 
 HUB = field.field_root().parents[1]
-CUBE = HUB / "06_data" / "cube"
+CUBE = cube_root()                       # the hub cube by default; RZECIN_CUBE_ROOT for a snapshot
 SIL, GOLD, RAW = CUBE / "silver", CUBE / "gold", CUBE / "raw"
 OUT = HUB / "08_deliverables" / "cube_analysis_x081"
 ASF = HUB / "06_data" / "s1_archive" / "asf_acquisitions.csv"

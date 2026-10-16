@@ -27,6 +27,56 @@ HYP3_CONTENT_SHIFT_M: dict[int, dict[str, tuple[float, float]]] = {
 HYP3_LAYER_KIND = {"wrapped_phase": "phase", "unw_phase": "mean", "corr": "mean", "conncomp": "mask",
                    "lv_theta": "mean", "lv_phi": "mean"}       # the DEM layer is placed right and is not moved
 
+# The shift of the RTC backscatter on the 40 m grid (Planetary Computer sentinel-1-rtc, nearest-resampled by
+# pipelines/rtc_download.py), by track: X-122's pre-registered same-day measurement against our right-placed 2021 CSLC
+# amplitude (DECISIONS 2026-10-16). Data-fitted; the mechanism is not identified.
+RTC_CONTENT_SHIFT_M: dict[str, tuple[float, float]] = {"ascending": (11.0, -19.0), "descending": (17.0, -8.0)}
+RTC_RELOCATE_ENV = "RZECIN_RTC_RELOCATE"
+
+
+def rtc_relocation_on() -> bool:
+    """Off by default, so finished entries reproduce from the RTC stacks as delivered; ``RZECIN_RTC_RELOCATE=1`` makes
+    every stack opened through ``open_rtc`` relocated under its labels. The cube is built relocated either way."""
+    import os
+    return os.environ.get(RTC_RELOCATE_ENV, "") not in ("", "0")
+
+
+def relocate_rtc(ds, track: str):
+    """An RTC dataset (the Drive stacks: ``gamma0_vv_db``, ``gamma0_vh_db``, ``ratio_vh_vv_db``; or the cube's
+    ``vv_db``, ``vh_db``, ``vh_vv_db``, ``rvi``) with its content put back under its labels. Power is relocated in
+    linear units, then the dB values, the ratio and the RVI are recomputed from it. Other variables are kept."""
+    dx, dy = RTC_CONTENT_SHIFT_M[track]
+    x, y = ds.x.values, ds.y.values
+    out = ds.copy()
+    names = ({"vv": "gamma0_vv_db", "vh": "gamma0_vh_db", "ratio": "ratio_vh_vv_db"} if "gamma0_vv_db" in ds
+             else {"vv": "vv_db", "vh": "vh_db", "ratio": "vh_vv_db"})
+    lin = {}
+    for k in ("vv", "vh"):
+        v = names[k]
+        if v not in ds:
+            continue
+        p = 10 ** (ds[v].values.astype(float) / 10)
+        lin[k] = relocate(p, x, y, dx, dy)
+        out[v] = (ds[v].dims, (10 * np.log10(np.where(lin[k] > 0, lin[k], np.nan))).astype(ds[v].dtype))
+    if "vv" in lin and "vh" in lin:
+        if names["ratio"] in ds:
+            out[names["ratio"]] = (ds[names["ratio"]].dims,
+                                   (out[names["vh"]].values - out[names["vv"]].values).astype(ds[names["ratio"]].dtype))
+        if "rvi" in ds:
+            out["rvi"] = (ds.rvi.dims, (4 * lin["vh"] / (lin["vv"] + lin["vh"])).astype(ds.rvi.dtype))
+    out.attrs = dict(ds.attrs, relocated=f"X-122: content moved back from L + ({dx:+.0f}, {dy:+.0f}) m")
+    return out
+
+
+def open_rtc(path, track: str | None = None):
+    """Open an RTC stack; relocated (``relocate_rtc``) when ``RZECIN_RTC_RELOCATE=1``. ``track`` defaults to the file's
+    ``track`` attribute (the ascending 2022–2024 ``rtc_dualpol_stack.nc`` has none: pass it)."""
+    import xarray as xr
+    ds = xr.open_dataset(path)
+    if not rtc_relocation_on() or ds.attrs.get("relocated", "").startswith("X-122"):
+        return ds
+    return relocate_rtc(ds.load(), track or ds.attrs["track"])
+
 
 def hyp3_isce2_predicted_shift(dem_pixel_m: float, lat_south_deg: float, lat_site_deg: float) -> tuple[float, float]:
     """(dx east, dy north) in metres at which the content of a HyP3 cell labelled L lies: half a geocoding cell west and

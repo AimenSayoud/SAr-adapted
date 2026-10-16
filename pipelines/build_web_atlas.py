@@ -32,6 +32,7 @@ import yaml
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "src"))
 
+from insar_wetlands.placement import open_rtc  # X-122: relocated when RZECIN_RTC_RELOCATE=1
 from insar_wetlands.bootstrap import start  # noqa: E402
 from insar_wetlands.inversion.isbas import PHASE_TO_MM, WAVELENGTH_M  # noqa: E402
 from insar_wetlands.web_export import (  # noqa: E402
@@ -488,7 +489,7 @@ def add_backscatter_x063(W, hub: Path, P) -> None:
         return
     print("\n== backscatter, both tracks 2020–2024 (C-048, X-063)")
     for track, name in names.items():
-        ds = xr.load_dataset(mirror / name)
+        ds = open_rtc(mirror / name, track).load()
         prov, dd = P(mirror / name, root=hub), to_dates(ds)
         for v, t in (("gamma0_vv_db", "σ⁰ VV"), ("gamma0_vh_db", "σ⁰ VH")):
             W.raster(f"rtc5_{track}_{v}", ds[v].values.astype(float), title=f"{t} — per date ({track}, 2020–2024)",
@@ -1535,7 +1536,7 @@ def main() -> None:
              status="pipeline", categories={k: {"label": v[0], "color": v[1]} for k, v in BC.items()},
              prov=P(D / "behavior_classes.nc"))
 
-    rtc = xr.open_dataset(D / "rtc_dualpol_stack.nc")
+    rtc = open_rtc(D / "rtc_dualpol_stack.nc", "ascending")
     rd = to_dates(rtc)
     for v, t in (("gamma0_vv_db", "σ⁰ VV"), ("gamma0_vh_db", "σ⁰ VH"), ("ratio_vh_vv_db", "VH/VV ratio")):
         arr = rtc[v].values.astype(float)

@@ -39,6 +39,7 @@ import pandas as pd  # noqa: E402
 import xarray as xr  # noqa: E402
 from scipy.stats import mannwhitneyu  # noqa: E402
 
+from insar_wetlands.placement import open_rtc  # X-122: relocated when RZECIN_RTC_RELOCATE=1
 from insar_wetlands import field  # noqa: E402
 from insar_wetlands.bootstrap import start  # noqa: E402
 from insar_wetlands.paths import make_paths  # noqa: E402
@@ -223,14 +224,14 @@ def main(argv=None):
     zones, tpl = ctx.zones, ctx.template
     stacks = {}
     for track, name in TRACKS.items():
-        ds = xr.load_dataset(Path(a.stacks) / name)
+        ds = open_rtc(Path(a.stacks) / name, track).load()
         if not (np.array_equal(ds.x, tpl.x) and np.array_equal(ds.y, tpl.y)):
             raise SystemExit(f"{name} is not on the radar grid")
         stacks[track] = ds
 
     # 1. reproduction
     checks = []
-    canon = xr.load_dataset(ctx.paths.drive_file("rtc_dualpol_stack.nc"))
+    canon = open_rtc(ctx.paths.drive_file("rtc_dualpol_stack.nc"), "ascending").load()
     new = stacks["ascending"].sel(time=canon.time)
     for v in ("gamma0_vv_db", "gamma0_vh_db", "ratio_vh_vv_db"):
         checks.append({"check": f"ascending stack 2022–2024 = rtc_dualpol_stack.nc, {v}", "n": int(canon.time.size),

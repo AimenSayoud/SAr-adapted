@@ -25,6 +25,7 @@ import xarray as xr
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import field_fusion_v2_x066 as V  # noqa: E402
 
+from insar_wetlands.placement import open_rtc  # X-122: relocated when RZECIN_RTC_RELOCATE=1
 from insar_wetlands.bootstrap import start  # noqa: E402
 
 OUT = V.DLV / "fusion_v2" / "experiments_x067"
@@ -34,7 +35,7 @@ STACKS = {"ascending": ["rtc_dualpol_2020_2024.nc", "rtc_dualpol_2025_2025.nc"],
 
 
 def vv_stack(track: str) -> xr.DataArray:
-    parts = [xr.open_dataset(MIRROR / f).gamma0_vv_db for f in STACKS[track] if (MIRROR / f).exists()]
+    parts = [open_rtc(MIRROR / f, track).gamma0_vv_db for f in STACKS[track] if (MIRROR / f).exists()]
     return xr.concat(parts, dim="time").sortby("time")
 
 
@@ -55,7 +56,7 @@ def pixel_wet_flags(z: float = 1.0) -> dict:
 
 def open_water(inp) -> np.ndarray:
     """Mat pixels darker in mean VV (dusk, 2020–2024) than the lake's median: behave like open water."""
-    m = xr.open_dataset(MIRROR / STACKS["ascending"][0]).gamma0_vv_db.mean("time").values
+    m = open_rtc(MIRROR / STACKS["ascending"][0], "ascending").gamma0_vv_db.mean("time").values
     lake = float(np.nanmedian(m[inp.zones["B"]]))
     w = inp.zones["A"] & (m < lake)
     r6, c6 = inp.p6
