@@ -2255,7 +2255,7 @@ entries:
   hyp3_smoothing_check_x124:
     kind: experiment
     title: X-124 — is the HyP3 half-cell gain placement or interpolation smoothing? Pre-smoothed shift search and the P6 chain at the corrected position against its mirrors, on the cube as delivered
-    status: open
+    status: finished
     runs_on: mac
     code: experiments/hyp3_smoothing_check_x124.py
     code_ref: HEAD
