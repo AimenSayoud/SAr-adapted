@@ -33,6 +33,7 @@ import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
 import xarray as xr  # noqa: E402
 
+from insar_wetlands.placement import open_rtc  # X-122: relocated when RZECIN_RTC_RELOCATE=1
 from insar_wetlands import field  # noqa: E402
 from insar_wetlands.bootstrap import start  # noqa: E402
 from insar_wetlands.inversion.isbas import PHASE_TO_MM  # noqa: E402
@@ -160,7 +161,7 @@ def main(argv=None):
     # they are identical to rtc_dualpol_stack.nc (X-063 check); the descending track had none before.
     rtc_names = {"ascending": "rtc_dualpol_2020_2024.nc", "descending": "rtc_dualpol_2020_2024_descending.nc"}
     for track, name in rtc_names.items():
-        rtc = xr.open_dataset(Path(a.rtc) / name).sel(time=slice(*PERIOD))
+        rtc = open_rtc(Path(a.rtc) / name, track).sel(time=slice(*PERIOD))
         vv, vh = ctx.to_grid(rtc["gamma0_vv_db"]), ctx.to_grid(rtc["gamma0_vh_db"])
         lin_vv, lin_vh = 10 ** (vv / 10), 10 ** (vh / 10)
         rows += date_stack_rows("vv_db", vv, px, zone_a, track)

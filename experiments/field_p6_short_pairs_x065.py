@@ -14,6 +14,7 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
+from insar_wetlands.placement import open_rtc  # X-122: relocated when RZECIN_RTC_RELOCATE=1
 from insar_wetlands import field
 from insar_wetlands import fusion as fu
 from insar_wetlands.bootstrap import start
@@ -57,8 +58,8 @@ for track in INC:
     roots = [make_paths(cfg=ctx.cfg, track=track).cropped, HUB / f"05_code/local/s1_2020_2021/hyp3_cropped_{track}"]
     have = {p: root for root in roots for p in list_pairs(root)}
     dates = sorted({pd.Timestamp(d) for p in have for d in p.split("_")})
-    rtc = xr.open_dataset(HUB / "05_code/local/drive_mirror" /
-                          ("rtc_dualpol_2020_2024.nc" if track == "ascending" else "rtc_dualpol_2020_2024_descending.nc"))
+    rtc = open_rtc(HUB / "05_code/local/drive_mirror" /
+                   ("rtc_dualpol_2020_2024.nc" if track == "ascending" else "rtc_dualpol_2020_2024_descending.nc"), track)
     vv = rtc.gamma0_vv_db[:, r6 - 1:r6 + 2, c6 - 1:c6 + 2].median(("y", "x")).to_series()
     lv, lh = 10 ** (rtc.gamma0_vv_db / 10), 10 ** (rtc.gamma0_vh_db / 10)
     rvi = (4 * lh / (lv + lh))[:, r6 - 1:r6 + 2, c6 - 1:c6 + 2].median(("y", "x")).to_series()

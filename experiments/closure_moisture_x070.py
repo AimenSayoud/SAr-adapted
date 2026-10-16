@@ -33,6 +33,7 @@ import pandas as pd  # noqa: E402
 import xarray as xr  # noqa: E402
 from scipy import ndimage  # noqa: E402
 
+from insar_wetlands.placement import open_rtc  # X-122: relocated when RZECIN_RTC_RELOCATE=1
 from insar_wetlands import field  # noqa: E402
 from insar_wetlands import field_link as fl  # noqa: E402
 from insar_wetlands import fusion as fu  # noqa: E402
@@ -148,7 +149,7 @@ def drivers(d: pd.DataFrame, ctx, masks: dict) -> pd.DataFrame:
     vv = {}
     for (track, y), name in RTC.items():
         if (MIRROR / name).exists():
-            ds = xr.open_dataset(MIRROR / name)
+            ds = open_rtc(MIRROR / name, track)
             g = ctx.to_grid(ds["gamma0_vv_db"]).values
             tt = pd.to_datetime(ds.time.values).normalize()
             vv[(track, y)] = {z: pd.Series([float(np.nanmedian(10 * np.log10(np.nanmean(10 ** (g[k][m] / 10)))))

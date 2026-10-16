@@ -35,6 +35,7 @@ import pandas as pd  # noqa: E402
 import xarray as xr  # noqa: E402
 from scipy import ndimage  # noqa: E402
 
+from insar_wetlands.placement import open_rtc  # X-122: relocated when RZECIN_RTC_RELOCATE=1
 from insar_wetlands import field  # noqa: E402
 from insar_wetlands import field_link as fl  # noqa: E402
 from insar_wetlands import fusion as fu  # noqa: E402
@@ -155,7 +156,7 @@ def pixel_features(ctx, cube, zones) -> tuple[dict, np.ndarray]:
         if t == "ascending":
             F["coh_amp_asc"] = fu.harmonic_amplitude_map(ty, flat(c["coh"])).reshape(ny, nx)
     F["tcoh_evd"] = ctx.to_grid(xr.open_dataset(D / "phaseE2_evd.nc")["temporal_coherence"]).values
-    rtc = xr.open_dataset(D / "rtc_dualpol_stack.nc")
+    rtc = open_rtc(D / "rtc_dualpol_stack.nc", "ascending")
     vv, vh = ctx.to_grid(rtc["gamma0_vv_db"]), ctx.to_grid(rtc["gamma0_vh_db"])
     F["vv_mean"], F["vh_mean"] = vv.mean("time").values, vh.mean("time").values
     F["vv_amp"] = fu.harmonic_amplitude_map(fl.years_since(vv.time.values), flat(vv.values)).reshape(ny, nx)

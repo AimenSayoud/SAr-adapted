@@ -41,6 +41,7 @@ from scipy.stats import mannwhitneyu  # noqa: E402
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import field_p6_validation as V  # noqa: E402
 
+from insar_wetlands.placement import open_rtc  # X-122: relocated when RZECIN_RTC_RELOCATE=1
 from insar_wetlands.bootstrap import start  # noqa: E402
 from insar_wetlands.inversion.isbas import PHASE_TO_MM  # noqa: E402
 from insar_wetlands.stack import load_layer  # noqa: E402
@@ -273,7 +274,7 @@ def radar_layers(ctx, df: pd.DataFrame, rtc_root: Path) -> dict:
         lay[("coherence, consecutive pairs (mean)", track)] = np.nanmean(corr, 0)
         lay[("phase vs grassland, SD over consecutive pairs (mm)", track)] = np.nanstd(
             (unw - refC[:, None, None]) * PHASE_TO_MM, 0)
-        rtc = xr.open_dataset(rtc_root / names[track])
+        rtc = open_rtc(rtc_root / names[track], track)
         for v, lab in (("gamma0_vv_db", "VV mean (dB)"), ("gamma0_vh_db", "VH mean (dB)")):
             g = ctx.to_grid(rtc[v]).values
             lay[(lab, track)] = 10 * np.log10(np.nanmean(10 ** (g / 10), 0))

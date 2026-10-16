@@ -46,6 +46,7 @@ IFG_SETS = PERIODS + ("annual", "matched_wt")
 # layers' content back under their labels (placement.relocate); the DEM layer is placed right and is not moved. The
 # shift per product spacing and track is set by X-120's refined test (DECISIONS 2026-10-15). ``None``: as delivered.
 from ..placement import HYP3_CONTENT_SHIFT_M  # noqa: E402  (X-120 refine; set to None here to build as delivered)
+from ..placement import RTC_CONTENT_SHIFT_M  # noqa: E402  (X-122; set to None here to build the RTC as delivered)
 RTC_FILES = {"ascending": ["rtc_dualpol_2017_2019.nc", "rtc_dualpol_2020_2024.nc", "rtc_dualpol_2025_2025.nc",
                            "rtc_dualpol_2026_2026.nc"],
              "descending": ["rtc_dualpol_2017_2019_descending.nc", "rtc_dualpol_2020_2024_descending.nc",
@@ -255,6 +256,9 @@ def harmonise_rtc(ctx, silver: Path, log=print) -> None:
                        coords={"time": ds.time.values, "x": ds.x.values, "y": ds.y.values,
                                "acq_time_utc": ("time", acq.tz_convert(None)), "platform": ("time", [i[:3] for i in items])})
         o.attrs = {"track": track, "crs": "EPSG:32633", "rvi": "4·σVH/(σVV+σVH), linear"}
+        if RTC_CONTENT_SHIFT_M is not None:              # X-122, DECISIONS 2026-10-16: content back under its labels
+            from ..placement import relocate_rtc
+            o = relocate_rtc(o, track)
         o.to_netcdf(out, encoding=_enc(o))
         log(f"rtc {track}: {o.sizes['time']} dates → {out.name}")
 
