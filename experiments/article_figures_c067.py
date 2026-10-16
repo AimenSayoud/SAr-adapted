@@ -183,35 +183,44 @@ def f1(st, masks) -> None:
     ext = [x.min() - 20, x.max() + 20, y.min() - 20, y.max() + 20]
     fig, ax = plt.subplots(figsize=(7.2, 6.2), constrained_layout=True)
     im = ax.imshow(st.lidar_vegh_p90_m.values, extent=ext, cmap="Greens", vmin=0, vmax=25, origin="upper")
-    for z, col, lab in ((1, "#0b6e4f", "floating mat"), (2, "#0969da", "lake"), (3, "#c08b2c", "matched grassland")):
-        ax.contour(x, y, (st.zone.values == z).astype(float), levels=[0.5], colors=col, linewidths=1.4)
-        ax.plot([], [], color=col, lw=1.4, label=lab)
+    grass = np.where(st.zone.values == 3, 1.0, np.nan)
+    ax.imshow(grass, extent=ext, cmap=matplotlib.colors.ListedColormap(["#c08b2c"]), alpha=0.55, origin="upper")
+    ax.add_patch(Rectangle((0, 0), 0, 0, color="#c08b2c", alpha=0.55, label="matched grassland (reference zone)"))
+    for z, col, lab in ((1, "#0b6e4f", "floating mat"), (2, "#0969da", "lake")):
+        ax.contour(x, y, (st.zone.values == z).astype(float), levels=[0.5], colors=col, linewidths=1.6)
+        ax.plot([], [], color=col, lw=1.6, label=lab)
     rr, cc = np.where(st.hard_target.values.astype(bool))
-    ax.plot(x[cc], y[rr], "s", ms=3, mfc="none", mec="#4a5fc1", label="hard targets (reference)")
+    ax.plot(x[cc], y[rr], "s", ms=4, mfc="none", mec="#4a5fc1", mew=1.2, label="hard targets (phase reference)")
     for p, row in px.iterrows():
         big = p == "P6"
-        ax.plot(row.E, row.N, "*" if big else "o", ms=11 if big else 4, color="#cf222e" if big else INK,
+        ax.plot(row.E, row.N, "*" if big else "o", ms=12 if big else 3.5, color="#cf222e" if big else INK,
                 mec="white", mew=0.6, zorder=5)
-        ax.text(row.E + 25, row.N + 15, p + (" (laser)" if big else ""), fontsize=7 if big else 6, color=INK, zorder=5)
+    for p, dx in (("P1", -40), ("P9", -40), ("P6", 40)):
+        row = px.loc[p]
+        ax.annotate(p + (" — laser" if p == "P6" else ""), (row.E, row.N), (row.E + dx * 3, row.N + 20),
+                    fontsize=7, color=INK, ha="right" if dx < 0 else "left", va="center", zorder=6,
+                    arrowprops=dict(arrowstyle="-", color=INK, lw=0.5),
+                    bbox=dict(boxstyle="round,pad=0.15", fc="white", ec="none", alpha=0.8))
     rm, cm = np.where(masks["mat"])
     pad = 18
     ax.set_xlim(x[max(cm.min() - pad, 0)], x[min(cm.max() + pad, len(x) - 1)])
     ax.set_ylim(y[min(rm.max() + pad, len(y) - 1)], y[max(rm.min() - pad, 0)])
     x0, y0 = ax.get_xlim()[0], ax.get_ylim()[0]
     w, h = np.diff(ax.get_xlim())[0], np.diff(ax.get_ylim())[0]
+    ax.add_patch(Rectangle((x0 + 0.01 * w, y0 + 0.01 * h), 0.5 * w, 0.17 * h, fc="white", ec=GRID, alpha=0.9, zorder=6))
     for k, (tr, e, n) in enumerate((("ascending", "los_e_asc", "los_n_asc"), ("descending", "los_e_des", "los_n_des"))):
         ve, vn = -float(np.nanmedian(st[e].values)), -float(np.nanmedian(st[n].values))   # satellite → ground
         nrm = np.hypot(ve, vn)
-        cx, cy = x0 + w * (0.12 + 0.2 * k), y0 + h * 0.1
-        ax.add_patch(FancyArrowPatch((cx - 0.06 * w * ve / nrm, cy - 0.06 * w * vn / nrm),
-                                     (cx + 0.06 * w * ve / nrm, cy + 0.06 * w * vn / nrm), arrowstyle="-|>",
-                                     mutation_scale=10, color=INK))
-        ax.text(cx, cy - 0.05 * h, f"{tr}\nlook", ha="center", va="top", fontsize=6, color=INK)
-    ax.add_patch(FancyArrowPatch((x0 + 0.93 * w, y0 + 0.08 * h), (x0 + 0.93 * w, y0 + 0.16 * h), arrowstyle="-|>",
-                                 mutation_scale=10, color=INK))
-    ax.text(x0 + 0.93 * w, y0 + 0.17 * h, "N", ha="center", fontsize=7)
-    ax.plot([x0 + 0.62 * w, x0 + 0.62 * w + 200], [y0 + 0.05 * h] * 2, color=INK, lw=2)
-    ax.text(x0 + 0.62 * w + 100, y0 + 0.065 * h, "200 m", ha="center", fontsize=6)
+        cx, cy = x0 + w * (0.08 + 0.15 * k), y0 + h * 0.11
+        ax.add_patch(FancyArrowPatch((cx - 0.05 * w * ve / nrm, cy - 0.05 * w * vn / nrm),
+                                     (cx + 0.05 * w * ve / nrm, cy + 0.05 * w * vn / nrm), arrowstyle="-|>",
+                                     mutation_scale=10, color=INK, zorder=7))
+        ax.text(cx, cy - 0.035 * h, f"{tr} look", ha="center", va="top", fontsize=6, color=INK, zorder=7)
+    ax.add_patch(FancyArrowPatch((x0 + 0.44 * w, y0 + 0.05 * h), (x0 + 0.44 * w, y0 + 0.14 * h), arrowstyle="-|>",
+                                 mutation_scale=10, color=INK, zorder=7))
+    ax.text(x0 + 0.465 * w, y0 + 0.12 * h, "N", ha="left", fontsize=7, zorder=7)
+    ax.plot([x0 + 0.30 * w, x0 + 0.30 * w + 200], [y0 + 0.06 * h] * 2, color=INK, lw=2, zorder=7)
+    ax.text(x0 + 0.30 * w + 100, y0 + 0.075 * h, "200 m", ha="center", fontsize=6, zorder=7)
     ax.set_xticks([]), ax.set_yticks([])
     ax.legend(fontsize=6, frameon=True, loc="upper right")
     cb = fig.colorbar(im, ax=ax, shrink=0.6)
@@ -254,7 +263,7 @@ def f3() -> None:
         b.add_patch(Arc(((t1 + t2) / 2, 0), t2 - t1, (t2 - t1) * 0.18 + 0.4, theta1=0, theta2=180, color=col, ls=ls, lw=lw))
     b.text(7, 0.75, "consecutive shortest pairs:\nfollow the motion", ha="center", fontsize=6.5, color="#1a7f37")
     b.text(14, 1.0, "twice the revisit:\npartly", ha="center", fontsize=6.5, color="#bf8700")
-    b.text(25, 2.4, "long pairs: decorrelated,\nambiguous — lose it", ha="center", fontsize=6.5, color="#cf222e")
+    b.text(19, 1.55, "long pairs: decorrelated,\nambiguous — lose it", ha="right", fontsize=6.5, color="#cf222e")
     b.annotate("", xy=(48, -0.05), xytext=(32, -0.05), arrowprops=dict(arrowstyle="-|>", color="#8250df", lw=1.2))
     b.text(40, -0.55 + 0.3, "the chain loses its level across the winter (summed pair noise) —\nthe level step comes "
                             "from the weather instead", ha="center", va="top", fontsize=6.5, color="#8250df")
