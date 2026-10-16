@@ -2054,6 +2054,24 @@ entries:
     - hub:08_deliverables/insar_full_test/reread_rtc/field_p6_short_pairs_x065
     outputs:
     - hub:08_deliverables/article_plan/figures
+  article_fig_f1:
+    kind: experiment
+    title: C-068 — F1 final, the site (mat, wells, laser, references on the 1 m LiDAR hillshade; look geometry)
+    status: open
+    runs_on: mac
+    code: experiments/article_fig_f1.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/article_fig_f1.py
+    tickets:
+    - C-068
+    chains:
+    - article-plan
+    inputs:
+    - cube:silver/static_40m.nc
+    - cube:silver/lidar_1m.nc
+    - hub:08_deliverables/field_first/plot_pixels.csv
+    outputs:
+    - hub:08_deliverables/article_plan/figures/final
   bias_correction_x085:
     kind: experiment
     title: X-085 — the Maghsoudi short-pair bias correction on unfiltered 2021 SLC pairs at P6 (40 m cell, hard-target reference), scored against the laser

@@ -36,8 +36,10 @@ acquisition = [
     "pystac-client>=0.7",
     "planetary-computer>=1.0",
 ]
+# Article figures: scientific colour maps, map scale bars, non-overlapping labels.
+figures = ["cmcrameri>=1.8", "matplotlib-scalebar>=0.9", "adjustText>=1.4"]
 dev = ["pytest>=7", "ruff>=0.1", "pytest-cov>=4"]
-all = ["insar-wetlands[acquisition,dev]"]
+all = ["insar-wetlands[acquisition,figures,dev]"]
 
 # NOTE: `google.colab` is imported for the Drive mount but is provided by the
 # Colab runtime and must never be declared here — it is not installable.
