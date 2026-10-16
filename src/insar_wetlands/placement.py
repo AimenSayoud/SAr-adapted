@@ -87,8 +87,11 @@ def open_placed(path):
     import xarray as xr
     path = Path(path)
     ds = xr.open_dataset(path)
-    src = path.with_name("rtc_dualpol_2020_2024_placed.nc" if path.name == "rtc_dualpol_stack.nc"
-                         else placed_name(path.name))
+    name = "rtc_dualpol_2020_2024_placed.nc" if path.name == "rtc_dualpol_stack.nc" else placed_name(path.name)
+    src = path.with_name(name)
+    if not src.exists():                       # the placed stacks live in the hub's local mirror until copied to Drive
+        from .paths import hub_root
+        src = hub_root() / "05_code" / "local" / "drive_mirror" / name
     placed = xr.open_dataset(src)
     have = set(placed.time.values)
     missing = [str(t)[:10] for t in ds.time.values if t not in have]
