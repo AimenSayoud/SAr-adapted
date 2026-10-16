@@ -47,7 +47,7 @@ IFG_SETS = PERIODS + ("annual", "matched_wt")
 # shift per product spacing and track is set by X-120's refined test (DECISIONS 2026-10-15). ``None``: as delivered.
 # X-122: the RTC is read from the placed stacks (the source sampled at the corrected positions, DECISIONS 2026-10-16).
 # Set either shift to None here to build that layer as delivered.
-from ..placement import HYP3_CONTENT_SHIFT_M, RTC_CONTENT_SHIFT_M, placed_name  # noqa: E402
+from ..placement import HYP3_CONTENT_SHIFT_M, RTC_CONTENT_SHIFT_M, open_placed  # noqa: E402
 
 RTC_FILES = {"ascending": ["rtc_dualpol_2017_2019.nc", "rtc_dualpol_2020_2024.nc", "rtc_dualpol_2025_2025.nc",
                            "rtc_dualpol_2026_2026.nc"],
@@ -246,12 +246,11 @@ def platform_by_date() -> pd.Series:
 def harmonise_rtc(ctx, silver: Path, log=print) -> None:
     for track, files in RTC_FILES.items():
         out = silver / f"rtc_{track}.nc"
-        # X-122, DECISIONS 2026-10-16: the placed stacks (the source sampled at the corrected positions)
-        names = [placed_name(f) for f in files] if RTC_CONTENT_SHIFT_M is not None else files
-        missing = [n for n in names if not (MIRROR / n).exists()]
-        if missing:
-            raise FileNotFoundError(f"rtc {track}: {missing} — run pipelines/rtc_download.py --placed first")
-        parts = [xr.open_dataset(MIRROR / f) for f in names]
+        # X-122, DECISIONS 2026-10-16: the placed stacks (the source sampled at the corrected positions), on the dates
+        # of the stacks as delivered
+        here = [f for f in files if (MIRROR / f).exists()]
+        parts = ([open_placed(MIRROR / f) for f in here] if RTC_CONTENT_SHIFT_M is not None
+                 else [xr.open_dataset(MIRROR / f) for f in here])
         ds = xr.concat(parts, "time").sortby("time")
         ds = ds.isel(time=~pd.Index(ds.time.values).duplicated())
         items = ds.source_item.values.astype(str)
