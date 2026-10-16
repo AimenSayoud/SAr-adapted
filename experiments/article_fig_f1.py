@@ -196,8 +196,8 @@ def main() -> None:
                    Patch(fc=fs.CLASS["open water"], label="residual lake"),
                    Patch(fc="none", ec=fs.CLASS["grassland"], hatch="////", label="matched grassland (reference)"),
                    Patch(fc="none", ec=fs.CLASS["hard targets"], lw=1.0, label="hard targets (phase reference)"),
-                   Line2D([], [], ls="", marker="o", ms=4, mfc=fs.INK, mec="white", label="well on the mat (P6–P9)"),
-                   Line2D([], [], ls="", marker="o", ms=4, mfc="white", mec=fs.INK, label="reference well (P1–P5)"),
+                   Line2D([], [], ls="", marker="o", ms=4, mfc=fs.INK, mec="white", label="well, mat interior (P6–P9)"),
+                   Line2D([], [], ls="", marker="o", ms=4, mfc="white", mec=fs.INK, label="well, mat edge: reference (P1–P5)"),
                    Line2D([], [], ls="", marker="*", ms=8, mfc=fs.CLASS["laser"], mec="white", label="laser (P6)"),
                    Line2D([], [], color=fs.MUTED, lw=0.4, label="40 m radar grid")]
         fig.legend(handles=handles, loc="lower center", ncol=4, bbox_to_anchor=(0.5, 0.0), columnspacing=1.4,

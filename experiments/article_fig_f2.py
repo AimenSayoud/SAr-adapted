@@ -43,6 +43,7 @@ CELLS = DLV / "insar_full_test" / "reread_corrected" / "field_p6_cells_x079"
 SHOWN = (("ascending", "2020–2021", "o", True), ("ascending", "2022–2024", "o", False),
          ("descending", "2020–2021", "s", False))
 WATER = "#2C7FB8"
+SHOW_AS = {"2020–2021": "2021"}    # X-079's six-day period; the laser record starts 27 May 2021
 
 
 def panel_series(a, b, t, breaks) -> None:
@@ -110,7 +111,7 @@ def panel_cells(ax, st) -> dict:
         x = cc.depth_mat_edge_m + (k - 1) * 1.6
         ax.errorbar(x, cc.slope_tls, yerr=[cc.slope_tls - cc.tls_lo95, cc.tls_hi95 - cc.slope_tls], fmt=mk, ms=3.6,
                     color=col, mfc=col if filled else "white", mec=col, elinewidth=0.6, capsize=0, zorder=3,
-                    label=f"{tr}, {per}: r = {row.r:.2f}, p = {row.p_perm:.3f}")
+                    label=f"{tr}, {SHOW_AS.get(per, per)}: r = {row.r:.2f}, p = {row.p_perm:.3f}")
         out[f"{tr} {per}"] = {"r": float(row.r), "p_perm": float(row.p_perm), "n_cells": int(len(cc))}
     ax.axhline(1, color=fs.MUTED, lw=0.7, ls=(0, (3, 2)), zorder=1, label="slope 1: the cell moves as the laser")
     ax.set_ylim(0, None)

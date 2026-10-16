@@ -28,7 +28,8 @@ TRIES = HUB / "08_deliverables" / "independent_review" / "01_tries" / "tries.csv
 # outcome → (symbol, fill, edge, words)
 OUTCOME = {"holds": ("o", fs.CLASS["mat"], fs.CLASS["mat"], "follows the motion"),
            "helps": ("^", fs.CLASS["mat"], fs.CLASS["mat"], "helps (design years)"),
-           "partly": ("o", "white", fs.CLASS["mat"], "partly"),
+           "partly": ("o", "white", fs.CLASS["mat"], "partly: ascending only"),
+           "mixed": ("X", "white", fs.CLASS["laser"], "one track better, one worse: fails by its rule"),
            "lost": ("X", fs.CLASS["laser"], fs.CLASS["laser"], "loses it"),
            "not_motion": ("D", "#CC79A7", "#CC79A7", "a signal, not the motion"),
            "not_applicable": ("o", "white", fs.MUTED, "fails its own conditions here"),
@@ -62,7 +63,7 @@ def main() -> None:
         xo, xw, xt = 128, 130, 188
         for p, lab in PRODUCTS:
             ax.text(xp[p], -0.35, lab, ha="center", va="center", fontsize=6.5, color=fs.MUTED, linespacing=1.1)
-        ax.text(xo, -0.35, "outcome against the laser at P6", ha="left", va="center", fontsize=6.5, color=fs.MUTED)
+        ax.text(xo, -0.35, "outcome against the laser at P6, or by the route's own test", ha="left", va="center", fontsize=6.5, color=fs.MUTED)
         y = 0.6
         for kind, name, prod, out, tries in rr:
             if kind == "group":

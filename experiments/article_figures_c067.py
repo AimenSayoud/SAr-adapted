@@ -167,7 +167,8 @@ def f2_inset(st, masks) -> None:
 
 
 FT = HUB / "08_deliverables" / "insar_full_test"
-OUTCOME = {"holds": ("#1a7f37", "follows the motion"), "partly": ("#bf8700", "partly"), "helps": ("#1a7f37", "helps"),
+OUTCOME = {"holds": ("#1a7f37", "follows the motion"), "partly": ("#bf8700", "partly: ascending only"),
+           "mixed": ("#cf222e", "one track better, one worse: fails by its rule"), "helps": ("#1a7f37", "helps"),
            "lost": ("#cf222e", "loses it"), "not_motion": ("#8250df", "a signal, not the motion"),
            "not_applicable": ("#8c959f", "fails its own conditions"), "no_effect": ("#57606a", "no gain / no change")}
 DEPTH: list = []                        # filled by f5b, written by tables()
@@ -410,7 +411,7 @@ def tables() -> None:
        .agg(winters=("winter", "size"), mae_mm=("ae", "mean"), laser_abs_mean_mm=("laser_change_mm", lambda v: v.abs().mean()))
        .reset_index().to_csv(out / "winter_steps.csv", index=False))
     d = pd.read_csv(latest("field_p6_short_pairs_x065", "p6_pairs_2020_2024.csv")).dropna(subset=["s1", "laser_los"])
-    d["period"] = np.where(d.year <= 2021, "2020–2021", "2022–2024")
+    d["period"] = np.where(d.year <= 2021, "2021", "2022–2024")      # the laser starts 27 May 2021
     rng = np.random.default_rng(0)
     rev = []
     for (track, period, dt), g in d.groupby(["track", "period", "dt"]):
