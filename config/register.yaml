@@ -2237,7 +2237,7 @@ entries:
   reread_rtc_x123:
     kind: experiment
     title: X-123 — re-run the cell- and plot-level backscatter results with the RTC corrected (X-122), against a control pass on the RTC as delivered; originals kept, outputs in reread_rtc/
-    status: open
+    status: finished
     runs_on: mac
     code: experiments/reread_rtc_x123.py
     code_ref: HEAD
