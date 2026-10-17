@@ -31,6 +31,9 @@ MAT_WELLS = ("P6", "P7", "P8", "P9")          # field_plots_x061: P6–P9 on the
 CELL = 40.0
 
 
+BOARDWALK = "#cf222e"                              # as in F5
+
+
 def hillshade(z: np.ndarray, res: float) -> np.ndarray:
     """Grey relief from the surface model, lit from the north-west (the cartographic convention)."""
     return LightSource(azdeg=315, altdeg=45).hillshade(np.nan_to_num(z, nan=np.nanmedian(z)), vert_exag=2, dx=res,
@@ -133,6 +136,9 @@ def panel_transect(ax, st, li, px, box) -> None:
         if box[2] <= yv <= box[3]:
             ax.axhline(yv, color=fs.MUTED, lw=0.4, zorder=1)
     cell_outline(ax, x, y, st.zone.values == 1, colors=fs.CLASS["mat"], linewidths=1.6, zorder=2)
+    bw = pd.read_csv(HUB / "08_deliverables" / "field_boardwalk_x060" / "boardwalk_centreline.csv").sort_values("N")
+    bw = bw[bw.supported]                          # X-060's traced centreline (orthophoto), supported bins only
+    ax.plot(bw.E, bw.N, color=BOARDWALK, lw=1.4, solid_capstyle="round", zorder=3)
     left = {"P9", "P7", "P5"}                      # wells west of their neighbours: label on the west side
     for p, row in px.iterrows():
         on = p in MAT_WELLS
@@ -179,8 +185,8 @@ def main() -> None:
     box = (px.E.min() - 60, px.E.max() + 60, px.N.min() - 40, px.N.max() + 40)
     geo = look_geometry(st)
     with fs.style(), matplotlib.rc_context({"hatch.linewidth": 0.5}):
-        fig = plt.figure(figsize=fs.size("full", 112))
-        gs = fig.add_gridspec(1, 3, width_ratios=[3.3, 0.95, 1.05], left=0.075, right=0.995, bottom=0.19, top=0.975,
+        fig = plt.figure(figsize=fs.size("full", 116))
+        gs = fig.add_gridspec(1, 3, width_ratios=[3.3, 0.95, 1.05], left=0.075, right=0.995, bottom=0.205, top=0.975,
                               wspace=0.1)
         a, b, c = fig.add_subplot(gs[0]), fig.add_subplot(gs[1]), fig.add_subplot(gs[2])
         panel_site(a, st, li, px, box)
@@ -192,15 +198,16 @@ def main() -> None:
                  bbox_to_anchor=(0.5, -0.02), handlelength=2.0, columnspacing=1.0)
         for ax, l in ((a, "a"), (b, "b"), (c, "c")):
             fs.panel_label(ax, l, x=0.0, y=1.005)
-        handles = [Line2D([], [], color=fs.CLASS["mat"], lw=1.6, label="floating mat (40 m cells)"),
+        handles = [Line2D([], [], color=fs.CLASS["mat"], lw=1.6, label="the mat (40 m cells)"),
                    Patch(fc=fs.CLASS["open water"], label="residual lake"),
-                   Patch(fc="none", ec=fs.CLASS["grassland"], hatch="////", label="matched grassland (reference)"),
+                   Patch(fc="none", ec=fs.CLASS["grassland"], hatch="////", label="grassland (first study's reference)"),
                    Patch(fc="none", ec=fs.CLASS["hard targets"], lw=1.0, label="hard targets (phase reference)"),
                    Line2D([], [], ls="", marker="o", ms=4, mfc=fs.INK, mec="white", label="well, mat interior (P6–P9)"),
                    Line2D([], [], ls="", marker="o", ms=4, mfc="white", mec=fs.INK, label="well, mat edge: reference (P1–P5)"),
                    Line2D([], [], ls="", marker="*", ms=8, mfc=fs.CLASS["laser"], mec="white", label="laser (P6)"),
-                   Line2D([], [], color=fs.MUTED, lw=0.4, label="40 m radar grid")]
-        fig.legend(handles=handles, loc="lower center", ncol=4, bbox_to_anchor=(0.5, 0.0), columnspacing=1.4,
+                   Line2D([], [], color=fs.MUTED, lw=0.4, label="40 m radar grid"),
+                   Line2D([], [], color=BOARDWALK, lw=1.4, label="boardwalk (traced, X-060)")]
+        fig.legend(handles=handles, loc="lower center", ncol=3, bbox_to_anchor=(0.5, 0.0), columnspacing=1.6,
                    handlelength=1.8)
         rec = fs.export(fig, OUT / "F1_site", provenance={
             "inputs": ["cube silver/static_40m.nc (zone, hard_target, los_*, incidence_*)",
