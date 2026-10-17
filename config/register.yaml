@@ -1658,7 +1658,8 @@ entries:
     - X-127
     chains:
     - article-plan
-    tries: []
+    tries:
+    - T85
     inputs:
     - hub:08_deliverables/insar_full_test/x065_hard_targets/pairs.csv
     outputs:
@@ -1675,7 +1676,8 @@ entries:
     - X-128
     chains:
     - article-plan
-    tries: []
+    tries:
+    - T86
     inputs:
     - cube:silver/static_40m.nc
     - cube:silver/ifg_2020_2021_ascending.nc
