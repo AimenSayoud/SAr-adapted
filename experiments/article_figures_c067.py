@@ -3,8 +3,8 @@
 F1 (the site), F2 inset (the laser in its 40 m cell and the cells around), F3 (conceptual: what a pair measures on a
 floating mat and which pairs hold the motion), F4 (pair phase against the laser by revisit), F5 (the
 coherence matrix: share of class cells above each pair's open-water floor, by the pair's dates, and by pair length),
-F5b (map: share of 6-day pairs above the floor per cell) and F6 (the systematic test: every route by what it varies,
-with its outcome; `article_plan/f6_routes.yaml`). Drafts — layout and styling are agreed with Aymen before the final
+and F5b (map: share of 6-day pairs above the floor per cell); F6 and Table 1 moved to ``article_fig_f6.py``
+(2026-10-17). Drafts — layout and styling are agreed with Aymen before the final
 versions. Reads the cube and the hub;
 writes only to the hub: ``08_deliverables/article_plan/figures/``. No number is written into a caption.
 
@@ -167,12 +167,7 @@ def f2_inset(st, masks) -> None:
 
 
 FT = HUB / "08_deliverables" / "insar_full_test"
-OUTCOME = {"holds": ("#1a7f37", "follows the motion"), "partly": ("#bf8700", "partly: ascending only"),
-           "mixed": ("#cf222e", "one track better, one worse: fails by its rule"), "helps": ("#1a7f37", "helps"),
-           "lost": ("#cf222e", "loses it"), "not_motion": ("#8250df", "a signal, not the motion"),
-           "not_applicable": ("#8c959f", "fails its own conditions"), "no_effect": ("#57606a", "no gain / no change")}
 DEPTH: list = []                        # filled by f5b, written by tables()
-PRODUCT = {"HyP3": "HyP3", "SLC": "own SLC", "both": "HyP3 + own SLC", "sim": "simulation"}
 
 
 def latest(entry: str, rel: str) -> Path:
@@ -313,38 +308,6 @@ def f4() -> None:
     plt.close(fig)
 
 
-def f6() -> None:
-    """The systematic test: every route, grouped by what it varies, with its outcome against the laser."""
-    import yaml
-    spec = yaml.safe_load((HUB / "08_deliverables" / "article_plan" / "f6_routes.yaml").read_text())
-    known = set(pd.read_csv(HUB / "08_deliverables" / "independent_review" / "01_tries" / "tries.csv")["id"])
-    rows = []
-    for g in spec["groups"]:
-        rows.append(("group", g["name"], None, None))
-        for r in g["rows"]:
-            missing = set(r["tries"]) - known
-            if missing:
-                raise SystemExit(f"F6: {r['route']} cites unknown tries {missing}")
-            rows.append(("row", r["route"], r["product"], r["outcome"]))
-    fig, ax = plt.subplots(figsize=(7.2, 0.21 * len(rows) + 0.9), constrained_layout=True)
-    ax.set_xlim(0, 10), ax.set_ylim(len(rows), -1), ax.axis("off")
-    ax.text(0.0, -0.6, "route", fontsize=7, color=MUTED), ax.text(5.6, -0.6, "product", fontsize=7, color=MUTED)
-    ax.text(7.3, -0.6, "against the laser at P6", fontsize=7, color=MUTED)
-    for k, (kind, label, prod, out) in enumerate(rows):
-        if kind == "group":
-            ax.text(0.0, k + 0.1, label, fontsize=7.5, color=INK, weight="bold")
-            continue
-        ax.text(0.25, k + 0.1, label, fontsize=7, color=INK)
-        ax.text(5.6, k + 0.1, PRODUCT[prod], fontsize=6.5, color=MUTED)
-        col, word = OUTCOME[out]
-        ax.add_patch(Rectangle((7.25, k - 0.32), 0.22, 0.64, color=col))
-        ax.text(7.6, k + 0.1, word, fontsize=6.5, color=INK)
-    ax.set_title("F6 (draft) — every other route tried loses the mat's motion; only the consecutive shortest pairs "
-                 "keep it", fontsize=9, color=INK)
-    fig.savefig(OUT / "F6_systematic_test.png", dpi=200, bbox_inches="tight")
-    plt.close(fig)
-
-
 def f2() -> None:
     """F2 main: the mat's level (laser) and its water at P6 through the design years, datum segments marked."""
     import yaml
@@ -420,13 +383,7 @@ def tables() -> None:
                    "max_abs_laser_los_mm": float(g.laser_los.abs().max()),
                    "share_beyond_quarter_wave": float((g.laser_los.abs() > qw).mean())}
                   for t, g in six.groupby("track")]).to_csv(out / "laser_six_day.csv", index=False)
-    import yaml
-    spec = yaml.safe_load((HUB / "08_deliverables" / "article_plan" / "f6_routes.yaml").read_text())
-    tries = pd.read_csv(HUB / "08_deliverables" / "independent_review" / "01_tries" / "tries.csv").set_index("id")
-    t1 = [{"group": g["name"], "route": r["route"], "product": PRODUCT[r["product"]], "outcome": OUTCOME[r["outcome"]][1],
-           "years": "; ".join(sorted({str(tries.loc[i, "period"]) for i in r["tries"] if i in tries.index})),
-           "tries": ", ".join(r["tries"])} for g in spec["groups"] for r in g["rows"]]
-    pd.DataFrame(t1).to_csv(out / "table1_systematic_test.csv", index=False)
+    # Table 1 (table1_systematic_test.csv) is written by article_fig_f6.py with F6 since 2026-10-17.
     w = pd.read_csv(HUB / "08_deliverables" / "cube_analysis_x081" / "weather_by_year.csv")
     pd.DataFrame([{"years": f"{w.year.min()}–{w.year.max()}", "precip_mm_median": w.precip_mm.median(),
                    "precip_mm_min": w.precip_mm.min(), "precip_mm_max": w.precip_mm.max(),
@@ -448,7 +405,6 @@ def main() -> None:
     f1(st, masks)
     f3()
     f4()
-    f6()
     tables()
     print(f"wrote {OUT}")
 
