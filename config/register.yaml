@@ -1646,6 +1646,42 @@ entries:
     - hub:08_deliverables/insar_full_test/reread_corrected/baseline_x099/years.csv
     outputs:
     - hub:08_deliverables/insar_full_test/x065_hard_targets
+  skip_pairs_x127:
+    kind: experiment
+    title: X-127 — skip-one pairs at P6, ambiguity alone or more noise than two short pairs (simulated from the laser)
+    status: current
+    runs_on: mac
+    code: experiments/skip_pairs_x127.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/skip_pairs_x127.py
+    tickets:
+    - X-127
+    chains:
+    - article-plan
+    tries: []
+    inputs:
+    - hub:08_deliverables/insar_full_test/x065_hard_targets/pairs.csv
+    outputs:
+    - hub:08_deliverables/insar_full_test/skip_pairs
+  interior_edge_x128:
+    kind: experiment
+    title: X-128 — interior vs edge of six-day phase-holding, with and without the area around the transect and boardwalk
+    status: current
+    runs_on: mac
+    code: experiments/interior_edge_x128.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/interior_edge_x128.py
+    tickets:
+    - X-128
+    chains:
+    - article-plan
+    tries: []
+    inputs:
+    - cube:silver/static_40m.nc
+    - cube:silver/ifg_2020_2021_ascending.nc
+    - cube:silver/ifg_2020_2021_descending.nc
+    outputs:
+    - hub:08_deliverables/insar_full_test/interior_edge
   loss_of_lock_x096:
     kind: experiment
     title: X-096 — the loss-of-lock atlas (gaps no coherent pair spans; P6 segments for X-093)
