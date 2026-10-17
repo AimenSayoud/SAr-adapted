@@ -44,7 +44,13 @@ def table2() -> pd.DataFrame:
     t = t[t.reference == REF].rename(columns={"pairs": "n", "pearson_increments": "r"})
     t["order"] = [TABLE2_ORDER.index((p, d)) if (p, d) in TABLE2_ORDER else 99 for p, d in zip(t.period, t.revisit_days)]
     t = t[t.order < 99].sort_values(["track", "order"])
-    t = t[["track", "period", "revisit_days", "pairs_kind", "n", "r", "r_lo95", "r_hi95"]]
+    # A property of the truth, not a test: the share of each group's pairs whose laser change exceeds a quarter
+    # wavelength along the line of sight, which a single pair cannot follow unambiguously.
+    pr = pd.read_csv(PAIRS).dropna(subset=["d_laser_los_mm", f"s1_{REF}"])
+    beyond = (pr.assign(b=pr.d_laser_los_mm.abs() > WAVELENGTH_MM / 4)
+              .groupby(["track", "group", "revisit_days"]).b.mean().rename("laser_beyond_quarter_wave"))
+    t = t.merge(beyond, left_on=["track", "period", "revisit_days"], right_index=True, how="left")
+    t = t[["track", "period", "revisit_days", "pairs_kind", "n", "r", "r_lo95", "r_hi95", "laser_beyond_quarter_wave"]]
     t.to_csv(TABLE2, index=False)
     return t
 
