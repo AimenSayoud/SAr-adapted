@@ -61,6 +61,10 @@ def table2() -> pd.DataFrame:
     return t
 
 
+PERIOD_HEAD = {"2021": "2021 — Sentinel-1A + 1B", "2022–2024": "2022–2024 — Sentinel-1A alone",
+               "2025": "2025 — Sentinel-1A + 1C"}
+
+
 def main() -> None:
     d = pd.read_csv(PAIRS).drop(columns=["period"]).rename(columns={f"s1_{REF}": "s1", "d_laser_los_mm": "laser_los",
                                                                   "group": "period", "revisit_days": "dt"})
@@ -68,6 +72,8 @@ def main() -> None:
     d["period"] = d.period.astype(str)
     t2 = table2()
     t2["period"] = t2.period.astype(str)
+    br = pd.read_csv(X126 / "by_revisit.csv")
+    br = br[br.reference == REF].assign(period=lambda x: x.period.astype(str))
     sim = pd.read_csv(X127)
     sim["period"] = sim.period.astype(str)
     qw = WAVELENGTH_MM / 4
@@ -76,7 +82,7 @@ def main() -> None:
     lim = float(np.nanmax(np.abs(np.r_[shown.s1, shown.laser_los]))) * 1.06      # every point inside the axes
     with fs.style():
         fig = plt.figure(figsize=fs.size("full", 132))
-        outer = fig.add_gridspec(1, 2, width_ratios=[1.0, 1.02], wspace=0.19, left=0.075, right=0.985, bottom=0.135,
+        outer = fig.add_gridspec(1, 2, width_ratios=[1.0, 0.95], wspace=0.30, left=0.075, right=0.905, bottom=0.135,
                                  top=0.93)
         ga = outer[0].subgridspec(3, 2, wspace=0.08, hspace=0.12)
         axs = np.array([[fig.add_subplot(ga[r, c]) for c in range(2)] for r in range(3)])
@@ -87,10 +93,20 @@ def main() -> None:
                     ax.axvspan(sgn * qw, sgn * lim, color="#eef1f4", lw=0, zorder=0)
                 ax.plot([-lim, lim], [-lim, lim], color=fs.MUTED, lw=0.6, ls=(0, (3, 2)), zorder=1)
                 ax.axhline(0, color=fs.GRID, lw=0.5, zorder=1), ax.axvline(0, color=fs.GRID, lw=0.5, zorder=1)
+                slopes = []
                 for tr in TRACKS:
                     g = d[(d.track == tr) & (d.period == per) & (d.dt == days) & (d.between == between)]
                     ax.scatter(g.laser_los, g.s1, s=9, marker=MARK[tr], color=fs.TRACK[tr] if between == 0 else "white",
                                edgecolors=fs.TRACK[tr], lw=0.6, zorder=3)
+                    k = br[(br.track == tr) & (br.period == per) & (br.revisit_days == days)].slope_through_origin
+                    if len(k):
+                        k = float(k.iloc[0])
+                        ax.plot([-lim, lim], [-k * lim, k * lim], color=fs.TRACK[tr], lw=0.9, zorder=2)
+                        slopes.append((tr, k))
+                for j, (tr, k) in enumerate(slopes):                # the slope through the origin, per track
+                    ax.text(0.96, 0.05 + 0.1 * (len(slopes) - 1 - j), f"slope {k:.2f}".replace("-", "−"), transform=ax.transAxes,
+                            ha="right", va="bottom", fontsize=7, color=fs.TRACK[tr],
+                            bbox=dict(fc="white", ec="none", pad=0.6, alpha=0.85), zorder=4)
                 ax.set_xlim(-lim, lim), ax.set_ylim(-lim, lim)
                 ax.set_aspect("equal")
                 ax.text(0.04, 0.96, f"{per}, {days} days", transform=ax.transAxes, ha="left", va="top", fontsize=7,
@@ -106,58 +122,60 @@ def main() -> None:
                 else:
                     ax.tick_params(labelbottom=False)
         fs.panel_label(axs[0, 0], "a", x=-0.2, y=1.08)
-        # (b) and (c): one row per group and track, in the order of (a)
-        gb = outer[1].subgridspec(1, 2, width_ratios=[2.3, 1.0], wspace=0.08)
-        b = fig.add_subplot(gb[0])
-        c3 = fig.add_subplot(gb[1], sharey=b)
-        rows, labels = [], []
+        # (b): one forest plot, grouped by period; the share of laser steps beyond λ/4 as a column of numbers
+        b = fig.add_subplot(outer[1])
+        y, ticks, rows = 0.0, [], []
         for per, cons, skip in PERIODS:
+            b.text(-0.73, y, PERIOD_HEAD[per], fontsize=7.5, fontweight="bold", va="center", ha="left", zorder=5,
+                   bbox=dict(fc="white", ec="none", pad=1.5))
+            y += 0.75
             for days, kind in ((cons, "consecutive"), (skip, "skips one")):
-                labels.append((len(labels), f"{per.replace('2022–2024', '2022–24')}, {days} d\n{kind}"))
+                ticks.append((y + 0.15, f"{kind}, {days} d"))
                 for k, tr in enumerate(TRACKS):
-                    rows.append((per, days, kind, tr, len(labels) - 1 + (k - 0.5) * 0.3))
-        for per, days, kind, tr, y in rows:
+                    rows.append((per, days, kind, tr, y + k * 0.3))
+                y += 0.95
+            y += 0.25
+        labelled = False
+        for per, days, kind, tr, yy in rows:
             row = t2[(t2.track == tr) & (t2.period == per) & (t2.revisit_days == days)].iloc[0]
             if kind == "skips one":
                 s = sim[(sim.track == tr) & (sim.period == per)].iloc[0]
-                b.add_patch(plt.Rectangle((s.r_sim_p2_5, y - 0.11), s.r_sim_p97_5 - s.r_sim_p2_5, 0.22,
+                b.add_patch(plt.Rectangle((s.r_sim_p2_5, yy - 0.12), s.r_sim_p97_5 - s.r_sim_p2_5, 0.24,
                                           color="#d9dde2", lw=0, zorder=0))
-            b.plot([row.r_lo95, row.r_hi95], [y, y], color=fs.TRACK[tr], lw=1.0, solid_capstyle="butt", zorder=2)
-            b.plot(row.r, y, MARK[tr], ms=4.2, color=fs.TRACK[tr], mfc=fs.TRACK[tr] if kind == "consecutive" else "white",
+                if not labelled:
+                    b.annotate("range ambiguity alone\nwould give (X-127)", xy=(s.r_sim_p2_5 + 0.02, yy - 0.12),
+                               xytext=(-0.7, yy - 0.62), fontsize=7, color=fs.MUTED, ha="left", va="bottom",
+                               arrowprops=dict(arrowstyle="-", color=fs.MUTED, lw=0.5))
+                    labelled = True
+            b.plot([row.r_lo95, row.r_hi95], [yy, yy], color=fs.TRACK[tr], lw=1.0, solid_capstyle="butt", zorder=2)
+            b.plot(row.r, yy, MARK[tr], ms=4.2, color=fs.TRACK[tr], mfc=fs.TRACK[tr] if kind == "consecutive" else "white",
                    mew=0.9, zorder=3)
-            c3.plot(row.laser_beyond_quarter_wave * 100, y, MARK[tr], ms=4.2, color=fs.TRACK[tr],
-                    mfc=fs.TRACK[tr] if kind == "consecutive" else "white", mew=0.9)
-        n = len(labels)
-        for ax in (b, c3):
-            ax.set_ylim(n - 0.5, -0.5)
-            for i in range(1, n - 1, 2):                               # between periods
-                ax.axhline(i + 0.5, color=fs.GRID, lw=0.6)
-            ax.spines["left"].set_visible(False), ax.tick_params(axis="y", length=0)
-        b.set_yticks([i for i, _ in labels], [lab for _, lab in labels], fontsize=7)
+            b.text(1.06, yy, f"{row.laser_beyond_quarter_wave * 100:.0f} %", fontsize=7, color=fs.TRACK[tr],
+                   va="center", ha="left", clip_on=False)
+        b.text(1.06, -0.55, "laser\nbeyond λ/4", fontsize=7, va="bottom", ha="left", clip_on=False)
+        b.set_ylim(y - 0.2, -0.6)
+        b.set_yticks([t for t, _ in ticks], [lab for _, lab in ticks], fontsize=7)
+        b.spines["left"].set_visible(False), b.tick_params(axis="y", length=0)
         b.axvline(0, color=fs.MUTED, lw=0.6)
         b.set_xlim(-0.75, 1.0)
         b.set_xticks([-0.5, 0, 0.5, 1.0])
-        b.set_xlabel("correlation with the laser\n(bootstrap 95 % interval)")
-        c3.tick_params(labelleft=False)
-        c3.set_xlim(-4, 60)
-        c3.set_xticks([0, 25, 50])
-        c3.set_xlabel("laser beyond λ/4\n(% of pairs)")
-        fs.panel_label(b, "b", x=0.0, y=1.01)
-        fs.panel_label(c3, "c", x=0.0, y=1.01)
+        b.set_xlabel("correlation with the laser (bootstrap 95 % interval)")
+        fs.panel_label(b, "b", x=-0.02, y=1.0)
         fig.legend(handles=[Line2D([], [], ls="", marker="o", ms=4.5, color=fs.TRACK["ascending"], label="ascending"),
                             Line2D([], [], ls="", marker="^", ms=4.5, color=fs.TRACK["descending"], label="descending"),
                             Line2D([], [], ls="", marker="o", ms=4.5, mfc=fs.INK, mec=fs.INK, label="consecutive pair"),
                             Line2D([], [], ls="", marker="o", ms=4.5, mfc="white", mec=fs.INK, label="skips one acquisition"),
+                            Line2D([], [], color=fs.INK, lw=0.9, label="fit through the origin"),
                             Line2D([], [], color=fs.MUTED, lw=0.6, ls=(0, (3, 2)), label="1:1"),
-                            matplotlib.patches.Patch(fc="#eef1f4", label="laser beyond λ/4"),
-                            matplotlib.patches.Patch(fc="#d9dde2", label="r under ambiguity alone (X-127)")],
+                            matplotlib.patches.Patch(fc="#eef1f4", label="laser beyond λ/4")],
                    loc="lower center", ncol=7, bbox_to_anchor=(0.5, 0.0), handlelength=1.3, columnspacing=1.0,
                    fontsize=7)
         rec = fs.export(fig, OUT / "F4_pairs_vs_laser", provenance={
             "inputs": [str(PAIRS.relative_to(HUB)), str(TABLE2.relative_to(HUB)), str(X127.relative_to(HUB)),
-                       "insar_wetlands.cube.core.WAVELENGTH_MM"],
+                       str((X126 / "by_revisit.csv").relative_to(HUB)), "insar_wetlands.cube.core.WAVELENGTH_MM"],
             "brief": "08_deliverables/article_plan/figures/briefs/F4.md",
             "groups": [f"{tr} {per} {days} d {kind}" for per, days, kind, tr, _ in rows],
+            "fit": "slope through the origin, insar_wetlands.scoring.increment_stats (X-126 by_revisit.csv)",
             "quarter_wavelength_mm": qw})
         plt.close(fig)
     print("F4 →", OUT, rec["width_mm"], "×", rec["height_mm"], "mm")
