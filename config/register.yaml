@@ -2163,11 +2163,13 @@ entries:
     tickets:
     - C-068
     - X-126
+    - C-070
     chains:
     - article-plan
     inputs:
     - hub:08_deliverables/insar_full_test/x065_hard_targets/pairs.csv
     - hub:08_deliverables/insar_full_test/x065_hard_targets/by_revisit.csv
+    - hub:08_deliverables/insar_full_test/skip_pairs/by_group.csv
     outputs:
     - hub:08_deliverables/article_plan/figures/final
     - hub:08_deliverables/article_plan/tables/revisit_correlations.csv
