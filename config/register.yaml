@@ -2235,7 +2235,7 @@ entries:
     - hub:08_deliverables/article_plan/tables/table1_systematic_test.csv
   article_fig_f3:
     kind: experiment
-    title: C-068 — F3 final, schematic of what C-band sees on a floating mat and which pairs keep its motion (no data)
+    title: C-068 — F3 final, schematic of what C-band sees on a floating mat and which pairs keep its motion, and why longer pairs lose it (phase wrapping; no data)
     status: open
     runs_on: mac
     code: experiments/article_fig_f3.py
@@ -2243,6 +2243,7 @@ entries:
     command: PYTHONPATH=src python experiments/article_fig_f3.py
     tickets:
     - C-068
+    - C-070
     chains:
     - article-plan
     inputs: []
