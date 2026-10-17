@@ -206,7 +206,7 @@ def main() -> None:
                    Line2D([], [], ls="", marker="o", ms=4, mfc="white", mec=fs.INK, label="well, mat edge: reference (P1–P5)"),
                    Line2D([], [], ls="", marker="*", ms=8, mfc=fs.CLASS["laser"], mec="white", label="laser (P6)"),
                    Line2D([], [], color=fs.MUTED, lw=0.4, label="40 m radar grid"),
-                   Line2D([], [], color=BOARDWALK, lw=1.4, label="boardwalk (traced, X-060)")]
+                   Line2D([], [], color=BOARDWALK, lw=1.4, label="boardwalk (traced on the orthophoto)")]
         fig.legend(handles=handles, loc="lower center", ncol=3, bbox_to_anchor=(0.5, 0.0), columnspacing=1.6,
                    handlelength=1.8)
         rec = fs.export(fig, OUT / "F1_site", provenance={
