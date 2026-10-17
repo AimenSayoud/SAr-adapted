@@ -2123,13 +2123,15 @@ entries:
     command: PYTHONPATH=src python experiments/article_fig_f4.py
     tickets:
     - C-068
+    - X-126
     chains:
     - article-plan
     inputs:
-    - hub:08_deliverables/insar_full_test/reread_rtc/field_p6_short_pairs_x065/p6_pairs_2020_2024.csv
-    - hub:08_deliverables/article_plan/tables/revisit_correlations.csv
+    - hub:08_deliverables/insar_full_test/x065_hard_targets/pairs.csv
+    - hub:08_deliverables/insar_full_test/x065_hard_targets/by_revisit.csv
     outputs:
     - hub:08_deliverables/article_plan/figures/final
+    - hub:08_deliverables/article_plan/tables/revisit_correlations.csv
   article_fig_f5:
     kind: experiment
     title: C-068 — F5 final, coherence against each pair's open-water floor by pair length, and the six-day maps (merges draft F5 and F5b)
