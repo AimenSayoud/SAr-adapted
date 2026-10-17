@@ -412,17 +412,7 @@ def tables() -> None:
        .reset_index().to_csv(out / "winter_steps.csv", index=False))
     d = pd.read_csv(latest("field_p6_short_pairs_x065", "p6_pairs_2020_2024.csv")).dropna(subset=["s1", "laser_los"])
     d["period"] = np.where(d.year <= 2021, "2021", "2022–2024")      # the laser starts 27 May 2021
-    rng = np.random.default_rng(0)
-    rev = []
-    for (track, period, dt), g in d.groupby(["track", "period", "dt"]):
-        if len(g) < 5:
-            continue
-        a, b = g.laser_los.to_numpy(), g.s1.to_numpy()
-        boot = [np.corrcoef(a[i], b[i])[0, 1] for i in (rng.integers(0, len(a), len(a)) for _ in range(2000))]
-        lo, hi = np.nanpercentile(boot, [2.5, 97.5])
-        rev.append({"track": track, "period": period, "revisit_days": int(dt), "n": len(g),
-                    "r": float(np.corrcoef(a, b)[0, 1]), "r_lo95": float(lo), "r_hi95": float(hi)})
-    pd.DataFrame(rev).to_csv(out / "revisit_correlations.csv", index=False)
+    # Table 2 (revisit_correlations.csv) is written by article_fig_f4.py from X-126 since 2026-10-17 (hard targets).
     from insar_wetlands.cube.core import WAVELENGTH_MM
     qw = WAVELENGTH_MM / 4                                   # a quarter of the C-band wavelength, line of sight
     six = d[d.dt == 6]
