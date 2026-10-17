@@ -1636,7 +1636,8 @@ entries:
     - X-126
     chains:
     - article-plan
-    tries: []
+    tries:
+    - T84
     inputs:
     - cube:gold/plots_pair.csv.gz
     - cube:silver/site_hourly.csv.gz
