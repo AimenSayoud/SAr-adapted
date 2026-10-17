@@ -50,7 +50,7 @@ def table2() -> pd.DataFrame:
 
 
 def main() -> None:
-    d = pd.read_csv(PAIRS).rename(columns={f"s1_{REF}": "s1", "d_laser_los_mm": "laser_los", "group": "period",
+    d = pd.read_csv(PAIRS).drop(columns=["period"]).rename(columns={f"s1_{REF}": "s1", "d_laser_los_mm": "laser_los", "group": "period",
                                            "revisit_days": "dt"}).dropna(subset=["s1", "laser_los"])
     d["period"] = d.period.astype(str)
     t2 = table2().set_index(["track", "period", "revisit_days"])
