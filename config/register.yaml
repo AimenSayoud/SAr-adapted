@@ -2201,13 +2201,16 @@ entries:
     command: PYTHONPATH=src python experiments/article_fig_f5.py
     tickets:
     - C-068
+    - C-070
     chains:
     - article-plan
     inputs:
+    - hub:08_deliverables/field_first/plot_pixels.csv
     - cube:silver/static_40m.nc
     - cube:silver/ifg_2020_2021_ascending.nc
     outputs:
     - hub:08_deliverables/article_plan/figures/final
+    - hub:08_deliverables/article_plan/tables/plot_phase_share.csv
   article_fig_f6:
     kind: experiment
     title: C-068 — F6 final, the systematic test as a verdict matrix (route × product × outcome, from f6_routes.yaml)
