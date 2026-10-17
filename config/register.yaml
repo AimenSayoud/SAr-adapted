@@ -2160,9 +2160,12 @@ entries:
     command: PYTHONPATH=src python experiments/article_fig_f2.py
     tickets:
     - C-068
+    - C-070
     chains:
     - article-plan
     inputs:
+    - hub:08_deliverables/field_events_x055/epoch_response.csv
+    - hub:08_deliverables/fusion_v3/wp1/e12_change_models.csv
     - cube:gold/truth_laser_hourly.csv.gz
     - cube:silver/static_40m.nc
     - hub:08_deliverables/insar_full_test/protocol.yaml
@@ -2180,6 +2183,7 @@ entries:
     command: PYTHONPATH=src python experiments/article_fig_f4.py
     tickets:
     - C-068
+    - C-070
     - X-126
     - C-070
     chains:
@@ -2202,6 +2206,7 @@ entries:
     tickets:
     - C-068
     - C-070
+    - C-070
     chains:
     - article-plan
     inputs:
@@ -2221,6 +2226,7 @@ entries:
     command: PYTHONPATH=src python experiments/article_fig_f6.py
     tickets:
     - C-068
+    - C-070
     chains:
     - article-plan
     inputs:
