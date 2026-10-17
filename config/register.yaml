@@ -2114,7 +2114,7 @@ entries:
     - hub:08_deliverables/insar_full_test/relevel
   article_figures_c067:
     kind: experiment
-    title: C-067 — draft article figures from existing data (F1 site, F2 inset, F3 conceptual, F4 pairs vs laser, F5 coherence matrix, F5b short-pair map, F6 the systematic test)
+    title: C-067 — draft article figures from existing data (F1 site, F2 inset, F3 conceptual, F4 pairs vs laser, F5 coherence matrix, F5b short-pair map; F6 and Table 1 moved to article_fig_f6)
     status: open
     runs_on: mac
     code: experiments/article_figures_c067.py
@@ -2127,8 +2127,6 @@ entries:
     inputs:
     - cube:silver/static_40m.nc
     - cube:silver/ifg_2020_2021_ascending.nc
-    - hub:08_deliverables/independent_review/01_tries/tries.csv
-    - hub:08_deliverables/article_plan/f6_routes.yaml
     - hub:08_deliverables/insar_full_test/reread_rtc/field_p6_short_pairs_x065
     outputs:
     - hub:08_deliverables/article_plan/figures
@@ -2218,7 +2216,7 @@ entries:
     - hub:08_deliverables/article_plan/tables/plot_phase_share.csv
   article_fig_f6:
     kind: experiment
-    title: C-068 — F6 final, the systematic test as a verdict matrix (route × product × outcome, from f6_routes.yaml)
+    title: C-068 — F6 final, the systematic test as a verdict matrix (route × product × outcome, from f6_routes.yaml), and Table 1
     status: open
     runs_on: mac
     code: experiments/article_fig_f6.py
@@ -2234,6 +2232,7 @@ entries:
     - hub:08_deliverables/independent_review/01_tries/tries.csv
     outputs:
     - hub:08_deliverables/article_plan/figures/final
+    - hub:08_deliverables/article_plan/tables/table1_systematic_test.csv
   article_fig_f3:
     kind: experiment
     title: C-068 — F3 final, schematic of what C-band sees on a floating mat and which pairs keep its motion (no data)
