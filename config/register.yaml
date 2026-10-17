@@ -1684,6 +1684,24 @@ entries:
     - cube:silver/ifg_2020_2021_descending.nc
     outputs:
     - hub:08_deliverables/insar_full_test/interior_edge
+  spams_loyo_x107:
+    kind: experiment
+    title: X-107 amendment_3 — SPAMS refitted on the design years leaving one year out (the re-levelled estimators' error statement)
+    status: current
+    runs_on: mac
+    code: experiments/spams_loyo_x107.py
+    code_ref: HEAD
+    command: RZECIN_CUBE_ROOT=../../06_data/cube_snapshots/as_delivered_2026-10-15 PYTHONPATH=src python experiments/spams_loyo_x107.py
+    tickets:
+    - X-107
+    chains:
+    - mat-method-v4
+    tries: []
+    inputs:
+    - cube:silver/site_hourly.csv.gz
+    - hub:08_deliverables/insar_full_test/v4/v4_frozen_params.yaml
+    outputs:
+    - hub:08_deliverables/insar_full_test/v4/spams_loyo_params.yaml
   loss_of_lock_x096:
     kind: experiment
     title: X-096 — the loss-of-lock atlas (gaps no coherent pair spans; P6 segments for X-093)
