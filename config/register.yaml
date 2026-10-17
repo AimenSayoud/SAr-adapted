@@ -1624,6 +1624,27 @@ entries:
     - hub:08_deliverables/fusion_v3/wp5/series_p6.csv
     outputs:
     - hub:08_deliverables/insar_full_test/baseline
+  x065_hard_targets_x126:
+    kind: experiment
+    title: X-126 — X-065's by-revisit comparison at P6 re-read on the hard-target reference, corrected cube, common scorer
+    status: current
+    runs_on: mac
+    code: experiments/x065_hard_targets_x126.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/x065_hard_targets_x126.py
+    tickets:
+    - X-126
+    chains:
+    - article-plan
+    tries: []
+    inputs:
+    - cube:gold/plots_pair.csv.gz
+    - cube:silver/site_hourly.csv.gz
+    - cube:silver/static_40m.nc
+    - hub:06_data/s1_archive/asf_acquisitions.csv
+    - hub:08_deliverables/insar_full_test/reread_corrected/baseline_x099/years.csv
+    outputs:
+    - hub:08_deliverables/insar_full_test/x065_hard_targets
   loss_of_lock_x096:
     kind: experiment
     title: X-096 — the loss-of-lock atlas (gaps no coherent pair spans; P6 segments for X-093)
