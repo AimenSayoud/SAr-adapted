@@ -37,6 +37,13 @@ DLV = HUB / "08_deliverables"
 REPO = Path(__file__).resolve().parents[3]
 TRACKS = ("ascending", "descending")
 CUBE_START = "2017-01-01"                                 # first day of every time series (C-060; was 2020-01-01)
+# Which hours of the P6 laser are dropped as possibly snow (X-129, X-130). "snow_evidence_72h": snow on the ground or
+# snowfall in the previous 72 h (IMGW Piła / Poznań, ERA5-Land, ERA5); "frost_72h": any sub-zero air in the previous
+# 72 h (X-058; the rule up to tag laser-rule-A-2026-10-22, snapshot 06_data/cube_snapshots/laser_rule_A_2026-10-22).
+# Both masks are kept as columns (laser_snow_evidence_72h, laser_frost_72h); this choice sets laser_snow_72h and laser_ok.
+LASER_SNOW_RULE = "snow_evidence_72h"
+SNOW_EVIDENCE = {"imgw230_snow_depth_cm": 0.0, "imgw330_snow_depth_cm": 0.0, "om_era5_land_snow_depth": 0.001,
+                 "om_era5_snowfall": 0.0}
 PERIODS = ("2017_2019", "2020_2021", "2022_2024", "2025", "2026")
 # Interferogram stacks: the date periods plus D-027's winter annual / two-year pairs and X-094's long pairs matched (or
 # not) on the water-table state (D-029), which span periods.
@@ -651,6 +658,8 @@ def site_hourly(raw: Path, end: str, log=print) -> pd.DataFrame:
             df[f"imgw{s}_ground_frozen"] = (g["ground_state"].reindex(day) == "Z").to_numpy()
         df["imgw_dew_h"] = df[[c for c in df if c.endswith("_dew_h")]].mean(1)
         df["imgw_snow_depth_cm"] = df[[c for c in df if c.startswith("imgw") and c.endswith("snow_depth_cm")]].mean(1)
+    if "laser_snow_72h" in df:
+        apply_laser_rule(df, idx, LASER_SNOW_RULE)
     # derived meteorology: station first, reanalysis as fallback, both kept
     df["st_dewpoint_c"] = core.dew_point_c(df.st_air_c, df.st_rh_pct)
     df["st_dpd_c"] = df.st_air_c - df.st_dewpoint_c
@@ -677,6 +686,20 @@ def site_hourly(raw: Path, end: str, log=print) -> pd.DataFrame:
     df.attrs["n_hours"] = len(df)
     log(f"site_hourly: {len(df)} hours × {df.shape[1]} columns")
     return df
+
+
+def apply_laser_rule(df: pd.DataFrame, idx: pd.DatetimeIndex, rule: str) -> None:
+    """Keep both snow masks of the laser and set laser_snow_72h / laser_ok from ``rule`` (X-130)."""
+    if rule not in ("snow_evidence_72h", "frost_72h"):
+        raise ValueError(f"unknown laser snow rule {rule!r}")
+    df["laser_frost_72h"] = df["laser_snow_72h"].astype("boolean")
+    ev = df[[c for c in SNOW_EVIDENCE if c in df]]
+    df["laser_snow_evidence_72h"] = field.snow_evidence_mask(ev, idx, 72, SNOW_EVIDENCE).astype("boolean").to_numpy()
+    if rule == "snow_evidence_72h":
+        df["laser_snow_72h"] = df["laser_snow_evidence_72h"]
+        df["laser_snow_72h_source"] = np.where(df.laser_surface_raw_cm.notna(), "snow_evidence", "")
+    df["laser_ok"] = df.laser_surface_cm.notna() & ~df[["laser_snow_72h", "laser_outlier", "laser_filled"]].fillna(True).any(axis=1)
+    df.attrs["laser_snow_rule"] = rule
 
 
 # ------------------------------------------------------------------------------ folds
