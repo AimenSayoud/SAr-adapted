@@ -96,3 +96,10 @@ def test_preregistration_must_be_committed_before_the_outputs(tmp_path):
     (tmp_path / "bad.yaml").write_text("ticket: X-1\n")
     with pytest.raises(ValueError):
         S.load_preregistration(tmp_path / "bad.yaml")
+
+
+def test_normalised_sq_dev_is_one_when_as_good_as_the_reference():
+    from insar_wetlands.scoring import normalised_sq_dev
+    assert normalised_sq_dev(np.array([2.0, -2.0]), np.array([2.0, 2.0])) == pytest.approx(1.0)
+    assert normalised_sq_dev(np.array([4.0, 0.0, np.nan]), np.array([2.0, 1.0, 1.0])) == pytest.approx(2.0)
+    assert np.isnan(normalised_sq_dev(np.array([1.0]), np.array([0.0])))

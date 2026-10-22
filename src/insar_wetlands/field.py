@@ -90,6 +90,20 @@ def snow_mask(air_temp_c: pd.Series, index: pd.DatetimeIndex, hours: int = 72) -
     return out | pd.Series(outside, index=index)
 
 
+def snow_evidence_mask(evidence: pd.DataFrame, index: pd.DatetimeIndex, hours: int = 72,
+                       thresholds: dict[str, float] | None = None) -> pd.Series:
+    """True where the laser may be seeing snow, judged on snow evidence rather than on frost (X-129): any column of
+    ``evidence`` (hourly snow depths, snowfall) above its threshold (default 0) in the ``hours`` before (and including)
+    each time. Aligned to ``index``. Hours with no evidence value at all count as no snow, unlike ``snow_mask``: the
+    evidence sources (IMGW, ERA5) cover the laser's whole span, and a missing report is not a snow report."""
+    thr = thresholds or {}
+    hit = pd.Series(False, index=evidence.index)
+    for c in evidence.columns:
+        hit |= evidence[c].fillna(-np.inf) > thr.get(c, 0.0)
+    snow = hit.astype(float).rolling(f"{hours}h", min_periods=1).max() > 0
+    return snow.reindex(index, method="ffill").fillna(False).astype(bool)
+
+
 FLAG_FILL = "FFFFFF00"   # the field team marks doubtful cells in solid yellow
 
 
