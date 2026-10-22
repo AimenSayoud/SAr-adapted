@@ -120,3 +120,17 @@ def test_load_uav_table_masks_the_yellow_cells(tmp_path):
     assert np.isnan(df.REMX_NIR_842_mean.tolist()[1])          # −9999 → NaN
     assert df.base_plot.tolist() == ["P1", "P6"]
     assert field.load_uav_table(p, mask_flagged=False).LAI.tolist()[1] == 15.1
+
+
+def test_snow_evidence_mask_follows_snow_not_frost():
+    idx = pd.date_range("2023-01-01", periods=200, freq="h", tz="UTC")
+    ev = pd.DataFrame({"depth_cm": 0.0, "snowfall": 0.0}, index=idx)
+    ev.iloc[50, 0] = 2.0                                    # one snow report at hour 50
+    ev.iloc[150, 1] = np.nan                                # a missing report is not snow
+    m = field.snow_evidence_mask(ev, idx, hours=72)
+    assert not m[idx[:50]].any()
+    assert m[idx[50]] and m[idx[50 + 71]]
+    assert not m[idx[50 + 72]]
+    assert not m[idx[150:]].any()
+    thr = field.snow_evidence_mask(ev, idx, hours=72, thresholds={"depth_cm": 5.0})
+    assert not thr.any()                                    # below its threshold: no evidence

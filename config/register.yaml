@@ -1675,6 +1675,25 @@ entries:
     - hub:08_deliverables/insar_full_test/reread_corrected/baseline_x099/years.csv
     outputs:
     - hub:08_deliverables/insar_full_test/x065_hard_targets
+  laser_frost_rule_x129:
+    kind: experiment
+    title: X-129 — the P6 laser's 72-h frost rule against a snow-evidence rule, scored on Sentinel-1 consecutive pairs
+    status: current
+    runs_on: mac
+    code: experiments/laser_frost_rule_x129.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/laser_frost_rule_x129.py
+    tickets:
+    - X-129
+    chains:
+    - field-data
+    inputs:
+    - cube:gold/plots_pair.csv.gz
+    - cube:silver/site_hourly.csv.gz
+    - hub:06_data/s1_archive/asf_acquisitions.csv
+    - hub:08_deliverables/insar_full_test/x065_hard_targets/by_revisit.csv
+    outputs:
+    - hub:08_deliverables/field_p6/laser_frost_rule_x129
   skip_pairs_x127:
     kind: experiment
     title: X-127 — skip-one pairs at P6, ambiguity alone or more noise than two short pairs (simulated from the laser)

@@ -147,6 +147,14 @@ def increment_stats(truth_inc, est_inc) -> dict:
             "within_quarter_wave": float(np.mean(np.abs(dev) < QUARTER_WAVE_MM)) if len(dev) else float("nan")}
 
 
+def normalised_sq_dev(dev: np.ndarray, ref_rmse: np.ndarray) -> float:
+    """Mean of (deviation / reference RMSE)² over a set of pairs, each with the RMSE of its own group's reference pairs
+    (X-129): 1 when the set agrees with the truth as well as the reference pairs, above 1 when worse."""
+    d, r = np.asarray(dev, float), np.asarray(ref_rmse, float)
+    m = np.isfinite(d) & np.isfinite(r) & (r > 0)
+    return float(np.mean((d[m] / r[m]) ** 2)) if m.any() else float("nan")
+
+
 # ----------------------------------------------------------------------------------------- chains
 def chain(pairs: pd.DataFrame, est_col: str = "est_mm") -> pd.DataFrame:
     """Cumulate ``est_col`` along consecutive pairs (sorted by t1); a gap (t1 ≠ previous t2) starts a new segment."""
