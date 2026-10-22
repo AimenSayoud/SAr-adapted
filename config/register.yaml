@@ -1575,6 +1575,35 @@ entries:
     - hub:06_data/local_small/s1_extension_2020_2021
     tries:
     - T03
+  supervisor_table_c071:
+    kind: experiment
+    title: C-071 — the supervisor's table, Sentinel-1 at the nine plots per acquisition and per pair (corrected cube, 3×3 mat window with valid pixels, median, mean, SD, IQR), joined with the hourly water-table antecedents, meteorology, the P6 laser and UAV/LAI campaigns, 2020–2025
+    status: current
+    runs_on: mac
+    code: experiments/supervisor_table_c071.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/supervisor_table_c071.py
+    tickets:
+    - C-071
+    chains:
+    - field-data
+    inputs:
+    - cube:silver/ifg_2020_2021_ascending.nc
+    - cube:silver/ifg_2020_2021_descending.nc
+    - cube:silver/ifg_2022_2024_ascending.nc
+    - cube:silver/ifg_2022_2024_descending.nc
+    - cube:silver/ifg_2025_ascending.nc
+    - cube:silver/ifg_2025_descending.nc
+    - cube:silver/rtc_ascending.nc
+    - cube:silver/rtc_descending.nc
+    - cube:silver/static_40m.nc
+    - cube:silver/site_hourly.csv.gz
+    - cube:gold/plots_acq.csv.gz
+    - cube:gold/plots_pair.csv.gz
+    - cube:gold/truth_laser_hourly.csv.gz
+    - cube:gold/truth_laser_daily.csv
+    outputs:
+    - hub:08_deliverables/field_supervisor_workbook_c071/tables
   v3_scoping_x072:
     kind: experiment
     title: 'X-072: what the data cube says before fusion v3 is modelled (exploratory, Mac-safe, reads only the cube).'
