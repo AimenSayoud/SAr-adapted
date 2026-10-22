@@ -52,8 +52,8 @@ def boolean(s: pd.Series) -> pd.Series:
 
 
 def load_site() -> pd.DataFrame:
-    cols = ["time_utc", "laser_surface_cm", "laser_ok", "laser_snow_72h", "laser_outlier", "laser_filled", "air_c",
-            "cr_raw"] + list(EVIDENCE)
+    cols = ["time_utc", "laser_surface_cm", "laser_ok", "laser_snow_72h", "laser_snow_72h_source", "laser_outlier",
+            "laser_filled", "air_c", "cr_raw"] + list(EVIDENCE)
     s = pd.read_csv(X.CUBE / "silver" / "site_hourly.csv.gz", index_col=0, low_memory=False, usecols=cols)
     s.index = pd.to_datetime(s.index, format="ISO8601", utc=True)
     for c in ("laser_ok", "laser_snow_72h", "laser_outlier", "laser_filled"):
@@ -226,6 +226,9 @@ def main() -> None:
              "hours.csv", "residual_classes.csv", "README.md")
     assert_preregistered(PREREG, [OUT / f for f in names])
     s = load_site()
+    if (s.get("laser_snow_72h_source", pd.Series(dtype=str)) == "snow_evidence").any():
+        sys.exit("X-129 compares rule A with rule B on a rule-A cube; the cube is on rule B since X-130 "
+                 "(its result stands: T87; the rule-A cube files are in 06_data/cube_snapshots/laser_rule_A_2026-10-22)")
     r = rules(s)
     p = load_pairs()
     guard_lockbox(pd.concat([p.t1, p.t2]), Protocol.load(PROTOCOL))

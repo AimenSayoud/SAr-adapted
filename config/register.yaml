@@ -1708,6 +1708,8 @@ entries:
     - X-130
     chains:
     - field-data
+    tries:
+    - T88
     inputs:
     - cube:silver/site_hourly.csv.gz
     - cube:gold/plots_pair.csv.gz
