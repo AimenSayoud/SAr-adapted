@@ -373,16 +373,20 @@ def tables() -> None:
     (wn.assign(ae=wn.difference_mm.abs()).groupby("track")
        .agg(winters=("winter", "size"), mae_mm=("ae", "mean"), laser_abs_mean_mm=("laser_change_mm", lambda v: v.abs().mean()))
        .reset_index().to_csv(out / "winter_steps.csv", index=False))
-    d = pd.read_csv(latest("field_p6_short_pairs_x065", "p6_pairs_2020_2024.csv")).dropna(subset=["s1", "laser_los"])
-    d["period"] = np.where(d.year <= 2021, "2021", "2022–2024")      # the laser starts 27 May 2021
     # Table 2 (revisit_correlations.csv) is written by article_fig_f4.py from X-126 since 2026-10-17 (hard targets).
+    # The laser's steps over the same consecutive pairs as Table 2 (X-126, the cube's laser rule; since X-130 it replaces
+    # laser_six_day.csv, read from the X-065 chain, and the 12-day row of the laser QC's mount_sensitivity.csv).
     from insar_wetlands.cube.core import WAVELENGTH_MM
     qw = WAVELENGTH_MM / 4                                   # a quarter of the C-band wavelength, line of sight
-    six = d[d.dt == 6]
-    pd.DataFrame([{"track": t, "pairs": len(g), "median_abs_laser_los_mm": float(g.laser_los.abs().median()),
-                   "max_abs_laser_los_mm": float(g.laser_los.abs().max()),
-                   "share_beyond_quarter_wave": float((g.laser_los.abs() > qw).mean())}
-                  for t, g in six.groupby("track")]).to_csv(out / "laser_six_day.csv", index=False)
+    d = pd.read_csv(FT / "x065_hard_targets" / "pairs.csv").dropna(subset=["d_laser_los_mm"])
+    d = d[(d.between == 0) & (((d.group == "2021") & (d.revisit_days == 6)) |
+                              ((d.group == "2022–2024") & (d.revisit_days == 12)))]
+    pd.DataFrame([{"track": t, "period": g_, "revisit_days": int(r), "pairs": len(g),
+                   "median_abs_laser_los_mm": float(g.d_laser_los_mm.abs().median()),
+                   "max_abs_laser_los_mm": float(g.d_laser_los_mm.abs().max()),
+                   "share_beyond_quarter_wave": float((g.d_laser_los_mm.abs() > qw).mean())}
+                  for (t, g_, r), g in d.groupby(["track", "group", "revisit_days"])]).to_csv(out / "laser_steps.csv",
+                                                                                               index=False)
     # Table 1 (table1_systematic_test.csv) is written by article_fig_f6.py with F6 since 2026-10-17.
     w = pd.read_csv(HUB / "08_deliverables" / "cube_analysis_x081" / "weather_by_year.csv")
     pd.DataFrame([{"years": f"{w.year.min()}–{w.year.max()}", "precip_mm_median": w.precip_mm.median(),

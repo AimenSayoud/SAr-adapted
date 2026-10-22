@@ -2198,6 +2198,7 @@ entries:
     - cube:silver/static_40m.nc
     - cube:silver/ifg_2020_2021_ascending.nc
     - hub:08_deliverables/insar_full_test/reread_rtc/field_p6_short_pairs_x065
+    - hub:08_deliverables/insar_full_test/x065_hard_targets/pairs.csv
     outputs:
     - hub:08_deliverables/article_plan/figures
   article_fig_f1:
