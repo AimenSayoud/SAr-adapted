@@ -2216,7 +2216,7 @@ entries:
     - hub:08_deliverables/article_plan/tables/plot_phase_share.csv
   article_fig_f6:
     kind: experiment
-    title: C-068 — F6 final, the systematic test as a verdict matrix (route × product × outcome, from f6_routes.yaml), and Table 1
+    title: C-068 — F6 round 3, the share of pairs over which the laser at P6 moved beyond λ/4 by pair length, with each length-dependent route's span and outcome above it (from f6_routes.yaml), and Table 1
     status: open
     runs_on: mac
     code: experiments/article_fig_f6.py
@@ -2230,9 +2230,34 @@ entries:
     inputs:
     - hub:08_deliverables/article_plan/f6_routes.yaml
     - hub:08_deliverables/independent_review/01_tries/tries.csv
+    - hub:08_deliverables/insar_full_test/protocol.yaml
+    - cube:gold/plots_acq.csv.gz
+    - cube:gold/plots_pair.csv.gz
+    - cube:gold/truth_laser_hourly.csv.gz
     outputs:
     - hub:08_deliverables/article_plan/figures/final
     - hub:08_deliverables/article_plan/tables/table1_systematic_test.csv
+    - hub:08_deliverables/article_plan/tables/f6_span_exceedance.csv
+  article_fig_f7:
+    kind: experiment
+    title: C-070 — F7a, the laser, the plain chain and the frozen re-levelled short-pair chain (v4) at P6 through the design years, each winter shaded, with the anchor's leave-one-year-out range as a band (X-107 amendment_3)
+    status: open
+    runs_on: mac
+    code: experiments/article_fig_f7.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/article_fig_f7.py
+    tickets:
+    - C-070
+    chains:
+    - article-plan
+    inputs:
+    - hub:08_deliverables/insar_full_test/v4/v4_frozen_params.yaml
+    - hub:08_deliverables/insar_full_test/v4/spams_loyo_params.yaml
+    - hub:08_deliverables/insar_full_test/protocol.yaml
+    - cube:silver/site_hourly.csv.gz
+    - cube:gold/plots_pair.csv.gz
+    outputs:
+    - hub:08_deliverables/article_plan/figures/final
   article_fig_f3:
     kind: experiment
     title: C-068 — F3 final, schematic of what C-band sees on a floating mat and which pairs keep its motion, and why longer pairs lose it (phase wrapping; no data)
