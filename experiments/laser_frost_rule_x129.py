@@ -86,7 +86,8 @@ def laser_change(s: pd.DataFrame, ok: pd.Series, p: pd.DataFrame) -> np.ndarray:
     """LOS laser change over each pair, as the cube makes it (gold.site_at + pair_drivers + los_u)."""
     lev = s.laser_surface_cm.where(ok)
     a, b = core.value_at(lev, p.t1), core.value_at(lev, p.t2)
-    return (b - a) * 10 * p.los_u.to_numpy()
+    los_u = p.los_u.to_numpy(np.float32).astype(float)       # the cube multiplies by the float32 layer; its CSV prints 8 digits
+    return (b - a) * 10 * los_u
 
 
 def reproduction(p: pd.DataFrame) -> pd.DataFrame:
