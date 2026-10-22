@@ -1696,6 +1696,24 @@ entries:
     - hub:08_deliverables/insar_full_test/x065_hard_targets/by_revisit.csv
     outputs:
     - hub:08_deliverables/field_p6/laser_frost_rule_x129
+  reread_laser_rule_x130:
+    kind: experiment
+    title: X-130 — the article's laser comparisons and the supervisor tables re-read with the P6 laser on the snow-evidence rule, beside the committed ones
+    status: current
+    runs_on: mac
+    code: experiments/reread_laser_rule_x130.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/reread_laser_rule_x130.py
+    tickets:
+    - X-130
+    chains:
+    - field-data
+    inputs:
+    - cube:silver/site_hourly.csv.gz
+    - cube:gold/plots_pair.csv.gz
+    - hub:08_deliverables/article_plan/numbers.yaml
+    outputs:
+    - hub:08_deliverables/insar_full_test/reread_laser_rule_b
   skip_pairs_x127:
     kind: experiment
     title: X-127 — skip-one pairs at P6, ambiguity alone or more noise than two short pairs (simulated from the laser)
