@@ -121,7 +121,8 @@ def table_diff(a: pd.DataFrame, b: pd.DataFrame) -> dict:
         x, y = a[num].to_numpy(float), b[num].to_numpy(float)
         same = (np.isnan(x) & np.isnan(y)) | (np.abs(x - y) <= 1e-9)
         oth = [c for c in a.columns if c not in num]
-        so = (a[oth].astype(str).to_numpy() == b[oth].astype(str).to_numpy()) if oth else np.ones((len(a), 0), bool)
+        txt = lambda d: d[oth].astype(object).where(d[oth].notna(), "<NA>").astype(str).to_numpy()   # NaN = NaN
+        so = (txt(a) == txt(b)) if oth else np.ones((len(a), 0), bool)
         out["cells_changed"] = int((~same).sum() + (~so).sum())
     else:
         out["cells_changed"] = None
@@ -155,7 +156,7 @@ def compare() -> None:
              "snow-evidence cube (`<entry>/`); control = today's code on the rule-A cube (`_control_rule_A/`).", ""]
     ctrl = []
     for m in moved(CONTROL):
-        if not m["file"].endswith(".csv"):
+        if not m["file"].endswith((".csv", ".csv.gz")):
             continue
         a = committed_of(m["file"])
         ctrl.append({"file": str(a.relative_to(HUB)), **table_diff(pd.read_csv(a), pd.read_csv(HUB / m["to"]))}
@@ -169,7 +170,7 @@ def compare() -> None:
     for m in moved(OUT):
         a = committed_of(m["file"])
         remap[str(a.relative_to(HUB))] = HUB / m["to"]
-        if m["file"].endswith(".csv") and a.exists():
+        if m["file"].endswith((".csv", ".csv.gz")) and a.exists():
             rows.append({"file": str(a.relative_to(HUB)), **table_diff(pd.read_csv(a), pd.read_csv(HUB / m["to"]))})
     t = pd.DataFrame(rows)
     lines += ["## Tables that change under B", "", md(t) if len(t) else "(none)", ""]
