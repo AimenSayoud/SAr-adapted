@@ -1763,6 +1763,27 @@ entries:
     - hub:08_deliverables/insar_full_test/x065_hard_targets/by_revisit.csv
     outputs:
     - hub:08_deliverables/supervisor_pack_c074/tables
+  supervisor_figures_c074:
+    kind: experiment
+    title: C-074 — the supervisor pack's figures (nine cells, phase against the laser, P6 through time) with the C-073 figures beside them
+    status: current
+    runs_on: mac
+    code: experiments/supervisor_figures_c074.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/supervisor_figures_c074.py
+    tickets:
+    - C-074
+    chains:
+    - field-data
+    inputs:
+    - hub:08_deliverables/supervisor_pack_c074/tables
+    - hub:08_deliverables/figures_landcover_footprint
+    - cube:raw/gugik_dated
+    - cube:silver/lidar_dated_1m.nc
+    - cube:silver/site_hourly.csv.gz
+    - hub:08_deliverables/field_first/plot_pixels.csv
+    outputs:
+    - hub:08_deliverables/supervisor_pack_c074
   laser_frost_rule_x129:
     kind: experiment
     title: X-129 — the P6 laser's 72-h frost rule against a snow-evidence rule, scored on Sentinel-1 consecutive pairs
