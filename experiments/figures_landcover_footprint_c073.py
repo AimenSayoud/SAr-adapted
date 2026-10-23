@@ -281,12 +281,12 @@ def f3(s2, r2_note: str):
         ax.set_yticks(y, [FACTOR_LABEL.get(f, f) for f in t.factor])
         ax.set_xlabel("Effect on coherence (Fisher z = atanh γ)\n← lowers coherence · raises →")
         ax.set_title("Effects (95 % block-bootstrap intervals)", loc="left")
-        ax.legend(handles=[Line2D([], [], ls="", marker="o", ms=4, color=fs.INK, label="per SD of the factor"),
+        fig.legend(handles=[Line2D([], [], ls="", marker="o", ms=4, color=fs.INK, label="per SD of the factor"),
                            Line2D([], [], ls="", marker="s", ms=4, color=fs.INK, label="0/1 factor"),
                            Line2D([], [], ls="", marker="D", ms=4, color=fs.INK, label="interaction"),
                            Line2D([], [], ls="", marker="o", ms=4, mfc="white", mec=fs.MUTED,
                                   label="below the pre-registered rule")],
-                  loc="upper center", bbox_to_anchor=(0.45, -0.13), ncol=2, fontsize=6.3)
+                   loc="outside lower center", ncol=4, fontsize=6.3)
         fs.panel_label(ax, "a")
         ax = axs[1]
         ax.barh(y, t.r2_drop, color=[fs.INK if m else "#c9ced4" for m in t.matters], height=0.62,
