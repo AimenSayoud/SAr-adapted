@@ -100,6 +100,17 @@ def nearest_rtc(rtc: xr.Dataset, times: pd.Series, var: str, ry, cx, tol_h: floa
     return out
 
 
+def backscatter(rtc, ry, cx, names, track: str, y0: int, y1: int) -> list[dict]:
+    """Per cell: median VV and VH, the temporal SD of VV and the median VH − VV over the scenes of years y0–y1."""
+    sel = (rtc.time.dt.year >= y0) & (rtc.time.dt.year <= y1)
+    vv = rtc.vv_db.isel(y=ry, x=cx).sel(time=sel).values
+    vh = rtc.vh_db.isel(y=ry, x=cx).sel(time=sel).values
+    return [{"cell": lab, "track": track, "years": f"{y0}–{y1}" if y1 > y0 else str(y0),
+             "scenes": int(np.isfinite(vv[:, j]).sum()), "vv_median_db": float(np.nanmedian(vv[:, j])),
+             "vh_median_db": float(np.nanmedian(vh[:, j])), "vv_sd_db": float(np.nanstd(vv[:, j])),
+             "vh_minus_vv_db": float(np.nanmedian(vh[:, j] - vv[:, j]))} for j, lab in enumerate(names)]
+
+
 def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     names = ["nine_cells.csv", "nine_cells_by_group.csv", "nine_cells_backscatter.csv", "nine_cells_pairs.csv",
@@ -152,15 +163,8 @@ def main() -> None:
                                        "revisit_days": rev, "cell": lab, "s1_los_mm": inc[k, j], "coherence": coh[k, j],
                                        "laser_los_mm": a[k], "d_vv_db": vv2[k, j] - vv1[k, j],
                                        "d_vh_db": vh2[k, j] - vh1[k, j]})
-            y0, y1 = PERIOD_YEARS[grp]
-            sel = (rtc.time.dt.year >= y0) & (rtc.time.dt.year <= y1)
-            vv = rtc.vv_db.isel(y=ry, x=cx).sel(time=sel).values
-            vh = rtc.vh_db.isel(y=ry, x=cx).sel(time=sel).values
-            for j, lab in enumerate(cells.index):
-                bs.append({"cell": lab, "track": track, "years": f"{y0}–{y1}" if y1 > y0 else str(y0),
-                           "scenes": int(np.isfinite(vv[:, j]).sum()), "vv_median_db": float(np.nanmedian(vv[:, j])),
-                           "vh_median_db": float(np.nanmedian(vh[:, j])), "vv_sd_db": float(np.nanstd(vv[:, j])),
-                           "vh_minus_vv_db": float(np.nanmedian(vh[:, j] - vv[:, j]))})
+            bs += backscatter(rtc, ry, cx, cells.index, track, *PERIOD_YEARS[grp])
+        bs += backscatter(rtc, ry, cx, cells.index, track, 2021, 2025)      # all the laser years together
     rep = pd.DataFrame(checks)
     rep.to_csv(OUT / "reproduction.csv", index=False)
     if not rep.ok.all():
