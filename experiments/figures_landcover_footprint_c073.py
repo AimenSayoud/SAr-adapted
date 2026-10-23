@@ -431,7 +431,7 @@ def f6(st, cells, mp, agree, runs, p6):
     with fs.style():
         fig = plt.figure(figsize=fs.size("full", 146), layout="constrained")
         fig.suptitle("May–October sinking of the mat, from chains of six-day pairs. Only 2021 and 2025: the test was "
-                     "pre-registered on six-day pairs, and 2022–24 had twelve-day pairs only (one satellite).",
+                     "pre-registered on six-day pairs,\nand 2022–24 had twelve-day pairs only (one satellite).",
                      x=0.01, ha="left", fontsize=7, color=fs.MUTED)
         gs = fig.add_gridspec(2, 3, width_ratios=[1, 1, 0.95])
         for i, yr in enumerate(("2021", "2025")):

@@ -222,10 +222,10 @@ def s2c_coherence_laser(by):
             for j, (q, tr, col, cmap, lo, hi) in enumerate(cols):
                 ax = fig.add_subplot(gs[i, j])
                 d = by[(by.track == tr) & (by.group == g)].set_index("cell")[col].to_dict()
-                tiles(ax, d, ".2f", cmap, lo, hi, f"{q}, {tr} (n = {n[tr]})" if i == 0 else f"n = {n[tr]} pairs")
+                tiles(ax, d, ".2f", cmap, lo, hi, f"{q} · {tr[:3]}." if i == 0 else "")
                 if j == 0:
-                    ax.set_ylabel(ROWLAB[g], fontsize=7.5, fontweight="bold", rotation=0, ha="right", va="center",
-                                  labelpad=8)
+                    ax.set_ylabel(f"{ROWLAB[g]}\nn = {n['ascending']} asc. / {n['descending']} desc.", fontsize=7.5,
+                                  fontweight="bold", rotation=0, ha="right", va="center", labelpad=8)
     export(fig, "S2c_nine_cells_coherence_laser", ["hub:supervisor_pack_c074/tables/nine_cells_by_group.csv"],
            {"layout": "rows: 2021 6-day, 2022–24 12-day, 2025 6-day consecutive pairs; columns: coherence asc/desc, "
                       "r with the laser asc/desc", "scales": "coherence 0.5…1, r 0…1"},
@@ -369,8 +369,8 @@ def s4_time(pairs):
             ax.scatter(e.mid, e.s1_los_mm, s=9, marker="o" if tr == "ascending" else "s", facecolors="none",
                        edgecolors=fs.TRACK[tr], linewidths=0.8, label=f"Sentinel-1 change, {tr}", zorder=2)
             ax.set_ylabel(f"Pair change,\n{tr} (mm LOS)")
-            ax.text(0.995, 0.96, "circle without a star: no laser value (snow evidence or a gap)", transform=ax.transAxes,
-                    ha="right", va="top", fontsize=6.2, color=fs.MUTED)
+            ax.text(1.0, 1.01, "radar point without a star: no laser value (snow evidence or a gap)",
+                    transform=ax.transAxes, ha="right", va="bottom", fontsize=6.2, color=fs.MUTED)
             ax.legend(loc="lower left", bbox_to_anchor=(0.0, 1.0), fontsize=6.2, ncol=2, borderaxespad=0.1)
             fs.panel_label(ax, "cd"[k], x=-0.06)
         ax = axs[4]
