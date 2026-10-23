@@ -1700,6 +1700,27 @@ entries:
     - hub:08_deliverables/insar_full_test/x065_hard_targets/by_revisit.csv
     outputs:
     - hub:08_deliverables/insar_full_test/landcover_x132
+  p6_motion_footprint_x133:
+    kind: experiment
+    title: X-133 — how far P6's six-day motion reaches over the mat (solid-ground null), its gain against depth, and a season map checked by the two tracks
+    status: current
+    runs_on: mac
+    code: experiments/p6_motion_footprint_x133.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/p6_motion_footprint_x133.py
+    tickets:
+    - X-133
+    chains:
+    - insar-full-test
+    inputs:
+    - cube:gold/plots_pair.csv.gz
+    - cube:silver/static_40m.nc
+    - cube:silver/ifg_*.nc
+    - cube:silver/site_hourly.csv.gz
+    - hub:06_data/s1_archive/asf_acquisitions.csv
+    - hub:08_deliverables/insar_full_test/x065_hard_targets/by_revisit.csv
+    outputs:
+    - hub:08_deliverables/insar_full_test/footprint_x133
   laser_frost_rule_x129:
     kind: experiment
     title: X-129 — the P6 laser's 72-h frost rule against a snow-evidence rule, scored on Sentinel-1 consecutive pairs
