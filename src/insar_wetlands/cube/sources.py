@@ -401,6 +401,8 @@ GUGIK_DATED = [("dtm", "NumerycznyModelTerenuKRON86", "SkorowidzNMT", 2011),
                ("dtm", "NumerycznyModelTerenuEVRF2007", "SkorowidzNMT", 2024),
                ("dsm", "NumerycznyModelPokryciaTerenuEVRF2007", "SkorowidzNMPT", 2024)] + \
               [("cir", "ORTO", "SkorowidzOrtofomapy", y) for y in (2021, 2022, 2023, 2025)]
+# the 10 cm true-colour orthophoto flown with the 2024 laser scan, fetched over the plots only (a sheet is ~280 MB)
+GUGIK_RGB = ("rgb", "ORTO", "SkorowidzOrtofomapy", 2024)
 GUGIK_HEIGHT_DATUM = {2011: "PL-KRON86-NH", 2024: "PL-EVRF2007-NH"}
 # The index gives a laser survey's year only. Its day is the GPS time of the points of the LAZ sheet over the mat
 # (N-33-117-D-a-3-4-2), read 2026-10-23: 2011 08:42–09:39 UTC (ISOK, leaf-off), 2024 08:15–08:49 UTC (leaf-on).
@@ -434,24 +436,31 @@ def keep_gugik_sheet(kind: str, rec: dict) -> bool:
         return False
     if kind == "cir":
         return rec.get("kolor") == "CIR"
+    if kind == "rgb":
+        return rec.get("kolor") == "RGB" and rec.get("piksel") == "0.1"
     return (rec.get("zrodlo_danych") == "Skaning laserowy" and rec.get("format") == "ARC/INFO ASCII GRID"
             and rec.get("char_przestrz", "").startswith("1.00"))
 
 
-def fetch_gugik_dated(out_dir: Path, bounds_2180, log=print) -> pd.DataFrame:
-    """Every dated sheet of ``GUGIK_DATED`` that touches ``bounds_2180`` (PL-1992 edges), downloaded as delivered, with
-    its survey date and provenance in the returned table (written by the caller as ``sheets.csv``)."""
+def fetch_gugik_dated(out_dir: Path, bounds_2180, log=print, rgb_bounds_2180=None) -> pd.DataFrame:
+    """Every dated sheet of ``GUGIK_DATED`` that touches ``bounds_2180`` (PL-1992 edges), and the 10 cm true-colour
+    sheets (``GUGIK_RGB``) that touch ``rgb_bounds_2180``, downloaded as delivered, with each survey's date and
+    provenance in the returned table (written by the caller as ``sheets.csv``)."""
     out_dir.mkdir(parents=True, exist_ok=True)
     rows = []
-    for kind, svc, layer, year in GUGIK_DATED:
+    todo = [(k, b) for k in GUGIK_DATED for b in [bounds_2180]]
+    if rgb_bounds_2180 is not None:
+        todo.append((GUGIK_RGB, rgb_bounds_2180))
+    for (kind, svc, layer, year), box in todo:
         lay = f"{layer}{year}"
         r = _get(GUGIK_INDEX.format(svc=svc), params={"SERVICE": "WFS", "VERSION": "2.0.0", "REQUEST": "GetFeature",
-                                                      "TYPENAMES": f"gugik:{lay}", "BBOX": wfs_bbox_2180(bounds_2180)})
+                                                      "TYPENAMES": f"gugik:{lay}", "BBOX": wfs_bbox_2180(box)})
         for rec in parse_gugik_index(r.text, lay):
             if keep_gugik_sheet(kind, rec):
                 rows.append({"kind": kind, "year": year, "sheet": rec["godlo"], "job": rec.get("nr_zglosz", ""),
                              "source": rec.get("zrodlo_danych", ""), "pixel_m": rec.get("piksel") or rec.get("char_przestrz", ""),
-                             "height_datum": rec.get("uklad_h", "") if kind != "cir" else "", "url": rec["url_do_pobrania"]})
+                             "height_datum": rec.get("uklad_h", "") if kind in ("dtm", "dsm") else "",
+                             "url": rec["url_do_pobrania"]})
     tab = pd.DataFrame(rows).drop_duplicates("url")
     dates = {}
     left, bottom, right, top = bounds_2180
@@ -463,7 +472,7 @@ def fetch_gugik_dated(out_dir: Path, bounds_2180, log=print) -> pd.DataFrame:
                     "SRS": "EPSG:2180", "BBOX": f"{x - 50},{y - 50},{x + 50},{y + 50}", "WIDTH": 101, "HEIGHT": 101,
                     "X": 50, "Y": 50, "INFO_FORMAT": "text/html", "FEATURE_COUNT": 50, "STYLES": ""})
                 dates.update(parse_orto_dates(r.text))
-    laser = tab.kind != "cir"
+    laser = tab.kind.isin(["dtm", "dsm"])
     tab["date"] = np.where(laser, tab.job.map(LASER_FLIGHT), tab.url.map(dates))
     tab["date_source"] = np.where(laser, "GPS time of the points (LAZ N-33-117-D-a-3-4-2)", "orthophoto index (aktualnosc)")
     if tab.date.isna().any():

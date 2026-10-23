@@ -644,7 +644,7 @@ def raw_inventory(raw: Path) -> pd.DataFrame:
         d = pd.read_csv(f)
         for (kind, year), g in d.groupby(["kind", "year"]):
             what = {"dtm": "laser-scan DTM 1 m sheets", "dsm": "laser-scan DSM 1 m sheets",
-                    "cir": "colour-infrared orthophoto sheets"}[kind]
+                    "cir": "colour-infrared orthophoto sheets", "rgb": "true-colour orthophoto sheets (plots)"}[kind]
             add(f"GUGiK dated sheets {year} (C-072)", f"{what}, {g.pixel_m.iloc[0]}", len(g),
                 " / ".join(sorted(g.date.astype(str).unique())))
     n = len(list((raw / "worldcover").glob("*.npz"))) if (raw / "worldcover").exists() else 0

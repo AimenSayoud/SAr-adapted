@@ -529,7 +529,7 @@ def dated_layers(raw: Path, bounds_utm, log=print) -> tuple[dict, pd.DataFrame]:
     d = raw / "gugik_dated"
     tab = pd.read_csv(d / "sheets.csv")
     out = {}
-    laser_years = sorted(tab[tab.kind != "cir"].year.unique())
+    laser_years = sorted(tab[tab.kind.isin(["dtm", "dsm"])].year.unique())
     for year in laser_years:
         g = {k: [d / f for f in tab[(tab.kind == k) & (tab.year == year)].file] for k in ("dtm", "dsm")}
         dtm, dsm = (_sheets_to_utm(g[k], bounds_utm, _read_asc) for k in ("dtm", "dsm"))
