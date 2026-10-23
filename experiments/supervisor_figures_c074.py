@@ -126,7 +126,7 @@ def s1_site(cells: pd.DataFrame) -> None:
                                            float(chm.y[0]) + 0.5], origin="upper", interpolation="none",
                        cmap=plt.get_cmap("YlGn"), vmin=0, vmax=3, zorder=0)
         grid_and_labels(ax, cells, lab, ec=fs.MUTED, bottom=True)
-        ax.plot(sx, sy, "*", ms=10, mfc=P6C, mec="white", mew=0.7, zorder=6)
+        ax.plot(sx, sy, "*", ms=8, mfc=P6C, mec="white", mew=0.6, zorder=4.5)        # under the cell labels
         ax.set_title("Vegetation height, laser scan the same day (1 m)", loc="left")
         F73.map_axes(ax, xlim, ylim, scalebar=False, north=False, ylabel=False)
         ax.set_xticks(ticks)
