@@ -212,9 +212,12 @@ def season_map(cells: pd.DataFrame, g: pd.DataFrame, following: dict, p6: str) -
                                       "sigma_mm": sig, "following": cells.index.isin(following[track])}))
             j6 = cells.index.get_loc(p6)
             lz = lp_all.reindex(pd.MultiIndex.from_arrays([[track] * len(run), run.pair])).to_numpy(float)
+            has = np.isfinite(lz)                      # the run's pairs with a laser change (gaps, laser start)
             runs.append({"year": yr, "track": track, "pairs": len(run), "start": run.t1.min().date(),
                          "end": run.t2.max().date(), "p6_vertical_mm": v[j6], "p6_sigma_mm": sig[j6],
-                         "laser_vertical_mm": (lz.sum() / lu[j6]) if np.isfinite(lz).all() else np.nan})
+                         "pairs_with_laser": int(has.sum()),
+                         "p6_vertical_on_laser_pairs_mm": float(inc[has, j6].sum() / lu[j6]),
+                         "laser_vertical_on_laser_pairs_mm": float(lz[has].sum() / lu[j6])})
     return pd.concat(rows, ignore_index=True), pd.DataFrame(runs)
 
 
