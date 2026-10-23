@@ -224,8 +224,8 @@ def f2(s1):
         ax.axvline(0, color=fs.MUTED, lw=0.6)
         ax.set_yticks(range(len(rows)), [f"{SETS[s]} · {t[:3]}" for s, t in rows])
         ax.invert_yaxis()
-        ax.set_xlabel("Δ coherence, wooded − open")
-        ax.set_title("Coherence", loc="left")
+        ax.set_xlabel("Δ coherence, wooded − open\n← trees lower coherence")
+        ax.set_title("Coherence (both tracks, three pair sets)", loc="left")
         fs.panel_label(ax, "a")
         ax = axs[1]
         for i, (st, tr) in enumerate(rows):
@@ -235,7 +235,7 @@ def f2(s1):
         ax.axvline(0, color=fs.MUTED, lw=0.6)
         ax.set_yticks(range(len(rows)), [])
         ax.invert_yaxis()
-        ax.set_xlabel("Δ on the mat − Δ off the mat")
+        ax.set_xlabel("Δ on the mat − Δ off the mat\n← trees cost more on the mat · less →")
         ax.set_title("Mat against solid ground", loc="left")
         fs.panel_label(ax, "b")
         ax = axs[2]
@@ -250,7 +250,7 @@ def f2(s1):
         ax.axvline(0, color=fs.MUTED, lw=0.6)
         ax.set_yticks(range(len(yrows)), [f"{lab[y]} · {t[:3]}" for y, t in yrows])
         ax.invert_yaxis()
-        ax.set_xlabel("Δ r, wooded − open")
+        ax.set_xlabel("Δ r, wooded − open\n← trees weaken the laser read")
         ax.set_title("r with the P6 laser, mat", loc="left")
         fig.legend(handles=[Line2D([], [], color=c, ls=ls, marker=m, ms=4, mfc=c if s == "on_mat" else "white", label=l)
                             for s, (l, c, m, ls) in SIDE.items()] +
@@ -279,7 +279,7 @@ def f3(s2, r2_note: str):
             ax.plot(r.effect_fisher_z, i, mk, ms=4, mfc=col if r.matters else "white", mec=col, mew=0.9)
         ax.axvline(0, color=fs.MUTED, lw=0.6)
         ax.set_yticks(y, [FACTOR_LABEL.get(f, f) for f in t.factor])
-        ax.set_xlabel("Effect on Fisher-z coherence")
+        ax.set_xlabel("Effect on coherence (Fisher z = atanh γ)\n← lowers coherence · raises →")
         ax.set_title("Effects (95 % block-bootstrap intervals)", loc="left")
         ax.legend(handles=[Line2D([], [], ls="", marker="o", ms=4, color=fs.INK, label="per SD of the factor"),
                            Line2D([], [], ls="", marker="s", ms=4, color=fs.INK, label="0/1 factor"),
@@ -429,7 +429,10 @@ def f6(st, cells, mp, agree, runs, p6):
     norm = TwoSlopeNorm(0, -lim, up)
     cmap = plt.get_cmap("RdBu_r").with_extremes(bad=BAD)
     with fs.style():
-        fig = plt.figure(figsize=fs.size("full", 140), layout="constrained")
+        fig = plt.figure(figsize=fs.size("full", 146), layout="constrained")
+        fig.suptitle("May–October sinking of the mat, from chains of six-day pairs. Only 2021 and 2025: the test was "
+                     "pre-registered on six-day pairs, and 2022–24 had twelve-day pairs only (one satellite).",
+                     x=0.01, ha="left", fontsize=7, color=fs.MUTED)
         gs = fig.add_gridspec(2, 3, width_ratios=[1, 1, 0.95])
         for i, yr in enumerate(("2021", "2025")):
             for j, tr in enumerate(TRACKS):
