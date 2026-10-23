@@ -902,6 +902,7 @@ entries:
     tickets:
     - C-053
     - C-057
+    - C-072
     chains:
     - data-cube
     outputs:

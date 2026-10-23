@@ -639,6 +639,14 @@ def raw_inventory(raw: Path) -> pd.DataFrame:
     n = len(list((raw / "lidar").glob("*.tif"))) if (raw / "lidar").exists() else 0
     if n:
         add("GUGiK LiDAR WCS (EVRF2007)", "DTM 1 m + DSM 0.5 m tiles of 500 m", n)
+    f = raw / "gugik_dated" / "sheets.csv"
+    if f.exists():
+        d = pd.read_csv(f)
+        for (kind, year), g in d.groupby(["kind", "year"]):
+            what = {"dtm": "laser-scan DTM 1 m sheets", "dsm": "laser-scan DSM 1 m sheets",
+                    "cir": "colour-infrared orthophoto sheets"}[kind]
+            add(f"GUGiK dated sheets {year} (C-072)", f"{what}, {g.pixel_m.iloc[0]}", len(g),
+                " / ".join(sorted(g.date.astype(str).unique())))
     n = len(list((raw / "worldcover").glob("*.npz"))) if (raw / "worldcover").exists() else 0
     if n:
         add("ESA WorldCover 10 m", "maps (2020, 2021)", n)
@@ -664,7 +672,7 @@ def readme(raw: Path, cov: pd.DataFrame, problems: list[str], man: dict, out: Pa
         "Code: `insar_wetlands.cube` (public, no field values); this folder is private (field values from silver on).", "",
         "Rebuild, from `05_code/SAr-adapted`:", "",
         "```bash", "export INSAR_DRIVE_ROOT=../local/drive_pristine PYTHONPATH=src",
-        "python pipelines/cube_build.py ingest s2 landsat worldcover meteo imgw lidar nisar   # M1, resumable",
+        "python pipelines/cube_build.py ingest s2 landsat worldcover meteo imgw lidar dated nisar   # M1, resumable",
         "python pipelines/cube_build.py harmonise          # M2: ifg rtc optical static site folds (+ nisar)",
         "python pipelines/cube_build.py gold               # M3 plots + M5 mat",
         "python pipelines/cube_build.py check              # contracts, coverage, manifest, this README", "```", "",
