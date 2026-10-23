@@ -284,13 +284,13 @@ def s3_scatter(pairs, by):
     with fs.style():
         fig, axs = plt.subplots(2, 3, figsize=fs.size("full", 132), layout="constrained", sharex=True, sharey=True)
         fig.suptitle("Each point is one consecutive pair: the laser's change at P6 (x) against the radar's change (y). "
-                     "On the dashed line the radar reads the laser exactly;\noutside the blue band the laser moved more "
+                     "On the dashed line the radar reads the laser exactly;\nright or left of the blue band the laser moved more "
                      "than one pair can read without ambiguity.", x=0.01, ha="left", fontsize=7, color=fs.MUTED)
         for i, tr in enumerate(TRACKS):
             for j, g in enumerate(GROUPS):
                 ax = axs[i, j]
                 e = d[(d.track == tr) & (d.group == g)].dropna(subset=["laser_los_mm"])
-                ax.axhspan(-QW, QW, color="#dbe9f6", zorder=0, lw=0)
+                ax.axvspan(-QW, QW, color="#dbe9f6", zorder=0, lw=0)       # the laser's (true) change within λ/4
                 ax.plot([-lim, lim], [-lim, lim], color=fs.INK, lw=0.7, ls="--", zorder=1)
                 ax.axhline(0, color=fs.GRID, lw=0.5)
                 ax.axvline(0, color=fs.GRID, lw=0.5)
@@ -315,7 +315,7 @@ def s3_scatter(pairs, by):
                     ax.set_ylabel("Sentinel-1 change (mm, LOS)")
         fig.legend(handles=[Line2D([], [], color=fs.INK, lw=0.7, ls="--", label="1 : 1"),
                             Rectangle((0, 0), 1, 1, fc="#dbe9f6", ec="none",
-                                      label=f"± λ/4 = ± {QW:.1f} mm (one pair's unambiguous range)"),
+                                      label=f"laser change within ± λ/4 = ± {QW:.1f} mm (readable by one pair)"),
                             Line2D([], [], color=P6C, lw=1.0, label="slope through origin, P6"),
                             Line2D([], [], color=NBC, lw=1.0, ls="-.", label="slope through origin, neighbours")],
                    loc="outside lower center", ncol=4, fontsize=6.5)
@@ -456,7 +456,7 @@ def readme(cells, by, bs) -> None:
         ("S3_phase_vs_laser", "Sentinel-1 against the laser at P6 and around it",
          f"Each point is one consecutive pair: the laser's change at P6 along the line of sight against the Sentinel-1 "
          f"change of P6's cell (filled) and of the mean of its eight neighbours (open), hard-target reference. Lines: "
-         f"slope through the origin; dashed: 1 : 1; band: ± λ/4 = ± {QW:.1f} mm, the largest change one pair can read "
+         f"slope through the origin; dashed: 1 : 1; vertical band: laser changes within ± λ/4 = ± {QW:.1f} mm, the largest change one pair can read "
          f"without ambiguity. r and slope with 95 % intervals in each legend. Six-day pairs (2021, 2025) follow the "
          f"laser on both tracks; twelve-day pairs (2022–24, Sentinel-1A alone) follow it partly on the ascending track "
          f"and weakly on the descending.",
