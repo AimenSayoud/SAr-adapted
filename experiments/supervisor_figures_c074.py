@@ -166,49 +166,70 @@ def tiles(ax, values: dict, fmt: str, cmap: str, vmin=None, vmax=None, title="")
     return im
 
 
-def s2_tiles(cells, by, bs):
-    def pick(track, group, col):
-        d = by[(by.track == track) & (by.group == group)].set_index("cell")[col]
-        return d.to_dict()
+READ = ("Each 3 × 3 block is the nine 40 m radar cells around P6 as they lie on the ground (north up); "
+        "P6's own cell is framed in orange.")
+ROWLAB = {"2021": "2021 · 6-day pairs\n(Sentinel-1A + 1B)", "2022–2024": "2022–24 · 12-day pairs\n(Sentinel-1A only)",
+          "2025": "2025 · 6-day pairs\n(Sentinel-1A + 1C)"}
 
+
+def s2_cells(cells, bs):
+    """S2 — what the nine cells are: land cover and position, then backscatter over all the laser years."""
     def bsp(track, col):
-        d = bs[(bs.track == track) & (bs.years == "2022–2024")].set_index("cell")[col]
-        return d.to_dict()
-    rows = [
-        [("Shrub cover 2024 (%)", (cells.shrub_share_2024 * 100).to_dict(), ".0f", "YlGn", 0, 20),
-         ("Boardwalk share (%)", (cells.boardwalk_share * 100).to_dict(), ".0f", "Greys", 0, 20),
-         ("Depth into the mat (m)", cells.depth_in_mat_m.to_dict(), ".0f", "Blues", 150, 280),
-         ("Canopy p90, 2024 (m)", cells.canopy2024_p90_m.to_dict(), ".2f", "YlGn", 0, 1.5)],
-        [("VV asc. 2022–24 (dB)", bsp("ascending", "vv_median_db"), ".1f", "magma", -14, -9),
-         ("VH asc. 2022–24 (dB)", bsp("ascending", "vh_median_db"), ".1f", "magma", -20, -15),
-         ("VV desc. 2022–24 (dB)", bsp("descending", "vv_median_db"), ".1f", "magma", -14, -9),
-         ("VH desc. 2022–24 (dB)", bsp("descending", "vh_median_db"), ".1f", "magma", -20, -15)],
-        [("Coherence asc. 6-day 2021", pick("ascending", "2021", "median_coh"), ".2f", "viridis", 0.5, 1),
-         ("Coherence desc. 6-day 2021", pick("descending", "2021", "median_coh"), ".2f", "viridis", 0.5, 1),
-         ("Coherence asc. 12-day 22–24", pick("ascending", "2022–2024", "median_coh"), ".2f", "viridis", 0.5, 1),
-         ("Coherence desc. 12-day 22–24", pick("descending", "2022–2024", "median_coh"), ".2f", "viridis", 0.5, 1)],
-        [("r with laser, asc. 6-day 2021", pick("ascending", "2021", "pearson_increments"), ".2f", "cividis", 0.5, 1),
-         ("r with laser, desc. 6-day 2021", pick("descending", "2021", "pearson_increments"), ".2f", "cividis", 0.5, 1),
-         ("Slope, asc. 6-day 2021", pick("ascending", "2021", "slope_through_origin"), ".2f", "cividis", 0.5, 1.1),
-         ("Slope, desc. 6-day 2021", pick("descending", "2021", "slope_through_origin"), ".2f", "cividis", 0.5, 1.1)],
-    ]
-    heads = ["The cell (2024 laser scan, boardwalk mask, mat outline)", "Backscatter, median of 2022–24 scenes",
-             "Coherence, median of consecutive pairs", "Phase against the P6 laser (six-day pairs of 2021)"]
+        return bs[(bs.track == track) & (bs.years == "2021–2025")].set_index("cell")[col].to_dict()
+    top = [("Shrub cover 0.5–2 m (%)", (cells.shrub_share_2024 * 100).to_dict(), ".0f", "YlGn", 0, 20),
+           ("Boardwalk share (%)", (cells.boardwalk_share * 100).to_dict(), ".0f", "Greys", 0, 20),
+           ("Depth into the mat (m)", cells.depth_in_mat_m.to_dict(), ".0f", "Blues", 150, 280),
+           ("Canopy height, 90th pct (m)", cells.canopy2024_p90_m.to_dict(), ".2f", "YlGn", 0, 1.5)]
+    bot = [("VV (dB)", bsp("ascending", "vv_median_db"), ".1f", "magma", -14, -9),
+           ("VH (dB)", bsp("ascending", "vh_median_db"), ".1f", "magma", -20, -15),
+           ("VV (dB)", bsp("descending", "vv_median_db"), ".1f", "magma", -14, -9),
+           ("VH (dB)", bsp("descending", "vh_median_db"), ".1f", "magma", -20, -15)]
     with fs.style():
-        fig = plt.figure(figsize=fs.size("full", 170), layout="constrained")
-        sf = fig.subfigures(4, 1)
-        for k, (row, head) in enumerate(zip(rows, heads)):
+        fig = plt.figure(figsize=fs.size("full", 105), layout="constrained")
+        fig.suptitle(READ, x=0.01, ha="left", fontsize=7, color=fs.MUTED)
+        sf = fig.subfigures(2, 1)
+        heads = ["The cells: laser scan and orthophoto of 19 Sep 2024 (no cell holds trees ≥ 2 m: at most 1 %)",
+                 "Backscatter, median of all scenes 2021–2025 · left pair: ascending (dusk, ≈ 16:36 UTC) · right "
+                 "pair: descending (dawn, ≈ 05:09 UTC)"]
+        for k, (row, head) in enumerate(zip([top, bot], heads)):
             axs = sf[k].subplots(1, 4)
             sf[k].suptitle(head, x=0.01, ha="left", fontsize=7.5, fontweight="bold")
-            for ax, (title, vals, fmt, cmap, lo, hi) in zip(axs, row):
+            for j, (ax, (title, vals, fmt, cmap, lo, hi)) in enumerate(zip(axs, row)):
+                if k == 1:
+                    title = f"{'Ascending' if j < 2 else 'Descending'} · {title}"
                 tiles(ax, vals, fmt, cmap, lo, hi, title)
-    data = [{"panel": t, "cell": c, "value": v} for row in rows for (t, vals, *_r) in row for c, v in vals.items()]
-    export(fig, "S2_nine_cells_tiles", ["hub:supervisor_pack_c074/tables/nine_cells.csv", "nine_cells_by_group.csv",
-                                        "nine_cells_backscatter.csv"],
-           {"layout": "each 3 × 3 tile is the nine cells as on the ground (north up), P6 framed",
-            "note": "colour scales are fixed (VV −14…−9 dB, VH −20…−15 dB, coherence and r 0.5…1, slope 0.5…1.1), "
-                    "so small differences look small"},
+    data = [{"panel": t, "cell": c, "value": v} for row in (top, bot) for (t, vals, *_r) in row for c, v in vals.items()]
+    export(fig, "S2_nine_cells_what_they_are", ["hub:supervisor_pack_c074/tables/nine_cells.csv",
+                                                "nine_cells_backscatter.csv (years 2021–2025)"],
+           {"layout": READ, "scales": "fixed: VV −14…−9 dB, VH −20…−15 dB; shrub and boardwalk 0–20 %"},
            {"tiles": pd.DataFrame(data)})
+
+
+def s2c_coherence_laser(by):
+    """S2c — per pair set (rows) and track: coherence of the pairs and how the cell's phase follows the laser."""
+    cols = [("Coherence", "ascending", "median_coh", "viridis", 0.5, 1),
+            ("Coherence", "descending", "median_coh", "viridis", 0.5, 1),
+            ("r with the P6 laser", "ascending", "pearson_increments", "cividis", 0, 1),
+            ("r with the P6 laser", "descending", "pearson_increments", "cividis", 0, 1)]
+    with fs.style():
+        fig = plt.figure(figsize=fs.size("full", 150), layout="constrained")
+        fig.suptitle(READ + " Rows: the three pair sets of the laser years. Columns: median coherence of those "
+                     "pairs, and Pearson r of each cell's phase change with the P6 laser's change, per track.",
+                     x=0.01, ha="left", fontsize=7, color=fs.MUTED, wrap=True)
+        gs = fig.add_gridspec(3, 4)
+        for i, g in enumerate(GROUPS):
+            n = {tr: int(by[(by.cell == "P6") & (by.track == tr) & (by.group == g)].pairs.iloc[0]) for tr in TRACKS}
+            for j, (q, tr, col, cmap, lo, hi) in enumerate(cols):
+                ax = fig.add_subplot(gs[i, j])
+                d = by[(by.track == tr) & (by.group == g)].set_index("cell")[col].to_dict()
+                tiles(ax, d, ".2f", cmap, lo, hi, f"{q}, {tr} (n = {n[tr]})" if i == 0 else f"n = {n[tr]} pairs")
+                if j == 0:
+                    ax.set_ylabel(ROWLAB[g], fontsize=7.5, fontweight="bold", rotation=0, ha="right", va="center",
+                                  labelpad=8)
+    export(fig, "S2c_nine_cells_coherence_laser", ["hub:supervisor_pack_c074/tables/nine_cells_by_group.csv"],
+           {"layout": "rows: 2021 6-day, 2022–24 12-day, 2025 6-day consecutive pairs; columns: coherence asc/desc, "
+                      "r with the laser asc/desc", "scales": "coherence 0.5…1, r 0…1"},
+           {"tiles": by[by.cell.isin(LAYOUT[0] + LAYOUT[1] + LAYOUT[2])]})
 
 
 def s2b_forest(cells, by):
@@ -216,7 +237,10 @@ def s2b_forest(cells, by):
     lab = {c: (f"{c} · {cells.loc[c, 'depth_in_mat_m']:.0f} m · shrub {cells.loc[c, 'shrub_share_2024']:.0%}"
                if c in cells.index else "mean of 8 neighbours") for c in order}
     with fs.style():
-        fig, axs = plt.subplots(2, 3, figsize=fs.size("full", 120), layout="constrained", sharey=True, sharex="col")
+        fig, axs = plt.subplots(2, 3, figsize=fs.size("full", 124), layout="constrained", sharey=True, sharex="col")
+        fig.suptitle("How strongly each cell's phase follows the P6 laser (slope; 1 = the laser's own amplitude). Rows "
+                     "of each panel: the nine cells, shallow to deep in the mat. Where the intervals overlap, the cells "
+                     "cannot be ranked.", x=0.01, ha="left", fontsize=7, color=fs.MUTED)
         for i, tr in enumerate(TRACKS):
             for j, g in enumerate(GROUPS):
                 ax = axs[i, j]
@@ -258,7 +282,10 @@ def s3_scatter(pairs, by):
     lim = np.ceil(np.nanmax(np.abs(d.dropna(subset=["laser_los_mm"])[["laser_los_mm", "s1_los_mm", "nb"]]
                                   .to_numpy())) / 5) * 5
     with fs.style():
-        fig, axs = plt.subplots(2, 3, figsize=fs.size("full", 128), layout="constrained", sharex=True, sharey=True)
+        fig, axs = plt.subplots(2, 3, figsize=fs.size("full", 132), layout="constrained", sharex=True, sharey=True)
+        fig.suptitle("Each point is one consecutive pair: the laser's change at P6 (x) against the radar's change (y). "
+                     "On the dashed line the radar reads the laser exactly; outside the blue band the laser moved more "
+                     "than one pair can read without ambiguity.", x=0.01, ha="left", fontsize=7, color=fs.MUTED)
         for i, tr in enumerate(TRACKS):
             for j, g in enumerate(GROUPS):
                 ax = axs[i, j]
@@ -331,6 +358,8 @@ def s4_time(pairs):
         ax = axs[1]
         ax.plot(wtd.index, wtd, color=fs.CLASS["open water"], lw=0.9)
         ax.set_ylabel("Water-table\ndepth P6 (cm)")
+        ax.text(0.995, 0.06, "2025: not yet delivered", transform=ax.transAxes, ha="right", fontsize=6.3,
+                color=fs.MUTED)
         fs.panel_label(ax, "b")
         for k, tr in enumerate(TRACKS):
             ax = axs[2 + k]
@@ -340,6 +369,8 @@ def s4_time(pairs):
             ax.scatter(e.mid, e.s1_los_mm, s=9, marker="o" if tr == "ascending" else "s", facecolors="none",
                        edgecolors=fs.TRACK[tr], linewidths=0.8, label=f"Sentinel-1 change, {tr}", zorder=2)
             ax.set_ylabel(f"Pair change,\n{tr} (mm LOS)")
+            ax.text(0.995, 0.96, "circle without a star: no laser value (snow evidence or a gap)", transform=ax.transAxes,
+                    ha="right", va="top", fontsize=6.2, color=fs.MUTED)
             ax.legend(loc="lower left", bbox_to_anchor=(0.0, 1.0), fontsize=6.2, ncol=2, borderaxespad=0.1)
             fs.panel_label(ax, "cd"[k], x=-0.06)
         ax = axs[4]
@@ -397,15 +428,22 @@ def readme(cells, by, bs) -> None:
          "Two square images of the same 160 m area. Left, an aerial photograph of the open fen with the boardwalk "
          "running north–south and the instrument platforms, overlaid by a three-by-three grid of radar cells. Right, a "
          "pale vegetation-height map with scattered green shrub patches, densest in the north-east cells."),
-        ("S2_nine_cells_tiles", "What differs between the nine cells",
-         f"Each 3 × 3 tile is the nine cells as on the ground (north up; P6 framed). Row 1: shrub cover and canopy height "
-         f"(2024 laser scan), boardwalk share, depth into the mat. Row 2: median backscatter of the 2022–24 scenes "
-         f"(VV ascending spans {vv.min():.1f} to {vv.max():.1f} dB: about a decibel across the nine cells). Row 3: "
-         f"median coherence of consecutive pairs. Row 4: how each cell's six-day phase follows the P6 laser in 2021 (r "
-         f"and slope through the origin). Fixed colour scales, so small differences look small.",
-         "Sixteen small three-by-three grids of numbers. Shrub cover and depth both rise towards the north-east; "
-         "backscatter and coherence barely change between cells; every cell's correlation with the laser is high, and "
-         "the slope is slightly lower in the south-west cells."),
+        ("S2_nine_cells_what_they_are", "What the nine cells are",
+         f"Each 3 × 3 block is the nine 40 m cells as on the ground (north up; P6 framed). Top: shrub cover "
+         f"(0.5–2 m) and canopy height from the laser scan of 19 Sep 2024, the boardwalk's share of each cell and "
+         f"its depth into the mat. No cell holds trees (≥ 2 m on at most {tr_max:.0%} of a cell). Bottom: median "
+         f"backscatter of all scenes 2021–2025, VV and VH, ascending (dusk) and descending (dawn); the nine cells "
+         f"differ by about a decibel. Fixed colour scales.",
+         "Eight small three-by-three grids. Shrub cover and depth rise towards the north-east; the boardwalk "
+         "crosses P6's cell and the one south of it; backscatter barely changes from cell to cell on either track."),
+        ("S2c_nine_cells_coherence_laser", "Coherence and the laser, cell by cell, in each pair set",
+         "Rows: the three pair sets of the laser years — six-day pairs of 2021 (Sentinel-1A + 1B), twelve-day pairs of "
+         "2022–24 (Sentinel-1A alone), six-day pairs of 2025 (Sentinel-1A + 1C). Columns: the median coherence of "
+         "those pairs, then Pearson r of each cell's phase change with the P6 laser's change, ascending and "
+         "descending (n = pairs). The rows differ far more than the cells: the pair set decides how well the phase "
+         "follows the laser, not the cell.",
+         "Twelve three-by-three grids in three rows. In the 2021 and 2025 rows coherence and correlation are high in "
+         "every cell; in the 2022–24 row they drop, most on the descending track, again in every cell alike."),
         ("S2b_nine_cells_slopes", "The slope against the laser, cell by cell",
          f"Slope through the origin of each cell's Sentinel-1 change against the P6 laser's, with 95 % intervals (2000 "
          f"resamples of the pairs), per track and pair set; cells ordered by depth into the mat, labelled with depth and "
@@ -469,7 +507,8 @@ def main() -> None:
     bs = pd.read_csv(TAB / "nine_cells_backscatter.csv")
     pairs = pd.read_csv(TAB / "nine_cells_pairs.csv")
     s1_site(cells)
-    s2_tiles(cells, by, bs)
+    s2_cells(cells, bs)
+    s2c_coherence_laser(by)
     s2b_forest(cells, by)
     s3_scatter(pairs, by)
     s4_time(pairs)
