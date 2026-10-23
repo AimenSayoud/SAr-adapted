@@ -239,7 +239,7 @@ def s2b_forest(cells, by):
     with fs.style():
         fig, axs = plt.subplots(2, 3, figsize=fs.size("full", 124), layout="constrained", sharey=True, sharex="col")
         fig.suptitle("How strongly each cell's phase follows the P6 laser (slope; 1 = the laser's own amplitude). Rows "
-                     "of each panel: the nine cells, shallow to deep in the mat. Where the intervals overlap, the cells "
+                     "of each panel: the nine cells, shallow to deep in the mat.\nWhere the intervals overlap, the cells "
                      "cannot be ranked.", x=0.01, ha="left", fontsize=7, color=fs.MUTED)
         for i, tr in enumerate(TRACKS):
             for j, g in enumerate(GROUPS):
@@ -284,7 +284,7 @@ def s3_scatter(pairs, by):
     with fs.style():
         fig, axs = plt.subplots(2, 3, figsize=fs.size("full", 132), layout="constrained", sharex=True, sharey=True)
         fig.suptitle("Each point is one consecutive pair: the laser's change at P6 (x) against the radar's change (y). "
-                     "On the dashed line the radar reads the laser exactly; outside the blue band the laser moved more "
+                     "On the dashed line the radar reads the laser exactly;\noutside the blue band the laser moved more "
                      "than one pair can read without ambiguity.", x=0.01, ha="left", fontsize=7, color=fs.MUTED)
         for i, tr in enumerate(TRACKS):
             for j, g in enumerate(GROUPS):
