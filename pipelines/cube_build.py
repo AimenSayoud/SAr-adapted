@@ -1,7 +1,7 @@
 """The data cube (C-053…C-057, chain data-cube): ingest → harmonise → gold → check, every step resumable.
 
     INSAR_DRIVE_ROOT=../local/drive_pristine PYTHONPATH=src python pipelines/cube_build.py ingest s2
-    ... ingest {s2,landsat,worldcover,meteo,imgw,lidar,nisar} | harmonise {ifg,rtc,optical,static,site,folds}
+    ... ingest {s2,landsat,worldcover,meteo,imgw,lidar,dated,nisar} | harmonise {ifg,rtc,optical,static,site,folds}
     ... gold {plots,mat} | check | all
 
 Mac-safe: reads crops already on disk, windows of public rasters and small tables; nothing here inverts a network.
@@ -84,6 +84,15 @@ def ingest(what: str) -> None:
                  np.ceil(max(ys) / 500) * 500)
         tab = src.fetch_gugik_tiles(RAW / "lidar", b2180, log=log)
         tab.to_csv(RAW / "lidar" / "tiles.csv", index=False)
+    elif what == "dated":                      # C-072: the dated laser sheets and CIR orthophotos over the 1 m LiDAR grid
+        from pyproj import Transformer
+        from insar_wetlands.cube.build import LIDAR_GRID_BUFFER_M, peat_bounds_utm as pb
+        b = pb(ctx(), LIDAR_GRID_BUFFER_M, "AB")
+        t = Transformer.from_crs(32633, 2180, always_xy=True)
+        xs, ys = t.transform([b[0], b[2], b[0], b[2]], [b[1], b[1], b[3], b[3]])
+        tab = src.fetch_gugik_dated(RAW / "gugik_dated", (min(xs), min(ys), max(xs), max(ys)), log=log)
+        tab.to_csv(RAW / "gugik_dated" / "sheets.csv", index=False)
+        log(f"GUGiK dated sheets {len(tab)}: " + ", ".join(f"{k} {y}" for (k, y), _ in tab.groupby(["kind", "year"])))
     elif what == "ecostress":
         tab = src.fetch_ecostress(RAW / "ecostress", bounds, START, END, log=log)
         log(f"ECOSTRESS acquisitions {len(tab)}, with clear pixels {int((tab.valid_share > 0).sum())}")

@@ -455,6 +455,96 @@ def lidar_features(dtm, dsm, k: int) -> dict[str, np.ndarray]:
                 "lidar_valid_frac": np.isfinite(B["dtm"]).mean(2)}
 
 
+CANOPY_TREE_M = 2.0                                       # a 1 m cell is under tree canopy at ≥ 2 m (X-132)
+
+
+def canopy_features(chm: np.ndarray, k: int, tag: str) -> dict[str, np.ndarray]:
+    """Per k-metre cell from a dated 1 m canopy height (DSM − DTM of one survey): its 90th percentile, the share of valid
+    1 m cells under canopy (≥ ``CANOPY_TREE_M``) and the valid share. ``tag`` names the survey (``canopy2024``)."""
+    import warnings
+    B = _block(chm, k)
+    ok = np.isfinite(B)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", RuntimeWarning)
+        p90 = np.nanpercentile(B, 90, axis=2)
+        cover = np.where(ok.any(2), (np.where(ok, B, -1) >= CANOPY_TREE_M).sum(2) / np.maximum(ok.sum(2), 1), np.nan)
+    return {f"{tag}_p90_m": p90.astype("float32"), f"{tag}_cover": cover.astype("float32"),
+            f"{tag}_valid_frac": ok.mean(2).astype("float32")}
+
+
+def cir_ndvi(nir: np.ndarray, red: np.ndarray) -> np.ndarray:
+    """NDVI of a colour-infrared orthophoto's digital numbers (band 1 near-infrared, band 2 red): relative within one
+    image, not a calibrated reflectance index; pixels with no signal in either band are NaN."""
+    n, r = nir.astype("float32"), red.astype("float32")
+    with np.errstate(invalid="ignore", divide="ignore"):
+        v = (n - r) / (n + r)
+    return np.where((n + r) > 0, v, np.nan).astype("float32")
+
+
+def _sheets_to_utm(files, bounds_utm, read, src_crs="EPSG:2180") -> np.ndarray:
+    """Sheets (PL-1992) → one 1 m UTM grid over ``bounds_utm`` (whole-metre edges), averaged; where sheets overlap, the
+    mean of the sheets. ``read(path)`` returns (array, transform) with NaN as nodata."""
+    from rasterio.transform import from_origin
+    from rasterio.warp import Resampling, reproject
+    left, bottom, right, top = bounds_utm
+    W, H = int(right - left), int(top - bottom)
+    acc, n = np.zeros((H, W)), np.zeros((H, W))
+    for f in files:
+        a, tr = read(f)
+        dst = np.full((H, W), np.nan, "float32")
+        reproject(a.astype("float32"), dst, src_transform=tr, src_crs=src_crs, dst_transform=from_origin(left, top, 1, 1),
+                  dst_crs="EPSG:32633", resampling=Resampling.average, src_nodata=np.nan, dst_nodata=np.nan)
+        ok = np.isfinite(dst)
+        acc[ok] += dst[ok]
+        n[ok] += 1
+    with np.errstate(invalid="ignore"):
+        return np.where(n > 0, acc / n, np.nan).astype("float32")
+
+
+def _read_asc(f):
+    import rasterio
+    with rasterio.open(f) as r:
+        a = r.read(1).astype("float32")
+        if r.nodata is not None:
+            a[a == r.nodata] = np.nan
+        a[(a < -100) | (a > 1000)] = np.nan
+        return a, r.transform
+
+
+def _read_cir_ndvi(f, res: float = 0.5):
+    """A CIR orthophoto sheet read at ``res`` m (band means), then its NDVI."""
+    import rasterio
+    from rasterio.enums import Resampling
+    with rasterio.open(f) as r:
+        h, w = int(round(r.height * r.res[1] / res)), int(round(r.width * r.res[0] / res))
+        b = r.read([1, 2], out_shape=(2, h, w), resampling=Resampling.average)
+        tr = r.transform * r.transform.scale(r.width / w, r.height / h)
+    return cir_ndvi(b[0], b[1]), tr
+
+
+def dated_layers(raw: Path, bounds_utm, log=print) -> tuple[dict, pd.DataFrame]:
+    """The dated national sheets (C-072, ``raw/gugik_dated``) on the 1 m UTM grid of ``lidar_1m.nc``: canopy height of
+    each laser survey (its own DSM − DTM, so the height datum cancels), the 2024 terrain, and the NDVI of every
+    colour-infrared orthophoto. Returns the 1 m arrays and the sheet table."""
+    d = raw / "gugik_dated"
+    tab = pd.read_csv(d / "sheets.csv")
+    out = {}
+    laser_years = sorted(tab[tab.kind != "cir"].year.unique())
+    for year in laser_years:
+        g = {k: [d / f for f in tab[(tab.kind == k) & (tab.year == year)].file] for k in ("dtm", "dsm")}
+        dtm, dsm = (_sheets_to_utm(g[k], bounds_utm, _read_asc) for k in ("dtm", "dsm"))
+        out[f"chm_{year}_m"] = np.where(np.isfinite(dtm) & np.isfinite(dsm), np.clip(dsm - dtm, 0, 60), np.nan
+                                        ).astype("float32")
+        if year == laser_years[-1]:                       # the latest survey's terrain, for placement checks
+            out[f"dtm_{year}_m"] = dtm
+        log(f"dated LiDAR {year}: {len(g['dtm'])} + {len(g['dsm'])} sheets, valid {np.isfinite(out[f'chm_{year}_m']).mean():.2f}")
+    for year in sorted(tab[tab.kind == "cir"].year.unique()):
+        fs = [d / f for f in tab[(tab.kind == "cir") & (tab.year == year)].file]
+        out[f"cir_ndvi_{year}"] = _sheets_to_utm(fs, bounds_utm, _read_cir_ndvi)
+        log(f"CIR orthophoto {year}: {len(fs)} sheets, valid {np.isfinite(out[f'cir_ndvi_{year}']).mean():.2f}")
+    return out, tab
+
+
 def _to20(a: np.ndarray, tx, ty, x20, y20) -> np.ndarray:
     """A 40 m template layer onto the 20 m grid (nearest: each 20 m cell takes its 40 m parent)."""
     c = np.clip(np.floor((x20 - (tx[0] - 20)) / 40).astype(int), 0, len(tx) - 1)
@@ -538,6 +628,35 @@ def harmonise_static(ctx, raw: Path, silver: Path, peat_bounds, log=print) -> No
             rr, cc = int(round((gy[0] + k / 2 - b[3]) / k)), int(round((b[0] - (gx[0] - k / 2)) / k))
             for n, v in f.items():
                 LL[n] = _paste(v, shape, rr, cc)
+        # the dated surveys (C-072) on the same 1 m grid; layers named by survey year
+        if (raw / "gugik_dated" / "sheets.csv").exists():
+            D, tab = dated_layers(raw, b, log)
+            dates = {f"{k}_{y}": dt for k, y, dt in tab[["kind", "year", "date"]].drop_duplicates().itertuples(index=False)}
+            chm = {k: v for k, v in D.items() if k.startswith(("chm_", "dtm_"))}
+            xr.Dataset({k: (("y", "x"), v) for k, v in chm.items()}, coords={"x": lx, "y": ly},
+                       attrs={"source": "GUGiK laser-scan NMT/NMPT sheets, 1 m (C-072, raw/gugik_dated/sheets.csv)",
+                              "crs": "EPSG:32633", "canopy": "DSM − DTM of the same survey, clipped to 0–60 m",
+                              **{f"date_{k}": v for k, v in dates.items() if not k.startswith("cir")}}
+                       ).to_netcdf(silver / "lidar_dated_1m.nc", encoding={k: F32 for k in chm})
+            cir = {k: v for k, v in D.items() if k.startswith("cir_")}
+            xr.Dataset({k: (("y", "x"), v) for k, v in cir.items()}, coords={"x": lx, "y": ly},
+                       attrs={"source": "GUGiK colour-infrared orthophoto sheets read at 0.5 m, NDVI of the digital "
+                                        "numbers, averaged to 1 m (C-072)", "crs": "EPSG:32633",
+                              **{f"date_{k}": v for k, v in dates.items() if k.startswith("cir")}}
+                       ).to_netcdf(silver / "ortho_cir_1m.nc", encoding={k: F32 for k in cir})
+            for k, LL, gx, gy in ((40, L, tx, ty), (20, L20, x20, y20)):
+                shape = (len(gy), len(gx))
+                rr, cc = int(round((gy[0] + k / 2 - b[3]) / k)), int(round((b[0] - (gx[0] - k / 2)) / k))
+                f = {}
+                for name, v in D.items():
+                    if name.startswith("chm_"):
+                        f.update(canopy_features(v, k, f"canopy{name.split('_')[1]}"))
+                    elif name.startswith("cir_"):
+                        with np.errstate(invalid="ignore"), __import__("warnings").catch_warnings():
+                            __import__("warnings").simplefilter("ignore", RuntimeWarning)
+                            f[f"{name}_mean"] = np.nanmean(_block(v, k), 2).astype("float32")
+                for n, v in f.items():
+                    LL[n] = _paste(v, shape, rr, cc)
     # geometry and mean radar behaviour per track (2022–2024 at 40 m, 2026 at 20 m)
     for track in TRACKS:
         tr = track[:3]
@@ -585,7 +704,9 @@ def harmonise_static(ctx, raw: Path, silver: Path, peat_bounds, log=print) -> No
     ds = xr.Dataset({k: (("y", "x"), v) for k, v in L.items()}, coords={"x": tx, "y": ty})
     ds.attrs = {"zone": "1 mat (A), 2 lake (B), 3 grassland (C), 4 other ground (D)", "plot_cell": ",".join(px["plot"]),
                 "crs": "EPSG:32633", "stable": "zone D, 200–1500 m from the mat (as X-070)",
-                "hard_target": "WorldCover built-up ≥ 0.5 and median 12-day ascending coherence ≥ 0.5"}
+                "hard_target": "WorldCover built-up ≥ 0.5 and median 12-day ascending coherence ≥ 0.5",
+                "canopy": f"canopy<year>_*: one dated laser survey (C-072); cover = share of 1 m cells ≥ {CANOPY_TREE_M} m. "
+                          "lidar_* layers: the undated WCS mosaic"}
     ds.to_netcdf(silver / "static_40m.nc", encoding=_enc(ds))
     d20 = xr.Dataset({k: (("y", "x"), v) for k, v in L20.items()}, coords={"x": x20, "y": y20}, attrs=ds.attrs)
     d20.to_netcdf(silver / "static_20m.nc", encoding=_enc(d20))

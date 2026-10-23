@@ -9,6 +9,7 @@ already present is not fetched again.
 | ERA5-Land + ERA5 hourly | soil/skin/dew/snow (Land), rain/radiation/wind/cloud (ERA5) at the site | Open-Meteo archive API |
 | IMGW synop daily | snow depth, dew and hoar-frost duration, ground state, sunshine (Piła 230, Poznań 330) | danepubliczne.imgw.pl |
 | GUGiK LiDAR | DTM 1 m and DSM 0.5 m, EVRF2007 heights | Geoportal WCS 2.0.1 |
+| GUGiK dated sheets | laser-scan DTM/DSM 1 m of 2011 and 2024, colour-infrared orthophotos 2021–2025 (C-072) | Geoportal WFS index + opendata files |
 
 The network is the only side effect; parsing and arithmetic live in testable helpers (``parse_*``, ``s2_indices``).
 """
@@ -386,6 +387,96 @@ def fetch_gugik_tiles(out_dir: Path, bounds_2180, tile_m: float = 500.0, log=pri
                 rows.append({"kind": kind, "x0": x0, "y0": y0, "file": f.name})
         log(f"LiDAR column x0={x0:.0f} done")
     return pd.DataFrame(rows)
+
+
+# ------------------------------------------------------------------------------ GUGiK dated sheets (C-072)
+# The WCS mosaic above carries no date. These are the national sheets themselves, each with its survey: the laser-scan
+# terrain (NMT) and surface (NMPT) models and the colour-infrared orthophotos, found through the sheet index (WFS).
+
+GUGIK_INDEX = "https://mapy.geoportal.gov.pl/wss/service/PZGIK/{svc}/WFS/Skorowidze"
+GUGIK_ORTO_DATES = "https://mapy.geoportal.gov.pl/wss/service/PZGIK/ORTO/WMS/SkorowidzeWgAktualnosci"
+# (kind, index service, layer prefix, year)
+GUGIK_DATED = [("dtm", "NumerycznyModelTerenuKRON86", "SkorowidzNMT", 2011),
+               ("dsm", "NumerycznyModelPokryciaTerenuKRON86", "SkorowidzNMPT", 2011),
+               ("dtm", "NumerycznyModelTerenuEVRF2007", "SkorowidzNMT", 2024),
+               ("dsm", "NumerycznyModelPokryciaTerenuEVRF2007", "SkorowidzNMPT", 2024)] + \
+              [("cir", "ORTO", "SkorowidzOrtofomapy", y) for y in (2021, 2022, 2023, 2025)]
+GUGIK_HEIGHT_DATUM = {2011: "PL-KRON86-NH", 2024: "PL-EVRF2007-NH"}
+# The index gives a laser survey's year only. Its day is the GPS time of the points of the LAZ sheet over the mat
+# (N-33-117-D-a-3-4-2), read 2026-10-23: 2011 08:42–09:39 UTC (ISOK, leaf-off), 2024 08:15–08:49 UTC (leaf-on).
+LASER_FLIGHT = {"N-33-008/11": "2011-04-24", "GK-FOTO.6201.23.2024": "2024-09-19"}
+ORTO_DATE_LAYERS = ("SkorowidzeOrtofotomapyStarsze", "SkorowidzeOrtofotomapy2024", "SkorowidzeOrtofotomapy2025")
+
+
+def wfs_bbox_2180(bounds_2180) -> str:
+    """WFS 2.0 BBOX for EPSG:2180 given (left, bottom, right, top) in easting/northing: the URN axis order is northing
+    first, so a box written easting-first lands some 300 km away."""
+    left, bottom, right, top = bounds_2180
+    return f"{bottom},{left},{top},{right},urn:ogc:def:crs:EPSG::2180"
+
+
+def parse_gugik_index(xml: str, layer: str) -> list[dict]:
+    """Features of one GUGiK sheet-index layer (WFS GetFeature GML) → one dict of its plain fields per sheet."""
+    import re
+    feats = re.findall(rf"<gugik:{layer}\b[^>]*>(.*?)</gugik:{layer}>", xml, re.S)
+    return [dict(re.findall(r"<gugik:(\w+)>([^<]*)</gugik:\1>", f)) for f in feats]
+
+
+def parse_orto_dates(html: str) -> dict[str, str]:
+    """The orthophoto index's feature info (HTML with one JS object per sheet) → {file url: acquisition date}."""
+    import re
+    return dict(re.findall(r'url:"([^"]+)",[^{}]*?aktualnosc:"(\d{4}-\d{2}-\d{2})"', html))
+
+
+def keep_gugik_sheet(kind: str, rec: dict) -> bool:
+    """Elevation: laser-scan 1 m ARC/INFO grids in PL-1992 at the 1:5000 sheet; orthophotos: colour-infrared, PL-1992."""
+    if rec.get("uklad_xy") != "PL-1992":
+        return False
+    if kind == "cir":
+        return rec.get("kolor") == "CIR"
+    return (rec.get("zrodlo_danych") == "Skaning laserowy" and rec.get("format") == "ARC/INFO ASCII GRID"
+            and rec.get("char_przestrz", "").startswith("1.00"))
+
+
+def fetch_gugik_dated(out_dir: Path, bounds_2180, log=print) -> pd.DataFrame:
+    """Every dated sheet of ``GUGIK_DATED`` that touches ``bounds_2180`` (PL-1992 edges), downloaded as delivered, with
+    its survey date and provenance in the returned table (written by the caller as ``sheets.csv``)."""
+    out_dir.mkdir(parents=True, exist_ok=True)
+    rows = []
+    for kind, svc, layer, year in GUGIK_DATED:
+        lay = f"{layer}{year}"
+        r = _get(GUGIK_INDEX.format(svc=svc), params={"SERVICE": "WFS", "VERSION": "2.0.0", "REQUEST": "GetFeature",
+                                                      "TYPENAMES": f"gugik:{lay}", "BBOX": wfs_bbox_2180(bounds_2180)})
+        for rec in parse_gugik_index(r.text, lay):
+            if keep_gugik_sheet(kind, rec):
+                rows.append({"kind": kind, "year": year, "sheet": rec["godlo"], "job": rec.get("nr_zglosz", ""),
+                             "source": rec.get("zrodlo_danych", ""), "pixel_m": rec.get("piksel") or rec.get("char_przestrz", ""),
+                             "height_datum": rec.get("uklad_h", "") if kind != "cir" else "", "url": rec["url_do_pobrania"]})
+    tab = pd.DataFrame(rows).drop_duplicates("url")
+    dates = {}
+    left, bottom, right, top = bounds_2180
+    for x in np.linspace(left, right, 4):                    # feature info at a 4 × 4 net: every sheet is hit
+        for y in np.linspace(bottom, top, 4):
+            for lay in ORTO_DATE_LAYERS:
+                r = _get(GUGIK_ORTO_DATES, params={
+                    "SERVICE": "WMS", "VERSION": "1.1.1", "REQUEST": "GetFeatureInfo", "LAYERS": lay, "QUERY_LAYERS": lay,
+                    "SRS": "EPSG:2180", "BBOX": f"{x - 50},{y - 50},{x + 50},{y + 50}", "WIDTH": 101, "HEIGHT": 101,
+                    "X": 50, "Y": 50, "INFO_FORMAT": "text/html", "FEATURE_COUNT": 50, "STYLES": ""})
+                dates.update(parse_orto_dates(r.text))
+    laser = tab.kind != "cir"
+    tab["date"] = np.where(laser, tab.job.map(LASER_FLIGHT), tab.url.map(dates))
+    tab["date_source"] = np.where(laser, "GPS time of the points (LAZ N-33-117-D-a-3-4-2)", "orthophoto index (aktualnosc)")
+    if tab.date.isna().any():
+        raise RuntimeError(f"GUGiK sheets without a date: {tab[tab.date.isna()][['kind', 'year', 'sheet']].to_dict('records')}")
+    files = []
+    for u in tab.url:
+        f = out_dir / u.rsplit("/", 1)[-1]
+        if not f.exists():
+            f.write_bytes(_get(u, timeout=900).content)
+            log(f"GUGiK {f.name}: {f.stat().st_size / 1e6:.0f} MB")
+        files.append(f.name)
+    tab["file"] = files
+    return tab.sort_values(["kind", "year", "sheet"]).reset_index(drop=True)
 
 
 # ------------------------------------------------------------------------------ ECOSTRESS (LP DAAC, Earthdata token)

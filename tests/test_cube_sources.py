@@ -94,3 +94,69 @@ def test_indices_refuse_non_positive_reflectance():
     ix = sources.s2_indices(b)
     assert np.isnan(ix["ndvi"]).all() and np.isfinite(ix["ndwi"]).all()
     assert np.nanmax(np.abs(ix["ndmi"])) <= 1
+
+
+# ------------------------------------------------------------------------------ GUGiK dated sheets (C-072)
+
+def test_wfs_bbox_is_northing_first():
+    assert sources.wfs_bbox_2180((317000, 546000, 320000, 549000)) == \
+        "546000,317000,549000,320000,urn:ogc:def:crs:EPSG::2180"
+
+
+def test_parse_gugik_index_and_keep():
+    gml = ('<wfs:member><gugik:SkorowidzNMT2024 gml:id="a"><gugik:godlo>N-33-117-D-a-3-4</gugik:godlo>'
+           '<gugik:zrodlo_danych>Skaning laserowy</gugik:zrodlo_danych><gugik:format>ARC/INFO ASCII GRID</gugik:format>'
+           '<gugik:char_przestrz>1.00 m</gugik:char_przestrz><gugik:uklad_xy>PL-1992</gugik:uklad_xy>'
+           '<gugik:url_do_pobrania>https://x/a.asc</gugik:url_do_pobrania></gugik:SkorowidzNMT2024></wfs:member>'
+           '<wfs:member><gugik:SkorowidzNMT2024 gml:id="b"><gugik:godlo>N-33-117-D-a-3</gugik:godlo>'
+           '<gugik:zrodlo_danych>Zdj. lotnicze</gugik:zrodlo_danych><gugik:format>ARC/INFO ASCII GRID</gugik:format>'
+           '<gugik:char_przestrz>5.00 m</gugik:char_przestrz><gugik:uklad_xy>PL-1992</gugik:uklad_xy>'
+           '</gugik:SkorowidzNMT2024></wfs:member>')
+    recs = sources.parse_gugik_index(gml, "SkorowidzNMT2024")
+    assert [r["godlo"] for r in recs] == ["N-33-117-D-a-3-4", "N-33-117-D-a-3"]
+    assert [sources.keep_gugik_sheet("dtm", r) for r in recs] == [True, False]      # the photogrammetric 5 m is out
+    assert sources.keep_gugik_sheet("cir", {"uklad_xy": "PL-1992", "kolor": "CIR"})
+    assert not sources.keep_gugik_sheet("cir", {"uklad_xy": "PL-1992", "kolor": "RGB"})
+    assert not sources.keep_gugik_sheet("cir", {"uklad_xy": "PL-2000:S6", "kolor": "CIR"})
+
+
+def test_parse_orto_dates():
+    html = ('var s=[{url:"https://o/1_N-33.tif",godlo:"N-33", aktualnosc:"2021-09-29", kolor:"CIR"},'
+            '{url:"https://o/2_N-33.tif",godlo:"N-33", aktualnosc:"2025-03-20", kolor:"RGB", dt_pzgik:"2025-05-01"}];')
+    assert sources.parse_orto_dates(html) == {"https://o/1_N-33.tif": "2021-09-29", "https://o/2_N-33.tif": "2025-03-20"}
+
+
+def test_canopy_features_known_shares():
+    chm = np.zeros((80, 40), "float32")
+    chm[:40][:10, :] = 10.0                     # top cell: a quarter of its 1 m cells under 10 m canopy
+    chm[40:] = np.nan
+    chm[40:60, :] = 1.0                         # bottom cell: half valid, all of it 1 m high (not tree)
+    f = build.canopy_features(chm, 40, "canopy2024")
+    assert f["canopy2024_cover"][:, 0].tolist() == pytest.approx([0.25, 0.0])
+    assert f["canopy2024_p90_m"][0, 0] == pytest.approx(10.0)
+    assert f["canopy2024_p90_m"][1, 0] == pytest.approx(1.0)
+    assert f["canopy2024_valid_frac"][:, 0].tolist() == pytest.approx([1.0, 0.5])
+    assert np.isnan(build.canopy_features(np.full((40, 40), np.nan), 40, "c")["c_cover"][0, 0])
+
+
+def test_cir_ndvi():
+    v = build.cir_ndvi(np.array([200, 50, 0], "uint8"), np.array([50, 50, 0], "uint8"))
+    assert v[0] == pytest.approx(150 / 250) and v[1] == 0 and np.isnan(v[2])
+
+
+def test_sheets_to_utm_places_a_square_where_pyproj_says(tmp_path):
+    from pyproj import Transformer
+    from rasterio.transform import from_origin
+    e0, n0 = 318500.0, 547500.0                 # a 10 m square of 1s on a PL-1992 grid of 0s
+    a = np.zeros((200, 200), "float32")
+    a[95:105, 95:105] = 1.0
+    tr = from_origin(e0 - 100, n0 + 100, 1, 1)
+    x, y = Transformer.from_crs(2180, 32633, always_xy=True).transform(e0, n0)
+    b = (np.floor(x) - 60, np.floor(y) - 60, np.floor(x) + 60, np.floor(y) + 60)
+    out = build._sheets_to_utm(["s"], b, lambda f: (a, tr))
+    ys, xs = np.nonzero(out > 0.5)
+    cx, cy = b[0] + xs.mean() + 0.5, b[3] - ys.mean() - 0.5
+    assert abs(cx - x) < 1.0 and abs(cy - y) < 1.0
+    assert 80 <= (out > 0.5).sum() <= 120       # the square keeps its area (~100 m²) through the rotation
+    two = build._sheets_to_utm(["s", "t"], b, lambda f: (a * (2 if f == "t" else 1), tr))
+    assert np.nanmax(two) == pytest.approx(1.5, abs=0.01)    # overlapping sheets are averaged
