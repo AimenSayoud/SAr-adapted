@@ -90,7 +90,12 @@ def ingest(what: str) -> None:
         b = pb(ctx(), LIDAR_GRID_BUFFER_M, "AB")
         t = Transformer.from_crs(32633, 2180, always_xy=True)
         xs, ys = t.transform([b[0], b[2], b[0], b[2]], [b[1], b[1], b[3], b[3]])
-        tab = src.fetch_gugik_dated(RAW / "gugik_dated", (min(xs), min(ys), max(xs), max(ys)), log=log)
+        st = __import__("xarray").open_dataset(SILVER / "static_40m.nc")      # the plots' cells, ± 200 m, for the 10 cm sheet
+        pr, pc = np.nonzero(st.plot_cell.values > 0)
+        pe, pn = t.transform(st.x.values[pc], st.y.values[pr])
+        rgb_box = (min(pe) - 200, min(pn) - 200, max(pe) + 200, max(pn) + 200)
+        tab = src.fetch_gugik_dated(RAW / "gugik_dated", (min(xs), min(ys), max(xs), max(ys)), log=log,
+                                    rgb_bounds_2180=rgb_box)
         tab.to_csv(RAW / "gugik_dated" / "sheets.csv", index=False)
         log(f"GUGiK dated sheets {len(tab)}: " + ", ".join(f"{k} {y}" for (k, y), _ in tab.groupby(["kind", "year"])))
     elif what == "ecostress":

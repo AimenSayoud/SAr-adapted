@@ -118,6 +118,8 @@ def test_parse_gugik_index_and_keep():
     assert sources.keep_gugik_sheet("cir", {"uklad_xy": "PL-1992", "kolor": "CIR"})
     assert not sources.keep_gugik_sheet("cir", {"uklad_xy": "PL-1992", "kolor": "RGB"})
     assert not sources.keep_gugik_sheet("cir", {"uklad_xy": "PL-2000:S6", "kolor": "CIR"})
+    assert sources.keep_gugik_sheet("rgb", {"uklad_xy": "PL-1992", "kolor": "RGB", "piksel": "0.1"})
+    assert not sources.keep_gugik_sheet("rgb", {"uklad_xy": "PL-1992", "kolor": "RGB", "piksel": "0.25"})
 
 
 def test_parse_orto_dates():
