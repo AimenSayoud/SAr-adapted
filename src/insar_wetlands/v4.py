@@ -40,6 +40,15 @@ def relevel(c: pd.DataFrame, anchor_at, bounds: list[tuple[int, int]]) -> pd.Dat
     return c
 
 
+def anchor_only(c: pd.DataFrame, anchor_at) -> pd.DataFrame:
+    """The anchor alone, read at the chain's epochs (X-107 amendment_4: the weather model with no radar): time, seg,
+    est with ``est = anchor_at(time)`` and one segment, since nothing breaks a weather series at a gap or a winter;
+    epochs where the anchor is undefined are dropped."""
+    out = pd.DataFrame({"time": c.time.reset_index(drop=True), "seg": 0})
+    out["est"] = [anchor_at(t) for t in out.time]
+    return out[np.isfinite(out.est.to_numpy(float))].reset_index(drop=True)
+
+
 def block_cells(x: np.ndarray, y: np.ndarray, xq: float, yq: float, size: int) -> tuple[np.ndarray, np.ndarray]:
     """Row and column indices of the cell block read by the neighbour-average variant (X-125) on a regular grid with
     cell-centre coordinates ``x`` (ascending) and ``y`` (descending). ``size`` 2: the four cells whose centres surround

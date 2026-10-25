@@ -54,3 +54,14 @@ def test_block_cells_and_mean_recover_known_blocks():
     assert np.isnan(v4.block_mean(field, r3, c3)[0]) and np.isfinite(v4.block_mean(field, r3, c3)[1])
     with pytest.raises(ValueError):
         v4.block_cells(x, y, 10.0, 255.0, 3)
+
+
+def test_anchor_only_reads_the_anchor_at_the_chain_epochs():
+    t, truth = _series()
+    c = pd.DataFrame({"time": t, "seg": (t >= "2022-01-01").astype(int), "est": np.zeros(len(t))})
+    anchor = pd.Series(truth, index=t)
+    out = v4.anchor_only(c, lambda x: np.nan if x == t[3] else float(anchor[x]))
+    assert len(out) == len(t) - 1 and (out.seg == 0).all()
+    assert np.allclose(out.est.to_numpy(), np.delete(truth, 3))
+    for a, b in v4.winter_bounds(out.time):
+        assert np.isclose(out.est[b] - out.est[a], anchor[out.time[b]] - anchor[out.time[a]])
