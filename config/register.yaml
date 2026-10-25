@@ -1881,6 +1881,26 @@ entries:
     - hub:08_deliverables/insar_full_test/v4/v4_frozen_params.yaml
     outputs:
     - hub:08_deliverables/insar_full_test/v4/spams_loyo_params.yaml
+  weather_only_x107:
+    kind: experiment
+    title: X-107 amendment_4 — the weather model alone (v4's frozen SPAMS, no radar) read at the chain's epochs, the ablation's fourth row; built and checked on the design years
+    status: current
+    runs_on: mac
+    code: experiments/weather_only_x107.py
+    code_ref: HEAD
+    command: RZECIN_CUBE_ROOT=../../06_data/cube_snapshots/as_delivered_2026-10-15 PYTHONPATH=src python experiments/weather_only_x107.py
+    tickets:
+    - X-107
+    chains:
+    - mat-method-v4
+    tries: []
+    inputs:
+    - cube:silver/site_hourly.csv.gz
+    - cube:gold/plots_pair.csv.gz
+    - hub:08_deliverables/insar_full_test/v4/v4_frozen_params.yaml
+    - hub:08_deliverables/insar_full_test/v4/design_report/summary.csv
+    outputs:
+    - hub:08_deliverables/insar_full_test/v4/weather_only_design
   loss_of_lock_x096:
     kind: experiment
     title: X-096 — the loss-of-lock atlas (gaps no coherent pair spans; P6 segments for X-093)
