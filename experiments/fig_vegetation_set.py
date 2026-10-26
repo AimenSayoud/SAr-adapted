@@ -394,8 +394,23 @@ def matched_pairs(cells, shrub_cells):
     return m["on_mat"], m["off_mat"], ms, c, sc
 
 
+def pair_distances(on, off, ms, c, sc) -> pd.DataFrame:
+    """How far apart each contrast's paired cells are, and how their distances to P6 compare (pairs are matched on
+    depth into the mat, not on position)."""
+    rows = []
+    for name, pairs, tab in (("trees on the mat", on, c), ("trees off the mat", off, c), ("dense shrub − open", ms, sc)):
+        a, b = tab.loc[pairs.treated], tab.loc[pairs.control]
+        sep = np.hypot(a.x.to_numpy() - b.x.to_numpy(), a.y.to_numpy() - b.y.to_numpy())
+        dd = a.dist_p6_m.to_numpy() - b.dist_p6_m.to_numpy()
+        rows.append({"contrast": name, "pairs": len(pairs), "separation_median_m": float(np.median(sep)),
+                     "separation_max_m": float(sep.max()), "dist_p6_difference_median_m": float(np.median(dd)),
+                     "dist_p6_abs_difference_median_m": float(np.median(np.abs(dd)))})
+    return pd.DataFrame(rows)
+
+
 def s15(cells, shrub_cells, nine, p6):
     on, off, ms, c, sc = matched_pairs(cells, shrub_cells)
+    pair_distances(on, off, ms, c, sc).to_csv(OUT / "S15_pair_distances.csv", index=False)
     with fs.style():
         fig = plt.figure(figsize=fs.size("full", 215))
         gs = fig.add_gridspec(2, 3, height_ratios=[1.15, 1.0], hspace=0.32, wspace=0.08, left=0.16, right=0.99,
@@ -494,7 +509,8 @@ def s15(cells, shrub_cells, nine, p6):
             if k == 2:
                 ax.text(0.5, 1 / len(GROUPS) * 2.5, "not shown: solid ground\ndoes not move with the mat,\nso its "
                         "agreement with the\nP6 laser has no meaning", transform=ax.transAxes, ha="center",
-                        va="center", fontsize=6, color=fs.MUTED)
+                        va="center", fontsize=6, color=fs.MUTED,
+                        bbox={"boxstyle": "round,pad=0.3", "fc": "white", "ec": "none"})
             if k == 0:
                 ax.axvspan(-0.03, 0.03, color="#f3e3c3", alpha=0.6, lw=0, zorder=0)
                 ax.set_yticks(range(len(GROUPS)), GROUPS, fontsize=6.5)
