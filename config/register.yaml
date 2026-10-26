@@ -1273,6 +1273,21 @@ entries:
     - mat-method-v4
     outputs:
     - hub:08_deliverables/insar_full_test/nested_winter_x135
+  cross_track_x136:
+    kind: experiment
+    title: 'X-136: the revisit headline without truth — do the two tracks agree on consecutive six-day pairs, and less on
+      pairs that skip one, in the unseen radar years 2017–2019 (gated on the laser years)?'
+    status: finished
+    runs_on: mac
+    code: experiments/cross_track_x136.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/cross_track_x136.py
+    tickets:
+    - X-136
+    chains:
+    - insar-test-protocol
+    outputs:
+    - hub:08_deliverables/insar_full_test/cross_track_x136
   field_x047_x048:
     kind: experiment
     title: 'X-047 / X-048: does Sentinel-1 respond to the measured water table, and does its phase see the laser-measured
