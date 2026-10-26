@@ -1700,6 +1700,30 @@ entries:
     - hub:08_deliverables/insar_full_test/x065_hard_targets/by_revisit.csv
     outputs:
     - hub:08_deliverables/insar_full_test/landcover_x132
+  shrub_coherence_x134:
+    kind: experiment
+    title: X-134 — shrubs on the mat around P6 (tree-free cells), dose–response and matched contrast on depth, block bootstrap
+    status: current
+    runs_on: mac
+    code: experiments/shrub_coherence_x134.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/shrub_coherence_x134.py
+    tickets:
+    - X-134
+    chains:
+    - insar-full-test
+    inputs:
+    - cube:gold/plots_pair.csv.gz
+    - cube:silver/static_40m.nc
+    - cube:silver/lidar_dated_1m.nc
+    - cube:silver/ifg_*.nc
+    - cube:silver/rtc_*.nc
+    - cube:silver/s2_40m.nc
+    - cube:silver/site_hourly.csv.gz
+    - hub:06_data/s1_archive/asf_acquisitions.csv
+    - hub:08_deliverables/insar_full_test/x065_hard_targets/by_revisit.csv
+    outputs:
+    - hub:08_deliverables/insar_full_test/shrub_x134
   p6_motion_footprint_x133:
     kind: experiment
     title: X-133 — how far P6's six-day motion reaches over the mat (solid-ground null), its gain against depth, and a season map checked by the two tracks
