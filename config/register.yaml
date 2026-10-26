@@ -2528,6 +2528,23 @@ entries:
     - cube:gold/plots_pair.csv.gz
     outputs:
     - hub:08_deliverables/article_plan/figures/final
+  article_fig_f7b:
+    kind: experiment
+    title: F7b — each laser winter left out in turn (X-135), the step error of the plain chain and of the re-levelled chain, per track
+    status: finished
+    runs_on: mac
+    code: experiments/article_fig_f7b.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/article_fig_f7b.py
+    tickets:
+    - X-135
+    chains:
+    - article-plan
+    inputs:
+    - hub:08_deliverables/insar_full_test/nested_winter_x135/nested_steps.csv
+    - hub:08_deliverables/insar_full_test/nested_winter_x135/verdict.csv
+    outputs:
+    - hub:08_deliverables/article_plan/figures/final
   article_fig_f3:
     kind: experiment
     title: C-068 — F3 final, schematic of what C-band sees on a floating mat and which pairs keep its motion, and why longer pairs lose it (phase wrapping; no data)
