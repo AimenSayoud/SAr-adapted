@@ -134,3 +134,16 @@ def test_snow_evidence_mask_follows_snow_not_frost():
     assert not m[idx[150:]].any()
     thr = field.snow_evidence_mask(ev, idx, hours=72, thresholds={"depth_cm": 5.0})
     assert not thr.any()                                    # below its threshold: no evidence
+
+
+def test_uav_rasters_lists_sensor_date_and_band_order(tmp_path):
+    base = tmp_path / field.UAV_DELIVERY
+    (base / "Altum_x").mkdir(parents=True)
+    (base / "RE-MX_x").mkdir(parents=True)
+    for name in ("Altum_x/Altum_19.07.2022_clipped.tif", "RE-MX_x/RE-MX_06.11.2022_clipped_normalized.tif",
+                 "Altum_x/Altum_19.07.2022_clipped.tif.ovr"):
+        (base / name).touch()
+    r = field.uav_rasters(tmp_path)
+    assert list(r.sensor) == ["Altum", "RedEdge_MX_Dual"]
+    assert list(r.date) == [pd.Timestamp("2022-07-19"), pd.Timestamp("2022-11-06")]
+    assert r.bands[0][-1] == "Thermal_11um" and len(r.bands[1]) == 10
