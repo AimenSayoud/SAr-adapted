@@ -1258,6 +1258,21 @@ entries:
     outputs:
     - hub:08_deliverables/field_uav_c065
     - hub:06_data/field/processed/uav_0p5m.nc
+  nested_winter_x135:
+    kind: experiment
+    title: 'X-135: does the procedure behind v4 (X-119''s choice of architecture, then the fit) carry the level across a
+      laser winter it has never seen? Nested leave-one-winter-out'
+    status: finished
+    runs_on: mac
+    code: experiments/nested_winter_x135.py
+    code_ref: HEAD
+    command: RZECIN_CUBE_ROOT=../../06_data/cube_snapshots/as_delivered_2026-10-15 PYTHONPATH=src python experiments/nested_winter_x135.py
+    tickets:
+    - X-135
+    chains:
+    - mat-method-v4
+    outputs:
+    - hub:08_deliverables/insar_full_test/nested_winter_x135
   field_x047_x048:
     kind: experiment
     title: 'X-047 / X-048: does Sentinel-1 respond to the measured water table, and does its phase see the laser-measured
