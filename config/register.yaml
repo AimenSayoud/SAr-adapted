@@ -1288,6 +1288,21 @@ entries:
     - insar-test-protocol
     outputs:
     - hub:08_deliverables/insar_full_test/cross_track_x136
+  simple_answers_c075:
+    kind: experiment
+    title: 'C-075: simple answers for the supervisor — Sentinel-1 against the laser (P6) and the water table (nine plots),
+      and the weather against the water table; one sentence per question by a pre-registered rule'
+    status: finished
+    runs_on: mac
+    code: experiments/simple_answers_c075.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/simple_answers_c075.py
+    tickets:
+    - C-075
+    chains:
+    - field-data
+    outputs:
+    - hub:08_deliverables/simple_answers_c075
   field_x047_x048:
     kind: experiment
     title: 'X-047 / X-048: does Sentinel-1 respond to the measured water table, and does its phase see the laser-measured
