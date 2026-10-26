@@ -1320,6 +1320,22 @@ entries:
     - field-data
     outputs:
     - hub:08_deliverables/vegetation_and_radar
+  fig_vegetation_set:
+    kind: experiment
+    title: Six figures on vegetation and the radar (V1 cell contents, V2 maps, V3 coherence against cover, V4 effect sizes, V5 summer and
+      winter, V6 seasons with UAV NDVI), from X-132, X-134, C-074 and C-065 outputs; nothing refitted
+    status: finished
+    runs_on: mac
+    code: experiments/fig_vegetation_set.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/fig_vegetation_set.py
+    tickets:
+    - X-134
+    - X-132
+    chains:
+    - field-data
+    outputs:
+    - hub:08_deliverables/vegetation_and_radar
   field_x047_x048:
     kind: experiment
     title: 'X-047 / X-048: does Sentinel-1 respond to the measured water table, and does its phase see the laser-measured
