@@ -403,7 +403,8 @@ def fig_q3(t, ev, d, path):
         ax2 = ax.twinx()
         ax2.bar(yr.index, yr.rain_mm, color=fs.TRACK["ascending"], alpha=0.5, width=1)
         ax2.set_ylabel("daily rain (mm)")
-        ax2.invert_yaxis()
+        ax2.set_ylim(4 * max(float(yr.rain_mm.max()), 1.0), 0)      # rain hangs from the top, in its own quarter
+        ax2.tick_params(axis="y", labelright=True, right=True)
         ax.set_title("(d) P6 in 2021: water table and rain", fontsize=8)
         fig.suptitle("Q3 — how the weather moves the water table (daily, 2020–2024, frozen and snow days left out)", fontsize=9)
         fs.export(fig, path, provenance={"source": "simple_answers_c075 q3"})
