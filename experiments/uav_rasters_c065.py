@@ -37,7 +37,6 @@ import pandas as pd  # noqa: E402
 import rasterio  # noqa: E402
 import xarray as xr  # noqa: E402
 from rasterio.features import geometry_mask  # noqa: E402
-from rasterio.warp import transform as warp_xy  # noqa: E402
 from scipy.ndimage import binary_dilation  # noqa: E402
 
 from insar_wetlands import field, uav  # noqa: E402
@@ -50,9 +49,10 @@ RES, RES_FINE = 0.5, 0.05
 CLIP = 1.999           # the export's ceiling is 2.0 (1.999969 in float32)
 SHARED = ["Blue_475", "Green_560", "Red_668", "Red_Edge_717", "NIR_842"]
 NEIGHBOURS = [("Blue_444", "Blue_475"), ("Green_531", "Green_560"), ("Red_650", "Red_668")]
-# Windows for alignment and resolution (lon, lat of the centre; side in m): features seen in every flight
-WINDOWS = {"south": (16.30970, 52.75862, 60), "middle": (16.30965, 52.76110, 60), "north": (16.30975, 52.76205, 60)}
-MAT_WINDOW = (16.30995, 52.76040, 20)   # open mat east of the boardwalk, no structure
+# Windows for alignment (60 m) and sharpness (20 m), placed from the private plot shapefile at run time (no site
+# coordinate in this public file): north on P8–P9's platforms, middle on P5–P6's, south on the station at the strip's
+# southern end; the sharpness window on open mat east of the boardwalk, between P4 and P5.
+SIDE, MAT_SIDE = 60, 20
 REFERENCE = "2023-06-29"                # both cameras flew; mid-season
 # Quality rules. Set at intake after a first look at the band medians (2026-10-26); the failures they catch are off
 # by factors of two or more, so the thresholds decide no flag except the borderline cases the README names.
@@ -72,14 +72,20 @@ RULES = {
 MATCH = 2.0
 
 
-def lonlat_to_utm(lon, lat):
-    x, y = warp_xy("EPSG:4326", f"EPSG:{uav.GRID_CRS}", [lon], [lat])
-    return x[0], y[0]
-
-
-def box(lon, lat, side):
-    x, y = lonlat_to_utm(lon, lat)
+def box(x, y, side):
     return (x - side / 2, y - side / 2, x + side / 2, y + side / 2)
+
+
+def windows(files):
+    """Window boxes in UTM: alignment windows and the open-mat window, from the plots and the strip's extent."""
+    pl = field.load_plots(crs=uav.GRID_CRS).groupby("base_plot")[["x", "y"]].mean()
+    south_edge = min(uav.utm_bounds(p)[1] for p in files.path)
+    x_walk = pl.loc[["P1", "P2", "P3", "P4"], "x"].mean()
+    wins = {"south": box(x_walk, south_edge + SIDE / 2 + 5, SIDE),
+            "middle": box(*pl.loc[["P5", "P6"]].mean(), SIDE),
+            "north": box(*pl.loc[["P8", "P9"]].mean(), SIDE)}
+    mid = pl.loc[["P4", "P5"]].mean()
+    return wins, box(mid.x + 30, mid.y, MAT_SIDE)
 
 
 # ------------------------------------------------------------------------------------------- 1, 2: per file
@@ -175,7 +181,7 @@ def fine_band(f, window_bounds):
 
 def alignment(files):
     rows = []
-    wins = {k: box(*v) for k, v in WINDOWS.items()}
+    wins, _ = windows(files)
     ref = {s: files[(files.sensor == s) & (files.date == REFERENCE)].iloc[0] for s in files.sensor.unique()}
     for wname, wb in wins.items():
         refimg = {s: uav.edges(fine_band(r, wb)) for s, r in ref.items()}
@@ -199,7 +205,7 @@ def alignment(files):
 
 def effective_resolution(files):
     """Lag (m) where the autocorrelation of each band, along rows and columns, first drops below 0.5."""
-    wb = box(*MAT_WINDOW)
+    _, wb = windows(files)
     tr, shape = uav.grid(wb, 0.02)
     rows = []
     for f in files[files.date == REFERENCE].itertuples():
