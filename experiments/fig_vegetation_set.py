@@ -23,16 +23,20 @@ import matplotlib
 
 matplotlib.use("Agg")
 import fig_vegetation_radar as V  # noqa: E402  (its readers: effects(), ortho_rgb(), grid_image())
+import landcover_coherence_x132 as X132  # noqa: E402  (its matching, to draw the pairs it scored)
 import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
+import shrub_coherence_x134 as X134  # noqa: E402
 import xarray as xr  # noqa: E402
 from matplotlib.lines import Line2D  # noqa: E402
 
+from insar_wetlands import contrasts as C  # noqa: E402
 from insar_wetlands import figstyle as fs  # noqa: E402
 from insar_wetlands.paths import cube_root, hub_root  # noqa: E402
 
 HUB, CUBE = hub_root(), cube_root()
+FINAL = HUB / "08_deliverables" / "article_plan" / "figures" / "final"
 OUT = V.OUT
 SETS = V.SETS
 GROUPS = ["trees on the mat\nwooded − open", "trees off the mat\nwooded − open", "dense shrub − open\non the mat",
@@ -370,6 +374,130 @@ The cells green up from May and the coherence is lowest in summer; the two are s
 """
 
 
+# ------------------------------------------------------------------------------------------- Supplement S15
+
+def matched_pairs(cells, shrub_cells):
+    """The pairs X-132 and X-134 scored, rebuilt with their own matching (checked against their registered counts)."""
+    c = cells.set_index("cell")
+    m = X132.matched(c)
+    sc = shrub_cells.set_index("cell")
+    ms = C.match_nearest(sc[sc.cls == "shrubby"], sc[sc.cls == "open"], on="depth_in_mat_m",
+                         caliper=X134.CALIPER_M, tie="dist_p6_m", order="dist_p6_m")
+    s1 = pd.read_csv(V.X132 / "stage1.csv")
+    s1 = s1[(s1.variant == "primary") & (s1.outcome == "O1_coh")].iloc[0]
+    mt = pd.read_csv(V.X134 / "matched.csv")
+    mt = mt[(mt.variant == "primary") & (mt.outcome == "O1_coh")].iloc[0]
+    if (len(m["on_mat"]), len(m["off_mat"]), len(ms)) != (int(s1.pairs_on_mat), int(s1.pairs_off_mat), int(mt.pairs)):
+        raise SystemExit("S15: the rebuilt pairs do not match X-132 / X-134's registered counts")
+    return m["on_mat"], m["off_mat"], ms, c, sc
+
+
+def s15(cells, shrub_cells, nine, p6):
+    on, off, ms, c, sc = matched_pairs(cells, shrub_cells)
+    with fs.style():
+        fig = plt.figure(figsize=fs.size("full", 215))
+        gs = fig.add_gridspec(2, 3, height_ratios=[1.15, 1.0], hspace=0.32, wspace=0.08, left=0.16, right=0.99,
+                              top=0.94, bottom=0.06)
+        mat, ext = V.grid_image(cells, cells.on_mat.to_numpy(float))
+        gx = np.linspace(ext[0] + 20, ext[1] - 20, mat.shape[1])
+        gy = np.linspace(ext[3] - 20, ext[2] + 20, mat.shape[0])
+        # (a) trees
+        ax = fig.add_subplot(gs[0, :2])
+        ax.set_anchor("NW")
+        col = cells.cls.map({"open": 0, "mid": 1, "wooded": 2}).to_numpy(float)
+        img, e = V.grid_image(cells, col)
+        from matplotlib.colors import ListedColormap
+        ax.imshow(img, extent=e, cmap=ListedColormap(["#efe6cf", "#e4e4e4", "#2f6b3a"]), vmin=-0.5, vmax=2.5,
+                  interpolation="nearest")
+        for pairs, colr in ((on, "#1b9e77"), (off, "#8c6d31")):
+            for r in pairs.itertuples():
+                a, b = c.loc[r.treated], c.loc[r.control]
+                ax.plot([a.x, b.x], [a.y, b.y], color=colr, lw=0.35, alpha=0.3)
+            t, k = c.loc[pairs.treated], c.loc[pairs.control]
+            ax.plot(t.x, t.y, "s", ms=2.2, mfc="none", mec=colr, mew=0.6)
+            ax.plot(k.x, k.y, "o", ms=2.0, color=colr)
+        ax.contour(gx, gy, np.where(np.isnan(mat), 0, mat), levels=[0.5], colors="black", linewidths=0.9)
+        ax.plot(p6.x, p6.y, "*", ms=9, color=P6_COL, mec="black", mew=0.4)
+        ax.set_aspect("equal")
+        ax.set_xticks([])
+        ax.set_yticks([])
+        ax.set_title(f"(a) trees: {len(on)} wooded–open pairs on the mat, {len(off)} off it — matched on depth into (or "
+                     "distance to) the mat,\nnot on position, so a pair can be far apart (faint lines)", fontsize=7,
+                     loc="left")
+        ax.legend(handles=[plt.Rectangle((0, 0), 1, 1, color="#2f6b3a"), plt.Rectangle((0, 0), 1, 1, color="#efe6cf"),
+                           plt.Rectangle((0, 0), 1, 1, color="#e4e4e4"), Line2D([], [], color="#1b9e77", lw=0.8),
+                           Line2D([], [], color="#8c6d31", lw=0.8), Line2D([], [], color="black", lw=0.9),
+                           Line2D([], [], ls="none", marker="s", mfc="none", mec=fs.INK, ms=3),
+                           Line2D([], [], ls="none", marker="o", color=fs.INK, ms=3)],
+                  labels=["wooded (canopy ≥ 2 m)", "open (canopy < 0.5 m)", "in between (not used)",
+                          "pair on the mat", "pair off the mat", "floating mat", "wooded cell used",
+                          "open cell used"],
+                  fontsize=6, loc="upper left", bbox_to_anchor=(0.0, -0.01), ncol=4, frameon=False)
+        # (b) shrubs
+        ax = fig.add_subplot(gs[0, 2])
+        ax.set_anchor("N")
+        allc = cells.set_index("cell")
+        base, e0 = V.grid_image(cells, np.where(cells.on_mat == 1, 0.0, np.nan))
+        ax.imshow(base, extent=e0, cmap=ListedColormap(["#f2f2f2"]), interpolation="nearest")
+        img, e = V.grid_image(shrub_cells, shrub_cells.shrub_2024.to_numpy(float))
+        im = ax.imshow(img, extent=e, cmap="Purples", vmin=0, vmax=0.6, interpolation="nearest")
+        for r in ms.itertuples():
+            a, b = sc.loc[r.treated], sc.loc[r.control]
+            ax.plot([a.x, b.x], [a.y, b.y], color="#d95f02", lw=0.7)
+            ax.plot(b.x, b.y, "o", ms=1.8, color="#d95f02")
+        ax.contour(gx, gy, np.where(np.isnan(mat), 0, mat), levels=[0.5], colors="black", linewidths=0.9)
+        ax.add_patch(plt.Rectangle((nine.x.min() - 20, nine.y.min() - 20), 120, 120, fill=False, ec=P6_COL, lw=1.0))
+        ax.plot(p6.x, p6.y, "*", ms=8, color=P6_COL, mec="black", mew=0.4)
+        xs = [allc.x.min(), allc.x.max()]
+        ax.set_xlim(min(shrub_cells.x) - 60, max(shrub_cells.x) + 60)
+        ax.set_ylim(min(shrub_cells.y) - 60, max(shrub_cells.y) + 60)
+        _ = xs
+        ax.set_aspect("equal")
+        ax.set_xticks([])
+        ax.set_yticks([])
+        cb = fig.colorbar(im, ax=ax, fraction=0.05, pad=0.02, orientation="horizontal")
+        cb.set_label("shrub cover 0.5–2 m (share of cell)", fontsize=6)
+        cb.ax.tick_params(labelsize=6)
+        ax.set_title(f"(b) shrubs: {len(sc)} tree-free mat cells,\n{len(ms)} dense–open pairs (orange)",
+                     fontsize=7, loc="left")
+        # (c–e) effect sizes
+        cols = [V.effects("O1_coh"), V.effects("O4_vh_median_db"), V.effects("O3_r_laser")]
+        titles = ["(c) coherence of consecutive pairs (Δ)", "(d) VH backscatter (Δ dB)",
+                  "(e) r with the P6 laser (Δ, six-day)"]
+        sets_by = [list(SETS), list(SETS), ["2020_2021", "2025"]]
+        axes = [fig.add_subplot(gs[1, k]) for k in range(3)]
+        for k, (ax, df, title, sets) in enumerate(zip(axes, cols, titles, sets_by)):
+            for gi, g in enumerate(GROUPS):
+                if gi % 2 == 0:
+                    ax.axhspan(gi - 0.5, gi + 0.5, color=fs.GRID, alpha=0.35, lw=0)
+                rows = [(t, st) for t in ("ascending", "descending") for st in sets]
+                for j, (t, st) in enumerate(rows):
+                    r = df[(df.group == g) & (df.track == t) & (df.set == st)]
+                    if not len(r):
+                        continue
+                    r = r.iloc[0]
+                    y = gi - 0.36 + 0.72 * j / max(len(rows) - 1, 1)
+                    ax.hlines(y, r.lo, r.hi, color=fs.TRACK[t], lw=1.1)
+                    ax.plot(r.est, y, SETS[st][1], ms=3.8, color=fs.TRACK[t], mec="white", mew=0.4)
+            ax.axvline(0, color=fs.INK, lw=0.7)
+            if k == 0:
+                ax.axvspan(-0.03, 0.03, color="#f3e3c3", alpha=0.6, lw=0, zorder=0)
+                ax.set_yticks(range(len(GROUPS)), GROUPS, fontsize=6.5)
+            else:
+                ax.set_yticks(range(len(GROUPS)), [""] * len(GROUPS))
+            ax.set_ylim(len(GROUPS) - 0.5, -0.5)
+            ax.set_title(title, fontsize=7, loc="left")
+            ax.grid(axis="y", visible=False)
+            ax.tick_params(axis="x", labelsize=6.5)
+        handles = [Line2D([], [], color=fs.TRACK[t], lw=1.1, label=f"{t} track") for t in ("ascending", "descending")]
+        handles += [Line2D([], [], ls="none", marker=SETS[st][1], color=fs.MUTED, label=SETS[st][0]) for st in SETS]
+        handles += [plt.Rectangle((0, 0), 1, 1, color="#f3e3c3", label="±0.03 (X-134's margin)")]
+        fig.legend(handles=handles, loc="lower center", ncol=6, fontsize=6.2, frameon=False, bbox_to_anchor=(0.57, 0.0))
+        for stem in (OUT / "S15_vegetation_effects", FINAL / "S15_vegetation_effects"):
+            fs.export(fig, stem, provenance={"source": "fig_vegetation_set s15", "pairs_checked": True})
+        plt.close(fig)
+
+
 def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     cells = pd.read_csv(V.X132 / "cells.csv")
@@ -385,6 +513,10 @@ def main() -> None:
     v4()
     v5()
     v6(nine)
+    s15(cells, shrub_cells, nine, p6)
+    import shutil
+    for ext in ("png", "pdf"):
+        shutil.copyfile(OUT / f"V1_what_the_cells_hold.{ext}", FINAL / f"S16_nine_cells_contents.{ext}")
     (OUT / "FIGURES.md").write_text(CAPTIONS, encoding="utf-8")
     print("V1–V6 →", OUT)
 

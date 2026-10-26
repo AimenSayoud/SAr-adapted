@@ -1336,6 +1336,7 @@ entries:
     - field-data
     outputs:
     - hub:08_deliverables/vegetation_and_radar
+    - hub:08_deliverables/article_plan/figures/final
   field_x047_x048:
     kind: experiment
     title: 'X-047 / X-048: does Sentinel-1 respond to the measured water table, and does its phase see the laser-measured
