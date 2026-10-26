@@ -461,7 +461,8 @@ def readme(t1, t2a, t2b, t2c, t3, ev, nine, rep) -> str:
         + ". Six-day pairs follow the mat's movement closely; twelve-day pairs less, most of all on the morning "
         "(descending) orbit.",
         "2. **Sentinel-1 and the water table (nine plots).** The phase change follows the water-table change — "
-        + "; ".join(f"{s} ascending: {three(a2, set=s, track='ascending')}" for s in list(SETS)[:2])
+        + "; ".join(f"{s} ascending: {three(a2, set=s, track='ascending')}, descending: "
+                    f"{three(a2, set=s, track='descending')}" for s in list(SETS)[:2])
         + ". Coherence falls when the water table changes (" + count(b2[b2.set == list(SETS)[0]], "coherence falls")
         + " plot-and-track cases on six-day pairs). VV backscatter is brighter when the water is higher ("
         + count(c2[c2.band == "VV"], "brighter") + " plot-and-track cases).",
