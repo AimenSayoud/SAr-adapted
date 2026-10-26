@@ -363,8 +363,8 @@ laser is not weakened on the mat by the registered rules (one exception, descend
 ## V5 — is it the leaves?
 ![V5](V5_summer_winter.png)
 The same contrasts on coherence in summer (May–September) and winter (December–February), on one scale. The tree
-effect stays in winter, so it is not the leaves alone (trunks and branches scatter too); the shrub effect is weaker in
-winter in most sets, as leaves would make it. Descriptive reading of registered secondaries; not a new test.
+effect stays in winter: the loss does not need leaves, though stems, branches and evergreen crowns cannot be told apart
+here; the shrub effect is weaker in winter in most sets, as leaves would make it. Descriptive reading of registered secondaries; not a new test.
 
 ## V6 — the vegetation through the seasons
 ![V6](V6_seasons.png)
