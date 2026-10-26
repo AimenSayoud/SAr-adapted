@@ -167,7 +167,15 @@ def scores(I: Inputs, outer: frozenset, skip: str | None, drops: list, tag: str)
                     W += winter_rows(I, arch, track, w, frozenset(years_of(w)) | outer)
                 except Exception as e:  # noqa: BLE001
                     drops.append({"fold": tag, "unit": f"winter {w}", "estimate": arch, "track": track, "why": repr(e)[:200]})
-    return pd.DataFrame(S).drop_duplicates(), pd.DataFrame(W)
+    S, W = pd.DataFrame(S).drop_duplicates(), pd.DataFrame(W)
+    # A unit dropped for one architecture is dropped from the fold's choice for all (X-135 stop_if: "dropped from that
+    # fold's choice"), so that every architecture is judged on the same seasons and winters.
+    lost = {x["unit"] for x in drops if x["fold"] == tag}
+    if lost and len(S):
+        S = S[~S.view.str.slice(0, 11).isin({u for u in lost if u.startswith("season")})]
+    if lost and len(W):
+        W = W[~("winter " + W.winter).isin(lost)]
+    return S, W
 
 
 def reproduce(I: Inputs) -> pd.DataFrame:
@@ -269,7 +277,8 @@ def readme(v, per_track, N, C, D, rep) -> str:
          "## Stop rule", "",
          f"With nothing extra left out, X-119's summary is reproduced: largest difference {rep.max_abs_diff.max():.1g};"
          " same architecture selected.", "",
-         f"Inner units dropped for lack of data: {len(D)}" + (" (`drops.csv`)." if len(D) else "."), "",
+         f"Inner units dropped for lack of data (a fit left with too few years): {len(D)} architecture × track rows"
+         + (" (`drops.csv`); each dropped unit leaves the fold's choice for every architecture." if len(D) else "."), "",
          "## Files", "", "| File | Content |", "|---|---|",
          "| `verdict.csv` | the registered reading |", "| `per_track.csv` | nested, chain and X-119's A, per track |",
          "| `nested_steps.csv` | every scored winter step |", "| `choices.csv` | each fold's inner summary and choice |",
