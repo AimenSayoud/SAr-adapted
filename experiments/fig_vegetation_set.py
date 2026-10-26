@@ -262,8 +262,10 @@ def forest_cols(df_by_col, titles, path, suptitle, sets_by_col, ref=None, sharex
 
 
 def v4():
-    cols = [V.effects("O1_coh"), V.effects("O4_vh_median_db"), V.effects("O3_r_laser")]
-    titles = ["coherence of consecutive pairs (Δ, 0–1)", "VH backscatter (Δ dB)", "r with the P6 laser (Δ, six-day)"]
+    o3 = V.effects("O3_r_laser")
+    cols = [V.effects("O1_coh"), V.effects("O4_vh_median_db"), o3[o3.group != GROUPS[1]]]
+    titles = ["coherence of consecutive pairs (Δ, 0–1)", "VH backscatter (Δ dB)",
+              "r with the P6 laser (Δ, six-day), mat only"]
     forest_cols(cols, titles, OUT / "V4_effect_sizes",
                 "V4 — how large each vegetation effect is: contrast with 95 % interval (200 m spatial-block bootstrap); "
                 "shaded: X-134's ±0.03 margin", [list(SETS), list(SETS), ["2020_2021", "2025"]], ref=0.03)
@@ -461,9 +463,13 @@ def s15(cells, shrub_cells, nine, p6):
         ax.set_title(f"(b) shrubs: {len(sc)} tree-free mat cells,\n{len(ms)} dense–open pairs (orange)",
                      fontsize=7, loc="left")
         # (c–e) effect sizes
-        cols = [V.effects("O1_coh"), V.effects("O4_vh_median_db"), V.effects("O3_r_laser")]
+        o3 = V.effects("O3_r_laser")
+        o3 = o3[o3.group != GROUPS[1]]                       # off the mat the ground does not move with the mat
+        near = V.effects("O3_r_laser", "radius 500 m")
+        near = near[near.group != GROUPS[1]]
+        cols = [V.effects("O1_coh"), V.effects("O4_vh_median_db"), o3]
         titles = ["(c) coherence of consecutive pairs (Δ)", "(d) VH backscatter (Δ dB)",
-                  "(e) r with the P6 laser (Δ, six-day)"]
+                  "(e) r with the P6 laser (Δ, six-day), mat only"]
         sets_by = [list(SETS), list(SETS), ["2020_2021", "2025"]]
         axes = [fig.add_subplot(gs[1, k]) for k in range(3)]
         for k, (ax, df, title, sets) in enumerate(zip(axes, cols, titles, sets_by)):
@@ -479,7 +485,16 @@ def s15(cells, shrub_cells, nine, p6):
                     y = gi - 0.36 + 0.72 * j / max(len(rows) - 1, 1)
                     ax.hlines(y, r.lo, r.hi, color=fs.TRACK[t], lw=1.1)
                     ax.plot(r.est, y, SETS[st][1], ms=3.8, color=fs.TRACK[t], mec="white", mew=0.4)
+                    if k == 2:
+                        q = near[(near.group == g) & (near.track == t) & (near.set == st)]
+                        if len(q):
+                            ax.plot(q.est.iloc[0], y + 0.07, SETS[st][1], ms=3.6, mfc="none", mec=fs.TRACK[t],
+                                    mew=0.7)
             ax.axvline(0, color=fs.INK, lw=0.7)
+            if k == 2:
+                ax.text(0.5, 1 / len(GROUPS) * 2.5, "not shown: solid ground\ndoes not move with the mat,\nso its "
+                        "agreement with the\nP6 laser has no meaning", transform=ax.transAxes, ha="center",
+                        va="center", fontsize=6, color=fs.MUTED)
             if k == 0:
                 ax.axvspan(-0.03, 0.03, color="#f3e3c3", alpha=0.6, lw=0, zorder=0)
                 ax.set_yticks(range(len(GROUPS)), GROUPS, fontsize=6.5)
@@ -491,8 +506,10 @@ def s15(cells, shrub_cells, nine, p6):
             ax.tick_params(axis="x", labelsize=6.5)
         handles = [Line2D([], [], color=fs.TRACK[t], lw=1.1, label=f"{t} track") for t in ("ascending", "descending")]
         handles += [Line2D([], [], ls="none", marker=SETS[st][1], color=fs.MUTED, label=SETS[st][0]) for st in SETS]
-        handles += [plt.Rectangle((0, 0), 1, 1, color="#f3e3c3", label="±0.03 (X-134's margin)")]
-        fig.legend(handles=handles, loc="lower center", ncol=6, fontsize=6.2, frameon=False, bbox_to_anchor=(0.57, 0.0))
+        handles += [plt.Rectangle((0, 0), 1, 1, color="#f3e3c3", label="±0.03 (X-134's margin)"),
+                     Line2D([], [], ls="none", marker="o", mfc="none", mec=fs.MUTED,
+                            label="(e) only cells within 500 m of P6")]
+        fig.legend(handles=handles, loc="lower center", ncol=4, fontsize=6.2, frameon=False, bbox_to_anchor=(0.57, 0.0))
         for stem in (OUT / "S15_vegetation_effects", FINAL / "S15_vegetation_effects"):
             fs.export(fig, stem, provenance={"source": "fig_vegetation_set s15", "pairs_checked": True})
         plt.close(fig)

@@ -84,19 +84,20 @@ almost no trees, a few per cent of shrubs — all follow the laser alike. The nu
 """
 
 
-def effects(outcome: str) -> pd.DataFrame:
-    """Rows: group, track, set, estimate, lo, hi — the primary contrasts of X-132 and X-134 for one outcome."""
+def effects(outcome: str, variant: str = "primary") -> pd.DataFrame:
+    """Rows: group, track, set, estimate, lo, hi — the contrasts of X-132 and X-134 for one outcome and variant
+    ("primary", or a registered sensitivity such as "radius 500 m")."""
     s = pd.read_csv(X132 / "stage1.csv")
-    s = s[(s.variant == "primary") & (s.outcome == outcome) & s.contrast.isin(["on_mat", "off_mat"])]
+    s = s[(s.variant == variant) & (s.outcome == outcome) & s.contrast.isin(["on_mat", "off_mat"])]
     rows = [{"group": f"trees {'on' if r.contrast == 'on_mat' else 'off'} the mat\nwooded − open",
              "track": r.track, "set": r.set, "est": r.wooded_minus_open, "lo": r.lo95, "hi": r.hi95}
             for r in s.itertuples()]
     m = pd.read_csv(X134 / "matched.csv")
-    m = m[(m.variant == "primary") & (m.outcome == outcome)]
+    m = m[(m.variant == variant) & (m.outcome == outcome)]
     rows += [{"group": "dense shrub − open\non the mat", "track": r.track, "set": r.set,
               "est": r.shrubby_minus_open, "lo": r.lo95, "hi": r.hi95} for r in m.itertuples()]
     d = pd.read_csv(X134 / "dose.csv")
-    d = d[(d.variant == "primary") & (d.outcome == outcome)]
+    d = d[(d.variant == variant) & (d.outcome == outcome)]
     rows += [{"group": "shrub 0 → 15 %\non the mat", "track": r.track, "set": r.set,
               "est": r.effect_0_15, "lo": r.effect_lo95, "hi": r.effect_hi95} for r in d.itertuples()]
     out = pd.DataFrame(rows)
