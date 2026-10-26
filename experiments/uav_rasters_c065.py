@@ -1,7 +1,7 @@
 """C-065: intake check of the UAV orthomosaics (Altum, RedEdge-MX Dual, 2022–2024) — what was delivered, whether
 each flight's values can be trusted, whether the flights line up, and which 40 m cells they cover.
 
-No radar value is read: this is the data's own quality, before any question is put to it. Seven parts:
+No radar value is read: this is the data's own quality, before any question is put to it. Six parts:
 
 1. Inventory: per file, sensor, date, bands, size, pixel size in metres, CRS written or not, valid share.
 2. Radiometry: per file and band, the median, 1st and 99th percentiles, the share of pixels at the clip value
@@ -14,10 +14,9 @@ No radar value is read: this is the data's own quality, before any question is p
    the two cameras on the same day, in three windows along the boardwalk (south, middle, north), at 5 cm, by phase
    correlation of the image edges (`uav.phase_shift`, tested on known shifts). Three windows show whether a mosaic
    is shifted or warped.
-5. Effective resolution: the lag at which each band's autocorrelation falls below 0.5 in a window of mat.
-6. The field team's per-plot tables: are the values in the first delivery's merged table (used by X-049) the same
+5. The field team's per-plot tables: are the values in the first delivery's merged table (used by X-049) the same
    as in these per-plot CSVs; and, where we hold the sub-plot circles (P5, P6), do the rasters give the same means.
-7. Coverage of the cube's 40 m cells (zone, depth into the mat, plot cell, boardwalk share), and per cell and flight
+6. Coverage of the cube's 40 m cells (zone, depth into the mat, plot cell, boardwalk share), and per cell and flight
    the median NDVI, NDRE (RedEdge-MX) and surface temperature (Altum) — a processed table for later, pre-registered
    questions; nothing is compared with radar here.
 
@@ -49,10 +48,9 @@ RES, RES_FINE = 0.5, 0.05
 CLIP = 1.999           # the export's ceiling is 2.0 (1.999969 in float32)
 SHARED = ["Blue_475", "Green_560", "Red_668", "Red_Edge_717", "NIR_842"]
 NEIGHBOURS = [("Blue_444", "Blue_475"), ("Green_531", "Green_560"), ("Red_650", "Red_668")]
-# Windows for alignment (60 m) and sharpness (20 m), placed from the private plot shapefile at run time (no site
-# coordinate in this public file): north on P8–P9's platforms, middle on P5–P6's, south on the station at the strip's
-# southern end; the sharpness window on open mat east of the boardwalk, between P4 and P5.
-SIDE, MAT_SIDE = 60, 20
+# Alignment windows (60 m), placed from the private plot shapefile at run time (no site coordinate in this public
+# file): north on P8–P9's platforms, middle on P5–P6's, south on the station at the strip's southern end.
+SIDE = 60
 REFERENCE = "2023-06-29"                # both cameras flew; mid-season
 # Quality rules. Set at intake after a first look at the band medians (2026-10-26); the failures they catch are off
 # by factors of two or more, so the thresholds decide no flag except the borderline cases the README names.
@@ -77,15 +75,14 @@ def box(x, y, side):
 
 
 def windows(files):
-    """Window boxes in UTM: alignment windows and the open-mat window, from the plots and the strip's extent."""
+    """Alignment window boxes in UTM, from the plots and the strip's extent."""
     pl = field.load_plots(crs=uav.GRID_CRS).groupby("base_plot")[["x", "y"]].mean()
     south_edge = min(uav.utm_bounds(p)[1] for p in files.path)
     x_walk = pl.loc[["P1", "P2", "P3", "P4"], "x"].mean()
     wins = {"south": box(x_walk, south_edge + SIDE / 2 + 5, SIDE),
             "middle": box(*pl.loc[["P5", "P6"]].mean(), SIDE),
             "north": box(*pl.loc[["P8", "P9"]].mean(), SIDE)}
-    mid = pl.loc[["P4", "P5"]].mean()
-    return wins, box(mid.x + 30, mid.y, MAT_SIDE)
+    return wins
 
 
 # ------------------------------------------------------------------------------------------- 1, 2: per file
@@ -181,7 +178,7 @@ def fine_band(f, window_bounds):
 
 def alignment(files):
     rows = []
-    wins, _ = windows(files)
+    wins = windows(files)
     ref = {s: files[(files.sensor == s) & (files.date == REFERENCE)].iloc[0] for s in files.sensor.unique()}
     for wname, wb in wins.items():
         refimg = {s: uav.edges(fine_band(r, wb)) for s, r in ref.items()}
@@ -201,31 +198,6 @@ def alignment(files):
     out = pd.DataFrame(rows)
     out["shift_m"] = np.hypot(out.shift_e_m, out.shift_n_m)
     return out
-
-
-def effective_resolution(files):
-    """Lag (m) where the autocorrelation of each band, along rows and columns, first drops below 0.5."""
-    _, wb = windows(files)
-    tr, shape = uav.grid(wb, 0.02)
-    rows = []
-    for f in files[files.date == REFERENCE].itertuples():
-        arr = uav.read_on_grid(f.path, range(1, len(f.bands) + 1), field.UAV_NODATA[f.sensor], tr, shape,
-                               window_bounds_utm=wb)
-        for name, a in zip(f.bands, arr):
-            a = a - np.nanmean(a)
-            a = np.where(np.isfinite(a), a, 0)
-            lags = {}
-            for axis in (0, 1):
-                ac = [1.0]
-                for k in range(1, 150):
-                    x, y = (a[k:], a[:-k]) if axis == 0 else (a[:, k:], a[:, :-k])
-                    ac.append(np.corrcoef(x.ravel(), y.ravel())[0, 1])
-                    if ac[-1] < 0.5:
-                        break
-                lags[axis] = len(ac) - 1
-            rows.append({"sensor": f.sensor, "date": f.date.date(), "band": name,
-                         "autocorr_half_lag_m": 0.02 * max(lags.values())})
-    return pd.DataFrame(rows)
 
 
 # ------------------------------------------------------------------------------------------- 6: the per-plot tables
@@ -473,7 +445,7 @@ def fig_coverage(ds, meta, path):
 
 # ------------------------------------------------------------------------------------------- README
 
-def readme(inv, rad, cam, ndvi_cam, align, res, same, yellow, rc, qc, meta, per, tva):
+def readme(inv, rad, cam, ndvi_cam, align, same, yellow, rc, qc, meta, per, tva):
     n_alt, n_rem = (inv.sensor == "Altum").sum(), (inv.sensor == "RedEdge_MX_Dual").sum()
     zones = {1: "mat", 2: "lake", 3: "grassland", 4: "other ground"}
     full = meta[meta.coverage_remx_median >= 0.9]
@@ -488,8 +460,6 @@ def readme(inv, rad, cam, ndvi_cam, align, res, same, yellow, rc, qc, meta, per,
     cg, ng = cam[cam.date.isin(ok_days)], ndvi_cam[ndvi_cam.date.isin(ok_days)]
     ndvi_days = qc[(qc.sensor != "Altum") & qc.use_ndvi]
     t_ok = tva[tva.date.isin(set(qc[qc.use_thermal].date))]
-    res_t = res[res.band == "Thermal_11um"].autocorr_half_lag_m
-    res_ms = res[res.band != "Thermal_11um"].groupby("sensor").autocorr_half_lag_m
     yel = yellow.groupby("date").n_subplots_flagged.sum()
 
     def yn(v):
@@ -563,16 +533,6 @@ def readme(inv, rad, cam, ndvi_cam, align, res, same, yellow, rc, qc, meta, per,
         + ", ".join(f"{w} {n}" for w, n in unclear.window.value_counts().items()) + "): the south window, around the"
         " station, changes between flights; the middle and north windows (platforms and boardwalk) match.",
         "",
-        "## How sharp is each band? (`effective_resolution.csv`)",
-        "",
-        f"Distance at which the image stops resembling itself (autocorrelation 0.5), over open mat on {REFERENCE}:"
-        f" Altum multispectral {res_ms.min().get('Altum', np.nan):.2f}–{res_ms.max().get('Altum', np.nan):.2f} m,"
-        f" RedEdge-MX {res_ms.min().get('RedEdge_MX_Dual', np.nan):.2f}–{res_ms.max().get('RedEdge_MX_Dual', np.nan):.2f} m,"
-        f" **Altum thermal {res_t.iloc[0]:.1f} m**. This mixes two things: the Altum's thermal camera has far coarser"
-        " pixels than its multispectral ones (the band is delivered resampled on the 2 cm grid), and surface"
-        " temperature may vary smoothly over open mat. Either way a sub-plot circle half a metre across does not"
-        " resolve its own temperature; it carries that of its surroundings.",
-        "",
         "## The surface temperature against the air (`thermal_vs_air.csv`)",
         "",
         f"On the usable flights the strip's median surface temperature is {t_ok.surface_minus_air_max_c.min():+.1f} to"
@@ -605,7 +565,6 @@ def readme(inv, rad, cam, ndvi_cam, align, res, same, yellow, rc, qc, meta, per,
         "| `qc_flags.csv` | per file: the rules that failed; `use_reflectance`, `use_ndvi`, `use_thermal` |",
         "| `cross_camera.csv`, `cross_camera_ndvi.csv` | same-day Altum vs RedEdge-MX |",
         "| `alignment.csv` | shift per flight and window, with the match's peak ratio |",
-        "| `effective_resolution.csv` | autocorrelation half-distance per band |",
         "| `thermal_vs_air.csv` | strip surface temperature vs the day's air temperature |",
         "| `plot_tables_same.csv`, `plot_recomputed.csv`, `yellow_flags.csv` | the per-plot tables checked |",
         "| `cells_meta.csv`, `cells_uav.csv` | the 40 m cells covered and their per-flight UAV values |",
@@ -628,8 +587,6 @@ def main() -> None:
     ndvi_cam.to_csv(OUT / "cross_camera_ndvi.csv", index=False)
     align = alignment(files)
     align.to_csv(OUT / "alignment.csv", index=False)
-    res = effective_resolution(files)
-    res.to_csv(OUT / "effective_resolution.csv", index=False)
     same, yellow, rc = plot_tables(files)
     same.to_csv(OUT / "plot_tables_same.csv", index=False)
     yellow.to_csv(OUT / "yellow_flags.csv", index=False)
@@ -642,7 +599,7 @@ def main() -> None:
     per.to_csv(OUT / "cells_uav.csv", index=False)
     fig_quicklook(ds, qc, OUT / "fig_quicklook.png")
     fig_coverage(ds, meta, OUT / "fig_coverage.png")
-    readme(inv, rad, cam, ndvi_cam, align, res, same, yellow, rc, qc, meta, per, thermal_vs_air(rad))
+    readme(inv, rad, cam, ndvi_cam, align, same, yellow, rc, qc, meta, per, thermal_vs_air(rad))
     print(f"wrote {OUT} and {STACK}")
 
 
