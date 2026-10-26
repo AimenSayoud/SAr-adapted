@@ -1,14 +1,18 @@
-"""F3, final version — a schematic of what C-band sees on a floating mat and which pairs keep its motion. No data and
-no numbers: the quantities it names are measured in Figs. 2, 4 and 5 and in §§4–5.
+"""F3, final version (round 3) — a schematic of what C-band sees on a floating mat and which pairs keep its motion.
+No data: the quantities it names are measured in Figs. 2, 4 and 5 and in §§4–5; the only value printed is the
+wavelength's quarter, from the library's constant.
 
-(a) A cross-section at two dates. The water rises; the mat, anchored at its edge, rises by a fraction of that
-(buoyancy). C-band rays at the tracks' incidence scatter from the mat surface, so a pair's phase follows the surface;
-only where stems stand in open water (the lake's reed margin) can a double bounce carry the water level. Coherence
-changes with the wetness of the surface. (b) A year of acquisitions: consecutive short pairs follow the motion, pairs
-that skip an acquisition and long pairs lose it, and across the winter the chain's level must come from outside the
-radar (§5.2; the estimator of §6 takes it from the weather). (c) Why the longer pairs lose it: a pair's phase gives the
-line-of-sight change only within ±λ/4 and wraps beyond it (X-127 found that ambiguity enough to explain the loss);
-shaded beyond ±λ/4 as in Fig. 4. Round 2 (C-070): brief in the hub ``article_plan/figures/briefs/F3.md``.
+(a) A cross-section at two dates, dashed = date 1, solid = date 2 for both the mat and the water. The water rises; the
+mat, held at its firm edge, rises by a fraction of it and more toward its interior (§4.4), so its surface ends nearer
+the water. Numbered markers and a key replace leader lines: ① surface scattering — the pair's phase follows the mat
+surface; ② double bounce on stems standing in open water — would follow the water level; ③ coherence changes with the
+surface's wetness. An inset projects the vertical rise d on the line of sight at incidence θ (d·cos θ).
+(b) One track over a year. Top: the pairs — consecutive pairs follow the motion, pairs that skip an acquisition and
+long pairs lose it (why: c), winter pairs are still made. Bottom: a sketch of the level — the chain of consecutive
+pairs keeps close to it through the season; across the winter its noise adds up (the band widens), so the level has to
+be re-set from outside the radar (§6: from the weather), itself with an error. (c) Why the longer pairs lose it: a
+pair's phase gives the line-of-sight change only within ±λ/4 and wraps beyond it (X-127 found that ambiguity enough to
+explain the loss); shaded beyond ±λ/4 as in Fig. 4. Briefs in the hub ``article_plan/figures/briefs/F3.md``.
 Writes only to the hub ``08_deliverables/article_plan/figures/final/``.
 
     make run E=article_fig_f3
@@ -20,173 +24,284 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
+from matplotlib.lines import Line2D  # noqa: E402
 from matplotlib.patches import Arc, FancyArrowPatch, Polygon, Rectangle  # noqa: E402
 
 from insar_wetlands import figstyle as fs  # noqa: E402
+from insar_wetlands.cube.core import WAVELENGTH_MM  # noqa: E402
 from insar_wetlands.paths import hub_root  # noqa: E402
 
 OUT = hub_root() / "08_deliverables" / "article_plan" / "figures" / "final"
 WATER, WATER_FILL, PEAT, STEM, BANK = "#2C7FB8", "#dcecf7", "#8a6d3b", "#3f7d3a", "#c9c3b6"
+LOS, LOST, OUTSIDE, SHADE = "#0072B2", fs.CLASS["laser"], "#8250df", "#eef1f4"
 INC = 35.0                                            # schematic incidence, between the two tracks'
+Q = WAVELENGTH_MM / 4                                 # a quarter wavelength along the line of sight, mm
 
 
-def arrow(ax, p0, p1, color=fs.INK, lw=0.9, style="-|>", ls="-", ms=8):
+def arrow(ax, p0, p1, color=fs.INK, lw=0.9, style="-|>", ls="-", ms=8, z=6):
     ax.add_patch(FancyArrowPatch(p0, p1, arrowstyle=style, mutation_scale=ms, color=color, lw=lw, linestyle=ls,
-                                 shrinkA=0, shrinkB=0))
+                                 shrinkA=0, shrinkB=0, zorder=z))
 
 
-def stems(ax, x0, x1, base, n, h=0.32, color=STEM, lw=0.8):
-    for xv in np.linspace(x0, x1, n):
-        ax.plot([xv, xv + 0.03], [base, base + h], color=color, lw=lw, solid_capstyle="round")
+def badge(ax, x, y, n, transform=None):
+    """A numbered marker: a white disc with the number, the same in the drawing and in the key."""
+    kw = {} if transform is None else {"transform": transform}
+    ax.plot([x], [y], "o", ms=9, mfc="white", mec=fs.INK, mew=0.8, zorder=9, clip_on=False, **kw)
+    ax.text(x, y, str(n), ha="center", va="center", fontsize=7, fontweight="bold", zorder=10, **kw)
+
+
+def stems(ax, xs, base, h, color=STEM, lw=0.7, z=4):
+    for xv, b in zip(xs, np.broadcast_to(base, np.shape(xs))):
+        ax.plot([xv, xv + 0.03], [b, b + h], color=color, lw=lw, solid_capstyle="round", zorder=z)
 
 
 def panel_section(ax) -> None:
-    ax.set_xlim(0, 20), ax.set_ylim(0.6, 7.25)
+    ax.set_xlim(0, 20), ax.set_ylim(0, 7.4)
     ax.set_aspect("equal")
     ax.axis("off")
-    w1, w2 = 2.2, 3.3                                  # water level, date 1 and date 2
-    rise = 0.4 * (w2 - w1)                             # the mat rises by a fraction of the water's rise (drawn large)
-    ax.add_patch(Rectangle((2.6, 0), 15.2, w2, fc=WATER_FILL, ec="none", zorder=0))
-    ax.plot([2.6, 17.8], [w2, w2], color=WATER, lw=1.0, zorder=1)
-    ax.plot([2.6, 17.8], [w1, w1], color=WATER, lw=0.8, ls=(0, (3, 2)), zorder=1)
-    ax.add_patch(Polygon([(0, 0), (0, 3.9), (1.6, 3.9), (3.0, 2.4), (3.4, 0)], fc=BANK, ec="none", zorder=2))
-    ax.text(0.8, 0.6, "firm\nground", ha="center", fontsize=7, color=fs.MUTED, zorder=3)
-    top2 = w2 + 0.35                                   # a floating mat sits low: small freeboard, base below both
-    base = top2 - 1.95                                 # water levels at either date (it floats on date 1 too)
-    mat = Polygon([(3.05, top2), (12.6, top2), (12.6, base), (3.35, base)], fc=PEAT, ec="none", zorder=3)
-    ax.add_patch(mat)
-    edge = 0.35 * rise                                 # held at its edge, the mat rises less there (§4.4)
-    ax.plot([3.05, 12.6, 13.2], [top2 - edge, top2 - rise, top2 - rise], color=fs.INK, lw=0.7, ls=(0, (2, 1.5)),
-            zorder=4)
-    ax.plot([12.6, 13.2], [top2, top2], color=fs.INK, lw=0.7, zorder=4)
-    stems(ax, 3.3, 12.3, top2, 30, h=0.3)
-    ax.text(7.9, base + 0.45, "floating mat: roots and peat", ha="center", va="center", fontsize=7, color="white",
-            zorder=5)
-    stems(ax, 14.0, 15.2, w2 - 0.9, 8, h=1.6, lw=0.9)                       # reeds in the lake margin
-    ax.text(16.2, 1.0, "residual lake", ha="center", fontsize=7, color=WATER)
-    # changes between the dates
-    arrow(ax, (17.3, w1), (17.3, w2), color=WATER, style="<|-|>", ms=6)
-    ax.text(17.55, (w1 + w2) / 2, "water\nrises", ha="left", va="center", fontsize=7, color=WATER)
-    arrow(ax, (13.05, top2 - rise), (13.05, top2), color=fs.INK, style="<|-|>", ms=6)
-    ax.text(12.5, top2 + 0.42, "the mat rises by a fraction of it;\nthe radar sees the rise\nalong its line of sight",
-            ha="right", va="bottom", fontsize=7, linespacing=1.1)
-    ax.text(3.4, top2 - rise - 0.1, "mat surface, date 1: it rises more away from its edge", ha="left", va="top",
-            fontsize=7, color="white", zorder=5)
-    # radar rays at the incidence angle, from the upper left
-    dx, dy = np.sin(np.radians(INC)), -np.cos(np.radians(INC))
-    for xe in (4.6, 6.2, 7.8):
-        L = 3.3
-        arrow(ax, (xe - dx * L, top2 - dy * L * -1 if False else top2 + abs(dy) * L), (xe, top2 + 0.05), lw=0.8)
-    ax.text(2.4, top2 + 3.05, "C-band", ha="left", va="bottom", fontsize=7, fontweight="bold")
-    xt = 7.8                                           # the incidence angle θ at one ray, from the vertical
-    ax.plot([xt, xt], [top2 + 0.05, top2 + 1.5], color=fs.MUTED, lw=0.5, ls=(0, (2, 1.5)), zorder=4)
-    ax.add_patch(Arc((xt, top2 + 0.05), 2.0, 2.0, theta1=90, theta2=90 + INC, color=fs.MUTED, lw=0.6, zorder=4))
-    ax.text(xt - 0.32, top2 + 1.3, "θ", ha="center", va="center", fontsize=7, color=fs.MUTED)
-    ax.annotate("surface scattering: the pair's phase\nfollows the mat surface", (6.2, top2 + 0.1),
-                xytext=(9.3, top2 + 2.75), fontsize=7, ha="left", va="center",
-                arrowprops=dict(arrowstyle="-", color=fs.INK, lw=0.5))
-    # double bounce at the reed margin
-    xb = 14.3
-    arrow(ax, (xb - dx * 3.2, w2 + abs(dy) * 3.2), (xb, w2 + 0.02), lw=0.8)
-    arrow(ax, (xb, w2 + 0.02), (xb + 0.45, w2 + 0.65), lw=0.6, ms=5)
-    ax.annotate("double bounce, water and stems:\nwould follow the water level\n(too rare at the plots to read)",
-                (xb + 0.3, w2 + 0.5), xytext=(15.0, top2 + 2.2), fontsize=7, ha="left", va="center",
-                arrowprops=dict(arrowstyle="-", color=fs.INK, lw=0.5))
-    # coherence and wetness
-    for xv in np.linspace(3.6, 6.4, 7):
-        ax.plot(xv, top2 + 0.08, "o", ms=1.8, color=WATER, zorder=6)
-    ax.annotate("coherence: changes\nwith the wetness\nof the surface", (4.0, top2 + 0.1), xytext=(0.2, top2 + 1.6),
-                fontsize=7, ha="left", va="center", arrowprops=dict(arrowstyle="-", color=fs.INK, lw=0.5))
-    ax.plot([], [], color=WATER, lw=0.8, ls=(0, (3, 2)), label="date 1")
-    ax.plot([], [], color=WATER, lw=1.0, label="date 2")
-    ax.legend(loc="lower right", bbox_to_anchor=(1.0, -0.02), fontsize=7, handlelength=1.6, ncol=2,
-              title="water level", title_fontsize=7)
+    x0, x1 = 2.9, 13.0                                 # the mat: held at the bank (x0), free toward the lake (x1)
+    t1, thick = 3.55, 1.7                              # date-1 surface and the mat's thickness (vertical exaggerated)
+    w1, w2 = 2.7, 3.35                                 # water level, date 1 and date 2
+
+    def t2(x):                                         # date-2 surface: a small rise at the edge, more inside (§4.4)
+        x = np.asarray(x, float)
+        return t1 + 0.15 + 0.38 * (1 - np.exp(-(x - x0) / 3.0))
+
+    # water, bank, mat at date 2 (filled) and its outline at date 1 (dashed)
+    ax.add_patch(Rectangle((x0, 0), 20 - x0, w2, fc=WATER_FILL, ec="none", zorder=0))
+    ax.plot([x1, 20], [w2, w2], color=WATER, lw=1.1, zorder=1)
+    ax.plot([x1, 20], [w1, w1], color=WATER, lw=1.0, ls=(0, (3, 2)), zorder=1)
+    ax.add_patch(Polygon([(0, 0), (0, 4.3), (1.8, 4.3), (x0 + 0.05, 3.1), (x0 + 0.25, 0)], fc=BANK, ec="none",
+                         zorder=2))
+    ax.text(1.35, 0.45, "firm\nground", ha="center", fontsize=7, color=fs.INK, linespacing=1.0, zorder=3)
+    xs = np.linspace(x0, x1, 200)
+    top = t2(xs)
+    ax.add_patch(Polygon(np.r_[np.c_[xs, top], np.c_[xs[::-1], top[::-1] - thick]], fc=PEAT, ec="none", zorder=3))
+    ax.plot([x0, x1, x1, x0], [t1, t1, t1 - thick, t1 - thick], color=fs.INK, lw=0.9, ls=(0, (3, 2)), zorder=5)
+    stems(ax, np.linspace(x0 + 0.3, x1 - 0.3, 26), t2(np.linspace(x0 + 0.3, x1 - 0.3, 26)), 0.22)
+    ax.plot([x0], [t2(x0)], "o", ms=3.5, color=fs.INK, zorder=6)                       # where the mat is held
+    ax.text(7.9, 2.95, "floating mat (roots and peat)", ha="center", va="center", fontsize=7, color="white",
+            zorder=6)
+    ax.text(7.9, 2.5, "held at its edge, it rises more toward its interior  →", ha="center", va="center",
+            fontsize=7, color="white", zorder=6)
+    # the rise: small at the edge, larger inside; the inset below names it d
+    xr = 12.35
+    arrow(ax, (xr, t1), (xr, float(t2(xr))), style="-|>", ms=6, lw=0.9, z=7)
+    ax.text(xr - 0.12, (t1 + float(t2(xr))) / 2 + 0.02, "d", ha="right", va="center", fontsize=7,
+            fontstyle="italic", color="white", zorder=7)
+    # the water: direct labels and its rise
+    ax.text(15.9, w2 + 0.06, "water, date 2", ha="left", va="bottom", fontsize=7, color=WATER)
+    ax.text(15.9, w1 + 0.06, "water, date 1", ha="left", va="bottom", fontsize=7, color=WATER)
+    arrow(ax, (19.45, w1), (19.45, w2), color=WATER, style="-|>", ms=6, lw=1.0)
+    ax.text(19.3, (w1 + w2) / 2 - 0.15, "rises", ha="right", va="center", fontsize=7, color=WATER)
+    ax.text(17.2, 1.9, "open water (residual lake)", ha="center", va="center", fontsize=7, color=WATER)
+    stems(ax, np.linspace(14.1, 15.3, 7), w2 - 0.7, 1.55, lw=0.9)                       # reeds in open water
+
+    # radar rays at the incidence angle, from the upper left (direction of travel: down and right)
+    dx, dy = np.sin(np.radians(INC)), np.cos(np.radians(INC))
+    L = 2.7
+    for xe in (7.6, 9.0, 10.4):
+        ye = float(t2(xe)) + 0.24
+        arrow(ax, (xe - dx * L, ye + dy * L), (xe, ye), lw=0.9)
+    ax.text(7.6 - dx * L - 0.1, float(t2(7.6)) + 0.24 + dy * L + 0.12, "C-band radar", ha="left", va="bottom",
+            fontsize=7, fontweight="bold")
+    xt, yt = 10.4, float(t2(10.4)) + 0.24                # θ at one ray, from the vertical
+    ax.plot([xt, xt], [yt, yt + 1.35], color=fs.MUTED, lw=0.6, ls=(0, (2, 1.5)), zorder=5)
+    ax.add_patch(Arc((xt, yt), 1.9, 1.9, theta1=90, theta2=90 + INC, color=fs.MUTED, lw=0.7, zorder=5))
+    ax.text(xt - 0.3, yt + 1.15, "θ", ha="center", va="center", fontsize=7.5, color=fs.INK)
+    badge(ax, 11.3, float(t2(11.3)) + 0.55, 1)
+    # double bounce: down to the water, across to a stem, back toward the radar
+    xb = 14.0
+    arrow(ax, (xb - dx * 2.6, w2 + dy * 2.6), (xb, w2 + 0.02), lw=0.9)
+    arrow(ax, (xb, w2 + 0.02), (xb + 0.42, w2 + 0.6), lw=0.7, ms=5)
+    arrow(ax, (xb + 0.42, w2 + 0.6), (xb + 0.42 - dx * 1.3, w2 + 0.6 + dy * 1.3), lw=0.7, ms=5, ls=(0, (2, 1.2)))
+    badge(ax, 15.75, w2 + 0.85, 2)
+    # wetness near the edge, where the surface ends nearest the water
+    for xv in np.linspace(3.3, 5.4, 8):
+        ax.plot(xv, float(t2(xv)) + 0.05, "o", ms=2.0, color=WATER, zorder=7)
+    badge(ax, 4.35, float(t2(4.35)) + 0.62, 3)
+
+    # the key, top left (in place of leader lines)
+    key = [(1, "surface scattering: the pair's phase", "follows the mat surface"),
+           (2, "double bounce on stems in open water:", "would follow the water level\n(rare at the plots)"),
+           (3, "coherence: changes with the wetness", "of the surface")]
+    y = 6.95
+    for n, l1, l2 in key:
+        badge(ax, 0.45, y - 0.17, n)
+        ax.text(0.8, y, l1 + "\n" + l2, ha="left", va="top", fontsize=7, linespacing=1.15)
+        y -= 0.78 + 0.3 * l2.count("\n")
+
+    # inset: the vertical rise seen along the line of sight
+    ox, oy, d = 17.75, 4.75, 1.55
+    u = np.array([-dx, dy])                            # toward the radar
+    p = np.array([ox, oy]) + d * dy * u                # the projection of the rise on the line of sight
+    ax.plot([ox, ox - 2.2 * dx], [oy, oy + 2.2 * dy], color=fs.MUTED, lw=0.6, ls=(0, (2, 1.5)), zorder=5)
+    arrow(ax, (ox, oy), (ox, oy + d), lw=1.1, ms=7)
+    arrow(ax, (ox, oy), tuple(p), color=LOS, lw=1.6, ms=7)
+    ax.plot([ox, p[0]], [oy + d, p[1]], color=fs.MUTED, lw=0.6, ls=(0, (1, 1.2)), zorder=5)
+    ax.add_patch(Arc((ox, oy), 0.9, 0.9, theta1=90, theta2=90 + INC, color=fs.MUTED, lw=0.7, zorder=5))
+    ax.text(ox - 0.2, oy + 0.7, "θ", ha="center", va="center", fontsize=7.5)
+    ax.text(ox + 0.12, oy + d - 0.05, "d, vertical rise", ha="left", va="top", fontsize=7)
+    ax.text(p[0] - 0.12, p[1] - 0.05, "d · cos θ:\nwhat the pair\nmeasures", ha="right", va="top", fontsize=7,
+            color=LOS, linespacing=1.1)
+    ax.text(ox - 2.2 * dx - 0.05, oy + 2.2 * dy + 0.05, "line of sight", ha="right", va="bottom", fontsize=7,
+            color=fs.MUTED)
+    # what dashed and solid mean, and the scale
+    hs = [Line2D([], [], color=fs.INK, lw=0.9, ls=(0, (3, 2))), Line2D([], [], color=fs.INK, lw=1.1)]
+    leg = ax.legend(hs, ["date 1 (earlier)", "date 2 (later)"], loc="lower right", bbox_to_anchor=(1.0, 0.0),
+                    fontsize=7, handlelength=2.2, ncol=2, title="mat and water", title_fontsize=7,
+                    borderaxespad=0.2)
+    leg._legend_box.align = "left"
+    ax.text(x0 + 0.4, 0.15, "not to scale; vertical exaggerated", ha="left", va="bottom", fontsize=7,
+            color=fs.MUTED, zorder=8)
 
 
-def panel_pairs(ax) -> None:
-    n = 31
-    t = np.arange(n)
-    winter = (17, 23)
-    ax.set_xlim(-0.8, n - 0.2), ax.set_ylim(-1.6, 6.2)
-    ax.axis("off")
-    ax.add_patch(Rectangle((winter[0] - 0.5, -0.4), winter[1] - winter[0] + 1, 6.3, fc="#eef1f4", ec="none", zorder=0))
-    ax.text(winter[1] + 0.3, 5.4, "winter: snow and frost", ha="right", fontsize=7, color=fs.MUTED)
-    ax.text((winter[0] + winter[1]) / 2 + 0.5, 1.0, "pairs still made;\ntheir noise adds up\nalong the chain",
-            ha="center", va="bottom", fontsize=7, color=fs.MUTED)
-    col_in = [fs.MUTED if winter[0] <= k <= winter[1] else fs.INK for k in t]
-    ax.scatter(t, np.zeros(n), s=9, c=col_in, zorder=3)
-    ax.text(-0.6, -0.75, "acquisitions of one track", ha="left", fontsize=7, color=fs.MUTED)
+# --- (b) one track over a year --------------------------------------------------------------------------------------
+MONTHS = ["May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec", "Jan", "Feb", "Mar", "Apr", "May", "Jun"]
+MONTH_START = np.cumsum([0, 31, 30, 31, 31, 30, 31, 30, 31, 31, 28, 31, 30, 31, 30])  # from 1 May
+WINTER = (MONTH_START[7], MONTH_START[11])            # 1 December to 31 March
+STEP = 12                                             # days between acquisitions (schematic)
 
-    def arc(a, b, color, ls="-", lw=1.2):
-        w = b - a
-        ax.add_patch(Arc(((a + b) / 2, 0), w, w * 0.9, theta1=0, theta2=180, color=color, lw=lw, ls=ls, zorder=2))
 
-    for k in range(1, 5):
-        arc(k, k + 1, fs.CLASS["mat"])
-    ax.text(2.6, 1.0, "consecutive pairs:\nfollow the motion", ha="center", va="bottom", fontsize=7,
-            color=fs.CLASS["mat"])
-    arc(7, 9, fs.CLASS["laser"], ls=(0, (2.5, 1.5)), lw=1.0)
-    arc(8, 10, fs.CLASS["laser"], ls=(0, (2.5, 1.5)), lw=1.0)
-    ax.text(8.5, 1.35, "skipping an\nacquisition:\nlose it (why: c)", ha="center", va="bottom", fontsize=7,
-            color=fs.CLASS["laser"])
-    arc(11, 15, fs.CLASS["laser"], ls=(0, (2.5, 1.5)), lw=1.0)
-    arc(12, 16, fs.CLASS["laser"], ls=(0, (2.5, 1.5)), lw=1.0)
-    ax.text(13.5, 1.95, "long pairs:\nlose it", ha="center", va="bottom", fontsize=7,
-            color=fs.CLASS["laser"])
-    for k in range(winter[0] - 1, winter[1] + 1):
-        arc(k, k + 1, fs.MUTED, lw=0.8)
-    arrow(ax, (winter[0] - 1, -1.15), (winter[1] + 1, -1.15), color="#8250df", lw=1.0)
-    ax.text((winter[0] + winter[1]) / 2, -1.4, "across the winter the level must come from outside\nthe radar "
-            "(here: from the weather, §6)", ha="center", va="top", fontsize=7, color="#8250df", linespacing=1.1)
-    for k in range(winter[1] + 1, n - 1):
-        arc(k, k + 1, fs.CLASS["mat"])
-    ax.text(27.0, 0.75, "the chain\nresumes", ha="center", va="bottom", fontsize=7, color=fs.CLASS["mat"])
+def _months(ax, labels: bool) -> None:
+    ax.set_xlim(-6, MONTH_START[-1])
+    ax.set_xticks(MONTH_START[:-1], [""] * len(MONTHS))
+    if labels:
+        ax.set_xticks((MONTH_START[:-1] + MONTH_START[1:]) / 2, MONTHS, minor=True)
+        ax.tick_params(axis="x", which="minor", length=0, labelsize=7)
+    ax.tick_params(axis="x", which="major", length=3)
+    ax.spines[["left", "top", "right"]].set_visible(False)
+    ax.set_yticks([])
+
+
+def panel_pairs(ax, lv) -> None:
+    t = np.arange(0, MONTH_START[-1], STEP)
+    n = len(t)
+    in_winter = (t >= WINTER[0]) & (t < WINTER[1])
+    for a in (ax, lv):
+        a.axvspan(*WINTER, color=SHADE, lw=0, zorder=0)
+    _months(ax, labels=False)
+    _months(lv, labels=True)
+    ax.set_ylim(-0.25, 2.25)
+
+    def arc(i, j, color, ls="-", lw=1.1):
+        w = t[j] - t[i]
+        h = 0.32 + 0.22 * (j - i - 1)
+        ax.add_patch(Arc(((t[i] + t[j]) / 2, 0), w, 2 * h, theta1=0, theta2=180, color=color, lw=lw, ls=ls,
+                         zorder=2))
+
+    for i in range(n - 1):
+        winter_pair = in_winter[i] or in_winter[i + 1]
+        arc(i, i + 1, fs.MUTED if winter_pair else fs.CLASS["mat"], lw=0.8 if winter_pair else 1.1)
+    ax.scatter(t, np.zeros(n), s=7, c=[fs.MUTED if w else fs.INK for w in in_winter], zorder=3, lw=0)
+    dash = (0, (2.5, 1.5))
+    for i in (5, 6):
+        arc(i, i + 2, LOST, ls=dash, lw=1.0)
+    for i in (11, 12):
+        arc(i, i + 5, LOST, ls=dash, lw=1.0)
+    ax.text(t[1] + 6, 0.5, "consecutive pairs:\nfollow the motion", ha="center", va="bottom", fontsize=7,
+            color=fs.CLASS["mat"], linespacing=1.1)
+    ax.text((t[5] + t[8]) / 2, 0.86, "skip one:\nlose it", ha="center", va="bottom", fontsize=7, color=LOST,
+            linespacing=1.1)
+    ax.text((t[11] + t[17]) / 2, 1.5, "long pairs: lose it (why: c)", ha="center", va="bottom", fontsize=7,
+            color=LOST)
+    ax.text(sum(WINTER) / 2, 0.5, "winter: pairs still made,\nbut snow and frost", ha="center", va="bottom",
+            fontsize=7, color=fs.MUTED, linespacing=1.1)
+    ax.text(MONTH_START[12] + 30, 0.5, "consecutive\nagain", ha="center", va="bottom", fontsize=7,
+            color=fs.CLASS["mat"], linespacing=1.1)
+    ax.text(-6, 2.2, "the pairs of one track", ha="left", va="top", fontsize=7, color=fs.INK, fontweight="bold")
+
+    # the level: truth, the chain of consecutive pairs and how far it can be off (±2 σ √steps)
+    tt = np.linspace(0, MONTH_START[-1], 600)
+    truth = lambda x: 1.0 * np.cos(2 * np.pi * (np.asarray(x) - 255) / 365)      # high in winter, low in summer
+    lv.plot(tt, truth(tt), color=fs.INK, lw=1.0, zorder=4)
+    rng = np.random.default_rng(5)
+    sig = np.where(in_winter[1:] | in_winter[:-1], 0.12, 0.035)                    # per pair, schematic
+    spring = int(np.argmax(t >= WINTER[1]))
+    est, band = [truth(t[0])], [0.0]
+    for k in range(1, spring):
+        est.append(est[-1] + truth(t[k]) - truth(t[k - 1]) + rng.normal(0, sig[k - 1]))
+        band.append(np.sqrt(band[-1] ** 2 + sig[k - 1] ** 2))
+    est, band = np.array(est), 2 * np.array(band)
+    season = t[:spring] < WINTER[0]
+    last_in = int(np.flatnonzero(season)[-1])
+    for sl, col, ls in ((slice(0, last_in + 1), fs.CLASS["mat"], "-"), (slice(last_in, spring), fs.MUTED, "--")):
+        lv.fill_between(t[sl], est[sl] - band[sl], est[sl] + band[sl], color=col, alpha=0.18, lw=0, zorder=2)
+        lv.plot(t[sl], est[sl], color=col, lw=1.1, ls=ls, zorder=5)
+    # re-set at spring from outside the radar, with its own error, then the chain again
+    r0 = truth(t[spring]) + 0.12
+    arrow(lv, (t[spring - 1], est[-1]), (t[spring], r0), color=OUTSIDE, lw=1.0, ms=6)
+    lv.errorbar([t[spring]], [r0], yerr=0.18, fmt="o", ms=3.5, mfc="white", mec=OUTSIDE, ecolor=OUTSIDE,
+                elinewidth=0.9, capsize=2, zorder=7)
+    e2, b2 = [r0], [0.09]
+    for k in range(spring + 1, n):
+        e2.append(e2[-1] + truth(t[k]) - truth(t[k - 1]) + rng.normal(0, sig[k - 1]))
+        b2.append(np.sqrt(b2[-1] ** 2 + sig[k - 1] ** 2))
+    e2, b2 = np.array(e2), 2 * np.array(b2)
+    lv.fill_between(t[spring:], e2 - b2, e2 + b2, color=fs.CLASS["mat"], alpha=0.18, lw=0, zorder=2)
+    lv.plot(t[spring:], e2, color=fs.CLASS["mat"], lw=1.1, zorder=5)
+    lv.set_ylim(-1.3, 2.4)
+    lv.set_ylabel("mat level\n(sketch)", fontsize=7, linespacing=1.1)
+    lv.spines["left"].set_visible(True)
+    lv.text(4, -0.2, "true level", ha="left", va="bottom", fontsize=7, color=fs.INK)
+    lv.text(132, 0.55, "chain of consecutive pairs:\nclose to it within the season", ha="center", va="bottom",
+            fontsize=7, color=fs.CLASS["mat"], linespacing=1.1)
+    lv.text(sum(WINTER) / 2, -1.2, "noise adds up\nalong the chain", ha="center", va="bottom", fontsize=7,
+            color=fs.MUTED, linespacing=1.1)
+    lv.text(t[spring] - 3, 1.65, "level re-set from outside the radar\n(§6: from the weather), with an error",
+            ha="right", va="bottom", fontsize=7, color=OUTSIDE, linespacing=1.1)
 
 
 def panel_wrap(ax) -> None:
-    """What one pair's phase returns against the true line-of-sight change, in units of a quarter wavelength."""
-    lim = 2.6
+    """What one pair's phase returns against the true line-of-sight change (two-way phase 4πd/λ wrapped to ±π)."""
+    lim = 2.6 * Q
     x = np.linspace(-lim, lim, 2001)
-    y = (x + 1) % 2 - 1                                # two-way phase 4πd/λ wrapped to ±π ↔ d wrapped to ±λ/4
-    y[np.r_[False, np.abs(np.diff(y)) > 1]] = np.nan   # no line across a wrap
+    y = (x + Q) % (2 * Q) - Q
+    y[np.r_[False, np.abs(np.diff(y)) > Q]] = np.nan   # no line across a wrap
     for sgn in (-1, 1):
-        ax.axvspan(sgn * 1, sgn * lim, color="#eef1f4", lw=0, zorder=0)
+        ax.axvspan(sgn * Q, sgn * lim, color=SHADE, lw=0, zorder=0)
     ax.plot([-lim, lim], [-lim, lim], color=fs.MUTED, lw=0.7, ls=(0, (3, 2)), zorder=1)
-    ax.plot(x, y, color=fs.INK, lw=1.1, zorder=2)
-    xe = 1.4                                           # one change beyond λ/4: returned smaller and with the wrong sign
-    ye = (xe + 1) % 2 - 1
-    ax.annotate("", (xe, ye), (xe, xe), arrowprops=dict(arrowstyle="-|>", color=fs.CLASS["laser"], lw=0.9,
-                                                        mutation_scale=7, shrinkA=1, shrinkB=1))
-    ax.plot([xe], [xe], "o", ms=3, mfc="white", mec=fs.CLASS["laser"], mew=0.9, zorder=3)
-    ax.plot([xe], [ye], "o", ms=3, color=fs.CLASS["laser"], zorder=3)
-    ax.text(2.5, -1.8, "beyond λ/4:\nwrong size\nand sign", ha="right", va="center", fontsize=7,
-            color=fs.CLASS["laser"], linespacing=1.05)
-    ax.text(-0.95, 1.85, "1:1", ha="left", va="center", fontsize=7, color=fs.MUTED)
-    ticks = [-2, -1, 0, 1, 2]
+    ax.plot(x, y, color=fs.INK, lw=1.2, zorder=2)
+    xe = 1.45 * Q                                      # one change beyond λ/4: returned smaller and with the wrong sign
+    ye = (xe + Q) % (2 * Q) - Q
+    ax.annotate("", (xe, ye), (xe, xe), arrowprops=dict(arrowstyle="-|>", color=LOST, lw=0.9, mutation_scale=7,
+                                                        shrinkA=2, shrinkB=2))
+    ax.plot([xe], [xe], "o", ms=3.5, mfc="white", mec=LOST, mew=0.9, zorder=3)
+    ax.plot([xe], [ye], "o", ms=3.5, color=LOST, zorder=3)
+    ax.text(lim - 0.05 * Q, -1.75 * Q, "beyond λ/4:\nwrong size\nand sign", ha="right", va="center", fontsize=7,
+            color=LOST, linespacing=1.05)
+    ax.text(-0.3 * Q, -1.9 * Q, "within ±λ/4:\nfollows 1:1", ha="center", va="center", fontsize=7, color=fs.INK,
+            linespacing=1.05)
+    ax.text(-lim + 0.1 * Q, lim - 0.1 * Q, f"λ/4 ≈ {Q:.0f} mm\n(C-band)", ha="left", va="top", fontsize=7,
+            color=fs.MUTED, linespacing=1.1)
+    ticks = [-2 * Q, -Q, 0, Q, 2 * Q]
     labels = ["−λ/2", "−λ/4", "0", "λ/4", "λ/2"]
     ax.set_xticks(ticks, labels), ax.set_yticks(ticks, labels)
     ax.set_xlim(-lim, lim), ax.set_ylim(-lim, lim)
     ax.set_aspect("equal")
-    ax.set_xlabel("the mat's change between the dates\n(line of sight)", fontsize=7, linespacing=1.1)
+    ax.set_xlabel("true change between the dates\n(line of sight)", fontsize=7, linespacing=1.1)
     ax.set_ylabel("what the pair's phase gives", fontsize=7)
     ax.tick_params(labelsize=7)
 
 
 def main() -> None:
     with fs.style():
-        fig = plt.figure(figsize=fs.size("full", 135))
-        a = fig.add_axes([0.01, 0.43, 0.98, 0.56])
-        b = fig.add_axes([0.01, 0.03, 0.68, 0.36])
-        c = fig.add_axes([0.785, 0.09, 0.2, 0.28])
+        fig = plt.figure(figsize=fs.size("full", 150))
+        a = fig.add_axes([0.0, 0.515, 1.0, 0.48])
+        b = fig.add_axes([0.075, 0.27, 0.6, 0.2])
+        lv = fig.add_axes([0.075, 0.045, 0.6, 0.215])
+        c = fig.add_axes([0.775, 0.1, 0.21, 0.34])
         panel_section(a)
-        panel_pairs(b)
+        panel_pairs(b, lv)
         panel_wrap(c)
-        fs.panel_label(a, "a", x=0.02, y=0.97)
-        fs.panel_label(b, "b", x=0.02, y=0.97)
-        fs.panel_label(c, "c", x=-0.42, y=1.08)
+        fig.text(0.005, 0.985, "(a)", fontsize=8, fontweight="bold", va="top")
+        fig.text(0.005, 0.475, "(b)", fontsize=8, fontweight="bold", va="top")
+        fig.text(0.70, 0.475, "(c)", fontsize=8, fontweight="bold", va="top")
         rec = fs.export(fig, OUT / "F3_schematic", provenance={
             "inputs": [], "kind": "schematic, no data", "incidence_drawn_deg": INC,
+            "quarter_wavelength_mm": round(Q, 3), "wavelength_source": "insar_wetlands.cube.core.WAVELENGTH_MM",
             "wrap": "(c) line-of-sight change wrapped to ±λ/4 (two-way phase 4πd/λ wrapped to ±π)",
+            "level_sketch": "(b) chain = truth increments + N(0, σ) per pair, σ larger in winter, seed 5; band ±2σ√n",
             "brief": "08_deliverables/article_plan/figures/briefs/F3.md"})
         plt.close(fig)
     print("F3 →", OUT, rec["width_mm"], "×", rec["height_mm"], "mm")
