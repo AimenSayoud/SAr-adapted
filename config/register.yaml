@@ -1242,6 +1242,22 @@ entries:
     - hub:08_deliverables/field_uav_x049
     tries:
     - T44
+  uav_rasters_c065:
+    kind: experiment
+    title: 'C-065: the UAV orthomosaics (Altum, RedEdge-MX Dual, 2022–2024) — inventory, radiometric and geometric
+      quality, the field team''s per-plot tables, and the 40 m cells they cover (no radar read)'
+    status: finished
+    runs_on: mac
+    code: experiments/uav_rasters_c065.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/uav_rasters_c065.py
+    tickets:
+    - C-065
+    chains:
+    - field-data
+    outputs:
+    - hub:08_deliverables/field_uav_c065
+    - hub:06_data/field/processed/uav_0p5m.nc
   field_x047_x048:
     kind: experiment
     title: 'X-047 / X-048: does Sentinel-1 respond to the measured water table, and does its phase see the laser-measured

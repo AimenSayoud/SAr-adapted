@@ -32,13 +32,17 @@ PLOTS = list(WTD_COLUMNS.values())
 
 
 def field_root(root: str | Path | None = None) -> Path:
-    """The hub's ``06_data/field``: explicit argument, ``RZECIN_FIELD_ROOT``, or the hub that
-    contains this repository (``05_code/SAr-adapted`` → ``../../06_data/field``)."""
+    """The hub's ``06_data/field``: explicit argument, ``RZECIN_FIELD_ROOT``, the hub that contains this repository
+    (``05_code/SAr-adapted`` → ``../../06_data/field``), or on Colab its copy in Drive ``mac_backup/``."""
     if root is not None:
         return Path(root)
     if os.environ.get("RZECIN_FIELD_ROOT"):
         return Path(os.environ["RZECIN_FIELD_ROOT"])
-    return Path(__file__).resolve().parents[4] / "06_data" / "field"
+    hub = Path(__file__).resolve().parents[4] / "06_data" / "field"
+    if hub.is_dir():
+        return hub
+    from insar_wetlands.paths import MAC_BACKUP, on_colab   # Colab: the hub's Drive backup copy, read-only
+    return MAC_BACKUP / "06_data" / "field" if on_colab() else hub
 
 
 def base_plot(name: str) -> str:
@@ -137,6 +141,35 @@ def load_uav_table(path: str | Path | None = None, mask_flagged: bool = True) ->
     df["Date"] = pd.to_datetime(df["Date"])
     df["base_plot"] = df["Plot"].map(base_plot)
     return df
+
+
+UAV_DELIVERY = "raw/2026-10_uav_rasters"
+# Band order of the delivered orthomosaics, as the field team's per-plot CSVs name them (nm; Altum band 6 = °C)
+UAV_BANDS = {
+    "Altum": ["Blue_475", "Green_560", "Red_668", "Red_Edge_717", "NIR_842", "Thermal_11um"],
+    "RedEdge_MX_Dual": ["Blue_444", "Blue_475", "Green_531", "Green_560", "Red_650", "Red_668",
+                        "Red_Edge_705", "Red_Edge_717", "Red_Edge_740", "NIR_842"],
+}
+UAV_NODATA = {"Altum": -9999.0, "RedEdge_MX_Dual": 0.0}
+UAV_CRS = 4326   # stated in each file's .aux.xml / ArcGIS .xml; some GeoTIFFs carry no CRS of their own
+
+
+def uav_rasters(root: str | Path | None = None) -> pd.DataFrame:
+    """The delivered UAV orthomosaics, one row per file: ``sensor``, ``date``, ``path``, ``bands``.
+
+    File names are ``Altum_DD.MM.YYYY_clipped.tif`` and ``RE-MX_DD.MM.YYYY_clipped_normalized.tif``."""
+    base = field_root(root) / UAV_DELIVERY
+    rows = []
+    for p in sorted(base.glob("*/*.tif")):
+        prefix, day = p.stem.split("_")[:2]
+        sensor = {"Altum": "Altum", "RE-MX": "RedEdge_MX_Dual"}.get(prefix)
+        if sensor is None:
+            raise ValueError(f"{p.name}: unknown UAV sensor prefix {prefix!r}")
+        rows.append({"sensor": sensor, "date": pd.to_datetime(day, format="%d.%m.%Y"), "path": p,
+                     "bands": UAV_BANDS[sensor]})
+    if not rows:
+        raise FileNotFoundError(f"no UAV rasters under {base}")
+    return pd.DataFrame(rows).sort_values(["sensor", "date"], ignore_index=True)
 
 
 def load_plots(path: str | Path | None = None, crs: int = 32633):
