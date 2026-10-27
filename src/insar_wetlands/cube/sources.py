@@ -366,6 +366,32 @@ def fetch_imgw(out_dir: Path, start_year: int, end_year: int, stations=IMGW_STAT
     return df.reset_index(drop=True)
 
 
+def fetch_imgw_archive(out_dir: Path, start_year: int, end_year: int, stations=IMGW_STATIONS, log=print) -> pd.DataFrame:
+    """Daily synop for the stations from IMGW's archive, for a climate normal: five-year bundles up to 2000
+    (``1991_1995/1991_1995_330_s.zip``), yearly per-station zips from 2001. Same parser as ``fetch_imgw``."""
+    out_dir.mkdir(parents=True, exist_ok=True)
+    names = set()
+    for y in range(start_year, end_year + 1):
+        if y <= 2000:
+            a = 1966 + (y - 1966) // 5 * 5
+            names.update(f"{a}_{a + 4}/{a}_{a + 4}_{s}_s.zip" for s in stations)
+        else:
+            names.update(f"{y}/{y}_{s}_s.zip" for s in stations)
+    frames = []
+    for n in sorted(names):
+        f = out_dir / n.split("/")[-1]
+        if not f.exists():
+            f.write_bytes(_get(f"{IMGW_SYNOP}/{n}", retries=2).content)
+            log(f"IMGW {n}")
+        with zipfile.ZipFile(f) as z:
+            for member in z.namelist():
+                if member.startswith("s_d_") and not member.startswith("s_d_t"):
+                    frames.append(parse_imgw_daily(z.read(member), stations))
+    df = pd.concat(frames).drop_duplicates(["station", "date"]).sort_values(["station", "date"])
+    df = df[df.date.dt.year.between(start_year, end_year)]
+    return df.reset_index(drop=True)
+
+
 # ------------------------------------------------------------------------------ GUGiK LiDAR (WCS)
 
 def fetch_gugik_tiles(out_dir: Path, bounds_2180, tile_m: float = 500.0, log=print) -> pd.DataFrame:
