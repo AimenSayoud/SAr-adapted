@@ -60,7 +60,7 @@ def imgw_daily() -> pd.DataFrame:
 def yearly(day: pd.DataFrame) -> pd.DataFrame:
     rows = []
     for y, g in day.groupby(day.index.year):
-        s = g[g.index.month.between(*SEASON)]
+        s = g[(g.index.month >= SEASON[0]) & (g.index.month <= SEASON[1])]
         ndays = 366 if pd.Timestamp(year=y, month=12, day=31).dayofyear == 366 else 365
         nseason = (pd.Timestamp(year=y, month=SEASON[1] + 1, day=1) - pd.Timestamp(year=y, month=SEASON[0], day=1)).days
         rows.append({"year": y, "days": len(g), "missing_days": int(ndays - g.precip_mm.notna().sum()),
