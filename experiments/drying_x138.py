@@ -214,7 +214,7 @@ def figures(t, ym, bands, ow, maps, clim, wt) -> None:
     prim = t[(t.reference == PRIMARY_REF) & (t.year <= 2025)]
     with fs.style():
         fig, axes = plt.subplots(3, 1, figsize=fs.size("full", 200), gridspec_kw={"hspace": 0.55, "left": 0.09,
-                                 "right": 0.90, "top": 0.95, "bottom": 0.06})
+                                 "right": 0.90, "top": 0.92, "bottom": 0.06})
         ax = axes[0]
         ax.axhline(0, color=fs.INK, lw=0.6)
         for track, dx in (("ascending", -0.15), ("descending", 0.15)):
@@ -230,7 +230,7 @@ def figures(t, ym, bands, ow, maps, clim, wt) -> None:
         ax.set_title("(a) How far the mat sank each snow-free season (Sentinel-1 alone; grey = twelve-day years)",
                      loc="left", pad=22)
         ax.set_xticks(YEARS_A)
-        ax.legend(frameon=False, ncol=3, loc="lower center", bbox_to_anchor=(0.5, 1.07), fontsize=7)
+        ax.legend(frameon=False, ncol=3, loc="lower center", bbox_to_anchor=(0.5, 1.12), fontsize=7)
         ax = axes[1]
         o = ow[ow.scenes_used >= 5]                       # a summer with fewer clear scenes is drawn hollow, unjoined
         thin = ow[(ow.scenes_used > 0) & (ow.scenes_used < 5)]
@@ -245,7 +245,7 @@ def figures(t, ym, bands, ow, maps, clim, wt) -> None:
         ax.set_ylabel("open water (ha)")
         ax.set_xticks(YEARS_B)
         ax.set_title("(b) Open water of the lake each summer (mat + lake zones)", loc="left")
-        ax.legend(frameon=False, loc="best")
+        ax.legend(frameon=False, loc="center left", bbox_to_anchor=(0.06, 0.45))
         ax = axes[2]
         c = clim[clim.complete_year & (clim.year <= 2025)]
         ax.bar(c.year, c.era5_p_minus_et0_mm, color=[fs.CLASS["open water"] if v > 0 else fs.CLASS["grassland"]
