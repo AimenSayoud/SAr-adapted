@@ -69,7 +69,7 @@ def radar_seasons(prot: Protocol) -> tuple[pd.DataFrame, dict, pd.DataFrame]:
                 if len(a) != 1 or len(b) != 1:
                     raise SystemExit(f"stop: X-137 {r.year} {track} {ref} dates not on one segment here")
                 net = (float(b.est.iloc[0]) - float(a.est.iloc[0])) / cos / 10
-                if abs(net - r.radar_net_cm) > 1e-6:
+                if abs(net - r.radar_net_cm) > 5e-5:          # X-137 stores 4 decimals (amendment)
                     raise SystemExit(f"stop: X-137 {r.year} {track} {ref}: {net:.6f} here, {r.radar_net_cm:.6f} there")
             for y in YEARS_A + [2026]:
                 run = D.season_run(c, y, prot.season_months)
