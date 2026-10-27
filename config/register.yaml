@@ -2845,6 +2845,27 @@ entries:
     outputs:
     - hub:08_deliverables/insar_full_test/v4/v4n_frozen_params.yaml
     - hub:08_deliverables/insar_full_test/v4/v4n_design_report
+  drying_x139:
+    kind: experiment
+    title: X-139 — each year dry or wet by IMGW against 1991–2020, season sinking vs water balance, the laser's level across years, one table per year
+    status: current
+    runs_on: mac
+    code: experiments/drying_x139.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/drying_x139.py
+    tickets:
+    - X-139
+    chains:
+    - field-data
+    inputs:
+    - cube:raw/imgw/daily.csv
+    - cube:raw/imgw_normals/daily_1991_2016.csv
+    - cube:silver/site_hourly.csv.gz
+    - hub:08_deliverables/drying_x138
+    - hub:08_deliverables/insar_full_test/season_total_x137/season_totals.csv
+    - hub:08_deliverables/insar_full_test/reread_corrected/baseline_x099/winters.csv
+    outputs:
+    - hub:08_deliverables/drying_x139
   drying_x138:
     kind: experiment
     title: X-138 — is the peatland drying, 2017–2026? Each season's sinking at P6 by Sentinel-1 with the laser years' error, the lake's open water (Sentinel-2), water balance and water table

@@ -63,3 +63,24 @@ def test_synthesis():
     assert drying.synthesis(True, None) == "one line shows a sign of drying"
     assert drying.synthesis(None, False) == "the data do not show a drying trend over 2017–2026"
     assert drying.synthesis(False, True) == "the lines disagree"
+
+
+def test_extraterrestrial_radiation_fao56_example8():
+    # FAO-56 Example 8: 20° S, 3 September (day 246) → Ra = 32.2 MJ m⁻² day⁻¹
+    assert abs(float(drying.extraterrestrial_radiation(246, -20.0)) - 32.2) < 0.1
+
+
+def test_hargreaves_by_hand():
+    ra = float(drying.extraterrestrial_radiation(180, 52.76))
+    want = 0.0023 * (20 + 17.8) * np.sqrt(10.0) * 0.408 * ra
+    assert np.isclose(float(drying.hargreaves_et0(25.0, 15.0, 180, 52.76)), want)
+    assert float(drying.hargreaves_et0(5.0, 6.0, 180, 52.76)) == 0.0          # no negative range
+
+
+def test_station_mean_and_rain_class():
+    w = pd.DataFrame({"a": [1.0, np.nan, np.nan], "b": [3.0, 2.0, np.nan]})
+    m = drying.station_mean(w)
+    assert m.iloc[0] == 2.0 and m.iloc[1] == 2.0 and np.isnan(m.iloc[2])
+    assert drying.rain_class(49) == "extremely dry" and drying.rain_class(74.9) == "very dry"
+    assert drying.rain_class(89) == "dry" and drying.rain_class(90) == "normal" and drying.rain_class(110) == "normal"
+    assert drying.rain_class(111) == "wet" and drying.rain_class(140) == "very wet" and drying.rain_class(160) == "extremely wet"
