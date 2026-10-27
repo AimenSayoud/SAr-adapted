@@ -2845,6 +2845,27 @@ entries:
     outputs:
     - hub:08_deliverables/insar_full_test/v4/v4n_frozen_params.yaml
     - hub:08_deliverables/insar_full_test/v4/v4n_design_report
+  drying_x138:
+    kind: experiment
+    title: X-138 — is the peatland drying, 2017–2026? Each season's sinking at P6 by Sentinel-1 with the laser years' error, the lake's open water (Sentinel-2), water balance and water table
+    status: current
+    runs_on: mac
+    code: experiments/drying_x138.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/drying_x138.py
+    tickets:
+    - X-138
+    chains:
+    - field-data
+    inputs:
+    - cube:gold/plots_pair.csv.gz
+    - cube:silver/site_hourly.csv.gz
+    - cube:silver/static_40m.nc
+    - cube:silver/ortho_cir_1m.nc
+    - cube:raw/s2
+    - hub:08_deliverables/insar_full_test/season_total_x137/season_totals.csv
+    outputs:
+    - hub:08_deliverables/drying_x138
   season_total_x137:
     kind: experiment
     title: X-137 — how far P6 moves from spring to autumn each year, by the laser and by the plain chain alone (vertical, cm)
