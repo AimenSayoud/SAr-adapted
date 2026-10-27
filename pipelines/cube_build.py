@@ -1,7 +1,7 @@
 """The data cube (C-053…C-057, chain data-cube): ingest → harmonise → gold → check, every step resumable.
 
     INSAR_DRIVE_ROOT=../local/drive_pristine PYTHONPATH=src python pipelines/cube_build.py ingest s2
-    ... ingest {s2,landsat,worldcover,meteo,imgw,lidar,dated,nisar} | harmonise {ifg,rtc,optical,static,site,folds}
+    ... ingest {s2,landsat,worldcover,meteo,imgw,imgw_normals,lidar,dated,nisar} | harmonise {ifg,rtc,optical,static,site,folds}
     ... gold {plots,mat} | check | all
 
 Mac-safe: reads crops already on disk, windows of public rasters and small tables; nothing here inverts a network.
@@ -75,6 +75,10 @@ def ingest(what: str) -> None:
         df = src.fetch_imgw(RAW / "imgw", int(START[:4]), int(END[:4]), log=log)
         df.to_csv(RAW / "imgw" / "daily.csv", index=False)
         log(f"IMGW station-days {len(df)}")
+    elif what == "imgw_normals":                     # X-139: the 1991–2020 normal needs the years before the cube
+        df = src.fetch_imgw_archive(RAW / "imgw_normals", 1991, 2016, log=log)
+        df.to_csv(RAW / "imgw_normals" / "daily_1991_2016.csv", index=False)
+        log(f"IMGW archive station-days {len(df)}")
     elif what == "lidar":
         from pyproj import Transformer
         b = peat_bounds_utm()
