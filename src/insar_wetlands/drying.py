@@ -87,3 +87,41 @@ def synthesis(a_drying: bool | None, b_drying: bool | None) -> str:
     if a_drying or b_drying:
         return "one line shows a sign of drying"
     return "the data do not show a drying trend over 2017–2026"
+
+
+# --------------------------------------------------------------------------------------------- X-139: water balance
+GSC = 0.0820                                                         # solar constant, MJ m⁻² min⁻¹ (FAO-56)
+KACZOROWSKA = ((50, "extremely dry"), (75, "very dry"), (90, "dry"), (110.0001, "normal"), (125.0001, "wet"),
+               (150.0001, "very wet"), (np.inf, "extremely wet"))
+
+
+def extraterrestrial_radiation(doy, lat_deg: float) -> np.ndarray:
+    """Daily extraterrestrial radiation Ra (MJ m⁻² day⁻¹), FAO-56 eqs. 21–25."""
+    j = np.asarray(doy, float)
+    phi = np.radians(lat_deg)
+    dr = 1 + 0.033 * np.cos(2 * np.pi * j / 365)
+    dec = 0.409 * np.sin(2 * np.pi * j / 365 - 1.39)
+    ws = np.arccos(np.clip(-np.tan(phi) * np.tan(dec), -1, 1))
+    return 24 * 60 / np.pi * GSC * dr * (ws * np.sin(phi) * np.sin(dec) + np.cos(phi) * np.cos(dec) * np.sin(ws))
+
+
+def hargreaves_et0(tmax, tmin, doy, lat_deg: float) -> np.ndarray:
+    """Reference evapotranspiration (mm day⁻¹), Hargreaves–Samani, FAO-56 eq. 52 (Ra converted by 0.408)."""
+    tmax, tmin = np.asarray(tmax, float), np.asarray(tmin, float)
+    rng = np.clip(tmax - tmin, 0, None)
+    return 0.0023 * ((tmax + tmin) / 2 + 17.8) * np.sqrt(rng) * 0.408 * extraterrestrial_radiation(doy, lat_deg)
+
+
+def station_mean(wide: pd.DataFrame) -> pd.Series:
+    """Mean over the station columns of each day, from the stations present (NaN only when all are missing)."""
+    return wide.mean(axis=1, skipna=True)
+
+
+def rain_class(pct_of_normal: float) -> str:
+    """Relative precipitation index classes of Kaczorowska (1962), % of the normal."""
+    if not np.isfinite(pct_of_normal):
+        return ""
+    for edge, name in KACZOROWSKA:
+        if pct_of_normal < edge:
+            return name
+    return KACZOROWSKA[-1][1]
