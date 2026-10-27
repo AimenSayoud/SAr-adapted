@@ -2845,6 +2845,28 @@ entries:
     outputs:
     - hub:08_deliverables/insar_full_test/v4/v4n_frozen_params.yaml
     - hub:08_deliverables/insar_full_test/v4/v4n_design_report
+  drying_x140:
+    kind: experiment
+    title: X-140 — how far the mat rises back each winter 2017/18–2025/26, each year's spring-to-spring loop, and the change since 2017 (radar chain, laser-scored correction, water table as second estimate)
+    status: current
+    runs_on: mac
+    code: experiments/drying_x140.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/drying_x140.py
+    tickets:
+    - X-140
+    chains:
+    - field-data
+    inputs:
+    - cube:gold/plots_pair.csv.gz
+    - cube:silver/site_hourly.csv.gz
+    - cube:silver/static_40m.nc
+    - cube:raw/imgw/daily.csv
+    - cube:raw/imgw_normals/daily_1991_2016.csv
+    - hub:08_deliverables/insar_full_test/reread_corrected/baseline_x099/winters.csv
+    - hub:08_deliverables/drying_x139/laser_multiyear.csv
+    outputs:
+    - hub:08_deliverables/drying_x140
   drying_x139:
     kind: experiment
     title: X-139 — each year dry or wet by IMGW against 1991–2020, season sinking vs water balance, the laser's level across years, one table per year
