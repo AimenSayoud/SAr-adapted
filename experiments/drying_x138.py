@@ -214,7 +214,7 @@ def figures(t, ym, bands, ow, maps, clim, wt) -> None:
     prim = t[(t.reference == PRIMARY_REF) & (t.year <= 2025)]
     with fs.style():
         fig, axes = plt.subplots(3, 1, figsize=fs.size("full", 200), gridspec_kw={"hspace": 0.55, "left": 0.09,
-                                 "right": 0.98, "top": 0.95, "bottom": 0.06})
+                                 "right": 0.90, "top": 0.95, "bottom": 0.06})
         ax = axes[0]
         ax.axhline(0, color=fs.INK, lw=0.6)
         for track, dx in (("ascending", -0.15), ("descending", 0.15)):
@@ -228,16 +228,20 @@ def figures(t, ym, bands, ow, maps, clim, wt) -> None:
             ax.axvspan(y - 0.45, y + 0.45, color=fs.GRID, alpha=0.35, lw=0)
         ax.set_ylabel("May → Nov net change at P6 (cm)")
         ax.set_title("(a) How far the mat sank each snow-free season (Sentinel-1 alone; grey = twelve-day years)",
-                     loc="left")
+                     loc="left", pad=22)
         ax.set_xticks(YEARS_A)
-        ax.legend(frameon=False, ncol=2, loc="lower left")
+        ax.legend(frameon=False, ncol=3, loc="lower center", bbox_to_anchor=(0.5, 1.07), fontsize=7)
         ax = axes[1]
-        o = ow[ow.scenes_used > 0]
+        o = ow[ow.scenes_used >= 5]                       # a summer with fewer clear scenes is drawn hollow, unjoined
+        thin = ow[(ow.scenes_used > 0) & (ow.scenes_used < 5)]
         ax.fill_between(o.year, o.band_lo_ha, o.band_hi_ha, color=fs.CLASS["open water"], alpha=0.3, lw=0,
                         label="band (thresholds, index rule)")
         ax.plot(o.year, o.area_ha, "o-", ms=4, color=fs.CLASS["open water"], label="Sentinel-2 water class, June–Sept")
-        if "ortho_area_ha" in ow:
-            ax.plot(ow.year, ow.ortho_area_ha, "s", ms=4, mfc="none", color=fs.INK, label="CIR orthophoto (1 m)")
+        for r in thin.itertuples():
+            ax.plot(r.year, r.area_ha, "o", ms=5, mfc="white", color=fs.CLASS["open water"])
+            ax.annotate(f"{r.scenes_used} clear scene(s)", (r.year, r.area_ha), xytext=(4, 6),
+                        textcoords="offset points", fontsize=7, color=fs.MUTED)
+        ax.set_ylim(bottom=0)
         ax.set_ylabel("open water (ha)")
         ax.set_xticks(YEARS_B)
         ax.set_title("(b) Open water of the lake each summer (mat + lake zones)", loc="left")
