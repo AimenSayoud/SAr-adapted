@@ -2845,6 +2845,30 @@ entries:
     outputs:
     - hub:08_deliverables/insar_full_test/v4/v4n_frozen_params.yaml
     - hub:08_deliverables/insar_full_test/v4/v4n_design_report
+  nine_cells_workbook_c076:
+    kind: experiment
+    title: C-076 — every value we hold for the nine 40 m cells around P6, 2017–2026, as tables for the professor's workbook (descriptive)
+    status: current
+    runs_on: mac
+    code: experiments/nine_cells_workbook_c076.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/nine_cells_workbook_c076.py
+    tickets:
+    - C-076
+    chains:
+    - field-data
+    inputs:
+    - cube:gold/plots_pair.csv.gz
+    - cube:silver/ifg_*
+    - cube:silver/rtc_*.nc
+    - cube:silver/static_40m.nc
+    - cube:silver/site_hourly.csv.gz
+    - cube:silver/plot_units.csv
+    - hub:06_data/field/processed/uav_0p5m.nc
+    - hub:08_deliverables/supervisor_pack_c074/tables
+    - hub:08_deliverables/field_uav_c065/qc_flags.csv
+    outputs:
+    - hub:08_deliverables/nine_cells_c076/tables
   drying_x141:
     kind: experiment
     title: X-141 — winter rise of the mat from IMGW winter weather (and other single predictors), scored on the laser winters; every winter since 1991; the big year table with winter columns
