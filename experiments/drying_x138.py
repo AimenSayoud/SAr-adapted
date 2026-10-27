@@ -249,7 +249,7 @@ def figures(t, ym, bands, ow, maps, clim, wt) -> None:
         ax.axhline(0, color=fs.INK, lw=0.6)
         ax.set_ylabel("ERA5 P − ET0 (mm/yr)")
         ax2 = ax.twinx()
-        w = wt[wt.plot == "P6"]
+        w = wt[wt["plot"] == "P6"]
         ax2.plot(w.year, w.mean_cm, "o-", ms=4, color=fs.CLASS["mat"], label="P6 water table, yearly mean")
         ax2.set_ylabel("water table at P6 (cm, below surface < 0)")
         ax2.legend(frameon=False, loc="lower right")
@@ -362,7 +362,7 @@ def main() -> None:
     tab_a = prim[["year", "track", "revisit", "start", "end", "overpasses", "net_cm", "error (typical / worst)",
                   "laser_net_cm", "drop_cm", "drop_date", "laser_drop_cm"]]
     tr_show = trends[["line", "series", "years", "n", "slope", "slope_lo", "slope_hi", "p", "threshold", "sentence"]]
-    wt6 = wt[wt.plot.isin(["P6", "mat_mean"])][["year", "plot", "mean_cm", "mayoct_mean_cm", "min_cm", "max_cm",
+    wt6 = wt[wt["plot"].isin(["P6", "mat_mean"])][["year", "plot", "mean_cm", "mayoct_mean_cm", "min_cm", "max_cm",
                                                  "censored_hours", "flag"]]
     readme = f"""# X-138 — is the Rzecin peatland drying, 2017–2026? (generated)
 
