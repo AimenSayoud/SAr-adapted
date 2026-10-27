@@ -2845,6 +2845,26 @@ entries:
     outputs:
     - hub:08_deliverables/insar_full_test/v4/v4n_frozen_params.yaml
     - hub:08_deliverables/insar_full_test/v4/v4n_design_report
+  drying_x141:
+    kind: experiment
+    title: X-141 — winter rise of the mat from IMGW winter weather (and other single predictors), scored on the laser winters; every winter since 1991; the big year table with winter columns
+    status: current
+    runs_on: mac
+    code: experiments/drying_x141.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/drying_x141.py
+    tickets:
+    - X-141
+    chains:
+    - field-data
+    inputs:
+    - cube:raw/imgw/daily.csv
+    - cube:raw/imgw_normals/daily_1991_2016.csv
+    - hub:08_deliverables/drying_x138
+    - hub:08_deliverables/drying_x139
+    - hub:08_deliverables/drying_x140
+    outputs:
+    - hub:08_deliverables/drying_x141
   drying_x140:
     kind: experiment
     title: X-140 — how far the mat rises back each winter 2017/18–2025/26, each year's spring-to-spring loop, and the change since 2017 (radar chain, laser-scored correction, water table as second estimate)

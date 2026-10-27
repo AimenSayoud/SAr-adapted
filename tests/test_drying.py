@@ -84,3 +84,18 @@ def test_station_mean_and_rain_class():
     assert drying.rain_class(49) == "extremely dry" and drying.rain_class(74.9) == "very dry"
     assert drying.rain_class(89) == "dry" and drying.rain_class(90) == "normal" and drying.rain_class(110) == "normal"
     assert drying.rain_class(111) == "wet" and drying.rain_class(140) == "very wet" and drying.rain_class(160) == "extremely wet"
+
+
+def test_lowo_linear_recovers_a_line_and_climatology():
+    x = np.array([0.0, 1.0, 2.0, 3.0])
+    y = 2.0 + 3.0 * x
+    assert np.allclose(drying.lowo_linear(x, y), y)                       # exact line → exact predictions
+    assert np.allclose(drying.lowo_climatology([1.0, 2.0, 3.0, 6.0]), [11 / 3, 10 / 3, 3.0, 2.0])
+
+
+def test_nested_selection_picks_the_informative_predictor():
+    x_good = np.array([0.0, 1.0, 2.0, 3.0, 4.0])
+    y = 1.0 + 2.0 * x_good
+    x_noise = np.array([3.0, -1.0, 4.0, 0.5, 2.0])
+    pred, chosen = drying.nested_selection({"good": x_good, "noise": x_noise}, y)
+    assert set(chosen) == {"good"} and np.allclose(pred, y)
