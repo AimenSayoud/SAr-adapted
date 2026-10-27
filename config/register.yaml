@@ -2845,3 +2845,22 @@ entries:
     outputs:
     - hub:08_deliverables/insar_full_test/v4/v4n_frozen_params.yaml
     - hub:08_deliverables/insar_full_test/v4/v4n_design_report
+  season_total_x137:
+    kind: experiment
+    title: X-137 — how far P6 moves from spring to autumn each year, by the laser and by the plain chain alone (vertical, cm)
+    status: current
+    runs_on: mac
+    code: experiments/season_total_x137.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/season_total_x137.py
+    tickets:
+    - X-137
+    chains:
+    - article-plan
+    inputs:
+    - cube:gold/plots_pair.csv.gz
+    - cube:silver/site_hourly.csv.gz
+    - cube:silver/static_40m.nc
+    - hub:08_deliverables/insar_full_test/reread_corrected/baseline_x099/levels.csv
+    outputs:
+    - hub:08_deliverables/insar_full_test/season_total_x137
