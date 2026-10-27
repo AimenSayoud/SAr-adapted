@@ -228,9 +228,11 @@ def figures(t, ym, bands, ow, maps, clim, wt) -> None:
             ax.axvspan(y - 0.45, y + 0.45, color=fs.GRID, alpha=0.35, lw=0)
         ax.set_ylabel("May → Nov net change at P6 (cm)")
         ax.set_title("(a) How far the mat sank each snow-free season (Sentinel-1 alone; grey = twelve-day years)",
-                     loc="left", pad=22)
+                     loc="left")
         ax.set_xticks(YEARS_A)
-        ax.legend(frameon=False, ncol=3, loc="lower center", bbox_to_anchor=(0.5, 1.12), fontsize=7)
+        lo = float(np.nanmin(prim.net_cm - prim.net_worst_cm))
+        ax.set_ylim(lo - 4.5, None)                         # room under the data for the legend
+        ax.legend(frameon=False, ncol=3, loc="lower center", fontsize=7)
         ax = axes[1]
         o = ow[ow.scenes_used >= 5]                       # a summer with fewer clear scenes is drawn hollow, unjoined
         thin = ow[(ow.scenes_used > 0) & (ow.scenes_used < 5)]
