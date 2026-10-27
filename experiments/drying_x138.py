@@ -360,7 +360,8 @@ def main() -> None:
     prim["error (typical / worst)"] = [f"±{a:.1f} / ±{b:.1f}" if np.isfinite(a) else "—"
                                        for a, b in zip(prim.net_typical_cm, prim.net_worst_cm)]
     tab_a = prim[["year", "track", "revisit", "start", "end", "overpasses", "net_cm", "error (typical / worst)",
-                  "laser_net_cm", "drop_cm", "drop_date", "laser_drop_cm"]]
+                  "laser_net_cm", "drop_cm", "drop_date", "laser_drop_cm"]].rename(
+        columns={"laser_net_cm": "laser net (X-137 window)", "laser_drop_cm": "laser drop (X-137 window)"})
     tr_show = trends[["line", "series", "years", "n", "slope", "slope_lo", "slope_hi", "p", "threshold", "sentence"]]
     wt6 = wt[wt["plot"].isin(["P6", "mat_mean"])][["year", "plot", "mean_cm", "mayoct_mean_cm", "min_cm", "max_cm",
                                                  "censored_hours", "flag"]]
@@ -389,7 +390,7 @@ point (P6).
 
 ## Line A — each season by Sentinel-1 alone, with the error of its revisit (P6, hard-target reference, vertical cm)
 
-Error bands from X-137 (radar − laser, same overpasses): typical = root-mean-square, worst = max |difference|.
+Error bands from X-137 (radar − laser, same overpasses): typical = root-mean-square, worst = max |difference|.\nThe laser columns are X-137's, over X-137's window (first and last overpass with a laser reading, so a few days\ninside the radar window of this table in some years): they show the size of the truth, not a new comparison.
 
 {md(bands[bands.reference == PRIMARY_REF].drop(columns='reference'))}
 
