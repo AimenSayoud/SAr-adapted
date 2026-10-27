@@ -125,3 +125,43 @@ def rain_class(pct_of_normal: float) -> str:
         if pct_of_normal < edge:
             return name
     return KACZOROWSKA[-1][1]
+
+
+# --------------------------------------------------------------------------------------------- X-141: winter model
+def lowo_linear(x, y) -> np.ndarray:
+    """Leave-one-out predictions of y from a + b·x (least squares on the others)."""
+    x, y = np.asarray(x, float), np.asarray(y, float)
+    out = np.full(len(y), np.nan)
+    for i in range(len(y)):
+        m = np.arange(len(y)) != i
+        if m.sum() >= 2 and np.ptp(x[m]) > 0:
+            b, a = np.polyfit(x[m], y[m], 1)
+            out[i] = a + b * x[i]
+    return out
+
+
+def lowo_climatology(y) -> np.ndarray:
+    """Leave-one-out predictions of y by the mean of the others."""
+    y = np.asarray(y, float)
+    return np.array([np.mean(np.delete(y, i)) for i in range(len(y))])
+
+
+def nested_selection(X: dict, y) -> tuple[np.ndarray, list[str]]:
+    """Outer leave-one-out; in each fold the predictor with the lowest inner leave-one-out error on the training
+    points is chosen, refitted on them and used for the left-out point. Returns predictions and the choices."""
+    y = np.asarray(y, float)
+    pred, chosen = np.full(len(y), np.nan), []
+    for i in range(len(y)):
+        m = np.arange(len(y)) != i
+        best, best_e = None, np.inf
+        for name, x in X.items():
+            x = np.asarray(x, float)
+            e = lowo_linear(x[m], y[m]) - y[m]
+            if np.all(np.isfinite(e)) and np.sqrt(np.mean(e ** 2)) < best_e:
+                best, best_e = name, float(np.sqrt(np.mean(e ** 2)))
+        chosen.append(best or "")
+        if best is not None:
+            x = np.asarray(X[best], float)
+            b, a = np.polyfit(x[m], y[m], 1)
+            pred[i] = a + b * x[i]
+    return pred, chosen
