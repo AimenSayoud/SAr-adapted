@@ -139,12 +139,19 @@ def cir_image(xlim, ylim, res: float = 2.0) -> np.ndarray:
     return np.moveaxis(out, 0, -1)
 
 
+FINAL = HUB / "08_deliverables" / "article_plan" / "figures" / "final"
+PROMOTE = {"F4_footprint": "S18_mat_footprint", "F5_gain_vs_depth": "S19_gain_vs_depth",
+           "F6_season_maps": "S20_season_maps"}
+
+
 def export(fig, name: str, sources: list[str], notes: dict, data: dict[str, pd.DataFrame]) -> None:
     for k, d in data.items():
         d.to_csv(OUT / "data" / f"{name}_{k}.csv", index=False)
     with fs.style():                         # text is laid out at save time: fonts and Type 42 must be in force here
-        fs.export(fig, OUT / name, provenance={"sources": sources, "data": [f"data/{name}_{k}.csv" for k in data],
-                                               **notes})
+        prov = {"sources": sources, "data": [f"data/{name}_{k}.csv" for k in data], **notes}
+        fs.export(fig, OUT / name, provenance=prov)
+        if name in PROMOTE:
+            fs.export(fig, FINAL / PROMOTE[name], provenance={**prov, "promoted_from": name})
     plt.close(fig)
 
 
@@ -334,7 +341,7 @@ def f4(st, cells, fp, share, sec, p6):
         sf[0].legend(handles=[Line2D([], [], color=fs.INK, lw=0.9, label="mat cells above the solid-ground 95th percentile"),
                               Line2D([], [], color=fs.CLASS["mat"], lw=1.0, ls=":", label="floating mat"),
                               Line2D([], [], ls="", marker="*", ms=7, mfc=fs.CLASS["laser"], mec="white", label="P6")],
-                     loc="outside lower center", ncol=3, fontsize=6.5)
+                     loc="outside lower center", ncol=3, fontsize=7)
         ax = axb[0]
         bins = np.linspace(-0.6, 1, 33)
         for tr in TRACKS:
@@ -350,7 +357,7 @@ def f4(st, cells, fp, share, sec, p6):
                   [Line2D([], [], color=fs.INK, lw=1, ls="-", label="mat"),
                    Line2D([], [], color=fs.INK, lw=1, ls="--", label="solid ground (null)"),
                    Line2D([], [], color=fs.INK, lw=0.6, ls=":", label="null 95th percentile")],
-                  loc="upper center", bbox_to_anchor=(0.5, -0.3), ncol=3, fontsize=6.3)
+                  loc="upper center", bbox_to_anchor=(0.5, -0.3), ncol=3, fontsize=7)
         ax.set_xlim(-0.6, 1)
         fs.panel_label(ax, "c")
         ax = axb[1]
@@ -362,7 +369,7 @@ def f4(st, cells, fp, share, sec, p6):
             ax.vlines(xx, d.lo95, d.hi95, color=fs.TRACK[tr], lw=0.9)
             ax.plot(xx, d.share, TMARK[tr], ms=4, color=fs.TRACK[tr], label=tr)
         ax.axhline(0.05, color=fs.MUTED, lw=0.6, ls=":")
-        ax.text(len(labels) - 0.6, 0.065, "rate expected by chance (5 %)", ha="right", va="bottom", fontsize=6.3,
+        ax.text(len(labels) - 0.6, 0.065, "rate expected by chance (5 %)", ha="right", va="bottom", fontsize=7,
                 color=fs.MUTED)
         ncell = dist[dist.track == TRACKS[0]].set_index("subset").cells
         ax.set_xticks(range(len(labels)), [f"{s.replace('dist ', '')}\n(n = {int(ncell[s])})" for s in labels])
@@ -371,7 +378,7 @@ def f4(st, cells, fp, share, sec, p6):
         ax.set_xlabel("Distance from P6")
         ax.set_ylabel("Share of mat cells following P6")
         ax.set_title("How far the motion reaches", loc="left")
-        ax.legend(loc="lower left", bbox_to_anchor=(0.0, 0.12), fontsize=6.5)
+        ax.legend(loc="lower left", bbox_to_anchor=(0.0, 0.12), fontsize=7)
         fs.panel_label(ax, "d")
     export(fig, "F4_footprint", ["hub:footprint_x133/footprint.csv.gz", "hub:footprint_x133/share.csv",
                                  "hub:footprint_x133/secondary.csv", "hub:footprint_x133/cells.csv"],
@@ -406,11 +413,11 @@ def f5(cells, fp, share):
                     label=f"{tr}: Spearman ρ {sr.gain_depth_rho:.2f} [{sr.rho_lo95:.2f}, {sr.rho_hi95:.2f}]")
         ax.axhline(1, color=fs.MUTED, lw=0.6, ls=":")
         ax.text(0.99, 1.0, "gain 1: the P6 laser's amplitude", transform=ax.get_yaxis_transform(), ha="right",
-                va="bottom", fontsize=6.3, color=fs.MUTED, bbox={"fc": "white", "ec": "none", "pad": 0.5})
+                va="bottom", fontsize=7, color=fs.MUTED, bbox={"fc": "white", "ec": "none", "pad": 0.5})
         ax.set_xlabel("Depth into the mat (m from the edge)")
         ax.set_ylabel("Gain against the P6 laser (slope through origin)")
         ax.set_title("The motion grows towards the mat's interior (cells following P6)", loc="left")
-        ax.legend(loc="lower right", fontsize=6.5)
+        ax.legend(loc="lower right", fontsize=7)
     export(fig, "F5_gain_vs_depth", ["hub:footprint_x133/footprint.csv.gz", "hub:footprint_x133/share.csv"],
            {"summary": "points = cells; lines = median per 40 m of depth, band = interquartile range (descriptive); "
                        "ρ and its interval from X-133 (block bootstrap)",
@@ -465,7 +472,7 @@ def f6(st, cells, mp, agree, runs, p6):
         ax.set_ylabel("Descending (mm)")
         ax.set_aspect("equal", adjustable="datalim")
         ax.set_title("The two tracks, cell by cell", loc="left")
-        ax.legend(loc="lower right", fontsize=6.2, markerscale=1.6)
+        ax.legend(loc="lower right", fontsize=7, markerscale=1.6)
         fs.panel_label(ax, "c")
         ax = fig.add_subplot(gs[1, 2])
         xt, labels = [], []
@@ -484,7 +491,7 @@ def f6(st, cells, mp, agree, runs, p6):
         ax.legend(handles=[Line2D([], [], ls="", marker="o", color=fs.TRACK["ascending"], label="radar, ascending"),
                            Line2D([], [], ls="", marker="s", color=fs.TRACK["descending"], label="radar, descending"),
                            Line2D([], [], ls="", marker="*", ms=7, color=fs.INK, label="laser")],
-                  loc="lower right", fontsize=6.3)
+                  loc="lower right", fontsize=7)
         fs.panel_label(ax, "f")
     runs = runs.assign(p6_sigma_on_laser_pairs_mm=runs.p6_sigma_mm * np.sqrt(runs.pairs_with_laser / runs.pairs))
     export(fig, "F6_season_maps", ["hub:footprint_x133/season_map.csv.gz", "hub:footprint_x133/tracks_agree.csv",
