@@ -31,6 +31,9 @@ INK, MUTED, GRID = "#1f2328", "#57606a", "#d0d7de"
 # One colour per class, in every figure (Okabe–Ito hues, distinguishable with colour-vision deficiency).
 CLASS = {"mat": "#009E73", "grassland": "#E69F00", "hard targets": "#0072B2", "open water": "#56B4E9",
          "laser": "#D55E00", "reference wells": "#57606a"}
+# Darker companion hues (>= 3.5:1 contrast on white) for coloured text labels or thin un-outlined strokes.
+CLASS_TEXT = {"mat": "#00805D", "grassland": "#B37700", "hard targets": "#0072B2", "open water": "#0277BD",
+              "laser": "#D55E00", "reference wells": "#57606a"}
 TRACK = {"ascending": "#0072B2", "descending": "#D55E00"}
 
 RC = {
@@ -70,7 +73,7 @@ def _git_sha(path: Path) -> str:
         return ""
 
 
-def export(fig, stem: Path, provenance: dict, png_dpi: int = 300) -> dict:
+def export(fig, stem: Path, provenance: dict, png_dpi: int = 600) -> dict:
     """Write ``stem``.pdf (vector, fonts embedded, rasters at their own resolution), ``stem``.png (a preview at
     ``png_dpi``) and ``stem``.json (what the figure was made from), at the figure's own page size — never cropped,
     so the printed width is the width it was drawn at. Returns the provenance record."""
