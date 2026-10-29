@@ -33,32 +33,45 @@ LABEL = {"chain": "plain chain (the procedure's choice in every fold)",
          "X-119's A": "re-levelled by the weather model (fit without the winter)"}
 
 
+def draw_panel_b(axes, n: pd.DataFrame) -> dict:
+    winters = sorted(n.outer_winter.unique())
+    x = np.arange(len(winters))
+    record = {}
+    for ax, track in zip(axes, ("ascending", "descending")):
+        ax.set_facecolor("white")
+        ax.grid(False)
+        ax.axhline(0, color=fs.INK, lw=0.6, zorder=1)
+        t = n[n.track == track]
+        maes = {}
+        for role, dx in (("chain", -0.12), ("X-119's A", 0.12)):
+            r = t[t.role == role].set_index("outer_winter").reindex(winters)
+            err = r.difference_mm.to_numpy()
+            maes[role] = float(np.nanmean(np.abs(err)))
+            ax.vlines(x + dx, 0, err, color=COL[role], lw=0.8, alpha=0.55, zorder=2)
+            ax.plot(x + dx, err, ls="none", marker="o" if role == "chain" else "s", ms=5, color=COL[role],
+                    mec="white", mew=0.4, zorder=3, label=LABEL[role] if track == "ascending" else None)
+        laser = t[t.role == "chain"].set_index("outer_winter").reindex(winters).laser_change_mm
+        ax.set_xticks(x, [f"{w}\nlaser {s:+.0f} mm" for w, s in zip(winters, laser)])
+        ax.set_xlim(-0.6, len(winters) - 0.4)
+        ax.set_ylim(-105, 56)
+        mae_c, mae_w = maes["chain"], maes["X-119's A"]
+        ax.text(0.02, 0.96, f"{track} track", transform=ax.transAxes, ha="left", va="top", fontsize=8,
+                fontweight="bold")
+        ax.text(0.98, 0.96, f"mean |error|: chain {mae_c:.0f} mm, weather {mae_w:.0f} mm",
+                transform=ax.transAxes, ha="right", va="top", fontsize=7, color=fs.MUTED)
+        record[track] = {"winters": len(winters), "mae_chain_mm": round(mae_c, 1),
+                         "mae_weather_mm": round(mae_w, 1)}
+    axes[0].set_ylabel("step error: estimate − laser\n(mm, vertical)")
+    return record
+
+
 def main() -> None:
     n = pd.read_csv(SRC / "nested_steps.csv")
     v = pd.read_csv(SRC / "verdict.csv").iloc[0]
-    winters = sorted(n.outer_winter.unique())
-    x = np.arange(len(winters))
     with fs.style():
         fig, axes = plt.subplots(1, 2, figsize=fs.size("full", 75), sharey=True,
                                  gridspec_kw={"wspace": 0.06, "left": 0.08, "right": 0.99, "top": 0.84, "bottom": 0.20})
-        record = {}
-        for ax, track in zip(axes, ("ascending", "descending")):
-            ax.set_facecolor("white")
-            ax.grid(False)
-            ax.axhline(0, color=fs.INK, lw=0.6, zorder=1)
-            t = n[n.track == track]
-            for role, dx in (("chain", -0.12), ("X-119's A", 0.12)):
-                r = t[t.role == role].set_index("outer_winter").reindex(winters)
-                err = r.difference_mm.to_numpy()
-                ax.plot(x + dx, err, ls="none", marker="o" if role == "chain" else "s", ms=5, color=COL[role],
-                        zorder=3, label=LABEL[role] if track == "ascending" else None)
-            laser = t[t.role == "chain"].set_index("outer_winter").reindex(winters).laser_change_mm
-            ax.set_xticks(x, [f"{w}\nlaser {s:+.0f} mm" for w, s in zip(winters, laser)])
-            ax.set_xlim(-0.6, len(winters) - 0.4)
-            ax.text(0.02, 0.97, f"{track} track", transform=ax.transAxes, ha="left", va="top", fontsize=8,
-                    fontweight="bold")
-            record[track] = {"winters": len(winters)}
-        axes[0].set_ylabel("step error: estimate − laser (mm, vertical)")
+        record = draw_panel_b(axes, n)
         fig.text(0.01, 0.955, "(b) each laser winter left out in turn", fontsize=8, fontweight="bold", ha="left",
                  va="top")
         handles, labels = axes[0].get_legend_handles_labels()
