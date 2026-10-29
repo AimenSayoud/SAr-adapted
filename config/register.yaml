@@ -2889,6 +2889,24 @@ entries:
     - hub:08_deliverables/drying_x140
     outputs:
     - hub:08_deliverables/drying_x141
+  contrast_x144:
+    kind: experiment
+    title: X-144 — consecutive minus skip-one as a paired month-block test, Table 2 with month-block intervals and slopes, the cross-track slope (R4 M4, M6, m6)
+    status: current
+    runs_on: mac
+    code: experiments/contrast_x144.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/contrast_x144.py
+    tickets:
+    - X-144
+    chains:
+    - insar-full-test
+    inputs:
+    - hub:08_deliverables/insar_full_test/x065_hard_targets/pairs.csv
+    - hub:08_deliverables/insar_full_test/x065_hard_targets/by_revisit.csv
+    - hub:08_deliverables/insar_full_test/cross_track_x136/matched_pairs.csv.gz
+    outputs:
+    - hub:08_deliverables/insar_full_test/contrast_x144
   closure_x143:
     kind: experiment
     title: X-143 — closure of wrapped six-day triplets at P6 (2021, 2025), matched across tracks, against water table, soil moisture and laser (R4 M2)
