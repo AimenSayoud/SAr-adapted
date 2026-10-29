@@ -57,9 +57,17 @@ def month_draws(months: np.ndarray, rng: np.random.Generator, span: int = 1):
         yield [blocks[j] for j in rng.integers(0, len(blocks), len(blocks))]
 
 
-def take(g: pd.DataFrame, drawn) -> pd.DataFrame:
-    by = dict(tuple(g.groupby("month")))
-    return pd.concat([by[m] for blk in drawn for m in blk if m in by]) if len(drawn) else g.iloc[:0]
+class Months:
+    """Row positions of a table by month, built once, so each draw only concatenates index arrays."""
+
+    def __init__(self, g: pd.DataFrame, cols: tuple[str, str]):
+        self.x, self.y = g[cols[0]].to_numpy(float), g[cols[1]].to_numpy(float)
+        self.pos = {m: np.flatnonzero(g.month.to_numpy() == m) for m in np.unique(g.month)}
+
+    def take(self, drawn) -> tuple[np.ndarray, np.ndarray]:
+        parts = [self.pos[m] for blk in drawn for m in blk if m in self.pos]
+        i = np.concatenate(parts) if parts else np.array([], int)
+        return self.x[i], self.y[i]
 
 
 def load() -> pd.DataFrame:
@@ -79,9 +87,9 @@ def contrasts(p: pd.DataFrame, ref: str, span: int, rng: np.random.Generator) ->
             gs = g[(g.between == 1) & (g.revisit_days == ds)]
             d0 = r(gc.d_laser_los_mm, gc[f"s1_{ref}"]) - r(gs.d_laser_los_mm, gs[f"s1_{ref}"])
             draws = []
+            mc, ms = Months(gc, ("d_laser_los_mm", f"s1_{ref}")), Months(gs, ("d_laser_los_mm", f"s1_{ref}"))
             for drawn in month_draws(g.month.to_numpy(), rng, span):
-                a, b = take(gc, drawn), take(gs, drawn)
-                draws.append(r(a.d_laser_los_mm, a[f"s1_{ref}"]) - r(b.d_laser_los_mm, b[f"s1_{ref}"]))
+                draws.append(r(*mc.take(drawn)) - r(*ms.take(drawn)))
             lo, hi = np.nanpercentile(draws, [2.5, 97.5])
             rows.append({"period": period, "track": track, "reference": ref, "block_months": span,
                          "consecutive_days": dc, "skip_days": ds, "n_consecutive": len(gc), "n_skip": len(gs),
@@ -98,10 +106,11 @@ def table2_blocks(p: pd.DataFrame, rng: np.random.Generator) -> pd.DataFrame:
         if group == "other" or len(g) < 5:
             continue
         rs, ss = [], []
+        mg = Months(g, ("d_laser_los_mm", "s1_hard_targets"))
         for drawn in month_draws(g.month.to_numpy(), rng):
-            s = take(g, drawn)
-            rs.append(r(s.d_laser_los_mm, s.s1_hard_targets))
-            ss.append(slope0(s.d_laser_los_mm, s.s1_hard_targets))
+            a, b = mg.take(drawn)
+            rs.append(r(a, b))
+            ss.append(slope0(a, b))
         rows.append({"track": track, "period": group, "revisit_days": int(days),
                      "pairs_kind": "consecutive" if between == 0 else "skips one", "n": len(g),
                      "months": g.month.nunique(), "r": r(g.d_laser_los_mm, g.s1_hard_targets),
@@ -127,10 +136,11 @@ def cross_track(rng: np.random.Generator) -> pd.DataFrame:
     stats = {"rma_desc_on_asc": rma, "ols_desc_on_asc": lambda a, b: float(np.polyfit(a, b, 1)[0]),
              "ols_asc_on_desc": lambda a, b: float(np.polyfit(b, a, 1)[0]), "r": r}
     draws = {k: [] for k in stats}
+    mm = Months(m, ("a_v_hard_targets", "d_v_hard_targets"))
     for drawn in month_draws(m.month.to_numpy(), rng):
-        s = take(m, drawn)
+        a, b = mm.take(drawn)
         for k, f in stats.items():
-            draws[k].append(f(s.a_v_hard_targets.to_numpy(), s.d_v_hard_targets.to_numpy()))
+            draws[k].append(f(a, b))
     return pd.DataFrame([{"statistic": k, "value": f(x, y), "lo95": float(np.nanpercentile(draws[k], 2.5)),
                           "hi95": float(np.nanpercentile(draws[k], 97.5)), "pairs": len(m), "months": m.month.nunique()}
                          for k, f in stats.items()])
