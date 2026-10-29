@@ -78,7 +78,7 @@ shrub cover, with 95 % intervals.
 
 **Reading.** Trees lower the coherence of short pairs, on the mat as off it, and dense shrubs less; over the nine
 cells' range of shrub cover the change is small. How a mat cell's six-day phase follows the laser is not weakened by
-trees or shrubs by the registered rules, with one exception X-132 reports (descending, 2020–2021, trees on the mat).
+trees or shrubs by the registered rules, with one exception X-132 reports (descending, 2021, trees on the mat).
 Season, orbit, pair length and weather move coherence far more than canopy does, and the nine cells around P6 —
 almost no trees, a few per cent of shrubs — all follow the laser alike. The numbers are in the source tables named above.
 """
