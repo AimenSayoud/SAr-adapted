@@ -360,7 +360,7 @@ The pre-registered contrasts with their 95 % intervals (200 m spatial-block boot
 on depth) on and off the mat, dense shrub − open (matched), and 0 → 15 % shrub cover (dose–response); on coherence,
 VH backscatter and the agreement of the six-day phase with the P6 laser. Shaded: X-134's ±0.03 margin for "no material
 difference". Trees lower coherence and raise VH, on the mat as off it; shrubs do the same, less; the agreement with the
-laser is not weakened on the mat by the registered rules (one exception, descending 2020–21; X-132).
+laser is not weakened on the mat by the registered rules (one exception, descending 2021, the laser's part of the 2020–21 set; X-132).
 
 ## V5 — is it the leaves?
 ![V5](V5_summer_winter.png)
@@ -484,7 +484,7 @@ def s15(cells, shrub_cells, nine, p6):
         near = near[near.group != GROUPS[1]]
         cols = [V.effects("O1_coh"), V.effects("O4_vh_median_db"), o3]
         titles = ["(c) coherence of consecutive pairs (Δ)", "(d) VH backscatter (Δ dB)",
-                  "(e) r with the P6 laser (Δ, six-day), mat only"]
+                  "(e) r with the P6 laser (Δ), 2021 and 2025"]
         sets_by = [list(SETS), list(SETS), ["2020_2021", "2025"]]
         axes = [fig.add_subplot(gs[1, k]) for k in range(3)]
         for k, (ax, df, title, sets) in enumerate(zip(axes, cols, titles, sets_by)):
