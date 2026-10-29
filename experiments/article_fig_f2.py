@@ -94,7 +94,7 @@ def panel_buoyancy(ax, inc_asc: float) -> dict:
     ax.axhline(0, color=fs.GRID, lw=0.6, zorder=0), ax.axvline(0, color=fs.GRID, lw=0.6, zorder=0)
     ax.set_xlim(-lim, lim)
     y0, y1 = np.nanpercentile(ds, 0.5) * 1.3, np.nanpercentile(ds, 99.5) * 1.3
-    ax.set_ylim(min(y0, -qv * 1.25), max(y1, qv * 1.25))
+    ax.set_ylim(min(y0 * 1.18, -qv * 1.35), max(y1, qv * 1.25))
     for sgn in (-1, 1):
         ax.axhspan(sgn * qv, sgn * 200, color="#eef1f4", lw=0, zorder=0)
     beyond = float(np.mean(np.abs(ds) > qv))
@@ -160,9 +160,9 @@ def panel_cells(ax, st) -> dict:
     ax.set_ylabel("slope of the cell's chained phase\non the laser (TLS, 95 % CI)")
     top = float(np.nanmax(np.concatenate([cells[(cells.track == tr) & (cells.period == per)].tls_hi95
                                           for tr, per, _, _ in SHOWN])))
-    ax.set_ylim(0, top * 1.5)                          # headroom for the legend above the tallest interval
-    ax.legend(loc="upper left", handlelength=1.4, fontsize=7, ncol=1, frameon=True, framealpha=0.9,
-              edgecolor="none", borderaxespad=0.2)
+    ax.set_ylim(0, top * 1.22)                          # headroom for the legend above the tallest interval
+    ax.legend(loc="upper left", handlelength=1.4, fontsize=7, ncol=1, frameon=True, framealpha=0.92,
+              edgecolor="none", borderaxespad=0.15, labelspacing=0.22)
     return out
 
 

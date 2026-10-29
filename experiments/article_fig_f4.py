@@ -143,8 +143,8 @@ def main() -> None:
                 b.add_patch(plt.Rectangle((s.r_sim_p2_5, yy - 0.12), s.r_sim_p97_5 - s.r_sim_p2_5, 0.24,
                                           color="#d9dde2", lw=0, zorder=0))
                 if not labelled:
-                    b.annotate("range ambiguity alone\nwould give (X-127)", xy=(s.r_sim_p2_5 + 0.02, yy - 0.12),
-                               xytext=(-0.7, yy - 0.62), fontsize=7, color=fs.MUTED, ha="left", va="bottom",
+                    b.annotate("range ambiguity + indep.\n6 d noise would give (X-127)", xy=(s.r_sim_p2_5 + 0.02, yy - 0.12),
+                               xytext=(-0.72, yy - 0.62), fontsize=7, color=fs.MUTED, ha="left", va="bottom",
                                arrowprops=dict(arrowstyle="-", color=fs.MUTED, lw=0.5))
                     labelled = True
             b.plot([row.r_lo95, row.r_hi95], [yy, yy], color=fs.TRACK[tr], lw=1.0, solid_capstyle="butt", zorder=2)

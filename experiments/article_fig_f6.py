@@ -129,6 +129,8 @@ def route_spans(rows: list[dict]) -> list[dict]:
         else:
             continue
         out.append({"route": r["route"], "outcome": r["outcome"], "lo": float(lo), "hi": float(hi)})
+    rank = {"holds": 0, "partly": 1, "lost": 2}
+    out.sort(key=lambda s: (rank.get(s["outcome"], 3), s["lo"], s["hi"]))
     return out
 
 
@@ -166,10 +168,11 @@ def draw(spans: list[dict], shares: pd.DataFrame) -> plt.Figure:
     # (b) share of pairs over which the laser moved beyond λ/4
     for track, g in shares.groupby("track"):
         c = fs.TRACK[track]
+        ls = "-" if track == "ascending" else (0, (3.5, 1.8))
         ax_e.errorbar(g["lag_median_days"], g["share"],
                       yerr=[g["share"] - g["share_lo95"], g["share_hi95"] - g["share"]],
-                      color=c, marker="o" if track == "ascending" else "^", ms=4, lw=1.0, elinewidth=0.8, capsize=0,
-                      label=f"{track} (line of sight)")
+                      color=c, ls=ls, marker="o" if track == "ascending" else "^", ms=4, lw=1.0, elinewidth=0.8,
+                      capsize=0, label=f"{track} (line of sight)")
     ax_e.set_ylim(-0.02, 1.02)
     ax_e.yaxis.set_major_formatter(matplotlib.ticker.PercentFormatter(1.0))
     ax_e.set_xticks(TICKS, [str(t) for t in TICKS])
