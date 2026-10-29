@@ -241,15 +241,22 @@ def main() -> None:
         xx = np.linspace(min(lo, wp.cwb_novapr_mm.min()), max(hi, wp.cwb_novapr_mm.max()), 50)
         ax.plot(xx, W.a + W.b * xx, color=fs.MUTED, lw=0.8, ls="--", label="model W (fit on the four laser winters)")
         ax.scatter(cal.cwb_novapr_mm, cal.laser_cm, color=fs.CLASS["laser"], zorder=3, label="laser winter rise")
+        cal_off = {"2024/25": (-5, 4, "right")}
         for r in cal.itertuples():
-            ax.annotate(r.winter, (r.cwb_novapr_mm, r.laser_cm), xytext=(4, 3), textcoords="offset points", fontsize=7)
+            dx, dy, ha = cal_off.get(r.winter, (4, 3, "left"))
+            ax.annotate(r.winter, (r.cwb_novapr_mm, r.laser_cm), xytext=(dx, dy), textcoords="offset points",
+                        ha=ha, fontsize=7)
         o = wp[wp.y.between(2017, 2025) & wp.laser_cm.isna()]
         ax.scatter(o.cwb_novapr_mm, o.model_cm, marker="o", facecolors="none", edgecolors=fs.CLASS["mat"],
                    label="model, winters without laser")
+        o_off = {"2017/18": (-5, 5, "right"), "2020/21": (5, -10, "left"), "2019/20": (-5, 5, "right"),
+                 "2018/19": (5, -9, "left"), "2025/26": (0, 6, "center")}
         for r in o.itertuples():
-            ax.annotate(r.winter, (r.cwb_novapr_mm, r.model_cm), xytext=(4, -9), textcoords="offset points",
-                        fontsize=7, color=fs.MUTED)
+            dx, dy, ha = o_off.get(r.winter, (4, -9, "left"))
+            ax.annotate(r.winter, (r.cwb_novapr_mm, r.model_cm), xytext=(dx, dy), textcoords="offset points",
+                        ha=ha, fontsize=7, color=fs.MUTED)
         ax.axvspan(lo, hi, color=fs.GRID, alpha=0.3, lw=0)
+        ax.set_ylim(-6.8, 15.2)
         ax.set_xlabel("IMGW November–April water balance (mm)")
         ax.set_ylabel("winter rise (cm)")
         ax.set_title("(a) Winter rise against winter water balance (grey: the laser winters' range)", loc="left")
@@ -264,6 +271,11 @@ def main() -> None:
         ax.set_title("(b) Model W for every winter since 1991/92 (grey bars: outside the laser winters' range)", loc="left")
         ax.legend(frameon=False, fontsize=7, loc="upper left")
         fs.export(fig, OUT / "fig_x141", provenance={"script": "experiments/drying_x141.py", "ticket": "X-141"})
+        fs.export(
+            fig,
+            HUB / "08_deliverables" / "article_plan" / "figures" / "final" / "S17_drying_trajectory",
+            provenance={"script": "experiments/drying_x141.py", "ticket": "X-141", "role": "S17"},
+        )
         plt.close(fig)
 
     mshow = models[["model", "role", "rmse_lowo_cm", "max_lowo_cm", "a", "b", "r_in_sample"]]
