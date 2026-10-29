@@ -2889,6 +2889,23 @@ entries:
     - hub:08_deliverables/drying_x140
     outputs:
     - hub:08_deliverables/drying_x141
+  closure_x143:
+    kind: experiment
+    title: X-143 — closure of wrapped six-day triplets at P6 (2021, 2025), matched across tracks, against water table, soil moisture and laser (R4 M2)
+    status: current
+    runs_on: mac
+    code: experiments/closure_x143.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/closure_x143.py
+    tickets:
+    - X-143
+    chains:
+    - insar-full-test
+    inputs:
+    - cube:gold/plots_pair.csv.gz
+    - hub:06_data/s1_archive/asf_acquisitions.csv
+    outputs:
+    - hub:08_deliverables/insar_full_test/closure_x143
   winter_cycles_x142:
     kind: experiment
     title: X-142 — whole-cycle offsets between P6 and the hard targets in the winter pairs, read against the laser, and the winter steps without them (R4 M1)
