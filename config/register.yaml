@@ -2889,6 +2889,25 @@ entries:
     - hub:08_deliverables/drying_x140
     outputs:
     - hub:08_deliverables/drying_x141
+  winter_cycles_x142:
+    kind: experiment
+    title: X-142 — whole-cycle offsets between P6 and the hard targets in the winter pairs, read against the laser, and the winter steps without them (R4 M1)
+    status: current
+    runs_on: mac
+    code: experiments/winter_cycles_x142.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/winter_cycles_x142.py
+    tickets:
+    - X-142
+    chains:
+    - insar-full-test
+    inputs:
+    - cube:gold/plots_pair.csv.gz
+    - cube:silver/site_hourly.csv.gz
+    - cube:silver/static_40m.nc
+    - hub:08_deliverables/insar_full_test/reread_corrected/baseline_x099/winters.csv
+    outputs:
+    - hub:08_deliverables/insar_full_test/winter_cycles_x142
   drying_x140:
     kind: experiment
     title: X-140 — how far the mat rises back each winter 2017/18–2025/26, each year's spring-to-spring loop, and the change since 2017 (radar chain, laser-scored correction, water table as second estimate)
