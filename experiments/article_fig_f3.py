@@ -213,14 +213,16 @@ def panel_pairs(ax, lv) -> None:
 
     # the level: truth, the chain of consecutive pairs and how far it can be off (±2 σ √steps)
     tt = np.linspace(0, MONTH_START[-1], 600)
-    truth = lambda x: 1.0 * np.cos(2 * np.pi * (np.asarray(x) - 255) / 365)      # high in winter, low in summer
+    truth = lambda x: 1.0 * np.cos(2 * np.pi * (np.asarray(x) - 348) / 365)      # high in spring, low in autumn
     lv.plot(tt, truth(tt), color=fs.INK, lw=1.0, zorder=4)
-    rng = np.random.default_rng(5)
-    sig = np.where(in_winter[1:] | in_winter[:-1], 0.12, 0.035)                    # per pair, schematic
+    rng = np.random.default_rng(7)
+    sig = np.where(in_winter[1:] | in_winter[:-1], 0.085, 0.032)                    # per pair, schematic
     spring = int(np.argmax(t >= WINTER[1]))
     est, band = [truth(t[0])], [0.0]
     for k in range(1, spring):
-        est.append(est[-1] + truth(t[k]) - truth(t[k - 1]) + rng.normal(0, sig[k - 1]))
+        w_step = in_winter[k] or in_winter[k - 1]
+        drift = -0.032 if w_step else 0.0
+        est.append(est[-1] + truth(t[k]) - truth(t[k - 1]) + drift + rng.normal(0, sig[k - 1]))
         band.append(np.sqrt(band[-1] ** 2 + sig[k - 1] ** 2))
     est, band = np.array(est), 2 * np.array(band)
     season = t[:spring] < WINTER[0]
@@ -229,7 +231,7 @@ def panel_pairs(ax, lv) -> None:
         lv.fill_between(t[sl], est[sl] - band[sl], est[sl] + band[sl], color=col, alpha=0.18, lw=0, zorder=2)
         lv.plot(t[sl], est[sl], color=col, lw=1.1, ls=ls, zorder=5)
     # re-set at spring from outside the radar, with its own error, then the chain again
-    r0 = truth(t[spring]) + 0.12
+    r0 = truth(t[spring]) + 0.14
     arrow(lv, (t[spring - 1], est[-1]), (t[spring], r0), color=OUTSIDE, lw=1.0, ms=6)
     lv.errorbar([t[spring]], [r0], yerr=0.18, fmt="o", ms=3.5, mfc="white", mec=OUTSIDE, ecolor=OUTSIDE,
                 elinewidth=0.9, capsize=2, zorder=7)
@@ -240,15 +242,15 @@ def panel_pairs(ax, lv) -> None:
     e2, b2 = np.array(e2), 2 * np.array(b2)
     lv.fill_between(t[spring:], e2 - b2, e2 + b2, color=fs.CLASS["mat"], alpha=0.18, lw=0, zorder=2)
     lv.plot(t[spring:], e2, color=fs.CLASS["mat"], lw=1.1, zorder=5)
-    lv.set_ylim(-1.3, 2.4)
+    lv.set_ylim(-1.45, 2.35)
     lv.set_ylabel("mat level\n(sketch)", fontsize=7, linespacing=1.1)
     lv.spines["left"].set_visible(True)
-    lv.text(4, -0.2, "true level", ha="left", va="bottom", fontsize=7, color=fs.INK)
-    lv.text(132, 0.55, "chain of consecutive pairs:\nclose to it within the season", ha="center", va="bottom",
+    lv.text(6, 0.32, "true level", ha="left", va="top", fontsize=7, color=fs.INK)
+    lv.text(112, 0.42, "chain of consecutive pairs:\nclose to it within the season", ha="center", va="bottom",
             fontsize=7, color=fs.CLASS["mat"], linespacing=1.1)
-    lv.text(sum(WINTER) / 2, -1.2, "noise adds up\nalong the chain", ha="center", va="bottom", fontsize=7,
-            color=fs.MUTED, linespacing=1.1)
-    lv.text(t[spring] - 3, 1.65, "level re-set from outside the radar\n(§6: from the weather), with an error",
+    lv.text(sum(WINTER) / 2, -1.35, "noise adds up\nalong the chain", ha="center", va="bottom", fontsize=7,
+            color=fs.MUTED, linespacing=1.05)
+    lv.text(t[spring] - 4, 1.55, "level re-set from outside the radar\n(§6: from the weather), with an error",
             ha="right", va="bottom", fontsize=7, color=OUTSIDE, linespacing=1.1)
 
 
