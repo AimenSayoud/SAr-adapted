@@ -42,13 +42,13 @@ TABLE = HUB / "08_deliverables" / "article_plan" / "tables" / "plot_phase_share.
 X128_CELLS = 3                                                      # X-128's primary exclusion (120 m)
 BINS = ((6, 6, "6"), (12, 12, "12"), (18, 18, "18"), (24, 24, "24"), (36, 36, "36"), (48, 48, "48"),
         (100, 400, "120–396"), (700, 800, "720–744"))
-CLASSES = (("mat", "mat"), ("grassland", "grassland"), ("hard targets", "hard targets"))
+CLASSES = (("mat", "mat", "o"), ("grassland", "grassland", "s"), ("hard targets", "hard targets", "^"))
 
 
 def panel_lengths(ax, t: pd.DataFrame, track: str) -> list[dict]:
     rows = []
     xs = np.arange(len(BINS))
-    for k, (cls, col) in enumerate(CLASSES):
+    for k, (cls, col, mk) in enumerate(CLASSES):
         med, q1, q3 = [], [], []
         for lo, hi, lab in BINS:
             v = t.loc[(t.days >= lo) & (t.days <= hi), col].dropna()
@@ -56,13 +56,14 @@ def panel_lengths(ax, t: pd.DataFrame, track: str) -> list[dict]:
             rows.append({"track": track, "class": cls, "days": lab, "n_pairs": int(len(v)), "median": v.median()})
         x = xs + (k - 1) * 0.16
         c = fs.CLASS[cls]
+        mec = fs.INK if cls == "grassland" else "white"
         ax.vlines(x, q1, q3, color=c, lw=1.0)
         ax.plot(x, med, "-", color=c, lw=1.0, alpha=0.6)
-        ax.plot(x, med, "o", ms=3.6, color=c, mec="white", mew=0.4, label=cls)
+        ax.plot(x, med, mk, ms=3.8, color=c, mec=mec, mew=0.45, label=cls)
     ax.axhline(0.05, color=fs.MUTED, lw=0.6, ls=(0, (1, 1.5)), label="open water (5 %, by construction)")
     n = [int(((t.days >= lo) & (t.days <= hi)).sum()) for lo, hi, _ in BINS]
     ax.set_xticks(xs, [f"{b[2]}\n({k})" for b, k in zip(BINS, n)], rotation=0, fontsize=7)
-    top = max(float(np.nanmax(t.loc[t.days == 6, col].quantile(0.75))) for _, col in CLASSES)
+    top = max(float(np.nanmax(t.loc[t.days == 6, col].quantile(0.75))) for _, col, _ in CLASSES)
     ax.annotate("six-day pairs: they follow\nthe laser at P6 (Fig. 4)", xy=(0, top + 0.02), xytext=(0.35, 0.86),
                 fontsize=7, color=fs.MUTED, ha="left", va="center",
                 arrowprops=dict(arrowstyle="-", color=fs.MUTED, lw=0.5))
@@ -128,7 +129,8 @@ def panel_cdf(ax, masks, extras, shares: pd.DataFrame):
     for tr, e in extras.items():
         share = e["above6"] / max(e["n6"], 1)
         v = np.sort(share[masks["mat"]][np.isfinite(share[masks["mat"]])])
-        ax.step(v, np.arange(1, len(v) + 1) / len(v) * 100, where="post", color=fs.TRACK[tr], lw=1.1, label=tr)
+        ls = "-" if tr == "ascending" else (0, (3.5, 1.8))
+        ax.step(v, np.arange(1, len(v) + 1) / len(v) * 100, where="post", color=fs.TRACK[tr], lw=1.1, ls=ls, label=tr)
         p6 = shares[(shares.track == tr) & (shares["plot"] == "P6")].iloc[0]
         ax.plot(p6.share, p6.percentile_in_mat, "*", ms=8, color=fs.TRACK[tr], mec=fs.INK, mew=0.5, zorder=4)
         ax.annotate(f"P6 ({p6.percentile_in_mat:.0f}th)", xy=(p6.share, p6.percentile_in_mat),
@@ -137,7 +139,7 @@ def panel_cdf(ax, masks, extras, shares: pd.DataFrame):
     ax.set_xlim(0, 0.8), ax.set_ylim(0, 102)
     ax.set_xlabel("share of six-day pairs\nabove the open-water floor")
     ax.set_ylabel("mat cells at or below (%)")
-    ax.legend(loc="lower right", fontsize=7, handlelength=1.2)
+    ax.legend(loc="lower right", fontsize=7, handlelength=1.6)
 
 
 def main() -> None:
@@ -155,7 +157,8 @@ def main() -> None:
         bot = gs[1].subgridspec(1, 5, width_ratios=[1, 1, 0.045, 0.42, 0.66], wspace=0.06)
         a, b = fig.add_subplot(top[0]), fig.add_subplot(top[1])
         c, d = fig.add_subplot(bot[0]), fig.add_subplot(bot[1])
-        cax, e = fig.add_subplot(bot[2]), fig.add_subplot(bot[4])
+        cax = fig.add_subplot(bot[2].subgridspec(3, 1, height_ratios=[0.14, 0.72, 0.14])[1])
+        e = fig.add_subplot(bot[4])
         meds = panel_lengths(a, tables["ascending"], "ascending") + panel_lengths(b, tables["descending"],
                                                                                     "descending")
         a.set_ylabel("share of the class's cells above the pair's\nopen-water floor (median, interquartile range)")
@@ -171,14 +174,20 @@ def main() -> None:
         cb = fig.colorbar(im, cax=cax, extend="max")
         cb.set_label("share of six-day pairs above the open-water floor")
         panel_cdf(e, masks, extras, shares)
+        excl_handle = (Line2D([], [], color=fs.INK, lw=2.2),
+                       Line2D([], [], color="white", lw=0.9, ls=(0, (2, 1.5))))
         fig.legend(handles=[Line2D([], [], color=fs.INK, lw=0.9, label="floating mat (cells outside it: grassland)"),
-                            Patch(fc=fs.CLASS["open water"], alpha=0.6, label="residual lake"),
+                            Patch(fc=fs.CLASS["open water"], ec=fs.INK, lw=0.4, alpha=0.7, label="residual lake"),
                             Line2D([], [], ls="", marker="o", ms=4, mfc="white", mec=fs.INK, label="plots P1–P9"),
-                            Line2D([], [], color="#cf222e", lw=0.8, label="boardwalk cells"),
-                            Line2D([], [], color="white", lw=0.9, ls=(0, (2, 1.5)),
-                                   label="within 120 m of a plot or the boardwalk (left out in X-128)")],
-                   loc="lower center", ncol=3, bbox_to_anchor=(0.5, 0.0), fontsize=7, frameon=True,
-                   facecolor="#c8ccd0", edgecolor="none", framealpha=1.0)
+                            Line2D([], [], color="#cf222e", lw=0.9, label="boardwalk cells"),
+                            excl_handle],
+                   labels=["floating mat (cells outside it: grassland)",
+                           "residual lake",
+                           "plots P1–P9",
+                           "boardwalk cells",
+                           "within 120 m of a plot or the boardwalk (left out in X-128)"],
+                   loc="lower center", ncol=3, bbox_to_anchor=(0.5, 0.005), fontsize=7, frameon=True,
+                   facecolor="#f8f9fa", edgecolor="#d0d7de", framealpha=1.0)
         for ax, lab in ((a, "a"), (b, "b"), (c, "c"), (d, "d"), (e, "e")):
             fs.panel_label(ax, lab, x=0.0, y=1.02)
         rec = fs.export(fig, OUT / "F5_coherence_floor", provenance={
