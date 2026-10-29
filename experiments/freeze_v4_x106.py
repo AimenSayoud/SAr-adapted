@@ -72,7 +72,10 @@ def unw_at(track: str, x: float, y: float) -> dict[str, float]:
         if not f.exists():
             continue
         with xr.open_dataset(f) as ds:
-            v = ds.unw.interp(x=x, y=y, method="linear").values
+            ix = int(np.argmin(np.abs(ds.x.values - x)))
+            iy = int(np.argmin(np.abs(ds.y.values - y)))
+            sub = ds.unw.isel(x=slice(max(ix - 2, 0), ix + 3), y=slice(max(iy - 2, 0), iy + 3))
+            v = sub.interp(x=x, y=y, method="linear").values
             k = pd.to_datetime(ds.t1.values).strftime("%Y%m%d") + "_" + pd.to_datetime(ds.t2.values).strftime("%Y%m%d")
             out.update({kk: float(vv) for kk, vv in zip(k, v)})
     return out
