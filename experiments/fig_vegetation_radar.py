@@ -179,9 +179,9 @@ def main() -> None:
     rgb, ext_rgb = ortho_rgb(box)
 
     with fs.style():
-        fig = plt.figure(figsize=fs.size("full", 235))
-        gs = fig.add_gridspec(3, 6, height_ratios=[1.05, 1.0, 0.85], hspace=0.42, wspace=0.55,
-                              left=0.16, right=0.985, top=0.975, bottom=0.05)
+        fig = plt.figure(figsize=fs.size("full", 248))
+        gs = fig.add_gridspec(3, 6, height_ratios=[1.05, 1.0, 0.88], hspace=0.52, wspace=0.55,
+                              left=0.16, right=0.985, top=0.965, bottom=0.05)
         # (a) the 1 km disk
         ax = fig.add_subplot(gs[0, :2])
         code = cells.cls.map({"open": 0, "mid": 1, "wooded": 2}).to_numpy(float)
@@ -203,16 +203,16 @@ def main() -> None:
         ax.legend(handles=[plt.Rectangle((0, 0), 1, 1, color=CLS_COL[k]) for k in ("open", "mid", "wooded")]
                   + [Line2D([], [], color=fs.INK, lw=0.8), Line2D([], [], color="#7a3fb0", lw=0.8),
                      plt.Rectangle((0, 0), 1, 1, fill=False, ec="#d55e00")],
-                  labels=["open (canopy < 0.5 m)", "in between", "wooded (canopy ≥ 2 m)", "floating mat",
-                          "UAV strip", "nine cells (b)"], fontsize=6, loc="upper left", bbox_to_anchor=(0.0, -0.01),
-                  ncol=2, frameon=False)
+                  labels=["open (< 0.5 m)", "in between", "wooded (≥ 2 m)", "floating mat",
+                          "UAV strip", "nine cells (b)"], fontsize=6.5, loc="upper left", bbox_to_anchor=(-0.05, -0.02),
+                  ncol=2, frameon=False, labelspacing=0.25, columnspacing=0.8)
         # (b) the nine cells three ways
         xs = sorted(nine.x.unique())
         ys = sorted(nine.y.unique())
         edges_x = [xs[0] - 20] + [v + 20 for v in xs]
         edges_y = [ys[0] - 20] + [v + 20 for v in ys]
         panels = [("10 cm photo, 19 Sep 2024", None), ("UAV NDVI, 20 Sep 2024", "ndvi"),
-                  ("canopy height, laser 19 Sep 2024", "chm")]
+                  ("laser canopy, 19 Sep 2024", "chm")]
         sub_gs = gs[0, 2:].subgridspec(1, 3, wspace=0.08)
         for k, (title, kind) in enumerate(panels):
             ax = fig.add_subplot(sub_gs[0, k])
@@ -224,21 +224,21 @@ def main() -> None:
             elif kind == "ndvi":
                 sub = nd.sel(x=slice(box[0], box[2]), y=slice(box[3], box[1]))
                 im = ax.imshow(sub.values, extent=(float(sub.x.min()), float(sub.x.max()), float(sub.y.min()),
-                                                   float(sub.y.max())), cmap="RdYlGn", vmin=0, vmax=0.9)
+                                                   float(sub.y.max())), cmap="YlGn", vmin=0.2, vmax=0.85)
                 ax.set_facecolor("#dddddd")
                 cb = fig.colorbar(im, ax=ax, fraction=0.046, pad=0.02, orientation="horizontal")
-                cb.ax.tick_params(labelsize=6)
+                cb.ax.tick_params(labelsize=6.5)
             else:
                 sub = chm.sel(x=slice(box[0], box[2]), y=slice(box[3], box[1]))
                 im = ax.imshow(sub.values, extent=(float(sub.x.min()), float(sub.x.max()), float(sub.y.min()),
                                                    float(sub.y.max())), cmap="YlGn", vmin=0, vmax=3)
                 cb = fig.colorbar(im, ax=ax, fraction=0.046, pad=0.02, orientation="horizontal")
-                cb.ax.tick_params(labelsize=6)
-                cb.set_label("m", fontsize=6)
+                cb.ax.tick_params(labelsize=6.5)
+                cb.set_label("m", fontsize=6.5)
                 for r in nine.itertuples():
                     ax.text(r.x, r.y, f"T {r.tree_share_2024:.1%}\nS {r.shrub_share_2024:.0%}", ha="center",
-                            va="center", fontsize=5, color=fs.INK,
-                            bbox={"boxstyle": "round,pad=0.15", "fc": "white", "ec": "none", "alpha": 0.7})
+                            va="center", fontsize=5.5, color=fs.INK,
+                            bbox={"boxstyle": "round,pad=0.15", "fc": "white", "ec": "none", "alpha": 0.75})
             for v in edges_x:
                 ax.axvline(v, color="white" if kind is None else fs.INK, lw=0.5)
             for v in edges_y:
@@ -248,24 +248,26 @@ def main() -> None:
             ax.set_ylim(box[1], box[3])
             ax.set_xticks([])
             ax.set_yticks([])
-            ax.set_title(title, fontsize=6.5, loc="left")
+            ax.set_title(title, fontsize=7, loc="left")
             if k == 0:
-                ax.text(0, 1.16, "(b) the nine cells around P6 (T tree share, S shrub share)", transform=ax.transAxes,
-                        fontsize=8, va="bottom")
+                ax.text(0, 1.15, "(b) the nine cells around P6 (T tree share, S shrub share)", transform=ax.transAxes,
+                        fontsize=8, fontweight="bold", va="bottom")
         # (c) coherence
-        ax = fig.add_subplot(gs[1, :3])
-        forest(ax, effects("O1_coh"), "change in median coherence of consecutive pairs", list(SETS))
-        ax.set_title("(c) coherence of consecutive pairs", fontsize=8, loc="left")
+        ax_c = fig.add_subplot(gs[1, :3])
+        forest(ax_c, effects("O1_coh"), "change in median coherence of consecutive pairs", list(SETS))
+        ax_c.set_title("(c) coherence of consecutive pairs", fontsize=8, loc="left")
         # (d) following the laser
-        ax = fig.add_subplot(gs[1, 3:])
-        forest(ax, effects("O3_r_laser"), "change in r with the P6 laser (six-day pairs)", ["2020_2021", "2025"])
-        ax.set_yticklabels([])
-        ax.set_title("(d) how the phase follows the laser", fontsize=8, loc="left")
+        ax_d = fig.add_subplot(gs[1, 3:])
+        forest(ax_d, effects("O3_r_laser"), "change in r with the P6 laser (six-day pairs)", ["2020_2021", "2025"])
+        ax_d.set_yticklabels([])
+        ax_d.set_title("(d) how the phase follows the laser", fontsize=8, loc="left")
         handles = [Line2D([], [], color=fs.TRACK[t], lw=1.1, label=f"{t} track") for t in ("ascending", "descending")]
         handles += [Line2D([], [], ls="none", marker=SETS[s][1], color=fs.MUTED, label=SETS[s][0]) for s in SETS]
-        fig.axes[-2].legend(handles=handles, fontsize=6, loc="lower left", framealpha=0.95)   # (c): empty corner
+        ax_d.legend(handles=handles, fontsize=6.5, loc="lower right", bbox_to_anchor=(1.0, 1.08), ncol=3,
+                    frameon=False, columnspacing=0.9)
+        bot_gs = gs[2, :].subgridspec(1, 2, wspace=0.28)
         # (e) what moves coherence
-        ax = fig.add_subplot(gs[2, :3])
+        ax = fig.add_subplot(bot_gs[0, 0])
         st = stage2.sort_values("share_of_r2")
         cols = ["#2f6b3a" if f in VEG else fs.MUTED for f in st.factor]
         ax.barh([FACTOR.get(f, f) for f in st.factor], st.share_of_r2 * 100, color=cols)
@@ -273,7 +275,7 @@ def main() -> None:
         ax.tick_params(axis="y", labelsize=6)
         ax.set_title("(e) what moves coherence (green: trees and canopy)", fontsize=8, loc="left")
         # (f) the nine cells
-        ax = fig.add_subplot(gs[2, 3:])
+        ax = fig.add_subplot(bot_gs[0, 1])
         g = grp[(grp.group.astype(str) == "2021") & (grp.revisit_days == 6)]
         for track, dx in (("ascending", -0.25), ("descending", 0.25)):
             q = g[g.track == track].merge(nine[["cell", "shrub_share_2024", "tree_share_2024"]], on="cell")

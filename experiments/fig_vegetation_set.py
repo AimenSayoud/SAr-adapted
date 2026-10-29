@@ -30,6 +30,7 @@ import pandas as pd  # noqa: E402
 import shrub_coherence_x134 as X134  # noqa: E402
 import xarray as xr  # noqa: E402
 from matplotlib.lines import Line2D  # noqa: E402
+from matplotlib_scalebar.scalebar import ScaleBar  # noqa: E402
 
 from insar_wetlands import contrasts as C  # noqa: E402
 from insar_wetlands import figstyle as fs  # noqa: E402
@@ -57,7 +58,7 @@ def draw_grid(ax, nine, color="white"):
         for e in (v - 20, v + 20):
             ax.axhline(e, color=color, lw=0.6)
     for r in nine.itertuples():
-        ax.text(r.x - 18, r.y + 18, r.cell, fontsize=6, color=color, va="top", ha="left", fontweight="bold")
+        ax.text(r.x - 18, r.y + 18, r.cell, fontsize=7, color=color, va="top", ha="left", fontweight="bold")
 
 
 def crop(da, box):
@@ -92,6 +93,8 @@ def v1(nine, uav):
         ax = axes[0, 0]
         ax.imshow(rgb, extent=ext)
         draw_grid(ax, nine)
+        ax.add_artist(ScaleBar(1, "m", location="lower right", length_fraction=0.25, box_alpha=0.85,
+                               font_properties={"size": 7}, fixed_value=40))
         ax.set_title("(a) aerial photo, 10 cm, 19 Sep 2024", fontsize=7, loc="left")
         ax = axes[0, 1]
         ax.imshow(tc, extent=ext_u)
@@ -100,10 +103,12 @@ def v1(nine, uav):
         ax.set_title(f"(b) UAV true colour, {pd.Timestamp(d):%-d %b %Y} (grey: no flight)", fontsize=7, loc="left")
         ax = axes[0, 2]
         a, e = crop(nd.sel(date_remx=d), box)
-        im = ax.imshow(a, extent=e, cmap="RdYlGn", vmin=0.2, vmax=0.85)
+        im = ax.imshow(a, extent=e, cmap="YlGn", vmin=0.2, vmax=0.85)
         ax.set_facecolor("#dddddd")
         draw_grid(ax, nine, fs.INK)
-        fig.colorbar(im, ax=ax, fraction=0.04, pad=0.02, orientation="horizontal").set_label("NDVI", fontsize=6)
+        cb = fig.colorbar(im, ax=ax, fraction=0.04, pad=0.02, orientation="horizontal")
+        cb.set_label("NDVI", fontsize=7)
+        cb.ax.tick_params(labelsize=6.5)
         ax.set_title(f"(c) UAV NDVI, {pd.Timestamp(d):%-d %b %Y}", fontsize=7, loc="left")
         for k, (var, title) in enumerate((("chm_2024_m", "(d) canopy height, laser 19 Sep 2024 (leaf-on)"),
                                          ("chm_2011_m", "(e) canopy height, laser 24 Apr 2011 (leaf-off)"))):
@@ -111,19 +116,24 @@ def v1(nine, uav):
             a, e = crop(lid[var], box)
             im = ax.imshow(a, extent=e, cmap="YlGn", vmin=0, vmax=2.5)
             draw_grid(ax, nine, fs.INK)
-            fig.colorbar(im, ax=ax, fraction=0.04, pad=0.02, orientation="horizontal").set_label("m", fontsize=6)
+            cb = fig.colorbar(im, ax=ax, fraction=0.04, pad=0.02, orientation="horizontal")
+            cb.set_label("m", fontsize=7)
+            cb.ax.tick_params(labelsize=6.5)
             ax.set_title(title, fontsize=7, loc="left")
         ax = axes[1, 2]
         a, e = crop(lid.chm_2024_m - lid.chm_2011_m, box)
         im = ax.imshow(a, extent=e, cmap="BrBG", vmin=-1.5, vmax=1.5)
         draw_grid(ax, nine, fs.INK)
-        fig.colorbar(im, ax=ax, fraction=0.04, pad=0.02, orientation="horizontal").set_label("m (2024 − 2011)",
-                                                                                                fontsize=6)
+        cb = fig.colorbar(im, ax=ax, fraction=0.04, pad=0.02, orientation="horizontal")
+        cb.set_label("m (2024 − 2011)", fontsize=7)
+        cb.ax.tick_params(labelsize=6.5)
         ax.set_title("(f) canopy change 2011 → 2024", fontsize=7, loc="left")
         for ax in axes.ravel():
             finish(ax, box)
             ax.plot(nine[nine.cell == "P6"].x, nine[nine.cell == "P6"].y, "*", ms=7, color=P6_COL, mec=fs.INK,
                     mew=0.3)
+        fs.export(fig, FINAL / "S16_nine_cells_contents",
+                  provenance={"source": "fig_vegetation_set v1", "role": "Supplement S16"})
         fig.suptitle("V1 — what the nine 40 m radar cells around P6 hold", fontsize=9)
         fs.export(fig, OUT / "V1_what_the_cells_hold", provenance={"source": "fig_vegetation_set v1"})
         plt.close(fig)
@@ -415,11 +425,12 @@ def s15(cells, shrub_cells, nine, p6):
         fig = plt.figure(figsize=fs.size("full", 215))
         gs = fig.add_gridspec(2, 3, height_ratios=[1.15, 1.0], hspace=0.32, wspace=0.08, left=0.16, right=0.99,
                               top=0.94, bottom=0.06)
+        top_gs = gs[0, :].subgridspec(1, 2, width_ratios=[1.05, 1.0], wspace=0.10)
         mat, ext = V.grid_image(cells, cells.on_mat.to_numpy(float))
         gx = np.linspace(ext[0] + 20, ext[1] - 20, mat.shape[1])
         gy = np.linspace(ext[3] - 20, ext[2] + 20, mat.shape[0])
         # (a) trees
-        ax = fig.add_subplot(gs[0, :2])
+        ax = fig.add_subplot(top_gs[0])
         ax.set_anchor("NW")
         col = cells.cls.map({"open": 0, "mid": 1, "wooded": 2}).to_numpy(float)
         img, e = V.grid_image(cells, col)
@@ -434,7 +445,9 @@ def s15(cells, shrub_cells, nine, p6):
             ax.plot(t.x, t.y, "s", ms=2.2, mfc="none", mec=colr, mew=0.6)
             ax.plot(k.x, k.y, "o", ms=2.0, color=colr)
         ax.contour(gx, gy, np.where(np.isnan(mat), 0, mat), levels=[0.5], colors="black", linewidths=0.9)
-        ax.plot(p6.x, p6.y, "*", ms=9, color=P6_COL, mec="black", mew=0.4)
+        ax.plot(p6.x, p6.y, "*", ms=9, color=P6_COL, mec="black", mew=0.4, zorder=6)
+        ax.add_artist(ScaleBar(1, "m", location="lower right", length_fraction=0.22, box_alpha=0.85,
+                               font_properties={"size": 7}, fixed_value=500))
         ax.set_aspect("equal")
         ax.set_xticks([])
         ax.set_yticks([])
@@ -449,9 +462,10 @@ def s15(cells, shrub_cells, nine, p6):
                   labels=["wooded (canopy ≥ 2 m)", "open (canopy < 0.5 m)", "in between (not used)",
                           "pair on the mat", "pair off the mat", "floating mat", "wooded cell used",
                           "open cell used"],
-                  fontsize=6, loc="upper left", bbox_to_anchor=(0.0, -0.01), ncol=4, frameon=False)
+                  fontsize=6.5, loc="upper left", bbox_to_anchor=(-0.02, -0.01), ncol=2, frameon=False,
+                  columnspacing=1.1, handletextpad=0.45, labelspacing=0.22)
         # (b) shrubs
-        ax = fig.add_subplot(gs[0, 2])
+        ax = fig.add_subplot(top_gs[1])
         ax.set_anchor("N")
         allc = cells.set_index("cell")
         base, e0 = V.grid_image(cells, np.where(cells.on_mat == 1, 0.0, np.nan))
@@ -460,11 +474,14 @@ def s15(cells, shrub_cells, nine, p6):
         im = ax.imshow(img, extent=e, cmap="Purples", vmin=0, vmax=0.6, interpolation="nearest")
         for r in ms.itertuples():
             a, b = sc.loc[r.treated], sc.loc[r.control]
-            ax.plot([a.x, b.x], [a.y, b.y], color="#d95f02", lw=0.7)
-            ax.plot(b.x, b.y, "o", ms=1.8, color="#d95f02")
-        ax.contour(gx, gy, np.where(np.isnan(mat), 0, mat), levels=[0.5], colors="black", linewidths=0.9)
-        ax.add_patch(plt.Rectangle((nine.x.min() - 20, nine.y.min() - 20), 120, 120, fill=False, ec=P6_COL, lw=1.0))
-        ax.plot(p6.x, p6.y, "*", ms=8, color=P6_COL, mec="black", mew=0.4)
+            ax.plot([a.x, b.x], [a.y, b.y], color="#d95f02", lw=0.45, alpha=0.38, zorder=2)
+            ax.plot(b.x, b.y, "o", ms=1.8, color="#d95f02", alpha=0.75, zorder=3)
+        ax.contour(gx, gy, np.where(np.isnan(mat), 0, mat), levels=[0.5], colors="black", linewidths=0.9, zorder=4)
+        ax.add_patch(plt.Rectangle((nine.x.min() - 20, nine.y.min() - 20), 120, 120, fill=False, ec=P6_COL, lw=1.1,
+                                   zorder=5))
+        ax.plot(p6.x, p6.y, "*", ms=8.5, color=P6_COL, mec="black", mew=0.45, zorder=6)
+        ax.add_artist(ScaleBar(1, "m", location="lower right", length_fraction=0.22, box_alpha=0.85,
+                               font_properties={"size": 7}, fixed_value=250))
         xs = [allc.x.min(), allc.x.max()]
         ax.set_xlim(min(shrub_cells.x) - 60, max(shrub_cells.x) + 60)
         ax.set_ylim(min(shrub_cells.y) - 60, max(shrub_cells.y) + 60)
@@ -472,9 +489,9 @@ def s15(cells, shrub_cells, nine, p6):
         ax.set_aspect("equal")
         ax.set_xticks([])
         ax.set_yticks([])
-        cb = fig.colorbar(im, ax=ax, fraction=0.05, pad=0.02, orientation="horizontal")
-        cb.set_label("shrub cover 0.5–2 m (share of cell)", fontsize=6)
-        cb.ax.tick_params(labelsize=6)
+        cb = fig.colorbar(im, ax=ax, fraction=0.045, pad=0.02, orientation="horizontal")
+        cb.set_label("shrub cover 0.5–2 m (share of cell)", fontsize=7)
+        cb.ax.tick_params(labelsize=6.5)
         ax.set_title(f"(b) shrubs: {len(sc)} tree-free mat cells,\n{len(ms)} dense–open pairs (orange)",
                      fontsize=7, loc="left")
         # (c–e) effect sizes
@@ -509,23 +526,23 @@ def s15(cells, shrub_cells, nine, p6):
             if k == 2:
                 ax.text(0.5, 1 / len(GROUPS) * 2.5, "not shown: solid ground\ndoes not move with the mat,\nso its "
                         "agreement with the\nP6 laser has no meaning", transform=ax.transAxes, ha="center",
-                        va="center", fontsize=6, color=fs.MUTED,
+                        va="center", fontsize=6.5, color=fs.MUTED,
                         bbox={"boxstyle": "round,pad=0.3", "fc": "white", "ec": "none"})
             if k == 0:
                 ax.axvspan(-0.03, 0.03, color="#f3e3c3", alpha=0.6, lw=0, zorder=0)
-                ax.set_yticks(range(len(GROUPS)), GROUPS, fontsize=6.5)
+                ax.set_yticks(range(len(GROUPS)), GROUPS, fontsize=7)
             else:
                 ax.set_yticks(range(len(GROUPS)), [""] * len(GROUPS))
             ax.set_ylim(len(GROUPS) - 0.5, -0.5)
             ax.set_title(title, fontsize=7, loc="left")
             ax.grid(axis="y", visible=False)
-            ax.tick_params(axis="x", labelsize=6.5)
+            ax.tick_params(axis="x", labelsize=7)
         handles = [Line2D([], [], color=fs.TRACK[t], lw=1.1, label=f"{t} track") for t in ("ascending", "descending")]
         handles += [Line2D([], [], ls="none", marker=SETS[st][1], color=fs.MUTED, label=SETS[st][0]) for st in SETS]
         handles += [plt.Rectangle((0, 0), 1, 1, color="#f3e3c3", label="±0.03 (X-134's margin)"),
                      Line2D([], [], ls="none", marker="o", mfc="none", mec=fs.MUTED,
                             label="(e) only cells within 500 m of P6")]
-        fig.legend(handles=handles, loc="lower center", ncol=4, fontsize=6.2, frameon=False, bbox_to_anchor=(0.57, 0.0))
+        fig.legend(handles=handles, loc="lower center", ncol=4, fontsize=6.8, frameon=False, bbox_to_anchor=(0.57, 0.0))
         for stem in (OUT / "S15_vegetation_effects", FINAL / "S15_vegetation_effects"):
             fs.export(fig, stem, provenance={"source": "fig_vegetation_set s15", "pairs_checked": True})
         plt.close(fig)
@@ -547,9 +564,6 @@ def main() -> None:
     v5()
     v6(nine)
     s15(cells, shrub_cells, nine, p6)
-    import shutil
-    for ext in ("png", "pdf"):
-        shutil.copyfile(OUT / f"V1_what_the_cells_hold.{ext}", FINAL / f"S16_nine_cells_contents.{ext}")
     (OUT / "FIGURES.md").write_text(CAPTIONS, encoding="utf-8")
     print("V1–V6 →", OUT)
 
