@@ -3,7 +3,9 @@ surface (R4 m4).
 
 The fit is X-074 E1.2's, unchanged (six-day changes taken every day, frost excluded, least squares through the origin).
 Those changes overlap, so the interval resamples calendar months, not days. Reading B turns the logged slope b into the
-surface's motion per unit of the water's own motion, γ = b / (1 + b).
+surface's motion per unit of the water's own motion, γ = b / (1 + b). X-074 ran under the frost laser rule; the cube's
+laser_ok now follows the snow-evidence rule (X-130), so both are reported (amendment of 2026-10-29), the frost rule
+first because it is the article's coefficient.
 
 Pre-registration: hub ``08_deliverables/insar_full_test/preregistration/X-145.yaml`` (checked before the run).
 Reads the cube and the hub; writes only to the hub: ``08_deliverables/insar_full_test/buoyancy_x145/``. No field value
@@ -48,42 +50,61 @@ def boot(x: np.ndarray, y: np.ndarray, month: np.ndarray, span: int, rng: np.ran
     return np.asarray(out)
 
 
+def daily(rule: str) -> pd.DataFrame:
+    """X-074's daily table; under the frost rule the laser is re-screened from the cube's frost mask (X-074's run)."""
+    d = F.daily()
+    if rule == "snow-evidence (cube laser_ok)":
+        return d
+    h = pd.read_csv(F.S / "site_hourly.csv.gz", index_col=0, parse_dates=True, low_memory=False,
+                    usecols=["time_utc", "laser_surface_cm", "laser_frost_72h", "laser_outlier", "laser_filled"])
+    h.index = pd.DatetimeIndex(h.index, tz="UTC") if h.index.tz is None else h.index
+    ok = h.laser_surface_cm.notna() & ~(F.truthy(h.laser_frost_72h) | F.truthy(h.laser_outlier) | F.truthy(h.laser_filled))
+    las = h.laser_surface_cm.where(ok)
+    lc, ln = las.resample("1D").mean(), las.resample("1D").count()
+    lc[ln < 12] = np.nan
+    lc.index = lc.index.tz_convert(None).normalize()
+    d["laser_cm"] = lc.reindex(d.index)
+    return d
+
+
 def main() -> None:
     assert_preregistered(PREREG, [OUT / "verdict.json"])
     rng = np.random.default_rng(SEED)
-    c = F.changes(F.daily())
-    ok = np.isfinite(c.d_wtd_cm.to_numpy()) & np.isfinite(c.d_laser_cm.to_numpy())
-    x, y = c.d_wtd_cm.to_numpy()[ok], c.d_laser_cm.to_numpy()[ok]
-    month = c.index[ok].strftime("%Y-%m").to_numpy()
-    b = fit(x, y)
     ref = float(pd.read_csv(X074)["g·ΔW"].iloc[0])
-    if abs(b - ref) > 1e-9:
-        raise SystemExit(f"stop: b = {b} does not reproduce X-074's {ref}")
-    rows = []
-    for span in (1, 2):
-        d = boot(x, y, month, span, rng)
-        g = d / (1 + d)
-        rows += [{"reading": "A, fixed datum (b)", "block_months": span, "mm_per_cm": 10 * b,
-                  "lo95": 10 * float(np.percentile(d, 2.5)), "hi95": 10 * float(np.percentile(d, 97.5))},
-                 {"reading": "B, depth below the moving surface (b / (1 + b))", "block_months": span,
-                  "mm_per_cm": 10 * b / (1 + b), "lo95": 10 * float(np.percentile(g, 2.5)),
-                  "hi95": 10 * float(np.percentile(g, 97.5))}]
+    rows, meta = [], {}
+    for rule in ("frost (X-074, the article's coefficient)", "snow-evidence (cube laser_ok)"):
+        c = F.changes(daily(rule))
+        ok = np.isfinite(c.d_wtd_cm.to_numpy()) & np.isfinite(c.d_laser_cm.to_numpy())
+        x, y = c.d_wtd_cm.to_numpy()[ok], c.d_laser_cm.to_numpy()[ok]
+        month = c.index[ok].strftime("%Y-%m").to_numpy()
+        b = fit(x, y)
+        if rule.startswith("frost") and abs(b - ref) > 1e-9:
+            raise SystemExit(f"stop: b = {b} does not reproduce X-074's {ref}")
+        meta[rule] = {"changes": int(ok.sum()), "months": int(len(np.unique(month))), "b": b}
+        for span in (1, 2):
+            d = boot(x, y, month, span, rng)
+            g = d / (1 + d)
+            rows += [{"laser_rule": rule, "reading": "A, fixed datum (b)", "block_months": span, "mm_per_cm": 10 * b,
+                      "lo95": 10 * float(np.percentile(d, 2.5)), "hi95": 10 * float(np.percentile(d, 97.5))},
+                     {"laser_rule": rule, "reading": "B, depth below the moving surface (b / (1 + b))",
+                      "block_months": span, "mm_per_cm": 10 * b / (1 + b), "lo95": 10 * float(np.percentile(g, 2.5)),
+                      "hi95": 10 * float(np.percentile(g, 97.5))}]
     t = pd.DataFrame(rows)
     OUT.mkdir(parents=True, exist_ok=True)
     t.to_csv(OUT / "interval.csv", index=False)
     prim = t[t.block_months == 1]
     frac = bool((prim.hi95 < 10).all())
-    v = {"b_mm_per_cm": 10 * b, "changes": int(ok.sum()), "months": int(len(np.unique(month))),
-         "fraction_either_way": frac, "reproduced_x074_to": abs(b - ref),
+    b = meta["frost (X-074, the article's coefficient)"]["b"]
+    v = {"b_mm_per_cm": 10 * b, "by_rule": meta, "fraction_either_way": frac, "reproduced_x074_to": abs(b - ref),
          "rows": prim.to_dict("records")}
     (OUT / "verdict.json").write_text(json.dumps(v, indent=1), encoding="utf-8")
     (OUT / "README.md").write_text(
         "# X-145 — the buoyancy coefficient's interval and both datum readings (R4 m4)\n\n"
         "Generated by `05_code/SAr-adapted/experiments/buoyancy_x145.py`; pre-registered in `preregistration/X-145.yaml`. "
-        f"X-074's fit reproduced to {abs(b - ref):.1e}; {int(ok.sum())} six-day changes over {v['months']} months; "
-        f"month-block bootstrap, {N_BOOT} draws, seed {SEED}.\n\n"
-        "| reading | block months | mm per cm | lo95 | hi95 |\n|---|---|---|---|---|\n"
-        + "\n".join(f"| {r.reading} | {r.block_months} | {r.mm_per_cm:.2f} | {r.lo95:.2f} | {r.hi95:.2f} |"
+        f"X-074's fit reproduced under the frost rule to {abs(b - ref):.1e}; month-block bootstrap, {N_BOOT} draws, "
+        f"seed {SEED}. Changes: " + "; ".join(f"{k}: {m['changes']} over {m['months']} months" for k, m in meta.items())
+        + ".\n\n| laser rule | reading | block months | mm per cm | lo95 | hi95 |\n|---|---|---|---|---|---|\n"
+        + "\n".join(f"| {r.laser_rule} | {r.reading} | {r.block_months} | {r.mm_per_cm:.2f} | {r.lo95:.2f} | {r.hi95:.2f} |"
                     for r in t.itertuples())
         + f"\n\nA fraction of the water's motion under both readings (upper bounds below 10 mm per cm): **{frac}**.\n",
         encoding="utf-8")
