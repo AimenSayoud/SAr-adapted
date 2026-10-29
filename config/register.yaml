@@ -2889,6 +2889,25 @@ entries:
     - hub:08_deliverables/drying_x140
     outputs:
     - hub:08_deliverables/drying_x141
+  buoyancy_x145:
+    kind: experiment
+    title: X-145 — month-block interval on the P6 buoyancy coefficient (X-074 E1.2) and its value under both logger-datum readings (R4 m4)
+    status: current
+    runs_on: mac
+    code: experiments/buoyancy_x145.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/buoyancy_x145.py
+    tickets:
+    - X-145
+    chains:
+    - insar-full-test
+    inputs:
+    - cube:silver/site_hourly.csv.gz
+    - cube:silver/s2_plots.csv.gz
+    - cube:gold/plots_acq.csv.gz
+    - hub:08_deliverables/fusion_v3/wp1/e12_coefficients.csv
+    outputs:
+    - hub:08_deliverables/insar_full_test/buoyancy_x145
   contrast_x144:
     kind: experiment
     title: X-144 — consecutive minus skip-one as a paired month-block test, Table 2 with month-block intervals and slopes, the cross-track slope (R4 M4, M6, m6)
