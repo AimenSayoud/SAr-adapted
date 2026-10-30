@@ -2926,6 +2926,26 @@ entries:
     - hub:08_deliverables/insar_full_test/cross_track_x136/matched_pairs.csv.gz
     outputs:
     - hub:08_deliverables/insar_full_test/contrast_x144
+  winter_snow_x146:
+    kind: experiment
+    title: X-146 — dry-snow delay and freeze–thaw in the winter chain; P6's winter error split by snow-free and snow pairs (R5 M1, M2)
+    status: current
+    runs_on: mac
+    code: experiments/winter_snow_x146.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/winter_snow_x146.py
+    tickets:
+    - X-146
+    chains:
+    - insar-full-test
+    inputs:
+    - cube:gold/plots_pair.csv.gz
+    - cube:gold/mat_acq_ascending.nc
+    - cube:gold/mat_acq_descending.nc
+    - cube:silver/site_hourly.csv.gz
+    - hub:08_deliverables/insar_full_test/winter_cycles_x142
+    outputs:
+    - hub:08_deliverables/insar_full_test/winter_snow_x146
   closure_x143:
     kind: experiment
     title: X-143 — closure of wrapped six-day triplets at P6 (2021, 2025), matched across tracks, against water table, soil moisture and laser (R4 M2)
