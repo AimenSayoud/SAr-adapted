@@ -13,6 +13,7 @@ value in this file.
 """
 from __future__ import annotations
 
+import functools
 import json
 import sys
 from pathlib import Path
@@ -50,25 +51,31 @@ def delay_slope(rho: float, theta_deg: float) -> float:
 
 # ------------------------------------------------------------------------------------------- inputs
 
+@functools.cache
 def acquisitions(track: str) -> pd.DataFrame:
-    """Site conditions at each acquisition of a track, by date (snow depth in mm)."""
-    a = xr.open_dataset(CUBE / "gold" / f"mat_acq_{track}.nc")
-    d = pd.DataFrame({"time": pd.to_datetime(a.time.values, utc=True),
-                      "platform": a.platform.values.astype(str),
-                      "h_mm": a.site_om_era5_land_snow_depth.values * 1000.0,
-                      "h_imgw_mm": a.site_imgw_snow_depth_cm.values * 10.0,
-                      "air_c": a.site_air_c.values,
-                      "frozen_soil": a.site_flag_frozen_soil_om.values == 1,
-                      "frozen_air": a.site_flag_frozen_air.values == 1,
-                      "snow": (a.site_flag_snow_om.values == 1) | (a.site_flag_snow_imgw.values == 1)})
+    """Site conditions at each acquisition of a track, by date (snow depth in mm). Read once: reopening the file
+    crashes this machine's HDF5 build on its string variable."""
+    with xr.open_dataset(CUBE / "gold" / f"mat_acq_{track}.nc") as a:
+        d = _acq_frame(a)
     d["date"] = d.time.dt.normalize()
     return d.drop_duplicates("date").set_index("date")
 
 
+def _acq_frame(a: xr.Dataset) -> pd.DataFrame:
+    return pd.DataFrame({"time": pd.to_datetime(a.time.values, utc=True),
+                         "platform": a.platform.values.astype(str),
+                         "h_mm": a.site_om_era5_land_snow_depth.values * 1000.0,
+                         "h_imgw_mm": a.site_imgw_snow_depth_cm.values * 10.0,
+                         "air_c": a.site_air_c.values,
+                         "frozen_soil": a.site_flag_frozen_soil_om.values == 1,
+                         "frozen_air": a.site_flag_frozen_air.values == 1,
+                         "snow": (a.site_flag_snow_om.values == 1) | (a.site_flag_snow_imgw.values == 1)})
+
+
 def grassland_incidence(track: str) -> float:
-    d = xr.open_dataset(CUBE / "gold" / "mat_pairs_2022_2024_ascending.nc")
     col = "st_incidence_asc_deg" if track == "ascending" else "st_incidence_des_deg"
-    return float(np.nanmedian(d[col].values[d.st_zone.values == 3]))
+    with xr.open_dataset(CUBE / "gold" / "mat_pairs_2022_2024_ascending.nc") as d:
+        return float(np.nanmedian(d[col].values[d.st_zone.values == 3]))
 
 
 def pairs() -> pd.DataFrame:
