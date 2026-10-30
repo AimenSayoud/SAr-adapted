@@ -185,7 +185,7 @@ def main() -> None:
                            "residual lake",
                            "plots P1–P9",
                            "boardwalk cells",
-                           "within 120 m of a plot or the boardwalk (left out in X-128)"],
+                           "within 120 m of a plot or the boardwalk"],
                    loc="lower center", ncol=3, bbox_to_anchor=(0.5, 0.005), fontsize=7, frameon=True,
                    facecolor="#f8f9fa", edgecolor="#d0d7de", framealpha=1.0)
         for ax, lab in ((a, "a"), (b, "b"), (c, "c"), (d, "d"), (e, "e")):
