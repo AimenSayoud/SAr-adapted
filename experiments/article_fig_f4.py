@@ -3,9 +3,13 @@
 Round 2 (C-070, brief ``article_plan/figures/briefs/F4.md``): (a) the pair phase at P6 against the laser's change, one
 panel per period (2021, 2022–2024, 2025) and kind of pair (consecutive; skipping one acquisition), both tracks in each;
 (b) the correlation of every group with its bootstrap 95 % interval (Table 2), and for the skip-one groups the range of
-correlation ambiguity alone would leave (X-127); (c) the share of each group's pairs whose laser change exceeds a quarter
-wavelength (Table 2). Since X-126 (2026-10-17): the hard-target reference, the corrected cube and the
-common scorer's pairs; this script also writes Table 2 from X-126 (adding 2025's pairs, not drawn here).
+correlation that ambiguity and the noise of two consecutive pairs would leave (X-127); (c) the share of each group's
+pairs whose laser change exceeds a quarter wavelength (Table 2). Since X-126 (2026-10-17): the hard-target reference,
+the corrected cube and the common scorer's pairs; this script also writes Table 2 from X-126 (adding 2025's pairs, not
+drawn here). Since X-144 (2026-10-29): each row's interval is the wider of X-126's pair bootstrap and X-144's
+calendar-month bootstrap, as X-144's registration commits the article to (pairs that share an acquisition share its
+error; months are few in 2021, where the month interval comes out the narrower), and Table 2 names which one and how
+many months.
 
 (a) One scatter per track and group: consecutive six-day pairs (2021: the laser starts 27 May 2021), next-but-one twelve-day pairs of the same
 years, consecutive twelve-day pairs (2022–2024) and next-but-one twenty-four-day pairs of those years; the 1:1 line and,
@@ -39,7 +43,8 @@ TABLE2 = DLV / "article_plan" / "tables" / "revisit_correlations.csv"
 REF = "hard_targets"
 TABLE2_ORDER = (("2021", 6), ("2021", 12), ("2022–2024", 12), ("2022–2024", 24), ("2025", 6), ("2025", 12))
 PERIODS = (("2021", 6, 12), ("2022–2024", 12, 24), ("2025", 6, 12))    # (period, consecutive days, skip-one days)
-X127 = DLV / "insar_full_test" / "skip_pairs" / "by_group.csv"      # X-127: r under ambiguity alone, skip-one groups
+X127 = DLV / "insar_full_test" / "skip_pairs" / "by_group.csv"      # X-127: r under ambiguity + 2-pair noise, skip-one
+X144 = DLV / "insar_full_test" / "contrast_x144" / "table2_blocks.csv"   # X-144: month-block intervals of Table 2's rows
 MARK = {"ascending": "o", "descending": "^"}
 TRACKS = ("ascending", "descending")
 
@@ -56,7 +61,19 @@ def table2() -> pd.DataFrame:
     beyond = (pr.assign(b=pr.d_laser_los_mm.abs() > WAVELENGTH_MM / 4)
               .groupby(["track", "group", "revisit_days"]).b.mean().rename("laser_beyond_quarter_wave"))
     t = t.merge(beyond, left_on=["track", "period", "revisit_days"], right_index=True, how="left")
-    t = t[["track", "period", "revisit_days", "pairs_kind", "n", "r", "r_lo95", "r_hi95", "laser_beyond_quarter_wave"]]
+    # The wider of the two intervals per row (X-144's registration): pairs resampled (X-126) or calendar months (X-144).
+    m = pd.read_csv(X144, dtype={"period": str})[["track", "period", "revisit_days", "months", "r",
+                                                   "r_lo95_month", "r_hi95_month"]]
+    t = t.assign(period=t.period.astype(str)).merge(m, on=["track", "period", "revisit_days"], suffixes=("", "_x144"),
+                                                     validate="one_to_one")
+    if len(t) != len(TABLE2_ORDER) * len(TRACKS) or (t.r - t.r_x144).abs().max() > 1e-9:
+        raise SystemExit("F4: X-144's rows do not reproduce Table 2's correlations")
+    wider = (t.r_hi95_month - t.r_lo95_month) > (t.r_hi95 - t.r_lo95)
+    t["r_lo95"] = t.r_lo95.where(~wider, t.r_lo95_month)
+    t["r_hi95"] = t.r_hi95.where(~wider, t.r_hi95_month)
+    t["resampled"] = np.where(wider, "months", "pairs")
+    t = t[["track", "period", "revisit_days", "pairs_kind", "n", "months", "r", "r_lo95", "r_hi95", "resampled",
+           "laser_beyond_quarter_wave"]]
     t.to_csv(TABLE2, index=False)
     return t
 
@@ -143,7 +160,7 @@ def main() -> None:
                 b.add_patch(plt.Rectangle((s.r_sim_p2_5, yy - 0.12), s.r_sim_p97_5 - s.r_sim_p2_5, 0.24,
                                           color="#d9dde2", lw=0, zorder=0))
                 if not labelled:
-                    b.annotate("range ambiguity + indep.\n6 d noise would give (X-127)", xy=(s.r_sim_p2_5 + 0.02, yy - 0.12),
+                    b.annotate("range that ambiguity and the\nnoise of two pairs would give", xy=(s.r_sim_p2_5 + 0.02, yy - 0.12),
                                xytext=(-0.72, yy - 0.62), fontsize=7, color=fs.MUTED, ha="left", va="bottom",
                                arrowprops=dict(arrowstyle="-", color=fs.MUTED, lw=0.5))
                     labelled = True
@@ -172,10 +189,12 @@ def main() -> None:
                    fontsize=7)
         rec = fs.export(fig, OUT / "F4_pairs_vs_laser", provenance={
             "inputs": [str(PAIRS.relative_to(HUB)), str(TABLE2.relative_to(HUB)), str(X127.relative_to(HUB)),
+                       str(X144.relative_to(HUB)),
                        str((X126 / "by_revisit.csv").relative_to(HUB)), "insar_wetlands.cube.core.WAVELENGTH_MM"],
             "brief": "08_deliverables/article_plan/figures/briefs/F4.md",
             "groups": [f"{tr} {per} {days} d {kind}" for per, days, kind, tr, _ in rows],
             "fit": "slope through the origin, insar_wetlands.scoring.increment_stats (X-126 by_revisit.csv)",
+            "intervals": "per row the wider of the pair bootstrap (X-126) and the calendar-month bootstrap (X-144)",
             "quarter_wavelength_mm": qw})
         plt.close(fig)
     print("F4 →", OUT, rec["width_mm"], "×", rec["height_mm"], "mm")

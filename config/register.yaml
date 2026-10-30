@@ -2502,13 +2502,14 @@ entries:
     - C-068
     - C-070
     - X-126
-    - C-070
+    - X-144
     chains:
     - article-plan
     inputs:
     - hub:08_deliverables/insar_full_test/x065_hard_targets/pairs.csv
     - hub:08_deliverables/insar_full_test/x065_hard_targets/by_revisit.csv
     - hub:08_deliverables/insar_full_test/skip_pairs/by_group.csv
+    - hub:08_deliverables/insar_full_test/contrast_x144/table2_blocks.csv
     outputs:
     - hub:08_deliverables/article_plan/figures/final
     - hub:08_deliverables/article_plan/tables/revisit_correlations.csv
@@ -2550,6 +2551,7 @@ entries:
     - hub:08_deliverables/article_plan/f6_routes.yaml
     - hub:08_deliverables/independent_review/01_tries/tries.csv
     - hub:08_deliverables/insar_full_test/protocol.yaml
+    - hub:08_deliverables/insar_full_test/preregistration
     - cube:gold/plots_acq.csv.gz
     - cube:gold/plots_pair.csv.gz
     - cube:gold/truth_laser_hourly.csv.gz
