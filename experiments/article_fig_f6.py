@@ -12,11 +12,15 @@ one track, never across the protocol's datum break nor across a filled stretch o
 (``gold/truth_laser_hourly.csv.gz``, ``laser_filled``). Design years only (``guard_lockbox``). Route spans: fixed where
 the length defines the route, else read from the cube's pair inventory (``gold/plots_pair.csv.gz``) for the periods
 the route ran on. Writes only to the hub: ``article_plan/figures/final/F6_pair_length.*``,
-``article_plan/tables/f6_span_exceedance.csv`` and Table 1. No field value in this file.
+``article_plan/tables/f6_span_exceedance.csv`` and Table 1. Table 1's radar years are the union of its tries' years as
+year ranges (R4 m12), and its "registered" column says whether each route's tries have a registration file (R6 M5:
+registration began with the full test, so the first study's routes are "no"). No field value in this file.
 
     make run E=article_fig_f6
 """
 from __future__ import annotations
+
+import re
 
 import matplotlib
 
@@ -48,7 +52,9 @@ OUTCOME_WORDS = {"holds": "follows the motion", "helps": "helps (design years)",
                  "mixed": "one track better, one worse: fails by its rule", "lost": "loses it",
                  "not_motion": "a signal, not the motion", "not_applicable": "fails its own conditions here",
                  "no_effect": "no gain, no change", "inconclusive": "inconclusive", "not_tried": "not tried here"}
-PRODUCT_WORDS = {"HyP3": "HyP3", "SLC": "own SLC", "both": "HyP3 + own SLC", "sim": "simulation", "none": "—"}
+PRODUCT_WORDS = {"HyP3": "HyP3", "SLC": "own SLC", "both": "HyP3 + own SLC", "sim": "simulation",
+                 "model": "water table and weather", "none": "—"}
+PREREG = HUB / "08_deliverables" / "insar_full_test" / "preregistration"
 
 
 def truthy(s: pd.Series) -> pd.Series:
@@ -69,13 +75,46 @@ def spec_rows() -> list[dict]:
     return out
 
 
+def years_span(periods: list[str]) -> str:
+    """The radar years of a route's tries as one set of year ranges: '2021, 2022–2024; 2020–2025' → '2020–2025'."""
+    years: set[int] = set()
+    for p in periods:
+        for part in re.split(r"[;,]", p):
+            ends = [int(y) for y in re.findall(r"\d{4}", part)]
+            if ends:
+                years |= set(range(min(ends), max(ends) + 1))
+    runs, out = sorted(years), []
+    for y in runs:
+        if out and y == out[-1][1] + 1:
+            out[-1][1] = y
+        else:
+            out.append([y, y])
+    return ", ".join(f"{a}" if a == b else f"{a}–{b}" for a, b in out)
+
+
+def registered(tries: pd.DataFrame, ids: list[str]) -> str:
+    """Whether a route's tries were pre-registered: a try counts when a ticket in its title (else in its evidence) has
+    a registration file. Registration began with the full test, so the first study's routes are 'no'."""
+    files = {f.stem.split("_")[0] for f in PREREG.glob("[XC]-*.yaml")}
+
+    def one(i: str) -> bool:
+        own = re.findall(r"\b[XC]-\d{3}\b", str(tries.loc[i, "title"])) or \
+            re.findall(r"\b[XC]-\d{3}\b", str(tries.loc[i, "evidence"]))
+        return any(k in files for k in own)
+
+    got = [one(i) for i in ids if i in tries.index]
+    return "" if not got else "yes" if all(got) else "partly" if any(got) else "no"
+
+
 def table1(rows: list[dict]) -> None:
-    """Table 1: every route, its product, its outcome in words and the radar years of its tries."""
+    """Table 1: every route, its product, its outcome in words, the radar years of its tries and whether they were
+    pre-registered."""
     tries = pd.read_csv(TRIES).set_index("id")
     pd.DataFrame([{"group": r["group"], "route": r["route"], "product": PRODUCT_WORDS[r["product"]],
                    "outcome": r.get("words") or OUTCOME_WORDS[r["outcome"]],
-                   "years": "; ".join(sorted({str(tries.loc[i, "period"]) for i in r.get("tries", [])
-                                              if i in tries.index})) if r["outcome"] != "not_tried" else "",
+                   "years": years_span([str(tries.loc[i, "period"]) for i in r.get("tries", []) if i in tries.index])
+                   if r["outcome"] != "not_tried" else "",
+                   "registered": registered(tries, r.get("tries", [])) if r["outcome"] != "not_tried" else "",
                    "tries": ", ".join(r.get("tries", []))}
                   for r in rows]).to_csv(PLAN / "tables" / "table1_systematic_test.csv", index=False)
 
