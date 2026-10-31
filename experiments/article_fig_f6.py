@@ -11,7 +11,8 @@ converted to each track's line of sight by the cube's ``los_u`` at P6. Pairs of 
 one track, never across the protocol's datum break nor across a filled stretch of the delivered record
 (``gold/truth_laser_hourly.csv.gz``, ``laser_filled``). Design years only (``guard_lockbox``). Route spans: fixed where
 the length defines the route, else read from the cube's pair inventory (``gold/plots_pair.csv.gz``) for the periods
-the route ran on. Writes only to the hub: ``article_plan/figures/final/F6_pair_length.*``,
+the route ran on; routes that share a ``fig_group`` (the per-pixel inversions, one span and one outcome) share one bar.
+Writes only to the hub: ``article_plan/figures/final/F6_pair_length.*``,
 ``article_plan/tables/f6_span_exceedance.csv`` and Table 1. Table 1's radar years are the union of its tries' years as
 year ranges (R4 m12), and its "registered" column says whether each route's tries have a registration file (R6 M5:
 registration began with the full test, so the first study's routes are "no"). No field value in this file.
@@ -167,16 +168,19 @@ def route_spans(rows: list[dict]) -> list[dict]:
             lo, hi = float(keep.min()), float(keep.max())
         else:
             continue
-        out.append({"route": r["route"], "outcome": r["outcome"], "lo": float(lo), "hi": float(hi)})
+        label = r.get("fig_group", r["route"])                      # rows of one group share one bar in (a)
+        if any(o["route"] == label for o in out):
+            continue
+        out.append({"route": label, "outcome": r["outcome"], "lo": float(lo), "hi": float(hi)})
     rank = {"holds": 0, "partly": 1, "lost": 2}
     out.sort(key=lambda s: (rank.get(s["outcome"], 3), s["lo"], s["hi"]))
     return out
 
 
 def draw(spans: list[dict], shares: pd.DataFrame) -> plt.Figure:
-    fig = plt.figure(figsize=fs.size("full", 150))
+    fig = plt.figure(figsize=fs.size("full", 125))
     gs = fig.add_gridspec(2, 1, height_ratios=[len(spans) * 0.42, 4.2], hspace=0.08,
-                          left=0.33, right=0.97, top=0.93, bottom=0.09)
+                          left=0.36, right=0.97, top=0.92, bottom=0.1)
     ax_r, ax_e = fig.add_subplot(gs[0]), fig.add_subplot(gs[1])
     for ax in (ax_r, ax_e):
         ax.set_xscale("log")
