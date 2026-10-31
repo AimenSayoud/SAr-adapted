@@ -2451,7 +2451,7 @@ entries:
     - hub:08_deliverables/article_plan/figures
   article_fig_f1:
     kind: experiment
-    title: C-068 — F1 final, the site (mat, wells, laser, references on the 1 m LiDAR hillshade; look geometry)
+    title: C-068 — F1 final, the site (locator; mat, wells, laser, references on the colour-infrared orthophoto; look geometry)
     status: open
     runs_on: mac
     code: experiments/article_fig_f1.py
@@ -2463,8 +2463,10 @@ entries:
     - article-plan
     inputs:
     - cube:silver/static_40m.nc
-    - cube:silver/lidar_1m.nc
+    - cube:raw/gugik_dated
+    - cube:raw/naturalearth/ne_50m_admin_0_countries.zip
     - hub:08_deliverables/field_first/plot_pixels.csv
+    - hub:08_deliverables/field_boardwalk_x060/boardwalk_centreline.csv
     outputs:
     - hub:08_deliverables/article_plan/figures/final
   article_fig_f2:
