@@ -9,8 +9,8 @@ surface; ② double bounce on stems standing in open water — would follow the 
 surface's wetness. An inset projects the vertical rise d on the line of sight at incidence θ (d·cos θ).
 (b) One track over a year. Top: the pairs — consecutive pairs follow the motion, pairs that skip an acquisition and
 long pairs lose it (why: c), winter pairs are still made. Bottom: a sketch of the level — the chain of consecutive
-pairs keeps close to it through the season; across the winter, under snow, it loses the level (X-146; the band
-widens), so the level has to be re-set from outside the radar (§6: from the weather), itself with an error. (c) Why the
+pairs keeps close to it through the season; across the winter it loses the level, in the part the laser cannot judge (X-146, R6 M1;
+the band widens), so the level has to be re-set from outside the radar (§6: from the weather), itself with an error. (c) Why the
 longer pairs lose it: a pair's phase gives the line-of-sight change only within ±λ/4 and wraps beyond it (X-127: the
 loss is consistent with that ambiguity and the noise of two pairs); shaded beyond ±λ/4 as in Fig. 4. Labels since R5
 m10: the radar is C-band VV/VH, which records no HH, where double bounce is strongest. Briefs in the hub ``article_plan/figures/briefs/F3.md``.
@@ -249,7 +249,7 @@ def panel_pairs(ax, lv) -> None:
     lv.text(6, 0.32, "true level", ha="left", va="top", fontsize=7, color=fs.INK)
     lv.text(112, 0.42, "chain of consecutive pairs:\nclose to it within the season", ha="center", va="bottom",
             fontsize=7, color=fs.CLASS["mat"], linespacing=1.1)
-    lv.text(sum(WINTER) / 2, -1.35, "under snow the chain\nloses the level", ha="center", va="bottom", fontsize=7,
+    lv.text(sum(WINTER) / 2, -1.35, "across winter the chain\nloses the level", ha="center", va="bottom", fontsize=7,
             color=fs.MUTED, linespacing=1.05)
     lv.text(t[spring] - 4, 1.55, "level re-set from outside the radar\n(§6: from the weather), with an error",
             ha="right", va="bottom", fontsize=7, color=OUTSIDE, linespacing=1.1)
