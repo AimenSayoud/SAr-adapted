@@ -78,8 +78,9 @@ def table2(p: pd.DataFrame, fills: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataF
     return t, p[p.crosses_fill]
 
 
-def residual(h: pd.DataFrame, g: float, a: str, b: str) -> pd.Series:
-    w = h.loc[a:b]
+def residual(h: pd.DataFrame, g: float, a, b) -> pd.Series:
+    w = h.loc[pd.Timestamp(a).tz_localize("UTC") if pd.Timestamp(a).tzinfo is None else pd.Timestamp(a):
+              pd.Timestamp(b).tz_localize("UTC") if pd.Timestamp(b).tzinfo is None else pd.Timestamp(b)]
     return (w.laser_surface_raw_cm - g * w.cr_raw).dropna()
 
 
