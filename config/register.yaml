@@ -2948,6 +2948,27 @@ entries:
     - hub:08_deliverables/insar_full_test/winter_cycles_x142
     outputs:
     - hub:08_deliverables/insar_full_test/winter_snow_x146
+  laser_qc_x147:
+    kind: experiment
+    title: X-147 — laser QC amendment, Table 2 without pairs across filled stretches and the across-year laser numbers without the April 2024 step (R6 M3)
+    status: current
+    runs_on: mac
+    code: experiments/laser_qc_x147.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/laser_qc_x147.py
+    tickets:
+    - X-147
+    chains:
+    - insar-full-test
+    inputs:
+    - cube:gold/truth_laser_hourly.csv.gz
+    - hub:08_deliverables/insar_full_test/x065_hard_targets/pairs.csv
+    - hub:08_deliverables/field_p6/laser_qc/interpolated.csv
+    - hub:08_deliverables/drying_x140
+    - hub:08_deliverables/article_plan/tables/revisit_correlations.csv
+    - hub:08_deliverables/fusion_v3/wp1/e12_coefficients.csv
+    outputs:
+    - hub:08_deliverables/insar_full_test/laser_qc_x147
   closure_x143:
     kind: experiment
     title: X-143 — closure of wrapped six-day triplets at P6 (2021, 2025), matched across tracks, against water table, soil moisture and laser (R4 M2)
