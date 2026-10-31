@@ -4,9 +4,11 @@ re-levelled short-pair chain (v4, frozen), per track, each winter shaded, with t
 The band is X-107 amendment_3's error statement drawn: v4 rebuilt with each of the five SPAMS fits that leave one design
 year out (``v4/spams_loyo_params.yaml``), everything else frozen; at each epoch the band spans the five rebuilt levels.
 It is in-sample (the design years) and says how much the winter steps depend on the years the anchor is fitted on — not
-how well v4 does on years it has not seen (Fig. 7b, after X-107). Levels are compared as the scorer compares them: each
-series is set to the laser at the first scored epoch of each chain segment within each laser datum
-(``scoring.level_views``), so nothing is compared across the 2022 re-levelling. The chains are built by
+how well v4 does on years it has not seen (Fig. 7b, after X-107). Each series is set to the laser at the first scored
+epoch of each chain segment within each laser datum and, since 2026-10-31, within each hydrological year from
+September: every winter's loss then starts from the laser at the season's end instead of accumulating over the years
+(the display the figure review asked for; the scorer's winter steps are differences, unchanged by it). Nothing is
+compared across a laser datum break (the 2022 re-levelling; the April 2024 step, X-147). The chains are built by
 ``freeze_v4_x106.build_v4`` with the frozen parameter file — the code X-107 runs — and no refit.
 
 Writes only to the hub: ``article_plan/figures/final/F7a_estimator_design_years.*``. No field value in this file.
@@ -43,6 +45,7 @@ OUT = HUB / "08_deliverables" / "article_plan" / "figures" / "final"
 LOYO = FT / "v4" / "spams_loyo_params.yaml"
 PROTOCOL = FT / "protocol.yaml"
 COL = {"laser": fs.INK, "plain": "#6e7781", "v4": fs.CLASS["mat"]}
+HYEAR_START = 9                                    # September: re-anchor each series before each winter
 
 
 def aligned(c: pd.DataFrame, truth: pd.Series, prot: Protocol) -> pd.DataFrame:
@@ -51,7 +54,9 @@ def aligned(c: pd.DataFrame, truth: pd.Series, prot: Protocol) -> pd.DataFrame:
     c = c.copy()
     c["truth"] = truth.reindex(pd.DatetimeIndex(c.time).round("h")).to_numpy()
     c["datum"] = prot.datum(c.time)
-    for _, g in c.groupby(["seg", "datum"]):
+    t = pd.DatetimeIndex(c.time)
+    c["hyear"] = t.year - (t.month < HYEAR_START)                    # hydrological year from September
+    for _, g in c.groupby(["seg", "datum", "hyear"]):
         first = g.dropna(subset=["truth"])
         c.loc[g.index, "est"] += (first.truth.iloc[0] - first.est.iloc[0]) if len(first) else np.nan
     return c
@@ -99,7 +104,7 @@ def draw_panel_a(axes, series_by_track: dict, truth: pd.Series, prot: Protocol) 
         for name, label in (("plain", "plain chain of consecutive pairs"),
                             ("v4", "re-levelled short-pair chain (frozen)")):
             c = s[name]
-            for _, g in c.groupby(["seg", "datum"]):
+            for _, g in c.groupby(["seg", "datum", "hyear"]):
                 ax.plot(g.time, g.est, color=COL[name], lw=1.0 if name == "v4" else 0.9,
                         ls="-" if name == "v4" else (0, (3, 1.5)), marker="o", ms=1.6, label=label)
                 label = None
@@ -131,7 +136,7 @@ def main() -> None:
         handles, labels = axes[0].get_legend_handles_labels()
         handles += [plt.Rectangle((0, 0), 1, 1, color=fs.GRID, alpha=0.45),
                     plt.Rectangle((0, 0), 1, 1, facecolor="none", hatch="////", edgecolor=fs.MUTED, lw=0)]
-        labels += ["winter re-levelled", "laser re-levelling: levels not compared across"]
+        labels += ["winter re-levelled", "laser datum break: levels not compared across"]
         fig.legend(handles, labels, loc="upper left", bbox_to_anchor=(0.08, 0.995), ncol=2, fontsize=7)
         rec = fs.export(fig, OUT / "F7a_estimator_design_years", provenance={
             "inputs": ["hub 08_deliverables/insar_full_test/v4/v4_frozen_params.yaml (no refit)",
@@ -156,7 +161,7 @@ def main() -> None:
         ha, la = ax_a0.get_legend_handles_labels()
         ha += [plt.Rectangle((0, 0), 1, 1, color=fs.GRID, alpha=0.45),
                plt.Rectangle((0, 0), 1, 1, facecolor="none", hatch="////", edgecolor=fs.MUTED, lw=0)]
-        la += ["winter re-levelled", "laser re-levelling: levels not compared across"]
+        la += ["winter re-levelled", "laser datum break: levels not compared across"]
         fig_u.legend(ha, la, loc="upper left", bbox_to_anchor=(0.08, 0.995), ncol=2, fontsize=7)
 
         gs_b = gs[1].subgridspec(1, 2, wspace=0.06)
