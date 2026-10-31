@@ -2469,6 +2469,25 @@ entries:
     - hub:08_deliverables/field_boardwalk_x060/boardwalk_centreline.csv
     outputs:
     - hub:08_deliverables/article_plan/figures/final
+  article_graphical_abstract:
+    kind: experiment
+    title: C-068 — the graphical abstract, the article's three answers in three pictures (mat and water, six-day vs skip-one pairs, the chain across winter 2023/24)
+    status: open
+    runs_on: mac
+    code: experiments/article_graphical_abstract.py
+    code_ref: HEAD
+    command: PYTHONPATH=src python experiments/article_graphical_abstract.py
+    tickets:
+    - C-068
+    chains:
+    - article-plan
+    inputs:
+    - cube:gold/truth_laser_hourly.csv.gz
+    - cube:gold/plots_pair.csv.gz
+    - hub:08_deliverables/insar_full_test/x065_hard_targets/pairs.csv
+    - hub:08_deliverables/article_plan/tables/revisit_correlations.csv
+    outputs:
+    - hub:08_deliverables/article_plan/figures/final
   article_fig_f2:
     kind: experiment
     title: C-068 — F2 final, how the mat moves (laser and water by datum, six-day buoyancy, the nine cells' slope by depth)
