@@ -220,7 +220,7 @@ def draw(spans: list[dict], shares: pd.DataFrame) -> plt.Figure:
     ax_e.yaxis.set_major_formatter(matplotlib.ticker.PercentFormatter(1.0))
     ax_e.set_xticks(TICKS, [str(t) for t in TICKS])
     ax_e.xaxis.set_minor_locator(matplotlib.ticker.NullLocator())
-    ax_e.set_xlabel("pair length (days)")
+    ax_e.set_xlabel("pair length (days, log scale)")
     ax_e.set_ylabel("pairs with the laser beyond λ/4\n(laser at P6, 95 % interval)")
     ax_e.legend(loc="lower right")
     fs.panel_label(ax_e, "b", x=-0.47, y=1.0)
