@@ -278,7 +278,7 @@ def v4():
               "r with the P6 laser (Δ, six-day), mat only"]
     forest_cols(cols, titles, OUT / "V4_effect_sizes",
                 "V4 — how large each vegetation effect is: contrast with 95 % interval (200 m spatial-block bootstrap); "
-                "shaded: X-134's ±0.03 margin", [list(SETS), list(SETS), ["2020_2021", "2025"]], ref=0.03)
+                "shaded: the ±0.03 margin fixed before the shrub test", [list(SETS), list(SETS), ["2020_2021", "2025"]], ref=0.03)
 
 
 def v5():
@@ -539,7 +539,7 @@ def s15(cells, shrub_cells, nine, p6):
             ax.tick_params(axis="x", labelsize=7)
         handles = [Line2D([], [], color=fs.TRACK[t], lw=1.1, label=f"{t} track") for t in ("ascending", "descending")]
         handles += [Line2D([], [], ls="none", marker=SETS[st][1], color=fs.MUTED, label=SETS[st][0]) for st in SETS]
-        handles += [plt.Rectangle((0, 0), 1, 1, color="#f3e3c3", label="±0.03 (X-134's margin)"),
+        handles += [plt.Rectangle((0, 0), 1, 1, color="#f3e3c3", label="±0.03 (margin fixed before the shrub test)"),
                      Line2D([], [], ls="none", marker="o", mfc="none", mec=fs.MUTED,
                             label="(e) only cells within 500 m of P6")]
         fig.legend(handles=handles, loc="lower center", ncol=4, fontsize=6.8, frameon=False, bbox_to_anchor=(0.57, 0.0))
