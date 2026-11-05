@@ -174,6 +174,12 @@ def run_entry(name: str, args: list[str] | None = None, reg: dict[str, Entry] | 
         raise SystemExit(f"{name} is not in the tree: its code is at {e.code_ref}:{e.code}")
     if e.status == "superseded":
         raise SystemExit(f"{name} is superseded: run what replaced it, not this")
+    if any(str(output).startswith("hub:") for output in e.outputs):
+        from .paths import require_private_hub
+        try:
+            require_private_hub()
+        except ValueError as exc:
+            raise SystemExit(str(exc)) from exc
     env = dict(os.environ, PYTHONPATH=str(REPO / "src"))
     cmd = [sys.executable, str(REPO / e.code), *(args or [])]
     print(">>", " ".join(cmd), flush=True)

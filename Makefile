@@ -1,8 +1,8 @@
 # SAr-adapted — Sentinel-1 C-band InSAR evaluation over the Rzecin floating fen.
-# Every runnable entry is declared in config/register.yaml.
+# Study runs are declared in config/register.yaml; examples and checks are standalone.
 #
 #   make test                     synthetic ground-truth test suite
-#   make lint                     ruff check across src, tests, experiments, pipelines
+#   make lint                     ruff check across library, study code, checks and examples
 #   make register                 validate config/register.yaml; ensure every script is declared
 #   make check                    validate register, scoring protocol, and registry invariants
 #   make list [TICKET=X-082]      list register entries (optional TICKET=…, CHAIN=…, KIND=…)
@@ -16,7 +16,7 @@ RUN     := PYTHONPATH=$(SRC) $(PY)
 RUFF    := $(shell command -v ruff 2>/dev/null || echo $(HOME)/Library/Python/3.14/bin/ruff)
 PYTEST  := $(shell command -v pytest 2>/dev/null || echo $(HOME)/Library/Python/3.14/bin/pytest)
 
-.PHONY: help test lint check register list run cube web-atlas
+.PHONY: help test lint check register public-check demo list run cube web-atlas
 
 help:
 	@sed -n '4,11p' Makefile
@@ -25,15 +25,21 @@ test:
 	PYTHONPATH=$(SRC) $(PYTEST) tests -p no:warnings
 
 lint:
-	$(RUFF) check src tests experiments pipelines
+	$(RUFF) check src tests experiments pipelines scripts examples
 
-check: register
+check: register public-check
 	@$(RUN) -c "from insar_wetlands.scoring import Protocol; p = Protocol.load('config/protocol.yaml'); \
 	assert len(p.datum_breaks) >= 2 and p.season_months == (5, 11); \
 	print(f'protocol OK ({len(p.datum_breaks)} datum breaks, season {p.season_months})')"
 
 register:
 	@$(RUN) -m insar_wetlands.register check
+
+public-check:
+	@$(PY) scripts/check_public_tree.py
+
+demo:
+	@$(RUN) examples/synthetic_scoring.py
 
 list:
 	@$(RUN) -m insar_wetlands.register list $(if $(TICKET),--ticket $(TICKET)) $(if $(CHAIN),--chain $(CHAIN)) $(if $(KIND),--kind $(KIND))

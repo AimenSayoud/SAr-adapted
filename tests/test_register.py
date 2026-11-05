@@ -76,6 +76,18 @@ def test_the_real_register_is_sound():
     assert untracked_scripts(reg) == []
 
 
+def test_private_output_entry_is_rejected_before_launch_without_workspace(monkeypatch):
+    import pytest
+
+    from insar_wetlands import paths, register
+    monkeypatch.setattr(paths, "hub_root", lambda: None)
+    monkeypatch.setattr(register.subprocess, "call", lambda *a, **kw: pytest.fail("entry must not launch"))
+    entry = register.Entry(id="private", kind="experiment", status="current", runs_on="mac",
+                           code="experiments/private.py", outputs=["hub:08_deliverables/private"])
+    with pytest.raises(SystemExit, match="RZECIN_HUB"):
+        register.run_entry("private", reg={"private": entry})
+
+
 def test_a_run_leaves_a_record_with_commit_and_outputs(tmp_path, monkeypatch):
     import json
     import time

@@ -32,6 +32,7 @@ from pathlib import Path
 
 ENV_VAR = "INSAR_DRIVE_ROOT"
 COLAB_DRIVE = Path("/content/drive/MyDrive/insar_rzecin")
+CODE_ROOT = Path(__file__).resolve().parents[2]
 
 
 def repo_root(start: str | Path | None = None) -> Path:
@@ -103,12 +104,27 @@ def hub_root() -> Path | None:
 
 def deliverable_dir(name: str, ticket_suffix: str | None = None, hub: Path | None = None) -> Path:
     """Resolve ``08_deliverables/<name>`` in the hub, falling back to an existing ``*_<ticket_suffix>`` directory."""
-    base = (hub or hub_root() or Path(".")) / "08_deliverables"
+    base = require_private_hub(hub) / "08_deliverables"
     cand = base / name
     if cand.exists() or not ticket_suffix or not base.is_dir():
         return cand
     matches = sorted(d for d in base.glob(f"*_{ticket_suffix}") if d.is_dir())
     return matches[0] if matches else cand
+
+
+def require_private_hub(hub: Path | None = None) -> Path:
+    """Require study outputs to live outside the public code checkout; create nothing."""
+    root = hub if hub is not None else hub_root()
+    if root is None:
+        raise ValueError("This study entry needs a private workspace. Set RZECIN_HUB to an existing "
+                         "directory outside the public checkout (see docs/REPRODUCIBILITY.md).")
+    root = Path(root).expanduser().resolve()
+    public = CODE_ROOT.resolve()
+    if root == public or public in root.parents:
+        raise ValueError("RZECIN_HUB must be outside the public checkout; field-derived outputs are private.")
+    if not root.is_dir():
+        raise ValueError(f"Private workspace does not exist: {root}")
+    return root
 
 
 def cube_root() -> Path:

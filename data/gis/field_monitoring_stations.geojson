@@ -13,7 +13,9 @@
       "properties": {
         "name": "Rzecin Eddy Covariance Flux Tower (PL-Wet)",
         "type": "Tower",
-        "short_name": "Flux Tower (PL-Wet)"
+        "short_name": "Flux Tower (PL-Wet)",
+        "coordinate_status": "approximate; source and precision unverified",
+        "use_limitation": "orientation only; not ground truth or field navigation"
       },
       "geometry": {
         "type": "Point",
@@ -26,9 +28,11 @@
     {
       "type": "Feature",
       "properties": {
-        "name": "Paleoecological Coring Site Core-1 (Lamentowicz et al., 2008)",
+        "name": "Approximate coring reference site Core-1",
         "type": "Core",
-        "short_name": "Core-1"
+        "short_name": "Core-1",
+        "coordinate_status": "approximate; source and precision unverified",
+        "use_limitation": "orientation only; not ground truth or field navigation"
       },
       "geometry": {
         "type": "Point",
