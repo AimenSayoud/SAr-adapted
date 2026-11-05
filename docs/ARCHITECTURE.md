@@ -1,5 +1,10 @@
 # Architecture & Reproducibility Guide
 
+For setup, external workspace boundaries and restricted-data prerequisites, see
+[reproduction guidance](REPRODUCIBILITY.md). The [entry index](ENTRY_POINTS.md)
+and [manuscript map](MANUSCRIPT_MAP.md) provide navigation without requiring the
+private project ledger.
+
 `SAr-adapted` implements a modular, test-first scientific pipeline for evaluating C-band Sentinel-1 InSAR over the **Rzecin poor-fen floating mat** (*Schwingmoor*, western Poland, 2017–2026).
 
 ---

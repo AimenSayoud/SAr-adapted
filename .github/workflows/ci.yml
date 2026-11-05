@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: ["main"]
+    branches: ["main", "public-readiness"]
   pull_request:
   workflow_dispatch:
 
@@ -25,10 +25,13 @@ jobs:
           pip install -e ".[dev]"
 
       - name: Lint (ruff)
-        run: python -m ruff check src tests experiments pipelines
+        run: make lint RUFF="python -m ruff"
 
       - name: Execution register and protocol check
         run: make check
+
+      - name: Synthetic scoring example
+        run: make demo
 
       - name: Synthetic ground-truth test suite
         run: make test

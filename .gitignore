@@ -11,6 +11,13 @@ htmlcov/
 .venv/
 venv/
 .env
+.env.*
+*.env
+!.env.example
+.netrc
+.cdsapirc
+*.pem
+*.key
 .DS_Store
 CLAUDE.md
 .claude/
@@ -19,3 +26,6 @@ CLAUDE.md
 data/_local/
 notebooks/
 outputs/
+06_data/
+08_deliverables/
+runs/

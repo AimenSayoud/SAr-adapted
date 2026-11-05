@@ -17,6 +17,24 @@ from insar_wetlands.config import get_track_config
 from insar_wetlands.paths import COLAB_DRIVE, Paths, make_paths, repo_root, resolve_drive
 
 
+def test_private_workspace_must_exist_outside_the_public_checkout(tmp_path, monkeypatch):
+    from insar_wetlands import paths
+    public = tmp_path / "public"
+    public.mkdir()
+    monkeypatch.setattr(paths, "CODE_ROOT", public)
+    monkeypatch.setattr(paths, "hub_root", lambda: None)
+    with pytest.raises(ValueError, match="RZECIN_HUB"):
+        paths.require_private_hub()
+    with pytest.raises(ValueError, match="outside"):
+        paths.require_private_hub(public / "private")
+    with pytest.raises(ValueError, match="does not exist"):
+        paths.require_private_hub(tmp_path / "missing")
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+    assert paths.deliverable_dir("study", hub=workspace) == workspace / "08_deliverables/study"
+    assert not (workspace / "08_deliverables").exists()
+
+
 @pytest.fixture()
 def fake_repo(tmp_path: Path) -> Path:
     """A minimal repository: what `repo_root` searches for is config/config.yaml."""

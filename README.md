@@ -1,85 +1,76 @@
-# SAr-adapted — Sentinel-1 C-band InSAR over a Floating Peatland Mat
+# SAr-adapted
 
-Analysis library, multi-sensor data-cube builder, pre-registered ground-truth scoring suite, and figure generation code for evaluating Sentinel-1 C-band interferometric SAR (InSAR) over the **Rzecin poor-fen floating mat** (*Schwingmoor*, western Poland, 2017–2026).
+Sentinel-1 InSAR processing and ground-truth evaluation for a floating peatland
+at Rzecin, western Poland. The code asks which radar observations can follow the
+mat’s vertical motion and how reliably they preserve its level across seasons.
 
-This repository accompanies the study benchmarking standard and adapted Sentinel-1 InSAR processing routes against a 4.5-year continuous surface-elevation laser record (`P6`, May 2021 – December 2025) and nine hourly piezometers (`P1`–`P9`).
+This is research code accompanying an article in preparation. It includes the
+analysis library, data-cube pipelines, evaluation protocol, study experiments
+and synthetic tests. Field observations and the working manuscript are held
+separately; they are not included in this checkout.
 
----
+## Start here
 
-## Key Capabilities & Repository Structure
+- [Synthetic scoring example](examples/synthetic_scoring.py): run without field data.
+- [Architecture](docs/ARCHITECTURE.md): the library and processing layers.
+- [Reproduction and data requirements](docs/REPRODUCIBILITY.md): what runs publicly and what needs study inputs.
+- [Study entry points](docs/ENTRY_POINTS.md) and [figure/table map](docs/MANUSCRIPT_MAP.md).
+- [Evaluation protocol](config/protocol.yaml) and [citation metadata](CITATION.cff).
 
-| Path | Purpose |
-|---|---|
-| `src/insar_wetlands/` | Core Python library: data-cube ingestion & harmonisation (`cube/`), sub-cell grid relocation for `hyp3_isce2` and Planetary Computer RTC (`placement.py`), per-pixel inversions (`inversion/`: SBAS/MintPy, ISBAS, EVD phase linking), SLC/CSLC statistics (`slc_stats.py`), moisture-phase & closure models (`phase_bias.py`, `phase_sim.py`), common ground-truth scorer (`scoring.py`), spatial/autocorrelation nulls (`validation.py`, `lag_exceedance.py`), weather-driven spring re-levelling (`spams.py`, `v4.py`), multi-year drying (`drying.py`), mat footprint (`footprint.py`), and publication styling (`figstyle.py`). |
-| `pipelines/` | Reproducible data pipelines: multi-sensor cube construction (`cube_build.py`: `raw → silver → gold`), native-10 m placed RTC ingestion (`rtc_download.py`), Sentinel-1 archive completeness (`s1_extension_candidates.py`), and web-atlas packaging (`build_web_atlas.py`). |
-| `experiments/` | Self-contained analysis and figure scripts (`1 script = 1 registered question or figure`), writing outputs outside the code tree via `insar_wetlands.paths`. |
-| `config/register.yaml` | Complete execution register declaring every pipeline, experiment, Colab launcher, and archived historical phase (`code_ref`, command, inputs, outputs, and ticket/try IDs). |
-| `config/protocol.yaml` | Ground-truth evaluation protocol: snow-free season window (`May–November`), post-winter window (`March–June`), minimum epoch threshold, and sensor datum breaks. |
-| `config/config.yaml` | Site bounding box, burst identifiers (`175_374052_IW1` ascending, `022_045867_IW2` descending), and processing parameters. |
-| `colab/` | Launcher generator and documentation for heavy cloud runs (OPERA COMPASS CSLC coregistration, full-stack phase linking, large permutation nulls). |
-| `docs/` | Architecture and reproducibility guide (`docs/ARCHITECTURE.md`). |
-| `data/` | Public spatial layers (`EPSG:32633` 40 m grid, Zones A–D polygons & rasters, Copernicus GLO-30 DEM, ESA WorldCover, QGIS project `rzecin_validation.qgs`, and 2021 SLC inventory). |
-| `tests/` | Synthetic ground-truth unit test suite (`52` test modules). Every scientific estimator, relocation operator, closure check, and null test is verified on simulated data with a known analytical or numerical answer. |
+## Quick start
 
----
-
-## Quick Start & Verification
+Use a source checkout and Python 3.10 or newer:
 
 ```bash
-# Install core package + test/lint tools (Python >= 3.10)
-pip install -e ".[dev]"
-
-# Optional extras for satellite data acquisition and figure rendering:
-# pip install -e ".[all]"
-
-# Run the standalone synthetic ground-truth test suite (no private field data required)
+git clone https://github.com/AimenSayoud/SAr-adapted.git
+cd SAr-adapted
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install -e ".[dev]"
+make demo
 make test
-
-# Validate code style and the execution register
 make lint
 make check
-
-# Query registered experiments and pipelines
-make list
-make list TICKET=X-065
 ```
 
----
+The demo prints a perfect synthetic pair estimate and a deliberately half-sized
+estimate. Tests use synthetic inputs with known answers; an optional integration
+test skips when the local data cube is unavailable. Tests do not establish that
+every processing route works on real peatland data.
 
-## Manuscript Reproducibility Map
+Optional installation extras are `acquisition` (data-provider clients) and
+`figures` (map/figure tools); `.[all]` includes both and development tools. Heavy
+SAR dependencies have a separate [Colab setup](colab/README.md).
 
-Every figure, table, and quantitative test in the manuscript is generated by a declared entry in `config/register.yaml`:
+## Scope and limitations
 
-| Manuscript Element | Generating Script(s) & Core Library Module(s) |
-|---|---|
-| **Data Cube (`raw → silver → gold`)** | `pipelines/cube_build.py`, `src/insar_wetlands/cube/{sources,build,gold,schema}.py` |
-| **Sub-cell grid placement (`HyP3` & `RTC`)** | `src/insar_wetlands/placement.py`, `experiments/hyp3_half_cell_refine_x120.py`, `experiments/rtc_placement_x122.py`, `experiments/hyp3_smoothing_check_x124.py` |
-| **Laser QC, snow-evidence mask & datum steps** | `src/insar_wetlands/field.py`, `experiments/field_p6_laser_qc.py`, `experiments/laser_frost_rule_x129.py`, `experiments/reread_laser_rule_x130.py`, `experiments/laser_qc_x147.py` |
-| **Graphical Abstract** | `experiments/article_graphical_abstract.py` |
-| **Fig. 1** (Site, CIR orthophoto, transect & radar geometry) | `experiments/article_fig_f1.py` |
-| **Fig. 2** (Floating-mat hydro-mechanical motion & woody cover) | `experiments/article_fig_f2.py`, `experiments/buoyancy_x145.py`, `experiments/landcover_coherence_x132.py` |
-| **Fig. 3** (Physical mechanism schematic across seasons) | `experiments/article_fig_f3.py` |
-| **Fig. 4 & Table 2** (Consecutive 6-d vs 12-d pairs against `P6` laser) | `experiments/article_fig_f4.py`, `experiments/article_figures_c067.py`, `experiments/x065_hard_targets_x126.py`, `experiments/winter_snow_x146.py` |
-| **Fig. 5** (Open-water coherence floor & wetness change `ΔVV`) | `experiments/article_fig_f5.py`, `experiments/lake_open_water_x064.py`, `experiments/coherence_moisture_x082.py`, `experiments/interior_edge_x128.py` |
-| **Fig. 6** (Spatial footprint of 6-day mat motion across 262 cells) | `experiments/figures_landcover_footprint_c073.py`, `src/insar_wetlands/footprint.py`, `experiments/p6_motion_footprint_x133.py` |
-| **Fig. 7 & Table 1** (Synthesis across pair lengths & tested routes) | `experiments/article_fig_f6.py`, `experiments/article_figures_c067.py`, `experiments/skip_pairs_x127.py`, `experiments/closure_x143.py`, `experiments/contrast_x144.py` |
-| **Fig. 8** (Within-season chains vs nested winter re-levelling `SPAMS`) | `experiments/article_fig_f7.py`, `experiments/article_fig_f7b.py`, `src/insar_wetlands/{v4,spams}.py`, `experiments/nested_winter_x135.py`, `experiments/cross_track_x136.py` |
-| **Multi-year season totals & basin drying (2017–2025)** | `src/insar_wetlands/drying.py`, `experiments/season_total_x137.py`, `experiments/drying_x138.py`, `experiments/drying_x139.py`, `experiments/drying_x140.py`, `experiments/drying_x141.py` |
-| **Supplementary Figs (`S15`–`S20`)** | `experiments/fig_vegetation_set.py` (`S15`, `S16`), `experiments/drying_x141.py` (`S17`), `experiments/figures_landcover_footprint_c073.py` (`S19`, `S20`) |
+The study covers radar observations from 2017–2026, with continuous surface-level
+validation at one laser point (P6) during 2021–2025. There are no independent
+unseen laser years. A comparison at P6 does not validate displacement amplitude
+throughout the mat. Weather-driven winter re-levelling is an experimental remedy;
+transfer to unseen winters has not been demonstrated. Read the implementation
+and its input requirements alongside any reported study result.
 
----
+## Code and data boundary
 
-## Data Availability & Runtime Environment Variables
+`src/` contains reusable methods, `pipelines/` builds data products, and
+`experiments/` contains the study analyses. The technical
+[execution register](config/register.yaml) retains stable entry IDs and historical
+code references. `data/gis/` is a dated first-study context package, including
+approximate station reference points; see its [provenance notes](data/gis/README.md).
 
-- **Public satellite, climate, and elevation archives** (ASF HyP3 Sentinel-1 burst interferograms, Planetary Computer `sentinel-1-rtc`, Sentinel-2 L2A, Landsat 8/9 C2 L2, Open-Meteo ERA5/ERA5-Land, IMGW synoptic stations, GUGiK 1 m LiDAR & colour-infrared orthophotos, Copernicus GLO-30 DEM, ESA WorldCover, NISAR L2 GUNW) are ingested directly by `pipelines/cube_build.py` and `pipelines/rtc_download.py`.
-- **In-situ station records** (hourly `P6` surface laser, `P1`–`P9` piezometers, station meteorology, and boardwalk UAV campaigns) belong to the Rzecin wetland monitoring station operators and are not stored in this repository. Modules access local data roots via environment variables:
-  - `RZECIN_CUBE_ROOT` — path to the built `raw / silver / gold` data cube.
-  - `RZECIN_FIELD_ROOT` — path to the station-operator field directory.
-  - `RZECIN_S1_ROOT` / `INSAR_DRIVE_ROOT` — paths to cropped Sentinel-1 burst stacks.
-- **Historical tags:** Earlier multi-temporal phase notebooks removed during the October 2026 modularisation remain archived at tag `archive/pre-reorg-2026-10-12`; frozen estimator states are tagged at `v4-frozen-2026-10-15` and `v4n-frozen-2026-10-16`.
+Station laser, well, meteorology and UAV records belong to the station operators.
+They and restricted derived products stay outside the public checkout. Study
+commands with private outputs require an external workspace; see
+[configuration](docs/REPRODUCIBILITY.md#private-study-workspace).
 
----
+## Versions and citation
 
-## Licence & Citation
+The existing `v1.0.0` tag is the historical September 2026 snapshot, not the
+November cleanup. Frozen-method and archive tags are preserved for provenance;
+older public refs retain historical drafts and outputs. Cite the exact commit
+you use until a new consistently versioned release is published.
 
-Released under the [MIT License](LICENSE). Citation metadata are provided in [CITATION.cff](CITATION.cff).
+Software is available under the [MIT licence](LICENSE). Bundled GIS layers have
+their own source/provenance context; the software licence does not replace
+third-party data terms. See [CITATION.cff](CITATION.cff) for author metadata.
