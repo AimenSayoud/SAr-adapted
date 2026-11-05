@@ -16,7 +16,7 @@ RUN     := PYTHONPATH=$(SRC) $(PY)
 RUFF    := $(shell command -v ruff 2>/dev/null || echo $(HOME)/Library/Python/3.14/bin/ruff)
 PYTEST  := $(shell command -v pytest 2>/dev/null || echo $(HOME)/Library/Python/3.14/bin/pytest)
 
-.PHONY: help test lint check register public-check demo list run cube web-atlas
+.PHONY: help test lint check register public-check demo presentation list run cube web-atlas
 
 help:
 	@sed -n '4,11p' Makefile
@@ -40,6 +40,9 @@ public-check:
 
 demo:
 	@$(RUN) examples/synthetic_scoring.py
+
+presentation:
+	@$(RUN) scripts/build_presentation_figures.py
 
 list:
 	@$(RUN) -m insar_wetlands.register list $(if $(TICKET),--ticket $(TICKET)) $(if $(CHAIN),--chain $(CHAIN)) $(if $(KIND),--kind $(KIND))

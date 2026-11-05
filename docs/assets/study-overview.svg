@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="650" viewBox="0 0 1440 650" role="img" aria-labelledby="title desc">
+  <title id="title">From radar observations to evidence of floating-mat motion</title>
+  <desc id="desc">Conceptual illustration of radar viewing a peat mat over water and a point measurement of its motion. The workflow aligns observations, compares them with ground truth, and evaluates performance. Code is public; station records are restricted. Not a measured scene or a result figure.</desc>
+  <defs>
+    <linearGradient id="sky" x2="0" y2="1"><stop stop-color="#edf6f3"/><stop offset="1" stop-color="#f8faf7"/></linearGradient>
+    <linearGradient id="water" x2="0" y2="1"><stop stop-color="#c3e6e4"/><stop offset="1" stop-color="#91c9cb"/></linearGradient>
+    <pattern id="peat" width="28" height="15" patternUnits="userSpaceOnUse"><path d="M3 8h9m7-4h5" fill="none" stroke="#927a56" stroke-opacity=".45" stroke-width="2"/></pattern>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="m1 1 8 4-8 4" fill="none" stroke="#487e78" stroke-width="1.8"/></marker>
+    <marker id="motion" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="m1 1 8 4-8 4" fill="none" stroke="#a86e22" stroke-width="2"/></marker>
+  </defs>
+  <rect width="1440" height="650" rx="24" fill="#f8faf7"/>
+  <g font-family="Arial, Helvetica, sans-serif" fill="#193c36">
+    <text x="58" y="55" font-size="15" font-weight="700" letter-spacing="3">RZECIN / SENTINEL-1 INSAR</text>
+    <text x="58" y="108" font-size="40" font-weight="700">From radar phase to surface-motion evidence</text>
+    <text x="58" y="143" font-size="19" fill="#526962">A floating peatland, multiple observations, one evaluation framework.</text>
+    <rect x="42" y="177" width="730" height="360" rx="20" fill="url(#sky)" stroke="#d9e7df"/>
+    <!-- Stylised satellite, deliberately without a measured orbit/scale. -->
+    <g transform="translate(128 227) rotate(-18)">
+      <rect x="-54" y="-16" width="37" height="32" rx="3" fill="#477d87"/>
+      <rect x="17" y="-16" width="37" height="32" rx="3" fill="#477d87"/>
+      <path d="M-42-16v32m13-32v32m58-32v32m13-32v32" stroke="#b1d4da"/>
+      <rect x="-14" y="-20" width="28" height="40" rx="5" fill="#d6dfd7" stroke="#3f665f" stroke-width="2"/>
+      <path d="M0 20v15m-9 0h18" stroke="#3f665f" stroke-width="2"/>
+    </g>
+    <text x="216" y="218" font-size="17" font-weight="700">Repeated radar observations</text>
+    <text x="216" y="244" font-size="15" fill="#526962">Phase, coherence and backscatter</text>
+    <path d="M157 264 319 390M179 260 373 391M201 257 426 391" stroke="#76a69a" stroke-width="1.6" stroke-dasharray="6 7" fill="none"/>
+    <path d="M202 274 367 375" stroke="#487e78" stroke-width="2" marker-end="url(#arrow)" fill="none"/>
+    <text x="174" y="318" font-size="14" fill="#487e78" transform="rotate(32 174 318)">line of sight</text>
+    <!-- Schematic water and floating mat cross section. -->
+    <path d="M72 416Q155 407 245 416T422 416T600 416T742 416V494H72Z" fill="url(#water)"/>
+    <path d="M72 444q55 8 110 0t110 0t110 0t110 0t110 0t120 0M72 472q55 8 110 0t110 0t110 0t110 0t110 0t120 0" fill="none" stroke="#eef7f3" stroke-width="2" opacity=".65"/>
+    <path d="M115 392Q215 373 318 387T526 387Q610 384 653 399L645 423Q545 415 447 425T229 424L121 416Z" fill="#b6a078"/>
+    <path d="M115 392Q215 373 318 387T526 387Q610 384 653 399L645 423Q545 415 447 425T229 424L121 416Z" fill="url(#peat)"/>
+    <path d="M115 392Q215 373 318 387T526 387Q610 384 653 399" fill="none" stroke="#63895a" stroke-width="11" stroke-linecap="round"/>
+    <g stroke="#63895a" fill="none" stroke-width="2.5" stroke-linecap="round">
+      <path d="M180 380v-30m0 12-8-10m8 18 8-10M222 380v-23m0 7-8-9M282 380v-35m0 12 9-12m-9 21-8-11M420 389v-30m0 9 8-10M466 388v-24m0 9-8-10M514 386v-32m0 12 8-11"/>
+    </g>
+    <path d="M563 350v79" stroke="#a86e22" stroke-width="2.7" marker-start="url(#motion)" marker-end="url(#motion)"/>
+    <text x="584" y="348" font-size="16" font-weight="700" fill="#93601d">Surface motion</text>
+    <text x="252" y="412" font-size="15" font-weight="700" fill="#493f2f">floating peat mat</text>
+    <text x="266" y="468" font-size="15" fill="#295d63">water beneath the mat</text>
+    <text x="70" y="520" font-size="13" fill="#61756b">Conceptual illustration · not to scale · no measured displacement shown</text>
+    <!-- Workflow: restrained card hierarchy, with no result claims. -->
+    <g transform="translate(813 179)">
+      <rect width="582" height="99" rx="15" fill="#fff" stroke="#d9e7df"/>
+      <circle cx="42" cy="48" r="21" fill="#edf6f1"/>
+      <text x="31" y="54" font-size="16" font-weight="700">01</text>
+      <text x="82" y="38" font-size="21" font-weight="700">Align the observations</text>
+      <text x="82" y="66" font-size="16" fill="#526962">Common grid, timing, units and quality flags</text>
+      <path d="M43 107v14" stroke="#487e78" stroke-width="2" marker-end="url(#arrow)"/>
+      <rect y="130" width="582" height="99" rx="15" fill="#fff" stroke="#d9e7df"/>
+      <circle cx="42" cy="178" r="21" fill="#edf6f1"/>
+      <text x="31" y="184" font-size="16" font-weight="700">02</text>
+      <text x="82" y="168" font-size="21" font-weight="700">Compare with ground truth</text>
+      <text x="82" y="196" font-size="16" fill="#526962">Point surface measurements and field context</text>
+      <path d="M43 237v14" stroke="#487e78" stroke-width="2" marker-end="url(#arrow)"/>
+      <rect y="260" width="582" height="99" rx="15" fill="#fff" stroke="#d9e7df"/>
+      <circle cx="42" cy="308" r="21" fill="#edf6f1"/>
+      <text x="31" y="314" font-size="16" font-weight="700">03</text>
+      <text x="82" y="298" font-size="21" font-weight="700">Evaluate what transfers</text>
+      <text x="82" y="326" font-size="16" fill="#526962">Pair increments, seasonal levels, winter steps</text>
+    </g>
+    <path d="M58 566h1324" stroke="#d9e7df"/>
+    <rect x="58" y="587" width="310" height="37" rx="18" fill="#e6f0e8"/>
+    <text x="77" y="611" font-size="14" font-weight="700">PUBLIC CODE + SYNTHETIC EXAMPLE</text>
+    <rect x="390" y="587" width="310" height="37" rx="18" fill="#f4ecdc"/>
+    <text x="410" y="611" font-size="14" font-weight="700" fill="#7a5c27">RESTRICTED STATION OBSERVATIONS</text>
+    <text x="1381" y="611" font-size="15" text-anchor="end" fill="#61756b">SAr-adapted / research code</text>
+  </g>
+</svg>

@@ -5,6 +5,10 @@ the current field-validation results or the complete multi-sensor cube.
 Rasters use the 40 m HyP3 grid in EPSG:32633. Vector CRS declarations are stored
 in each GeoJSON; the AOI outline is supplied in geographic coordinates.
 
+[Preview the public GIS layers](https://github.com/AimenSayoud/SAr-adapted/blob/main/docs/PRESENTATION.md#the-public-gis-layers).
+The preview uses the bundled raster values without resampling and shows no
+station points. It is descriptive first-study context, not displacement.
+
 Open `rzecin_validation.qgs` in QGIS, or extract `rzecin_qgis_package.zip` to a
 new folder. The project uses relative paths. The ZIP mirrors the supplied GIS
 files and documents. See [layer provenance](PROVENANCE.md) before interpreting
