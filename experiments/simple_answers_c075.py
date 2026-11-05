@@ -1,4 +1,4 @@
-"""C-075: simple answers for the supervisor — does Sentinel-1 follow the laser and the water table, and how does the
+"""C-075: concise summary diagnostics — does Sentinel-1 follow the laser and the water table, and how does the
 weather move the water table? One sentence (chosen by a rule fixed in the pre-registration), one figure and one table
 per question.
 
@@ -42,11 +42,13 @@ from insar_wetlands.scoring import (  # noqa: E402
     increment_stats,
 )
 
-HUB, CUBE = hub_root(), cube_root()
+HUB, CUBE = (hub_root() or Path(".")), cube_root()
 FT = HUB / "08_deliverables" / "insar_full_test"
 OUT = HUB / "08_deliverables" / "simple_answers_c075"
 PREREG = FT / "preregistration" / "C-075.yaml"
-C074 = HUB / "08_deliverables" / "supervisor_pack_c074"
+from insar_wetlands.paths import deliverable_dir  # noqa: E402
+
+C074 = deliverable_dir("p6_diagnostic_pack_c074", "c074", HUB)
 PLOTS = [f"P{i}" for i in range(1, 10)]
 TRACKS = ("ascending", "descending")
 SETS = {"2020–2021 (6-day)": (2020, 2021), "2022–2024 (12-day)": (2022, 2024), "2025 (6-day)": (2025, 2025)}

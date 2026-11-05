@@ -24,9 +24,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import p6_validation_x082 as X  # noqa: E402  (the X-082 readers: pairs and laser, unchanged)
 
 from insar_wetlands.paths import cube_root, hub_root  # noqa: E402
-from insar_wetlands.scoring import Protocol, assert_preregistered, chain, level_views, detrended_stats, score  # noqa: E402
+from insar_wetlands.scoring import (  # noqa: E402
+    Protocol,
+    assert_preregistered,
+    score,
+)
 
-HUB, CUBE = hub_root(), cube_root()
+HUB, CUBE = (hub_root() or Path(".")), cube_root()
 FT = HUB / "08_deliverables" / "insar_full_test"
 OUT = FT / "winter_cycles_x142"
 PREREG = FT / "preregistration" / "X-142.yaml"

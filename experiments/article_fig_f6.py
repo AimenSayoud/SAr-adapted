@@ -36,7 +36,7 @@ from insar_wetlands.lag_exceedance import exceedance, pair_changes  # noqa: E402
 from insar_wetlands.paths import cube_root, hub_root  # noqa: E402
 from insar_wetlands.scoring import QUARTER_WAVE_MM, Protocol, guard_lockbox  # noqa: E402
 
-HUB = hub_root()
+HUB = (hub_root() or __import__("pathlib").Path("."))
 PLAN = HUB / "08_deliverables" / "article_plan"
 OUT = PLAN / "figures" / "final"
 TRIES = HUB / "08_deliverables" / "independent_review" / "01_tries" / "tries.csv"

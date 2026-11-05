@@ -6,7 +6,7 @@ zone minus reference, per pair). Here each network is inverted as one super-pixe
 (`aggregate.invert_aggregate`, the phaseG code) and fitted with the seasonal model
 (`seasonal_amplitude`), over the five years and year by year. Controls: lake − grassland, mat −
 lake, the adjacent null. Three networks: full, ≤ 60 d, and one matched between the periods (12-day
-grid, pairs ≤ 24 d). The two stacks share no pair (no bridge pairs, SETTLED.md): the inversion joins
+grid, pairs ≤ 24 d). The two stacks share no pair (no winter bridge pairs): the inversion joins
 2021 to 2022 with a zero increment, so the five-year fit assumes continuity across the gap and the
 per-year fits are the clean comparison. A reproduction check first: the 2022–2024 part alone must match the
 series the project already uses. Then the series against the measured water table (plot median at

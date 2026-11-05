@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import argparse
 import json
-from pathlib import Path
 
 from .register import REPO, load_register
 
@@ -28,7 +27,7 @@ def _code(text: str) -> dict:
             "source": text.strip().splitlines(keepends=True)}
 
 
-def launcher(entry: str, ref: str = "fusion-x062", extra: str = "", pip: str = "", args: str = "",
+def launcher(entry: str, ref: str = "main", extra: str = "", pip: str = "", args: str = "",
              conda: str = "", secrets: str = "") -> dict:
     e = load_register().get(entry)
     if e is None:
@@ -87,7 +86,7 @@ print(len(m["outputs_written"]), "output files written")"""),
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="python -m insar_wetlands.colab", description=__doc__.splitlines()[0])
     ap.add_argument("entry")
-    ap.add_argument("--ref", default="fusion-x062")
+    ap.add_argument("--ref", default="main")
     ap.add_argument("--extra", default="", help="setup.sh extra: '' or 'acquisition'")
     ap.add_argument("--pip", default="", help="extra pip packages for this launcher only (e.g. heavy SAR tools)")
     ap.add_argument("--args", default="", help="arguments passed to the entry")

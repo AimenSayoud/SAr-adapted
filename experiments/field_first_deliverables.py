@@ -1,4 +1,4 @@
-"""The supervisor's first field-data deliverables (Sentinel-1 at the 9 monitoring plots).
+"""Initial plot-level Sentinel-1 field comparison deliverables (Sentinel-1 at the 9 monitoring plots).
 
 Reads the Sentinel-1 products (Drive, via INSAR_DRIVE_ROOT) and the field data (the research
 hub's 06_data/field, via insar_wetlands.field) and writes ONLY into the hub (private):
@@ -33,10 +33,10 @@ import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
 import xarray as xr  # noqa: E402
 
-from insar_wetlands.placement import open_rtc  # X-122: relocated when RZECIN_RTC_RELOCATE=1
 from insar_wetlands import field  # noqa: E402
 from insar_wetlands.bootstrap import start  # noqa: E402
 from insar_wetlands.inversion.isbas import PHASE_TO_MM  # noqa: E402
+from insar_wetlands.placement import open_rtc  # X-122: relocated when RZECIN_RTC_RELOCATE=1
 from insar_wetlands.stack import dates_from_pairs, list_pairs, load_layer  # noqa: E402
 
 OVERPASS = {"ascending": "16:36", "descending": "05:09"}

@@ -19,7 +19,7 @@ from pathlib import Path
 
 from insar_wetlands.paths import hub_root
 
-HUB = hub_root()
+HUB = (hub_root() or Path("."))
 os.environ["RZECIN_CUBE_ROOT"] = str(HUB / "06_data" / "cube_snapshots" / "as_delivered_2026-10-15")
 
 import numpy as np  # noqa: E402

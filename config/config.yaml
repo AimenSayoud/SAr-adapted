@@ -7,9 +7,9 @@ site:
   - 52.7632
   buffer_m: 500
 time:
-  # Choix utilisateur : 3 ans 2022-2024 (periode S1A seul, cadence 12 j).
-  # NB: les paires 6 j n'existent qu'en 2021 (S1B) et ~2025+ (S1C) ;
-  # pour les recuperer, elargir a 2021-01-01 / 2026-06-30 et relancer Phase 1-2.
+  # Default 3-year S1A-only reference window (2022-2024, 12-day repeat cycle).
+  # Note: 6-day pairs exist in 2017-2021 (S1A+S1B) and 2025+ (S1A+S1C); multi-period
+  # pipelines iterate over all periods in config/register.yaml.
   start: '2022-01-01'
   end: '2024-12-31'
 sentinel1:
@@ -81,25 +81,21 @@ network:
 quality_index:
   sbas_threshold: 0.5
 annual_pairs:
-  # Approche "seasonal-annual" (Ghezelayagh et al. 2024, Ecological Indicators) :
-  # comparer le MEME mois d'annees differentes plutot qu'un reseau dense
-  # multi-saisons. Signal accumule sur ~1 an >> bruit de phase ; pas de
-  # decorrelation saisonniere puisque les deux dates sont phenologiquement
-  # comparables. Pas de reseau/inversion MintPy necessaire.
-  target_month: 4          # avril : vegetation minimale, peu de neige/gel
+  # Seasonal-annual pairing strategy (Ghezelayagh et al. 2024, Ecological Indicators):
+  # compare acquisitions from the same spring month across years to minimise phenological
+  # decorrelation without multi-season network inversion.
+  target_month: 4          # mid-April: minimal canopy foliage and minimal snow/frost
   target_day: 15
-  max_gap_years: 2         # inclut aussi les paires a 2 ans (controle de coherence du taux)
-  candidate_window_days: 19  # pool +/- 19j (cycle S1A=12j ; 15j laissait 2023 a 2 candidats
-                              # seulement -- le decalage de cycle cette annee-la place la 3e
-                              # date la plus proche a +/-18j, juste hors de l'ancienne fenetre)
-  pairs_per_transition: 3    # pipeline B : top-k paires/transition -> mediane d'ensemble robuste
+  max_gap_years: 2         # include 2-year pairs as a rate-consistency check
+  candidate_window_days: 19  # +/- 19 d pool around April 15 (covers 12-day S1A cycle offsets)
+  pairs_per_transition: 3    # top-k pairs per annual transition -> ensemble median
   job_name: "rzecin_annual"
 
 hybrid:
-  # Phase A — reseau hybride court+annuel (facon Hrysiewicz et al. 2024, RSE) :
-  # teste si l'echec SBAS venait du reseau court seul (methode) ou du site.
+  # Hybrid short + annual network (following Hrysiewicz et al. 2024, RSE):
+  # tests whether bridging winters with spring annual pairs stabilises SBAS inversion.
   job_name: "rzecin_hybrid"
-  tropo: "era5_scalar"   # "era5_scalar" (baseline) | "gacos" (si fichiers .ztd dispo)
+  tropo: "era5_scalar"   # "era5_scalar" (baseline) | "gacos" (when .ztd grids are present)
   min_pairs: 3
   gamma_min: 0.20
 isbas:

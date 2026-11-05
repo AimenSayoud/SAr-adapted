@@ -23,7 +23,7 @@ from insar_wetlands import forward  # noqa: E402
 from insar_wetlands.paths import hub_root  # noqa: E402
 from insar_wetlands.scoring import Protocol, assert_preregistered, guard_lockbox  # noqa: E402
 
-HUB = hub_root()
+HUB = (hub_root() or Path("."))
 FT = HUB / "08_deliverables" / "insar_full_test"
 OUT = FT / "memory_response"
 PREREG = FT / "preregistration" / "X-117.yaml"

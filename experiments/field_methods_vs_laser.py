@@ -1,6 +1,6 @@
 """X-052: the inversion outputs already computed, checked against the laser at P6/CR (no re-run).
 
-The supervisor: "we could also compare the methods on real data". The per-pixel products (SBAS,
+Direct comparison of multi-temporal InSAR estimators against P6 surface-laser observations. The per-pixel products (SBAS,
 EVD phase linking, ISBAS, hybrid network) and the zone aggregation (phaseG A−C) are compared with
 the peat-surface position the laser measures at P6, at the ascending overpass times (descending
 products were not inverted per pixel, D-016). Three questions, per method and window:

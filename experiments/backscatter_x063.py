@@ -39,10 +39,10 @@ import pandas as pd  # noqa: E402
 import xarray as xr  # noqa: E402
 from scipy.stats import mannwhitneyu  # noqa: E402
 
-from insar_wetlands.placement import open_rtc  # X-122: relocated when RZECIN_RTC_RELOCATE=1
 from insar_wetlands import field  # noqa: E402
 from insar_wetlands.bootstrap import start  # noqa: E402
 from insar_wetlands.paths import make_paths  # noqa: E402
+from insar_wetlands.placement import open_rtc  # X-122: relocated when RZECIN_RTC_RELOCATE=1
 from insar_wetlands.stack import list_pairs  # noqa: E402
 from insar_wetlands.stratify import (  # noqa: E402
     amplitude_dispersion_from_rtc,

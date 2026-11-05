@@ -39,7 +39,7 @@ from insar_wetlands import v4  # noqa: E402
 from insar_wetlands.paths import hub_root  # noqa: E402
 from insar_wetlands.scoring import Protocol, guard_lockbox  # noqa: E402
 
-HUB = hub_root()
+HUB = (hub_root() or Path("."))
 FT = HUB / "08_deliverables" / "insar_full_test"
 OUT = HUB / "08_deliverables" / "article_plan" / "figures" / "final"
 LOYO = FT / "v4" / "spams_loyo_params.yaml"

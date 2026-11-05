@@ -1,10 +1,9 @@
-"""C-076 — every value we hold for the nine 40 m cells around P6, 2017–2026, as tables for the professor's workbook.
+"""C-076 — every value we hold for the nine 40 m cells around P6, 2017–2026, as descriptive multi-sensor tables (C-076).
 
 Descriptive extraction, no claim: per cell (attributes, the C-074 summaries), per Sentinel-1 scene (VV, VH), per
 consecutive pair (line-of-sight and vertical change against the hard-target reference, coherence, backscatter change),
 per UAV flight (NDVI and thermal over the part of each cell inside the strip), and the field records of the three WTD
-plots inside the nine cells (P5 south, P6 centre, P7 north) and the P6 laser — at each acquisition (the professor's
-24 h / 3-day / 7-day means and 3-day / 7-day changes) and daily.
+plots inside the nine cells (P5 south, P6 centre, P7 north) and the P6 laser — at each acquisition (complete per-cell and per-pair extraction) and daily.
 
 Reads the cube, the C-074 tables and the C-065 UAV stack; writes only to the hub
 ``08_deliverables/nine_cells_c076/tables/``. No field value in this file.
@@ -27,9 +26,11 @@ import p6_validation_x082 as X  # noqa: E402  (the X-082 readers: consecutive pa
 from insar_wetlands.inversion.isbas import PHASE_TO_MM  # noqa: E402
 from insar_wetlands.paths import cube_root, hub_root  # noqa: E402
 
-HUB, CUBE = hub_root(), cube_root()
+HUB, CUBE = (hub_root() or Path(".")), cube_root()
 OUT = HUB / "08_deliverables" / "nine_cells_c076" / "tables"
-C074 = HUB / "08_deliverables" / "supervisor_pack_c074" / "tables"
+from insar_wetlands.paths import deliverable_dir  # noqa: E402
+
+C074 = deliverable_dir("p6_diagnostic_pack_c074", "c074", HUB) / "tables"
 UAV = HUB / "06_data" / "field" / "processed" / "uav_0p5m.nc"
 UAV_QC = HUB / "08_deliverables" / "field_uav_c065" / "qc_flags.csv"
 NAMES = {(-1, -1): "NW", (-1, 0): "N", (-1, 1): "NE", (0, -1): "W", (0, 0): "P6", (0, 1): "E",
@@ -78,7 +79,7 @@ def field_hourly() -> pd.DataFrame:
 
 
 def at_acquisition(s: pd.DataFrame, t: pd.Timestamp) -> dict:
-    """The professor's WTD descriptors at time t for P5/P6/P7, the laser and the weather."""
+    """Antecedent and instantaneous WTD descriptors at time t for P5/P6/P7, the laser and the weather."""
     h = t.floor("h")
     r = {}
     for p in PLOTS_IN:
@@ -160,8 +161,8 @@ def main() -> None:
                                                       for c in ("flag_snow_imgw", "flag_frozen_soil_om") for t in (q.t1, q.t2))
                 pf.append(rec)
                 for j, c in enumerate(names):
-                    def bs(var, t):
-                        key = (track, t.date(), c)
+                    def bs(var, t, _track=track, _c=c):
+                        key = (_track, t.date(), _c)
                         return float(sc_idx.loc[key, var]) if key in sc_idx.index else np.nan
                     rows.append({"track": track, "pair": q.pair, "t1": q.t1, "t2": q.t2, "revisit_days": int(q.revisit_days),
                                  "cell": c, "los_mm": los[k, j], "vertical_mm": los[k, j] / cosi[track][j],

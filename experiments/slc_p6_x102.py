@@ -29,7 +29,7 @@ from insar_wetlands.cube import cube_root  # noqa: E402
 from insar_wetlands.paths import hub_root, resolve_drive  # noqa: E402
 from insar_wetlands.scoring import Protocol, assert_preregistered, score  # noqa: E402
 
-HUB = hub_root()
+HUB = (hub_root() or Path("."))
 CUBE = cube_root()
 FT = HUB / "08_deliverables" / "insar_full_test"
 OUT = FT / "slc_p6"
@@ -86,10 +86,10 @@ def main() -> None:
         hy = Q.hyp3_pairs(track)
         cache: dict = {}
 
-        def get(d):
-            if d not in cache:
-                cache[d] = Q.cslc(files[d])
-            return cache[d]
+        def get(d, _cache=cache, _files=files):
+            if d not in _cache:
+                _cache[d] = Q.cslc(_files[d])
+            return _cache[d]
 
         z_store = {}
         for a_, b_ in zip(dates[:-1], dates[1:]):

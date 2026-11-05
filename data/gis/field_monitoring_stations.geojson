@@ -11,9 +11,9 @@
     {
       "type": "Feature",
       "properties": {
-        "name": "Rzecin Eddy Covariance Flux Tower (ICOS)",
+        "name": "Rzecin Eddy Covariance Flux Tower (PL-Wet)",
         "type": "Tower",
-        "short_name": "Flux Tower (ICOS)"
+        "short_name": "Flux Tower (PL-Wet)"
       },
       "geometry": {
         "type": "Point",
@@ -26,37 +26,7 @@
     {
       "type": "Feature",
       "properties": {
-        "name": "Piezometer P1 (Mat Center)",
-        "type": "Piezometer",
-        "short_name": "Piezometer P1"
-      },
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          588261.2663054799,
-          5846542.023184791
-        ]
-      }
-    },
-    {
-      "type": "Feature",
-      "properties": {
-        "name": "Piezometer P2 (Lagg Margin)",
-        "type": "Piezometer",
-        "short_name": "Piezometer P2"
-      },
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          588527.1096245844,
-          5846769.395861065
-        ]
-      }
-    },
-    {
-      "type": "Feature",
-      "properties": {
-        "name": "Paleo Coring Core-1 (Lamentowicz 2008)",
+        "name": "Paleoecological Coring Site Core-1 (Lamentowicz et al., 2008)",
         "type": "Core",
         "short_name": "Core-1"
       },

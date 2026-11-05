@@ -23,7 +23,7 @@ from insar_wetlands.cube import cube_root  # noqa: E402
 from insar_wetlands.paths import hub_root, resolve_drive  # noqa: E402
 from insar_wetlands.scoring import assert_preregistered  # noqa: E402
 
-HUB = hub_root()
+HUB = (hub_root() or Path("."))
 FT = HUB / "08_deliverables" / "insar_full_test"
 OUT = FT / "hyp3_half_cell_confirm" / "refine"
 PREREG = FT / "preregistration" / "X-120_refine.yaml"
@@ -118,8 +118,9 @@ def qa_after_correction(n_pairs: int = 15) -> None:
     our SLC coherence should align at about (0, 0); (2) P6 read at the laser's own position on the corrected cube should
     score like X-118's corrected read of the as-delivered cube (the plain chain, vertical, hard-target reference)."""
     import freeze_v4_x106 as F
-    from insar_wetlands.scoring import Protocol, detrended_stats, level_views
     import p6_validation_x082 as X
+
+    from insar_wetlands.scoring import Protocol, detrended_stats, level_views
     st = xr.open_dataset(cube_root() / "silver" / "static_40m.nc")
     gx, gy = st.x.values, st.y.values
     rows = []

@@ -4,7 +4,7 @@ F1 (the site), F2 inset (the laser in its 40 m cell and the cells around), F3 (c
 floating mat and which pairs hold the motion), F4 (pair phase against the laser by revisit), F5 (the
 coherence matrix: share of class cells above each pair's open-water floor, by the pair's dates, and by pair length),
 and F5b (map: share of 6-day pairs above the floor per cell); F6 and Table 1 moved to ``article_fig_f6.py``
-(2026-10-17). Drafts — layout and styling are agreed with Aymen before the final
+(2026-10-17). Publication figure layout and styling before final
 versions. Reads the cube and the hub;
 writes only to the hub: ``08_deliverables/article_plan/figures/``. No number is written into a caption.
 
@@ -25,7 +25,7 @@ from matplotlib.patches import Arc, FancyArrowPatch, Rectangle  # noqa: E402
 
 from insar_wetlands.paths import cube_root, hub_root  # noqa: E402
 
-HUB = hub_root()
+HUB = (hub_root() or Path("."))
 CUBE = cube_root()
 OUT = HUB / "08_deliverables" / "article_plan" / "figures"
 SETS = ("2020_2021", "2022_2024", "matched_wt", "annual")

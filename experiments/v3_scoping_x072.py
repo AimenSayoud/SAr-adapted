@@ -253,7 +253,7 @@ def q6_laser_vegetation() -> pd.DataFrame:
             b = np.polyfit(g.wtd_at[ok], g.laser_surface_cm[ok], 1)
             p.loc[g.index[ok], "laser_resid_cm"] = g.laser_surface_cm[ok] - np.polyval(b, g.wtd_at[ok])
     summer = p.time_utc.dt.month.isin([6, 7, 8, 9])
-    # raw relations are confounded by the season (canopy and mat both have an annual cycle, SETTLED §5): the test that
+    # raw relations are confounded by the season (canopy and mat both have an annual cycle, shared annual cycle confounding): the test that
     # counts is on season-removed anomalies of both series
     p["laser_resid_anom"] = harmonic_resid(p.time_utc, p.laser_resid_cm)
     for v in ("s2_ndre_3x3", "s2_ndvi_3x3", "s2_ndmi_3x3", "lst_c_3x3", "air_c", "uav_lai", "uav_ndre"):

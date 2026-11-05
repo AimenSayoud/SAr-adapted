@@ -27,7 +27,7 @@ from insar_wetlands.cube import cube_root  # noqa: E402
 from insar_wetlands.paths import hub_root, resolve_drive  # noqa: E402
 from insar_wetlands.scoring import Protocol, assert_preregistered, score  # noqa: E402
 
-HUB = hub_root()
+HUB = (hub_root() or Path("."))
 FT = HUB / "08_deliverables" / "insar_full_test"
 OUT = FT / "bias_correction"
 PREREG = FT / "preregistration" / "X-085.yaml"
@@ -60,10 +60,10 @@ def main() -> None:
         dates = sorted(files)
         cache: dict = {}
 
-        def get(d):
-            if d not in cache:
-                cache[d] = Q.cslc(files[d])
-            return cache[d]
+        def get(d, _cache=cache, _files=files):
+            if d not in _cache:
+                _cache[d] = Q.cslc(_files[d])
+            return _cache[d]
 
         z = {1: [], 2: [], 3: []}
         coh18 = []

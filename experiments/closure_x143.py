@@ -26,7 +26,7 @@ import p6_validation_x082 as X  # noqa: E402  (PHASE_TO_MM, the acquisition list
 from insar_wetlands.paths import cube_root, hub_root  # noqa: E402
 from insar_wetlands.scoring import assert_preregistered  # noqa: E402
 
-HUB, CUBE = hub_root(), cube_root()
+HUB, CUBE = (hub_root() or Path(".")), cube_root()
 FT = HUB / "08_deliverables" / "insar_full_test"
 OUT = FT / "closure_x143"
 PREREG = FT / "preregistration" / "X-143.yaml"

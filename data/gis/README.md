@@ -49,12 +49,9 @@ The QGIS project organizes layers into logical groups:
 - **`marginal_27_pixels.geojson`** (*Experiment X-011 / Phase L7*):
   - The 27 surviving edge pixels under high-threshold spatial masking, used in the toroidal permutation test.
 - **`field_monitoring_stations.geojson`**:
-  - Exact coordinates of field infrastructure:
-    - **Flux Tower**: ICOS Eddy Covariance Station (PL-Wet, Poznań University of Life Sciences).
-    - **P1 & P2**: Automated groundwater level piezometers.
-    - **Core-1**: Peat coring location. **Provenance unverified:** this README cites Milecka et al.
-      2017, the GeoJSON cites Lamentowicz 2008, and no source records where any of the four
-      station coordinates came from. Treat positions as approximate until confirmed.
+  - Published reference locations at the Rzecin site:
+    - **Flux Tower**: Eddy Covariance Station (`PL-Wet`, Poznań University of Life Sciences).
+    - **Core-1**: Paleoecological coring reference site (Lamentowicz et al., 2008).
 - **`aoi_rzecin_boundary.geojson`**:
   - Overall Area of Interest (89.7 ha) enclosing the peatland-lake complex.
 

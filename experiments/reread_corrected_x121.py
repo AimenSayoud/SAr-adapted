@@ -23,7 +23,7 @@ from insar_wetlands.paths import hub_root
 from insar_wetlands.register import load_register as load
 from insar_wetlands.scoring import assert_preregistered
 
-HUB = hub_root()
+HUB = (hub_root() or Path("."))
 FT = HUB / "08_deliverables" / "insar_full_test"
 OUT = FT / "reread_corrected"
 PREREG = FT / "preregistration" / "X-121.yaml"

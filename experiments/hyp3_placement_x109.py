@@ -27,7 +27,7 @@ from insar_wetlands.cube import cube_root  # noqa: E402
 from insar_wetlands.paths import hub_root  # noqa: E402
 from insar_wetlands.scoring import assert_preregistered  # noqa: E402
 
-HUB = hub_root()
+HUB = (hub_root() or Path("."))
 CUBE = cube_root()
 FT = HUB / "08_deliverables" / "insar_full_test"
 OUT = FT / "hyp3_placement"
@@ -97,7 +97,7 @@ def _md(df: pd.DataFrame, nd: int = 0) -> str:
     d = df.copy()
     for c in d.columns:
         if pd.api.types.is_float_dtype(d[c]):
-            d[c] = d[c].map(lambda x: "—" if pd.isna(x) else (f"{x:.2f}" if c == "r" else f"{x:+.{nd}f}"))
+            d[c] = d[c].map(lambda x, _c=c: "—" if pd.isna(x) else (f"{x:.2f}" if _c == "r" else f"{x:+.{nd}f}"))
     return "\n".join(["| " + " | ".join(map(str, d.columns)) + " |", "|" + "---|" * len(d.columns)] +
                      ["| " + " | ".join(map(str, r)) + " |" for r in d.itertuples(index=False)])
 

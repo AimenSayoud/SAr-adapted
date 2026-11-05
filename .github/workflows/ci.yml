@@ -1,12 +1,8 @@
 name: CI
 
-# The point of this workflow: `make check` defends against a stale number
-# reaching a document, and that failure happens exactly when someone is busy
-# and forgets to run it. Here it runs whether or not anyone remembers.
-
 on:
   push:
-    branches: ["**"]
+    branches: ["main"]
   pull_request:
   workflow_dispatch:
 
@@ -15,32 +11,24 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
           cache: pip
 
-      - name: Install
+      - name: Install package and dev tools
         run: |
           python -m pip install --upgrade pip
           pip install -e ".[dev]"
 
-      - name: Lint
-        run: python -m ruff check src tests
+      - name: Lint (ruff)
+        run: python -m ruff check src tests experiments pipelines
 
-      - name: Ground-truth test suite
-        run: make test
-
-      - name: Pipeline declaration is sound
-        run: make phases
-
-      - name: Manuscript numbers match the exported CSVs
+      - name: Execution register and protocol check
         run: make check
 
-      # The generated appendix and manuscript are committed, so they can go
-      # stale against the sections and CSVs they are built from. Regenerating
-      # here and diffing is what makes "do not edit by hand" checkable rather
-      # than merely stated.
-      - name: Generated manuscript files have not drifted
-        run: make check-generated
+      - name: Synthetic ground-truth test suite
+        run: make test

@@ -21,7 +21,7 @@ import pandas as pd
 from insar_wetlands.paths import cube_root, hub_root
 from insar_wetlands.scoring import assert_preregistered
 
-HUB, CUBE = hub_root(), cube_root()
+HUB, CUBE = (hub_root() or __import__("pathlib").Path(".")), cube_root()
 FT = HUB / "08_deliverables" / "insar_full_test"
 OUT = FT / "laser_qc_x147"
 PREREG = FT / "preregistration" / "X-147.yaml"

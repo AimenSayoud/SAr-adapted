@@ -1,6 +1,6 @@
 """X-094 — do long HyP3 pairs whose dates share the water-table state keep phase on the mat?
 
-SETTLED §3's reopen condition "same-water-table pairs", on the T08 product. HyP3 pairs (D-029) 60–400 days long between
+Evaluate same-water-table long pairs (60–400 d) against the T08 decorrelation baseline. HyP3 pairs (D-029) 60–400 days long between
 dry, snow-free dates of 2020–2024, matched (|dWTD| <= 2 cm) or unmatched (>= 10 cm), the same number per baseline bin
 (``05_code/local/scripts/s1_matched_wt_run.py``; cube set ``matched_wt``). Per pair, the noise floor is HyP3's own: the
 95th percentile of coherence over open water in that pair (T58: open water scores the mat's HyP3 coherence). Rule:
@@ -26,7 +26,7 @@ from insar_wetlands.cube import cube_root  # noqa: E402
 from insar_wetlands.paths import hub_root  # noqa: E402
 from insar_wetlands.scoring import QUARTER_WAVE_MM, assert_preregistered  # noqa: E402
 
-HUB = hub_root()
+HUB = (hub_root() or Path("."))
 CUBE = cube_root()
 FT = HUB / "08_deliverables" / "insar_full_test"
 OUT = FT / "matched_wt"

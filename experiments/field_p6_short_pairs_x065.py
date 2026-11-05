@@ -12,14 +12,13 @@ block D. Exploratory: one pixel, tens of pairs. Writes only to the hub.
 
 import numpy as np
 import pandas as pd
-import xarray as xr
 
-from insar_wetlands.placement import open_rtc  # X-122: relocated when RZECIN_RTC_RELOCATE=1
 from insar_wetlands import field
 from insar_wetlands import fusion as fu
 from insar_wetlands.bootstrap import start
 from insar_wetlands.inversion.isbas import PHASE_TO_MM
 from insar_wetlands.paths import make_paths
+from insar_wetlands.placement import open_rtc  # X-122: relocated when RZECIN_RTC_RELOCATE=1
 from insar_wetlands.stack import list_pairs, load_layer
 
 HUB = field.field_root().parents[1]

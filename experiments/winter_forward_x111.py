@@ -23,7 +23,7 @@ from insar_wetlands import spams  # noqa: E402
 from insar_wetlands.paths import hub_root  # noqa: E402
 from insar_wetlands.scoring import Protocol, assert_preregistered, guard_lockbox  # noqa: E402
 
-HUB = hub_root()
+HUB = (hub_root() or Path("."))
 FT = HUB / "08_deliverables" / "insar_full_test"
 OUT = FT / "winter_forward"
 PREREG = FT / "preregistration" / "X-111.yaml"
@@ -34,6 +34,7 @@ def los_factor() -> dict[str, float]:
     """cos(incidence) at P6 per track: X-099's winter steps (laser and chain) are line-of-sight, the forward models
     predict vertical change — every model prediction is projected before it is compared (correction of 2026-10-14)."""
     import xarray as xr
+
     from insar_wetlands.paths import cube_root
     st = xr.open_dataset(cube_root() / "silver" / "static_40m.nc")
     px = pd.read_csv(HUB / "08_deliverables" / "field_first" / "plot_pixels.csv").set_index("plot")

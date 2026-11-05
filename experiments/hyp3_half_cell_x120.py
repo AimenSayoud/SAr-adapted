@@ -22,7 +22,7 @@ from insar_wetlands.cube import cube_root
 from insar_wetlands.paths import hub_root
 from insar_wetlands.scoring import assert_preregistered
 
-HUB = hub_root()
+HUB = (hub_root() or Path("."))
 FT = HUB / "08_deliverables" / "insar_full_test"
 OUT = FT / "hyp3_half_cell_confirm"
 PREREG = FT / "preregistration" / "X-120.yaml"
@@ -192,6 +192,7 @@ def diagnostic_method_bias() -> None:
     template, against HyP3's coherence of the same 2021 pairs, same search, same references."""
     sys.path.insert(0, str(Path(__file__).resolve().parent))
     import slc_qc_x101 as Q
+
     from insar_wetlands.paths import resolve_drive
     rng = np.random.default_rng(SEED)
     gx, gy, ref = references()

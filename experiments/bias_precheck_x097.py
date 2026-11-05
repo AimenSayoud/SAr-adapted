@@ -30,7 +30,7 @@ from insar_wetlands.cube import cube_root
 from insar_wetlands.paths import hub_root
 from insar_wetlands.scoring import assert_preregistered
 
-HUB = hub_root()
+HUB = (hub_root() or __import__("pathlib").Path("."))
 CUBE = cube_root()
 FT = HUB / "08_deliverables" / "insar_full_test"
 OUT = FT / "bias_precheck"

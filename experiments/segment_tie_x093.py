@@ -26,9 +26,14 @@ import phase_sim_x095 as S  # noqa: E402  (pair table with flags, buoyancy leave
 
 from insar_wetlands import phase_sim as ps  # noqa: E402
 from insar_wetlands.paths import hub_root  # noqa: E402
-from insar_wetlands.scoring import SEASON_OF_MONTH, Protocol, assert_preregistered, score  # noqa: E402
+from insar_wetlands.scoring import (  # noqa: E402
+    SEASON_OF_MONTH,
+    Protocol,
+    assert_preregistered,
+    score,
+)
 
-HUB = hub_root()
+HUB = (hub_root() or Path("."))
 FT = HUB / "08_deliverables" / "insar_full_test"
 OUT = FT / "segment_tie"
 PREREG = FT / "preregistration" / "X-093.yaml"

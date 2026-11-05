@@ -37,6 +37,7 @@ from insar_wetlands import field  # noqa: E402
 from insar_wetlands import field_link as fl  # noqa: E402
 from insar_wetlands.bootstrap import start  # noqa: E402
 from insar_wetlands.hydro import open_era5  # noqa: E402
+from insar_wetlands.paths import hub_root  # noqa: E402
 from insar_wetlands.stratify import (  # noqa: E402
     coherence_vs_hydro,
     freeze_coherence_gain,
@@ -44,7 +45,8 @@ from insar_wetlands.stratify import (  # noqa: E402
 )
 
 REPO = Path(__file__).resolve().parents[1]
-TABLES = REPO / "results" / "tables"
+_ARCH = ((hub_root() or Path(".")) or REPO) / "99_archive" / "first_study_2022_2024" / "results" / "tables"
+TABLES = REPO / "results" / "tables" if (REPO / "results" / "tables").exists() else _ARCH
 OVERPASS = {"ascending": "16:36", "descending": "05:09"}
 COH_FILES = {"ascending": "phaseD_coh_by_zone.csv", "descending": "phaseD_coh_by_zone_descending.csv"}
 

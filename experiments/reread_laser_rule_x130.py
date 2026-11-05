@@ -1,4 +1,4 @@
-"""X-130 — re-read the article's laser comparisons and the supervisor tables with the cube's P6 laser on the
+"""X-130 — re-read the article's laser comparisons and plot-level summary tables with the cube's P6 laser on the
 snow-evidence rule (X-129), beside the committed outputs (rule A, the 72-h frost rule).
 
 As X-121: (1) back up the entries' declared output folders (hub ``05_code/local/x130_backup/<UTC>/``, outside git);
@@ -28,18 +28,19 @@ import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from reread_corrected_x121 import files_under, git_status, hub_dirs  # noqa: E402
+
 from insar_wetlands.paths import cube_root, hub_root  # noqa: E402
 from insar_wetlands.register import load_register as load  # noqa: E402
 from insar_wetlands.scoring import assert_preregistered  # noqa: E402
 
-HUB = hub_root()
+HUB = (hub_root() or Path("."))
 FT = HUB / "08_deliverables" / "insar_full_test"
 OUT = FT / "reread_laser_rule_b"
 CONTROL = OUT / "_control_rule_A"
 PREREG = FT / "preregistration" / "X-130.yaml"
 REPO = Path(__file__).resolve().parents[1]
 ORDER = ["baseline_x099", "x065_hard_targets_x126", "skip_pairs_x127", "article_fig_f2", "article_fig_f4",
-         "article_fig_f6", "supervisor_table_c071"]
+         "article_fig_f6", "plot_workbook_c071"]
 STAND_IN = (FT / "baseline", FT / "reread_corrected" / "baseline_x099")   # X-099's output → where its readers look
 NUMBERS = HUB / "08_deliverables" / "article_plan" / "numbers.yaml"
 

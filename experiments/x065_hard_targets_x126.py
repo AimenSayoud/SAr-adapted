@@ -24,11 +24,17 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import p6_validation_x082 as X  # noqa: E402  (the X-082 readers: refs, acquisitions, laser)
+
 from insar_wetlands.inversion.isbas import PHASE_TO_MM  # noqa: E402
 from insar_wetlands.paths import hub_root  # noqa: E402
-from insar_wetlands.scoring import Protocol, assert_preregistered, guard_lockbox, increment_stats  # noqa: E402
+from insar_wetlands.scoring import (  # noqa: E402
+    Protocol,
+    assert_preregistered,
+    guard_lockbox,
+    increment_stats,
+)
 
-HUB = hub_root()
+HUB = (hub_root() or Path("."))
 FT = HUB / "08_deliverables" / "insar_full_test"
 OUT = FT / "x065_hard_targets"
 PREREG = FT / "preregistration" / "X-126.yaml"

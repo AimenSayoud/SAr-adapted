@@ -1,7 +1,7 @@
-"""C-071 — the supervisor's table: Sentinel-1 at the nine monitoring plots, one row per plot and acquisition, joined
+"""C-071 — plot-level multi-sensor summary table: Sentinel-1 at the nine monitoring plots, one row per plot and acquisition, joined
 with the field data (hourly water table and its antecedents, meteorology, the P6 laser, UAV/LAI campaigns).
 
-The supervisor's request (`06_data/field/raw/2026-09_abdallah_delivery/mail prof.md` §2, §4): per plot and acquisition,
+Specification (C-071): per plot and acquisition,
 phase or displacement, coherence, VV, VH, RVI and the number of valid pixels, with the median or mean and the spread
 (SD or IQR) inside a neighbourhood; the water table at the overpass with its 24-hour, 3-day and 7-day antecedents. The
 first answer (`field_first`, 2026-09-25) predates the grid corrections (X-120 HyP3, X-122 RTC); this one reads the
@@ -25,13 +25,12 @@ Which Sentinel-1 data, and why:
 * **Years:** 2020–2025, the years with field data (water table 2020–2024, laser 27 May 2021 – 2025). The field team's
   common period 2022–2024 is a column.
 
-Not included, on purpose: per-pixel inversion series (SBAS, ISBAS, EVD), which do not recover the mat (`SETTLED.md`
-§1); the first study's EVD temporal coherence is carried as a per-plot attribute only, read on the grid before the
+Not included, on purpose: per-pixel inversion series (SBAS, ISBAS, EVD), which do not recover the mat (multi-temporal per-pixel inversions fail to recover mat motion); the first study's EVD temporal coherence is carried as a per-plot attribute only, read on the grid before the
 X-120 correction (stated in its column).
 
-Writes only to the hub (field values): ``08_deliverables/field_supervisor_workbook_c071/tables/``.
+Writes only to the hub (field values): ``08_deliverables/plot_workbook_c071/tables/``.
 
-    make run E=supervisor_table_c071
+    make run E=plot_workbook_c071
 """
 from __future__ import annotations
 
@@ -39,16 +38,19 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
-from insar_wetlands import field, plot_table as pt
+from insar_wetlands import field
+from insar_wetlands import plot_table as pt
 from insar_wetlands.cube import core
 from insar_wetlands.cube.build import plot_units
 from insar_wetlands.field_link import season_residual
 from insar_wetlands.paths import cube_root, hub_root
 from insar_wetlands.scoring import Protocol, guard_lockbox
 
-HUB = hub_root()
+HUB = (hub_root() or __import__("pathlib").Path("."))
 CUBE = cube_root()
-OUT = HUB / "08_deliverables" / "field_supervisor_workbook_c071" / "tables"
+from insar_wetlands.paths import deliverable_dir  # noqa: E402
+
+OUT = deliverable_dir("plot_workbook_c071", "c071", HUB) / "tables"
 PROTOCOL = HUB / "08_deliverables" / "insar_full_test" / "protocol.yaml"
 PERIODS = ("2020_2021", "2022_2024", "2025")
 YEARS = (2020, 2025)
@@ -57,7 +59,7 @@ MAX_PAIR_DAYS = 48
 H = 1                                      # 3×3 window
 UAV_MAX_LAG_DAYS = 12                      # nearest acquisition per track, at most one 12-day revisit away
 REFS = {"hard": "hard targets", "grassland": "grassland (zone C)"}
-SUPERVISOR_GROUP = {**{p: "hydrological reference (P1–P5)" for p in ("P1", "P2", "P3", "P4", "P5")},
+PLOT_GROUP = {**{p: "hydrological reference (P1–P5)" for p in ("P1", "P2", "P3", "P4", "P5")},
                     **{p: "floating mat (P6–P9)" for p in ("P6", "P7", "P8", "P9")}}
 
 
@@ -165,7 +167,7 @@ def rtc_stats(px, mat) -> pd.DataFrame:
 
 def anomaly(d: pd.DataFrame, col: str, ok: pd.Series, dt_col: str | None = None) -> pd.Series:
     """The value minus its annual harmonic (and the pair length, for coherence), fitted per plot and track on the
-    unflagged rows (`SETTLED.md` §5: two seasonal series always correlate); flagged rows stay empty."""
+    unflagged rows (two seasonal series share an annual cycle); flagged rows stay empty."""
     res = pd.Series(np.nan, index=d.index)
     for _, g in d.groupby(["plot", "track"]):
         m = ok.loc[g.index] & g[col].notna() & (g[dt_col].notna() if dt_col else True)
@@ -207,7 +209,7 @@ def by_date(acq: pd.DataFrame, rtc: pd.DataFrame, pairs: pd.DataFrame) -> pd.Dat
     for v in ("vv_db_3x3_median", "vh_db_3x3_median"):
         d[v.replace("_median", "_anom")] = anomaly(d, v, ~flag)
     d["wtd_at_anom"] = anomaly(d, "wtd_at", ~d.censored.fillna(True).astype(bool))
-    d.insert(4, "plot_group", d["plot"].map(SUPERVISOR_GROUP))
+    d.insert(4, "plot_group", d["plot"].map(PLOT_GROUP))
     return d.sort_values(["track", "date", "plot"]).reset_index(drop=True)
 
 
@@ -232,7 +234,7 @@ def plots_table(px, mat, acq) -> pd.DataFrame:
     shape = mat.shape
     rows = []
     for p, r, c, e, n, share in zip(px["plot"], px.row, px.col, px.E, px.N, px.shares_3x3_with):
-        rows.append({"plot": p, "plot_group": SUPERVISOR_GROUP[p], "lon": ll.lon.get(p), "lat": ll.lat.get(p),
+        rows.append({"plot": p, "plot_group": PLOT_GROUP[p], "lon": ll.lon.get(p), "lat": ll.lat.get(p),
                      "coordinates_from": ll.coordinates.get(p), "E_utm33": e, "N_utm33": n, "grid_row": r,
                      "grid_col": c, "mat_px_1x1": len(pt.window_index(r, c, shape, 0, mat)[0]),
                      "mat_px_3x3": len(pt.window_index(r, c, shape, 1, mat)[0]),
@@ -293,7 +295,7 @@ def uav_table(dates: pd.DataFrame) -> pd.DataFrame:
                          f"s1_{tag}_vv_db_3x3": q.vv_db_3x3_median[i], f"s1_{tag}_vh_db_3x3": q.vh_db_3x3_median[i],
                          f"s1_{tag}_rvi_3x3": q.rvi_3x3_median[i], f"s1_{tag}_wtd_at": q.wtd_at[i]})
         d = pd.concat([d, pd.DataFrame(rows, index=d.index)], axis=1)
-    d.insert(2, "plot_group", d["plot"].map(SUPERVISOR_GROUP))
+    d.insert(2, "plot_group", d["plot"].map(PLOT_GROUP))
     return d.sort_values(["date", "plot"]).reset_index(drop=True)
 
 

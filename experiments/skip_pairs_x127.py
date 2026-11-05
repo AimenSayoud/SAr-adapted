@@ -24,7 +24,7 @@ from insar_wetlands import phase_sim as ps
 from insar_wetlands.paths import hub_root
 from insar_wetlands.scoring import Protocol, assert_preregistered, guard_lockbox
 
-HUB = hub_root()
+HUB = (hub_root() or __import__("pathlib").Path("."))
 FT = HUB / "08_deliverables" / "insar_full_test"
 OUT = FT / "skip_pairs"
 PREREG = FT / "preregistration" / "X-127.yaml"

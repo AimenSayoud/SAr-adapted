@@ -36,7 +36,7 @@ from insar_wetlands import contrasts as C  # noqa: E402
 from insar_wetlands import figstyle as fs  # noqa: E402
 from insar_wetlands.paths import cube_root, hub_root  # noqa: E402
 
-HUB, CUBE = hub_root(), cube_root()
+HUB, CUBE = (hub_root() or __import__("pathlib").Path(".")), cube_root()
 FINAL = HUB / "08_deliverables" / "article_plan" / "figures" / "final"
 OUT = V.OUT
 SETS = V.SETS

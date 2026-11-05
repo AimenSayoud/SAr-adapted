@@ -1,7 +1,7 @@
-"""Plot-level Sentinel-1 statistics for the supervisor's table (C-071): Date | Plot | Phase/Displacement | Coherence |
+"""Plot-level Sentinel-1 window statistics (C-071): Date | Plot | Phase/Displacement | Coherence |
 VV | VH | RVI | Valid pixels, with the spread inside each extraction window.
 
-The cube's gold tables keep one number per window (a median); the supervisor asked for the number of valid pixels, the
+The cube's gold tables keep one number per window (a median); plot-level diagnostics require the number of valid pixels, the
 median or mean and the spread (SD or IQR) of every variable. These routines compute them from the silver stacks, for
 any window, so the table can say how many pixels stand behind each value and how much they disagree.
 

@@ -90,7 +90,9 @@ def ingest(what: str) -> None:
         tab.to_csv(RAW / "lidar" / "tiles.csv", index=False)
     elif what == "dated":                      # C-072: the dated laser sheets and CIR orthophotos over the 1 m LiDAR grid
         from pyproj import Transformer
-        from insar_wetlands.cube.build import LIDAR_GRID_BUFFER_M, peat_bounds_utm as pb
+
+        from insar_wetlands.cube.build import LIDAR_GRID_BUFFER_M
+        from insar_wetlands.cube.build import peat_bounds_utm as pb
         b = pb(ctx(), LIDAR_GRID_BUFFER_M, "AB")
         t = Transformer.from_crs(32633, 2180, always_xy=True)
         xs, ys = t.transform([b[0], b[2], b[0], b[2]], [b[1], b[1], b[3], b[3]])

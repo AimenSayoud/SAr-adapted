@@ -20,7 +20,6 @@ Verifies that:
 
 from __future__ import annotations
 
-from pathlib import Path
 from types import SimpleNamespace
 
 import numpy as np

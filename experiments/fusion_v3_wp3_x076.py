@@ -30,8 +30,8 @@ from sklearn.linear_model import LogisticRegression  # noqa: E402
 from sklearn.pipeline import make_pipeline  # noqa: E402
 from sklearn.preprocessing import StandardScaler  # noqa: E402
 
-from insar_wetlands.cube.core import rad_to_los_mm  # noqa: E402
 from insar_wetlands.cube import cube_root  # noqa: E402  (RZECIN_CUBE_ROOT honoured, X-121 control)
+from insar_wetlands.cube.core import rad_to_los_mm  # noqa: E402
 
 HUB = Path(__file__).resolve().parents[3]
 G, S = cube_root() / "gold", cube_root() / "silver"

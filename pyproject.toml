@@ -4,18 +4,18 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "insar-wetlands"
-version = "0.1.0"
-description = "Pipeline InSAR (SBAS/ISBAS) pour la tourbiere de Rzecin"
+version = "1.0.0"
+description = "Sentinel-1 C-band InSAR processing, data cube construction, and ground-truth evaluation over the Rzecin floating fen (Poland)"
+readme = "README.md"
+license = {text = "MIT"}
 requires-python = ">=3.10"
-# Declared from the imports actually present in src/ (19 third-party packages
-# were in use; 4 were declared). Split into groups so an analysis-only install
-# does not drag in the acquisition SDKs, which need credentials.
 dependencies = [
     "numpy>=1.24",
     "pandas>=2.0",
     "pyyaml>=6.0",
     "shapely>=2.0",
     "xarray>=2023.1",
+    "netCDF4>=1.6",
     "scipy>=1.10",
     "scikit-learn>=1.3",
     "matplotlib>=3.7",
@@ -28,7 +28,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-# Only needed to fetch new data. Requires Earthdata / CDS credentials.
+# Only needed to fetch new satellite/climate scenes (requires Earthdata / CDS credentials where applicable).
 acquisition = [
     "asf-search>=6.7",
     "hyp3-sdk>=6.1",
@@ -36,13 +36,17 @@ acquisition = [
     "pystac-client>=0.7",
     "planetary-computer>=1.0",
 ]
-# Article figures: scientific colour maps, map scale bars, non-overlapping labels.
-figures = ["cmcrameri>=1.8", "matplotlib-scalebar>=0.9", "adjustText>=1.4"]
+# Manuscript figures and workbooks: scientific colour maps, map scale bars, vector GIS, image compositing.
+figures = [
+    "cmcrameri>=1.8",
+    "matplotlib-scalebar>=0.9",
+    "adjustText>=1.4",
+    "geopandas>=0.14",
+    "pillow>=10.0",
+    "openpyxl>=3.1",
+]
 dev = ["pytest>=7", "ruff>=0.1", "pytest-cov>=4"]
 all = ["insar-wetlands[acquisition,figures,dev]"]
-
-# NOTE: `google.colab` is imported for the Drive mount but is provided by the
-# Colab runtime and must never be declared here — it is not installable.
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -64,24 +68,17 @@ show_missing = true
 line-length = 100
 target-version = "py310"
 
-# A focused set, not everything ruff can say. The aim is to catch real defects
-# (F821 undefined names, B023 loop-variable closures) without churning working
-# scientific code for stylistic preferences.
 [tool.ruff.lint]
 select = ["E", "W", "F", "I", "B", "UP"]
 ignore = [
-    "E501",   # line length: enforced by the formatter's 100, not as an error
-    "B008",   # call in a default argument: deliberate in one API here
-    "E702",   # `a = 1; b = 2` — the author's compact style, used 66 times.
-              # Reformatting working scientific code for style is exactly the
-              # churn this configuration is meant to avoid.
-    "E741",   # ambiguous name `l`: one occurrence, in maths where it reads fine
-    "E731",   # lambda assignment: one occurrence, deliberate
-    "B007",   # unused loop variable: cosmetic
-    "B905",   # zip() without strict=: would change behaviour where lengths
-              # differ, so it is a deliberate follow-up, not a lint fix
+    "E501",   # line length handled by formatter convention (100)
+    "B008",   # function call in default argument where deliberate
+    "E702",   # compact single-line semicolon statements in numerical scripts
+    "E741",   # mathematical single-letter variable names
+    "E731",   # concise lambda helper bindings
+    "B007",   # unused loop counter variables
+    "B905",   # zip() without strict=
 ]
 
 [tool.ruff.lint.per-file-ignores]
-# Tests construct deliberately odd inputs and rebind module constants.
 "tests/*" = ["B011", "E731"]

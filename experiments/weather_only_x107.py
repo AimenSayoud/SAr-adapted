@@ -23,7 +23,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import freeze_v4_x106 as F  # noqa: E402  (build_v4, spams_level, DESIGN, the frozen parameter file)
 
 from insar_wetlands import v4  # noqa: E402
-from insar_wetlands.scoring import Protocol, assert_preregistered, detrended_stats, level_views, winter_steps  # noqa: E402
+from insar_wetlands.scoring import (  # noqa: E402
+    Protocol,
+    assert_preregistered,
+    detrended_stats,
+    level_views,
+    winter_steps,
+)
 
 OUT = F.V4DIR / "weather_only_design"
 PREREG = F.FT / "preregistration" / "X-107.yaml"

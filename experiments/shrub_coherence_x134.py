@@ -24,11 +24,12 @@ import xarray as xr
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import landcover_coherence_x132 as X132  # noqa: E402  (X-132's frame, pairs and per-cell outcomes)
+
 from insar_wetlands import contrasts as C  # noqa: E402
 from insar_wetlands.paths import cube_root, hub_root  # noqa: E402
 from insar_wetlands.scoring import Protocol, assert_preregistered, guard_lockbox  # noqa: E402
 
-HUB, CUBE = hub_root(), cube_root()
+HUB, CUBE = (hub_root() or Path(".")), cube_root()
 FT = HUB / "08_deliverables" / "insar_full_test"
 OUT = FT / "shrub_x134"
 PREREG = FT / "preregistration" / "X-134.yaml"

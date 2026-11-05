@@ -21,9 +21,14 @@ import fusion_v3_wp1_x074 as W1  # noqa: E402  (daily table and frozen-window ru
 from insar_wetlands import fusion as fu  # noqa: E402
 from insar_wetlands import spams  # noqa: E402
 from insar_wetlands.paths import cube_root, hub_root  # noqa: E402
-from insar_wetlands.scoring import Protocol, assert_preregistered, detrended_stats, guard_lockbox  # noqa: E402
+from insar_wetlands.scoring import (  # noqa: E402
+    Protocol,
+    assert_preregistered,
+    detrended_stats,
+    guard_lockbox,
+)
 
-HUB = hub_root()
+HUB = (hub_root() or Path("."))
 FT = HUB / "08_deliverables" / "insar_full_test"
 OUT = FT / "spams_baseline"
 PREREG = FT / "preregistration" / "X-112.yaml"

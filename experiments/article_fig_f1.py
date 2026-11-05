@@ -16,24 +16,24 @@ from __future__ import annotations
 import matplotlib
 
 matplotlib.use("Agg")
+import geopandas as gpd  # noqa: E402
 import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
-import xarray as xr  # noqa: E402
-import geopandas as gpd  # noqa: E402
 import rasterio  # noqa: E402
+import xarray as xr  # noqa: E402
+from matplotlib.lines import Line2D  # noqa: E402
+from matplotlib.patches import FancyArrowPatch, Patch, Rectangle  # noqa: E402
+from matplotlib_scalebar.scalebar import ScaleBar  # noqa: E402
 from rasterio.enums import Resampling  # noqa: E402
 from rasterio.transform import from_origin  # noqa: E402
 from rasterio.warp import reproject, transform_bounds  # noqa: E402
 from rasterio.windows import from_bounds  # noqa: E402
-from matplotlib.lines import Line2D  # noqa: E402
-from matplotlib.patches import FancyArrowPatch, Patch, Rectangle  # noqa: E402
-from matplotlib_scalebar.scalebar import ScaleBar  # noqa: E402
 
 from insar_wetlands import figstyle as fs  # noqa: E402
 from insar_wetlands.paths import cube_root, hub_root  # noqa: E402
 
-HUB, CUBE = hub_root(), cube_root()
+HUB, CUBE = (hub_root() or __import__("pathlib").Path(".")), cube_root()
 OUT = HUB / "08_deliverables" / "article_plan" / "figures" / "final"
 MAT_WELLS = ("P6", "P7", "P8", "P9")          # field_plots_x061: P6–P9 on the mat, P1–P5 the water-table reference
 CELL = 40.0

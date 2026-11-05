@@ -3,7 +3,13 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from insar_wetlands.register import find, load_register, producers_consumers, untracked_scripts, validate
+from insar_wetlands.register import (
+    find,
+    load_register,
+    producers_consumers,
+    untracked_scripts,
+    validate,
+)
 
 REPO = Path(__file__).resolve().parents[1]
 

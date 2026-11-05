@@ -4,8 +4,7 @@ This module is public; the data are not. It never contains or writes field value
 repository: everything is read from the research hub's ``06_data/field`` (``RZECIN_FIELD_ROOT``)
 and derived tables are written back there by the caller.
 
-Conventions established from the first delivery (hub: ``06_data/field/raw/2026-09_abdallah_delivery/
-SOURCE.md``):
+Conventions established from the station operator delivery (``RZECIN_FIELD_ROOT``):
 
 * Logger stamps describe the hour **centred at stamp − 0.5 h UTC** (station air temperature vs
   ERA5 hourly t2m). ``load_wtd_hourly`` / ``load_laser`` return that centre as a UTC index.
@@ -24,7 +23,7 @@ import numpy as np
 import pandas as pd
 
 UTC_CENTRE_OFFSET = pd.Timedelta(minutes=30)
-DELIVERY = "raw/2026-09_abdallah_delivery"
+WTD_FILE = "WTD_hourly_2020-2024_9plots_filled_meteo.csv"
 WTD_COLUMNS = {"WTD_P1": "P1", "WTD_P2": "P2", "WTD_P3": "P3", "WTD_P4": "P4",
                "WTD_P5 (CL)": "P5", "WTD_P6 (CR)": "P6", "WTD_P7": "P7", "WTD_P8": "P8",
                "WTD_P9": "P9"}
@@ -41,8 +40,24 @@ def field_root(root: str | Path | None = None) -> Path:
     hub = Path(__file__).resolve().parents[4] / "06_data" / "field"
     if hub.is_dir():
         return hub
-    from insar_wetlands.paths import MAC_BACKUP, on_colab   # Colab: the hub's Drive backup copy, read-only
+    from insar_wetlands.paths import (  # Colab: the hub's Drive backup copy, read-only
+        MAC_BACKUP,
+        on_colab,
+    )
     return MAC_BACKUP / "06_data" / "field" if on_colab() else hub
+
+
+def delivery_dir(root: str | Path | None = None) -> Path:
+    """Primary station-operator tabular delivery directory inside ``field_root()``."""
+    base = field_root(root)
+    if os.environ.get("RZECIN_FIELD_DELIVERY"):
+        return base / os.environ["RZECIN_FIELD_DELIVERY"]
+    raw = base / "raw"
+    if raw.is_dir():
+        hits = sorted(d for d in raw.iterdir() if d.is_dir() and (d / WTD_FILE).exists())
+        if hits:
+            return hits[0]
+    return raw / "station_delivery"
 
 
 def base_plot(name: str) -> str:
@@ -62,7 +77,7 @@ def load_wtd_hourly(path: str | Path | None = None) -> pd.DataFrame:
 
     Columns: ``P1``…``P9`` (WTD), ``CL_raw``, ``CR_raw``, and the meteo columns as delivered.
     """
-    path = Path(path) if path else field_root() / DELIVERY / "WTD_hourly_2020-2024_9plots_filled_meteo.csv"
+    path = Path(path) if path else delivery_dir() / WTD_FILE
     df = pd.read_csv(path, parse_dates=["TIMESTAMP"])
     df.index = pd.DatetimeIndex(df.pop("TIMESTAMP") - UTC_CENTRE_OFFSET, name="time_utc").tz_localize("UTC")
     df = df.rename(columns={**WTD_COLUMNS, "CL": "CL_raw", "CR": "CR_raw"})
@@ -74,7 +89,7 @@ def load_wtd_hourly(path: str | Path | None = None) -> pd.DataFrame:
 def load_laser(path: str | Path | None = None) -> pd.DataFrame:
     """Laser surface level at P6/CR (cm), the surface series used for the WTD correction, and
     the corrected WTD; UTC centre-time index. Rows without a timestamp are dropped."""
-    path = Path(path) if path else field_root() / DELIVERY / "Laser_Sensor.xlsx"
+    path = Path(path) if path else delivery_dir() / "Laser_Sensor.xlsx"
     raw = pd.read_excel(path, sheet_name=0)
     raw.columns = ["time", "surface_cm", "surface_ref_cm", "wtd_corrected_cm"]
     raw = raw[raw["time"].notna()].copy()
@@ -131,7 +146,7 @@ def load_uav_table(path: str | Path | None = None, mask_flagged: bool = True) ->
     """Merged UAV/LAI/meteo/WTD table with −9999 → NaN, parsed dates and a ``base_plot`` column.
     ``mask_flagged``: cells the field team marked yellow are set to NaN (their count is in
     ``df.attrs["n_flagged"]``)."""
-    path = Path(path) if path else field_root() / DELIVERY / "DataSet_All_RS_LAI_merged_with_WTD_Meteo.xlsx"
+    path = Path(path) if path else delivery_dir() / "DataSet_All_RS_LAI_merged_with_WTD_Meteo.xlsx"
     df = pd.read_excel(path, sheet_name="Sheet1").replace(-9999, np.nan)
     flags = flagged_cells(path) if mask_flagged else []
     for r, col in flags:
@@ -175,7 +190,7 @@ def uav_rasters(root: str | Path | None = None) -> pd.DataFrame:
 def load_plots(path: str | Path | None = None, crs: int = 32633):
     """Plot polygons with ``plot``, ``base_plot`` and centroid ``x``/``y`` in ``crs``."""
     import geopandas as gpd
-    path = Path(path) if path else field_root() / DELIVERY / "plots" / "Plots_PlanetScope.shp"
+    path = Path(path) if path else delivery_dir() / "plots" / "Plots_PlanetScope.shp"
     g = gpd.read_file(path).to_crs(crs).rename(columns={"Plot": "plot", "Treatment": "treatment"})
     g["base_plot"] = g["plot"].map(base_plot)
     c = g.geometry.centroid
@@ -186,7 +201,7 @@ def load_plots(path: str | Path | None = None, crs: int = 32633):
 # ------------------------------------------------------------------------------ Sentinel-1 matching
 
 def wtd_at_times(wtd: pd.DataFrame, times_utc, plots=PLOTS) -> pd.DataFrame:
-    """The WTD variables the supervisor asked for, for each plot at each acquisition time.
+    """Antecedent and instantaneous water-table descriptors for each plot at each acquisition time.
 
     ``wtd_at`` (linear interpolation at the time), ``mean_24h`` (24 h centred), ``mean_prev3d`` /
     ``mean_prev7d`` (windows ending at the time), ``change_3d`` / ``change_7d`` (value at the time

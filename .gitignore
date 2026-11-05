@@ -1,24 +1,21 @@
-# Produits de phase : pousses vers les branches outputs/phaseXX (git add -f),
-# jamais versionnes sur la branche de code.
-outputs/
-
-# Donnees lourdes (restent sur Google Drive)
-data/_local/
-*.nc
-*.tif
-!data/gis/*.tif
-*.tiff
-*.h5
-*.zip
-!data/gis/*.zip
-
 __pycache__/
+*.py[cod]
+*$py.class
 *.egg-info/
-.ipynb_checkpoints/
-
-# macOS
-.DS_Store
-
-# Secrets (credentials for data services) live only in the private hub
+dist/
+build/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
 .env
-*.env
+.DS_Store
+CLAUDE.md
+.claude/
+
+# Local runtime staging and scratch outputs
+data/_local/
+notebooks/
+outputs/

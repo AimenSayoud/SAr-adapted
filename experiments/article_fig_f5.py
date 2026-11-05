@@ -33,9 +33,11 @@ from insar_wetlands.paths import hub_root  # noqa: E402
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import article_fig_f1 as F1  # noqa: E402  (cell outlines on the 40 m grid)
 import article_figures_c067 as C67  # noqa: E402  (the pair table and six-day counts behind the article's tables)
-from interior_edge_x128 import near  # noqa: E402  (X-128's exclusion: cells within n cells of a plot or the boardwalk)
+from interior_edge_x128 import (
+    near,  # noqa: E402  (X-128's exclusion: cells within n cells of a plot or the boardwalk)
+)
 
-HUB = hub_root()
+HUB = (hub_root() or Path("."))
 OUT = HUB / "08_deliverables" / "article_plan" / "figures" / "final"
 PLOTS = HUB / "08_deliverables" / "field_first" / "plot_pixels.csv"
 TABLE = HUB / "08_deliverables" / "article_plan" / "tables" / "plot_phase_share.csv"

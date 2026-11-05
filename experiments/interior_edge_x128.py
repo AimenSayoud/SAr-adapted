@@ -23,10 +23,11 @@ from scipy.ndimage import maximum_filter
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import article_figures_c067 as C67  # noqa: E402  (static(), pair_table(): the computation behind Table F5 and §5.2)
+
 from insar_wetlands.paths import hub_root  # noqa: E402
 from insar_wetlands.scoring import assert_preregistered  # noqa: E402
 
-HUB = hub_root()
+HUB = (hub_root() or Path("."))
 FT = HUB / "08_deliverables" / "insar_full_test"
 OUT = FT / "interior_edge"
 PREREG = FT / "preregistration" / "X-128.yaml"

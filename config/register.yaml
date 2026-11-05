@@ -970,7 +970,7 @@ entries:
     - T43
   field_first_deliverables:
     kind: experiment
-    title: The supervisor's first field-data deliverables (Sentinel-1 at the 9 monitoring plots).
+    title: Initial plot-level Sentinel-1 field comparison deliverables at the nine monitoring plots.
     status: finished
     runs_on: mac
     code: experiments/field_first_deliverables.py
@@ -1290,7 +1290,7 @@ entries:
     - hub:08_deliverables/insar_full_test/cross_track_x136
   simple_answers_c075:
     kind: experiment
-    title: 'C-075: simple answers for the supervisor — Sentinel-1 against the laser (P6) and the water table (nine plots),
+    title: 'C-075: concise summary diagnostics — Sentinel-1 against the laser (P6) and the water table (nine plots),
       and the weather against the water table; one sentence per question by a pre-registered rule'
     status: finished
     runs_on: mac
@@ -1671,14 +1671,14 @@ entries:
     - hub:06_data/local_small/s1_extension_2020_2021
     tries:
     - T03
-  supervisor_table_c071:
+  plot_workbook_c071:
     kind: experiment
-    title: C-071 — the supervisor's table, Sentinel-1 at the nine plots per acquisition and per pair (corrected cube, 3×3 mat window with valid pixels, median, mean, SD, IQR), joined with the hourly water-table antecedents, meteorology, the P6 laser and UAV/LAI campaigns, 2020–2025
+    title: C-071 — plot-level Sentinel-1 summary table, Sentinel-1 at the nine plots per acquisition and per pair (corrected cube, 3×3 mat window with valid pixels, median, mean, SD, IQR), joined with the hourly water-table antecedents, meteorology, the P6 laser and UAV/LAI campaigns, 2020–2025
     status: current
     runs_on: mac
-    code: experiments/supervisor_table_c071.py
+    code: experiments/plot_workbook_c071.py
     code_ref: HEAD
-    command: PYTHONPATH=src python experiments/supervisor_table_c071.py
+    command: PYTHONPATH=src python experiments/plot_workbook_c071.py
     tickets:
     - C-071
     chains:
@@ -1699,7 +1699,7 @@ entries:
     - cube:gold/truth_laser_hourly.csv.gz
     - cube:gold/truth_laser_daily.csv
     outputs:
-    - hub:08_deliverables/field_supervisor_workbook_c071/tables
+    - hub:08_deliverables/plot_workbook_c071/tables
   v3_scoping_x072:
     kind: experiment
     title: 'X-072: what the data cube says before fusion v3 is modelled (exploratory, Mac-safe, reads only the cube).'
@@ -1881,28 +1881,28 @@ entries:
     - cube:silver/site_hourly.csv.gz
     - hub:08_deliverables/insar_full_test/x065_hard_targets/by_revisit.csv
     outputs:
-    - hub:08_deliverables/supervisor_pack_c074/tables
-  supervisor_figures_c074:
+    - hub:08_deliverables/p6_diagnostic_pack_c074/tables
+  p6_diagnostic_figures_c074:
     kind: experiment
-    title: C-074 — the supervisor pack's figures (nine cells, phase against the laser, P6 through time) with the C-073 figures beside them
+    title: C-074 — P6 nine-cell diagnostic figures (nine cells, phase against the laser, P6 through time) with the C-073 figures beside them
     status: current
     runs_on: mac
-    code: experiments/supervisor_figures_c074.py
+    code: experiments/p6_diagnostic_figures_c074.py
     code_ref: HEAD
-    command: PYTHONPATH=src python experiments/supervisor_figures_c074.py
+    command: PYTHONPATH=src python experiments/p6_diagnostic_figures_c074.py
     tickets:
     - C-074
     chains:
     - field-data
     inputs:
-    - hub:08_deliverables/supervisor_pack_c074/tables
+    - hub:08_deliverables/p6_diagnostic_pack_c074/tables
     - hub:08_deliverables/figures_landcover_footprint
     - cube:raw/gugik_dated
     - cube:silver/lidar_dated_1m.nc
     - cube:silver/site_hourly.csv.gz
     - hub:08_deliverables/field_first/plot_pixels.csv
     outputs:
-    - hub:08_deliverables/supervisor_pack_c074
+    - hub:08_deliverables/p6_diagnostic_pack_c074
   laser_frost_rule_x129:
     kind: experiment
     title: X-129 — the P6 laser's 72-h frost rule against a snow-evidence rule, scored on Sentinel-1 consecutive pairs
@@ -1926,7 +1926,7 @@ entries:
     - hub:08_deliverables/field_p6/laser_frost_rule_x129
   reread_laser_rule_x130:
     kind: experiment
-    title: X-130 — the article's laser comparisons and the supervisor tables re-read with the P6 laser on the snow-evidence rule, beside the committed ones
+    title: X-130 — the article's laser comparisons and the plot-level summary tables re-read with the P6 laser on the snow-evidence rule, beside the committed ones
     status: current
     runs_on: mac
     code: experiments/reread_laser_rule_x130.py
@@ -2870,7 +2870,7 @@ entries:
     - hub:08_deliverables/insar_full_test/v4/v4n_design_report
   nine_cells_workbook_c076:
     kind: experiment
-    title: C-076 — every value we hold for the nine 40 m cells around P6, 2017–2026, as tables for the professor's workbook (descriptive)
+    title: C-076 — every value we hold for the nine 40 m cells around P6, 2017–2026, as descriptive multi-sensor nine-cell tables
     status: current
     runs_on: mac
     code: experiments/nine_cells_workbook_c076.py
@@ -2888,7 +2888,7 @@ entries:
     - cube:silver/site_hourly.csv.gz
     - cube:silver/plot_units.csv
     - hub:06_data/field/processed/uav_0p5m.nc
-    - hub:08_deliverables/supervisor_pack_c074/tables
+    - hub:08_deliverables/p6_diagnostic_pack_c074/tables
     - hub:08_deliverables/field_uav_c065/qc_flags.csv
     outputs:
     - hub:08_deliverables/nine_cells_c076/tables

@@ -27,7 +27,7 @@ from insar_wetlands.paths import hub_root  # noqa: E402
 from insar_wetlands.register import load_register as load  # noqa: E402
 from insar_wetlands.scoring import assert_preregistered  # noqa: E402
 
-HUB = hub_root()
+HUB = (hub_root() or Path("."))
 FT = HUB / "08_deliverables" / "insar_full_test"
 OUT = FT / "reread_rtc"
 CONTROL = OUT / "_control_rtc_as_delivered"

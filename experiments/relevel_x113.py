@@ -20,9 +20,15 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import p6_validation_x082 as X  # noqa: E402  (pairs and the LOS laser, as X-099)
 
 from insar_wetlands.paths import hub_root  # noqa: E402
-from insar_wetlands.scoring import Protocol, assert_preregistered, chain, detrended_stats, level_views  # noqa: E402
+from insar_wetlands.scoring import (  # noqa: E402
+    Protocol,
+    assert_preregistered,
+    chain,
+    detrended_stats,
+    level_views,
+)
 
-HUB = hub_root()
+HUB = (hub_root() or Path("."))
 FT = HUB / "08_deliverables" / "insar_full_test"
 OUT = FT / "relevel"
 PREREG = FT / "preregistration" / "X-113.yaml"

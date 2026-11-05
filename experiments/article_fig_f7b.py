@@ -25,7 +25,7 @@ import pandas as pd  # noqa: E402
 from insar_wetlands import figstyle as fs  # noqa: E402
 from insar_wetlands.paths import hub_root  # noqa: E402
 
-HUB = hub_root()
+HUB = (hub_root() or __import__("pathlib").Path("."))
 SRC = HUB / "08_deliverables" / "insar_full_test" / "nested_winter_x135"
 OUT = HUB / "08_deliverables" / "article_plan" / "figures" / "final"
 COL = {"chain": "#6e7781", "X-119's A": fs.CLASS["mat"]}

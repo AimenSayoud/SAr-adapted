@@ -25,14 +25,20 @@ import pandas as pd
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import p6_validation_x082 as X  # noqa: E402  (cube root, tracks, references)
 import x065_hard_targets_x126 as H  # noqa: E402  (acquisitions between a pair's dates, the bootstrap of r)
+
 from insar_wetlands import field  # noqa: E402
 from insar_wetlands.cube import core  # noqa: E402
 from insar_wetlands.inversion.isbas import PHASE_TO_MM  # noqa: E402
 from insar_wetlands.paths import hub_root  # noqa: E402
-from insar_wetlands.scoring import (Protocol, assert_preregistered, guard_lockbox, increment_stats,  # noqa: E402
-                                    normalised_sq_dev)
+from insar_wetlands.scoring import (  # noqa: E402
+    Protocol,
+    assert_preregistered,
+    guard_lockbox,
+    increment_stats,
+    normalised_sq_dev,
+)
 
-HUB = hub_root()
+HUB = (hub_root() or Path("."))
 FT = HUB / "08_deliverables" / "insar_full_test"
 OUT = HUB / "08_deliverables" / "field_p6" / "laser_frost_rule_x129"
 PREREG = FT / "preregistration" / "X-129.yaml"

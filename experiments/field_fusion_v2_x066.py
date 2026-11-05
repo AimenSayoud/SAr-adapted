@@ -1,7 +1,7 @@
 """X-066 — fusion v2: the floating mat's vertical height, every mat pixel and every acquisition of both tracks,
 as one exact posterior (``insar_wetlands.fusion2``), judged by the P6 laser on blocks it was not fitted on.
 
-Branch fusion-x062 (it chains per-pixel short phase changes; SETTLED §1 excludes that on main until Aymen
+Branch fusion-x062 (it chains per-pixel short phase changes; evaluated before main promotion
 decides). No network inversion. Writes only to the hub.
 
 Runs

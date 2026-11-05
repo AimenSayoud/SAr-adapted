@@ -26,7 +26,7 @@ from insar_wetlands.cube import cube_root  # noqa: E402
 from insar_wetlands.paths import hub_root, resolve_drive  # noqa: E402
 from insar_wetlands.scoring import Protocol, assert_preregistered, score  # noqa: E402
 
-HUB = hub_root()
+HUB = (hub_root() or Path("."))
 FT = HUB / "08_deliverables" / "insar_full_test"
 OUT = FT / "vv_vh"
 PREREG = FT / "preregistration" / "X-115.yaml"

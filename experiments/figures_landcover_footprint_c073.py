@@ -23,17 +23,20 @@ import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
 import xarray as xr  # noqa: E402
-from matplotlib.colors import ListedColormap, TwoSlopeNorm  # noqa: E402
+from matplotlib.colors import TwoSlopeNorm  # noqa: E402
 from matplotlib.lines import Line2D  # noqa: E402
-from matplotlib.patches import FancyArrowPatch, Patch  # noqa: E402
+from matplotlib.patches import FancyArrowPatch  # noqa: E402
 from matplotlib_scalebar.scalebar import ScaleBar  # noqa: E402
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from article_fig_f1 import cell_outline  # noqa: E402  (the 40 m outline along cell edges, as in the article's F1)
+from article_fig_f1 import (
+    cell_outline,  # noqa: E402  (the 40 m outline along cell edges, as in the article's F1)
+)
+
 from insar_wetlands import figstyle as fs  # noqa: E402
 from insar_wetlands.paths import cube_root, hub_root  # noqa: E402
 
-HUB, CUBE = hub_root(), cube_root()
+HUB, CUBE = (hub_root() or Path(".")), cube_root()
 FT = HUB / "08_deliverables" / "insar_full_test"
 X132, X133 = FT / "landcover_x132", FT / "footprint_x133"
 OUT = HUB / "08_deliverables" / "figures_landcover_footprint"
@@ -562,10 +565,10 @@ def readme(c132, s1, s2, r2, share, agree, runs) -> None:
          "solid-ground distribution, and the share of mat cells following P6 stays high out to 1 km on the ascending "
          "track and falls to under half beyond 500 m on the descending track."),
         ("F5_gain_vs_depth", "The motion grows towards the mat's interior",
-         f"Gain (slope through the origin of a cell's six-day increments against the P6 laser's) of the mat cells that "
-         f"follow P6, against depth into the mat. Points: cells; lines: median per 40 m of depth; bands: interquartile "
-         f"range (descriptive). Spearman ρ with its block-bootstrap interval in the legend. Cells within 40–80 m of the "
-         f"edge mix mat with solid ground, which lowers their gain.",
+         "Gain (slope through the origin of a cell's six-day increments against the P6 laser's) of the mat cells that "
+         "follow P6, against depth into the mat. Points: cells; lines: median per 40 m of depth; bands: interquartile "
+         "range (descriptive). Spearman ρ with its block-bootstrap interval in the legend. Cells within 40–80 m of the "
+         "edge mix mat with solid ground, which lowers their gain.",
          "A scatter plot with two rising curves: from about half the laser's amplitude near the mat edge to about the "
          "laser's amplitude, or slightly above on the ascending track, beyond 200 m into the mat."),
         ("F6_season_maps", "A first season map of the mat",

@@ -36,10 +36,11 @@ COLAB_DRIVE = Path("/content/drive/MyDrive/insar_rzecin")
 
 def repo_root(start: str | Path | None = None) -> Path:
     """The directory containing ``config/config.yaml``, searching upward."""
-    p = Path(start or Path.cwd()).resolve()
-    for cand in [p, *p.parents]:
-        if (cand / "config" / "config.yaml").exists():
-            return cand
+    roots = [Path(start).resolve()] if start is not None else [Path.cwd().resolve(), Path(__file__).resolve().parents[2]]
+    for p in roots:
+        for cand in [p, *p.parents]:
+            if (cand / "config" / "config.yaml").exists():
+                return cand
     raise FileNotFoundError(
         "config/config.yaml not found — run from inside the cloned repository."
     )
@@ -98,6 +99,16 @@ def hub_root() -> Path | None:
         return Path(os.environ[HUB_ENV]).expanduser()
     here = Path(__file__).resolve().parents[2]
     return here.parents[1] if here.parent.name == "05_code" else None
+
+
+def deliverable_dir(name: str, ticket_suffix: str | None = None, hub: Path | None = None) -> Path:
+    """Resolve ``08_deliverables/<name>`` in the hub, falling back to an existing ``*_<ticket_suffix>`` directory."""
+    base = (hub or hub_root() or Path(".")) / "08_deliverables"
+    cand = base / name
+    if cand.exists() or not ticket_suffix or not base.is_dir():
+        return cand
+    matches = sorted(d for d in base.glob(f"*_{ticket_suffix}") if d.is_dir())
+    return matches[0] if matches else cand
 
 
 def cube_root() -> Path:

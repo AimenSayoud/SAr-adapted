@@ -41,7 +41,7 @@ from scipy.ndimage import binary_dilation  # noqa: E402
 from insar_wetlands import field, uav  # noqa: E402
 from insar_wetlands.paths import cube_root, hub_root  # noqa: E402
 
-HUB, CUBE = hub_root(), cube_root()
+HUB, CUBE = (hub_root() or __import__("pathlib").Path(".")), cube_root()
 OUT = HUB / "08_deliverables" / "field_uav_c065"
 STACK = field.field_root() / "processed" / "uav_0p5m.nc"
 RES, RES_FINE = 0.5, 0.05

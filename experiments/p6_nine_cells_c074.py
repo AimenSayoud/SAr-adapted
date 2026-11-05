@@ -1,5 +1,5 @@
 """C-074 — the nine cells around P6 on the current cube, with dated tree cover: backscatter, coherence and how each
-cell's Sentinel-1 phase follows the P6 laser (the professor's request; X-079 read them on earlier inputs).
+cell's Sentinel-1 phase follows the P6 laser (updating X-079 on relocated inputs and dated canopy).
 
 Per cell × track × group (X-126's consecutive pairs: six-day 2021 from 27 May, twelve-day 2022–2024, six-day 2025;
 hard-target reference; the cube's laser on the snow-evidence rule): r and slope through the origin against the laser,
@@ -9,7 +9,7 @@ P6's eight neighbours are also read as one mean. Descriptive: nine cells cannot 
 X-132 answers that with matched cells.
 
 Pre-registration: hub ``08_deliverables/insar_full_test/preregistration/C-074.yaml``. Stops unless P6's own cell
-reproduces X-126. Writes only to the hub (``08_deliverables/supervisor_pack_c074/tables/``).
+reproduces X-126. Writes only to the hub (``08_deliverables/p6_diagnostic_pack_c074/tables/``).
 
     make run E=p6_nine_cells_c074
 """
@@ -24,13 +24,21 @@ import xarray as xr
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import x065_hard_targets_x126 as X126  # noqa: E402  (X-126's pairs, groups and laser)
+
 from insar_wetlands.inversion.isbas import PHASE_TO_MM  # noqa: E402
 from insar_wetlands.paths import cube_root, hub_root  # noqa: E402
-from insar_wetlands.scoring import Protocol, assert_preregistered, guard_lockbox, increment_stats  # noqa: E402
+from insar_wetlands.scoring import (  # noqa: E402
+    Protocol,
+    assert_preregistered,
+    guard_lockbox,
+    increment_stats,
+)
 
-HUB, CUBE = hub_root(), cube_root()
+HUB, CUBE = (hub_root() or Path(".")), cube_root()
 FT = HUB / "08_deliverables" / "insar_full_test"
-OUT = HUB / "08_deliverables" / "supervisor_pack_c074" / "tables"
+from insar_wetlands.paths import deliverable_dir  # noqa: E402
+
+OUT = deliverable_dir("p6_diagnostic_pack_c074", "c074", HUB) / "tables"
 PREREG = FT / "preregistration" / "C-074.yaml"
 X126_TABLE = FT / "x065_hard_targets" / "by_revisit.csv"
 TRACKS = ("ascending", "descending")

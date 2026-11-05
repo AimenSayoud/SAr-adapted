@@ -1,4 +1,4 @@
-"""X-133 — stage 3 of the supervisor's plan: how far over the mat do cells follow P6's six-day motion, does its
+"""X-133 — spatial footprint analysis: how far over the mat do cells follow P6's six-day motion, does its
 amplitude grow with depth, and a within-season motion map with its uncertainty, checked by the two tracks.
 
 3a: every mat cell's consecutive six-day increments (hard-target reference) against the P6 laser's line-of-sight
@@ -25,13 +25,19 @@ from scipy.stats import spearmanr
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import landcover_coherence_x132 as L132  # noqa: E402  (X-132's readers: gold pairs at P6, silver stacks, X-126 pairs)
+
 from insar_wetlands import contrasts as C  # noqa: E402
 from insar_wetlands import footprint as F  # noqa: E402
 from insar_wetlands.inversion.isbas import PHASE_TO_MM  # noqa: E402
 from insar_wetlands.paths import cube_root, hub_root  # noqa: E402
-from insar_wetlands.scoring import Protocol, assert_preregistered, guard_lockbox, increment_stats  # noqa: E402
+from insar_wetlands.scoring import (  # noqa: E402
+    Protocol,
+    assert_preregistered,
+    guard_lockbox,
+    increment_stats,
+)
 
-HUB, CUBE = hub_root(), cube_root()
+HUB, CUBE = (hub_root() or Path(".")), cube_root()
 FT = HUB / "08_deliverables" / "insar_full_test"
 OUT = FT / "footprint_x133"
 PREREG = FT / "preregistration" / "X-133.yaml"

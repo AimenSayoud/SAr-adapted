@@ -1,10 +1,11 @@
-"""Known answers for the supervisor-table routines (C-071): windows, their statistics, the displacement sign and the
+"""Known answers for the plot-window statistics routines (C-071): windows, their statistics, the displacement sign and the
 consecutive-pair rule."""
 import numpy as np
 import pandas as pd
 import pytest
 
-from insar_wetlands import field, plot_table as pt
+from insar_wetlands import field
+from insar_wetlands import plot_table as pt
 from insar_wetlands.cube.core import WAVELENGTH_MM
 
 

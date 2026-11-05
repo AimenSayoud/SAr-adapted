@@ -13,8 +13,6 @@ Reads the hub; writes only to the hub: ``08_deliverables/insar_full_test/contras
 from __future__ import annotations
 
 import json
-import sys
-from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -22,7 +20,7 @@ import pandas as pd
 from insar_wetlands.paths import hub_root
 from insar_wetlands.scoring import assert_preregistered, increment_stats
 
-HUB = hub_root()
+HUB = (hub_root() or __import__("pathlib").Path("."))
 FT = HUB / "08_deliverables" / "insar_full_test"
 OUT = FT / "contrast_x144"
 PREREG = FT / "preregistration" / "X-144.yaml"

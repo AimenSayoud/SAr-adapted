@@ -1,72 +1,49 @@
-# Colab — how heavy entries run
+# Google Colab Execution Guide
 
-Only entries that cannot run on the Mac (2 cores, 8 GB) run here: SLC coregistration, phase linking on SLCs,
-MintPy-class inversions, null realisations. Everything else is `make run E=<entry>` on the Mac.
+Compute-intensive entries (OPERA COMPASS SLC coregistration, full-stack SLC phase linking, MintPy-class network inversions, and large Monte Carlo permutation nulls) can be executed on Google Colab using thin generated launcher notebooks. All other entries run locally via `make run E=<entry>`.
 
-## The rule
+## Design Rules
 
-- **The logic lives in a `.py`**, in `experiments/` (it answers a ticket) or `pipelines/` (it makes data), declared
-  in `config/register.yaml` with `runs_on: colab`.
-- **The notebook only launches it.** `colab/<entry>.ipynb` is generated, never edited by hand:
+- **All scientific logic lives in `.py` modules** under `src/insar_wetlands/`, `experiments/`, or `pipelines/`, declared in `config/register.yaml` with `runs_on: colab`.
+- **Launcher notebooks contain no inline science code.** `colab/<entry>.ipynb` is generated automatically and never edited by hand:
 
   ```bash
-  PYTHONPATH=src python -m insar_wetlands.colab <entry> [--ref <branch>] [--extra acquisition] [--pip "<heavy tools>"]
+  PYTHONPATH=src python -m insar_wetlands.colab <entry> [--ref main] [--extra acquisition] [--pip "<heavy tools>"]
   ```
 
-## Running one
+## Running in the Browser
 
-1. Commit and push the entry's code. The launcher checks out `REF` from GitHub, not your working copy.
-2. Open `colab/<entry>.ipynb` from GitHub in Colab (*File → Open notebook → GitHub*, repository `AimenSayoud/SAr-adapted`,
-   branch `REF`), then *Runtime → Run all*.
-3. The run record is written to Drive `insar_rzecin/runs/<entry>/<UTC>_<sha>/manifest.json`. It holds the commit and
-   whether the tree was dirty, the package versions, the duration, the exit code and every output file written.
+1. Commit and push the target entry's `.py` script (the launcher checks out `REF` from GitHub).
+2. Open `colab/<entry>.ipynb` from GitHub in Google Colab (*File → Open notebook → GitHub*, repository `AimenSayoud/SAr-adapted`, branch `main`), then select *Runtime → Run all*.
+3. Execution provenance (`manifest.json`: git SHA, package versions, runtime duration, exit status, and output checksums) is written to `insar_rzecin/runs/<entry>/<UTC>_<sha>/manifest.json` on Google Drive.
 
-## Where the data are on Colab
+## Data Paths on Colab
 
-`insar_wetlands.paths` resolves them; nothing is typed in a notebook.
+`insar_wetlands.paths` resolves all storage locations automatically:
 
-| Data | Colab path | Access |
+| Dataset | Colab Path | Access |
 |---|---|---|
-| HyP3 crops 2022–2024, phase products, ERA5, `runs/` | `/content/drive/MyDrive/insar_rzecin/` | read and write (the working area) |
-| The cube | `…/insar_rzecin/mac_backup/06_data/cube/` | **read only** |
-| HyP3 crops 2017–2021, 2025, 2026, annual pairs | `…/insar_rzecin/mac_backup/05_code/local/s1_<period>/` | **read only** |
+| HyP3 crops (2022–2024), phase products, ERA5, `runs/` | `/content/drive/MyDrive/insar_rzecin/` | Read / write working area |
+| Harmonised data cube (`raw / silver / gold`) | `/content/drive/MyDrive/insar_rzecin/mac_backup/06_data/cube/` | **Read-only** mirror |
+| HyP3 crops (2017–2021, 2025, 2026, annual pairs) | `/content/drive/MyDrive/insar_rzecin/mac_backup/05_code/local/s1_<period>/` | **Read-only** mirror |
 
-`mac_backup/` is the Mac's backup, refreshed from the Mac by `05_code/local/scripts/backup_mac_to_drive.py`. A file
-written there would not exist on the Mac and would be overwritten by the next backup. Write new products into the
-working area, under a folder named after the entry.
+## Credentials
 
-## Secrets
+Store credentials in Colab's *Secrets* panel (`EARTHDATA_USERNAME`, `EARTHDATA_PASSWORD` or `EARTHDATA_TOKEN`, and `CDSAPI_KEY`). Never commit credentials to notebooks, scripts, or run manifests.
 
-Use Colab's key manager (*Secrets*): `EARTHDATA_USERNAME`, `EARTHDATA_PASSWORD` or `EARTHDATA_TOKEN`, and `CDSAPI_KEY`.
-Never put a secret in a notebook, a commit or a run record.
+## Headless CLI Route (`insar_wetlands.colab_cli`)
 
-## When it breaks
-
-`TROUBLESHOOTING.md` lists ten failure modes seen on this project: Drive-mount deadlocks, session locks, git
-identity, secrets in headless runs and others, each with its fix.
-
-## Terminal route (headless, from the Mac) — `insar_wetlands.colab_cli`
-
-The same run without a browser, through the `colab` CLI (google-colab-cli; `colab skill` prints its guide). An agent
-can do every step except mounting Drive, which Colab reserves for a person:
+Entries can also be executed from a local terminal via `google-colab-cli`:
 
 ```bash
-python -m insar_wetlands.colab_cli new slc_cslc_x101 -s x101           # allocate a CPU VM
-colab drivemount -s x101 /content/drive                                # THE PERSON: open the URL, approve, Enter
+python -m insar_wetlands.colab_cli new slc_cslc_x101 -s x101
+colab drivemount -s x101 /content/drive                                # Interactive OAuth approval in browser
 python -m insar_wetlands.colab_cli bootstrap slc_cslc_x101 -s x101 --conda "compass isce3 s1reader burst2safe sentineleof sardem gdal libgdal-netcdf"
-python -m insar_wetlands.colab_cli netrc -s x101                       # Earthdata line of ~/.netrc → VM, as a file
+python -m insar_wetlands.colab_cli netrc -s x101                       # Copy Earthdata entry from ~/.netrc to VM
 python -m insar_wetlands.colab_cli run slc_cslc_x101 -s x101 --timeout 21600
-python -m insar_wetlands.colab_cli stop -s x101                        # always: an idle VM burns compute units
+python -m insar_wetlands.colab_cli stop -s x101                        # Release cloud VM when complete
 ```
 
-Credentials never appear in executed code (the CLI keeps a history of it); conda tools go into a micromamba
-environment on the VM instead of condacolab (whose kernel restart breaks a headless session).
-
-Learned on the first terminal run (X-101, 2026-10-13):
-- A hung step: do **not** use `colab restart-kernel` — on CLI 0.6.0 it answered 404 and the CLI dropped the session
-  (the VM stayed on the server as an orphan `[?]` that `colab stop` cannot reach; end it in the browser:
-  colab.research.google.com → *Runtime → Manage sessions* → terminate). Long steps carry their own timeouts instead
-  (burst downloads: 10 min, 3 tries).
-- The conda environment on the VM is used without activation: `colab_cli run` sets `PROJ_DATA`, `GDAL_DATA`,
-  `PROJ_NETWORK=ON` and `MPLBACKEND=Agg`; output of child processes reaches the terminal only through `colab_cli run`.
-- A new VM means `colab drivemount` again (the one human step) and `colab_cli bootstrap` again (about 10 minutes).
+Operational notes (`TROUBLESHOOTING.md`):
+- Conda binaries (`COMPASS`, `ISCE3`, `GDAL`) are installed into an isolated `micromamba` prefix rather than `condacolab` so headless kernel sessions are not dropped by a runtime restart.
+- `colab_cli run` exports `PROJ_DATA`, `GDAL_DATA`, `PROJ_NETWORK=ON`, and `MPLBACKEND=Agg` automatically.

@@ -35,7 +35,7 @@ from insar_wetlands.scoring import (  # noqa: E402
     increment_stats,
 )
 
-HUB = hub_root()
+HUB = (hub_root() or Path("."))
 FT = HUB / "08_deliverables" / "insar_full_test"
 OUT = FT / "cross_track_x136"
 PREREG = FT / "preregistration" / "X-136.yaml"

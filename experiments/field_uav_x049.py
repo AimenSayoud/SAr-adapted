@@ -1,7 +1,7 @@
 """X-049: do vegetation and surface conditions (UAV, LAI) explain why the plots behave differently
 in C-band radar?
 
-The supervisor's step 7–8: keep the UAV variables few and physical — NDVI, NDRE, red-edge / NIR,
+Physical variable selection for boardwalk UAV campaigns (X-049) — NDVI, NDRE, red-edge / NIR,
 Altum surface temperature, SunScan LAI — and use them to explain *spatial* differences in
 Sentinel-1 coherence and response among the plots, not to correlate every index.
 

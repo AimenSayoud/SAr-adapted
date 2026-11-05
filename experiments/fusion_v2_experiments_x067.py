@@ -25,8 +25,8 @@ import xarray as xr
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import field_fusion_v2_x066 as V  # noqa: E402
 
-from insar_wetlands.placement import open_rtc  # X-122: relocated when RZECIN_RTC_RELOCATE=1
 from insar_wetlands.bootstrap import start  # noqa: E402
+from insar_wetlands.placement import open_rtc  # X-122: relocated when RZECIN_RTC_RELOCATE=1
 
 OUT = V.DLV / "fusion_v2" / "experiments_x067"
 MIRROR = V.HUB / "05_code" / "local" / "drive_mirror"

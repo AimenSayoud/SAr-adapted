@@ -28,7 +28,7 @@ import fusion_v3_wp1_x074 as F  # noqa: E402  (X-074's daily table and six-day c
 from insar_wetlands.paths import hub_root  # noqa: E402
 from insar_wetlands.scoring import assert_preregistered  # noqa: E402
 
-HUB = hub_root()
+HUB = (hub_root() or Path("."))
 FT = HUB / "08_deliverables" / "insar_full_test"
 OUT = FT / "buoyancy_x145"
 PREREG = FT / "preregistration" / "X-145.yaml"

@@ -1,5 +1,4 @@
-"""One scorer for every test against a surface truth (C-061, the InSAR full test, hub
-``08_deliverables/insar_full_test/PLAN.md`` §2).
+"""Common ground-truth scorer for evaluating InSAR displacement estimates against continuous surface-elevation truth.
 
 Every test is scored here, with the same views, so that no test invents its own statistics:
 
@@ -9,13 +8,13 @@ Every test is scored here, with the same views, so that no test invents its own 
   RMSE, shares within ±5 / ±10 mm, amplitude ratio — the Hrysiewicz et al. 2024 statistics, X-082):
   over the full span, per truth datum, and per season of each year (re-zeroed at the season start);
 - **winters** — the level step across each winter gap (last epoch of the season → first of the next spring) against
-  the truth's step: the across-winter loss of the level (SETTLED §4);
+  the truth's step (across-winter loss of phase lock);
 - **seasons** — increments by meteorological season;
 - **years** — increments per year with the sign and slope of the relation, to see whether the relation is stable
   between years (Mleczko et al. 2025 found its sign can flip).
 
 Nothing site-specific lives in this module (the repository is public): truth datum breaks, season windows and the
-lockbox years come from a ``Protocol``, which the hub keeps in ``08_deliverables/insar_full_test/protocol.yaml``.
+lockbox years come from a ``Protocol`` (``config/protocol.yaml`` in this repository, or the hub copy).
 The **lockbox** guard refuses to score lockbox years unless the call says ``lockbox=True`` — that call is made once,
 by the frozen method (X-107).
 
@@ -53,8 +52,15 @@ class Protocol:
     lockbox_years: tuple[int, ...] = ()
 
     @classmethod
-    def load(cls, path: str | Path) -> "Protocol":
-        d = yaml.safe_load(Path(path).read_text(encoding="utf-8")) or {}
+    def load(cls, path: str | Path | None = None) -> Protocol:
+        if path is None:
+            path = Path(__file__).resolve().parents[2] / "config" / "protocol.yaml"
+        p = Path(path)
+        if not p.exists():
+            alt = Path(__file__).resolve().parents[2] / "config" / "protocol.yaml"
+            if alt.exists():
+                p = alt
+        d = yaml.safe_load(p.read_text(encoding="utf-8")) or {}
         breaks = [(pd.Timestamp(a, tz="UTC"), pd.Timestamp(b, tz="UTC")) for a, b in d.get("datum_breaks", [])]
         return cls(datum_breaks=breaks, season_months=tuple(d.get("season_months", (5, 11))),
                    spring_window=tuple(d.get("spring_window", (3, 6))), min_epochs=int(d.get("min_epochs", 8)),

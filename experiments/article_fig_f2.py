@@ -35,7 +35,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import field_p6_cells_x079 as X079  # noqa: E402  (the cells' depth, as X-079 computed it)
 import fusion_v3_wp1_x074 as WP1  # noqa: E402  (the daily series and six-day changes of E1.2)
 
-HUB, CUBE = hub_root(), cube_root()
+HUB, CUBE = (hub_root() or Path(".")), cube_root()
 DLV = HUB / "08_deliverables"
 OUT = DLV / "article_plan" / "figures" / "final"
 CELLS = DLV / "insar_full_test" / "reread_corrected" / "field_p6_cells_x079"

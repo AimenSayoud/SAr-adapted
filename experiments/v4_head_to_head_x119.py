@@ -17,7 +17,6 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-import xarray as xr
 from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
@@ -32,14 +31,20 @@ import spams_baseline_x112 as SB  # noqa: E402
 from insar_wetlands import fusion as fu  # noqa: E402
 from insar_wetlands import fusion3 as f3  # noqa: E402
 from insar_wetlands import spams  # noqa: E402
-from insar_wetlands.cube import cube_root  # noqa: E402
 from insar_wetlands.cube.core import WAVELENGTH_MM, rad_to_los_mm  # noqa: E402
 from insar_wetlands.fusion2 import ou_from_series  # noqa: E402
 from insar_wetlands.paths import hub_root  # noqa: E402
-from insar_wetlands.scoring import (Protocol, assert_preregistered, chain, detrended_stats, guard_lockbox,  # noqa: E402
-                                    level_views, winter_steps)
+from insar_wetlands.scoring import (  # noqa: E402
+    Protocol,
+    assert_preregistered,
+    chain,
+    detrended_stats,
+    guard_lockbox,
+    level_views,
+    winter_steps,
+)
 
-HUB = hub_root()
+HUB = (hub_root() or Path("."))
 FT = HUB / "08_deliverables" / "insar_full_test"
 OUT = FT / "v4_head_to_head"
 PREREG = FT / "preregistration" / "X-119.yaml"

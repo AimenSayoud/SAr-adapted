@@ -30,9 +30,16 @@ import p6_validation_x082 as X  # noqa: E402  (pairs filter, laser in LOS: uncha
 
 from insar_wetlands import phase_sim as ps  # noqa: E402
 from insar_wetlands.paths import hub_root  # noqa: E402
-from insar_wetlands.scoring import SEASON_OF_MONTH, Protocol, assert_preregistered, chain, score, winter_steps  # noqa: E402
+from insar_wetlands.scoring import (  # noqa: E402
+    SEASON_OF_MONTH,
+    Protocol,
+    assert_preregistered,
+    chain,
+    score,
+    winter_steps,
+)
 
-HUB = hub_root()
+HUB = (hub_root() or Path("."))
 FT = HUB / "08_deliverables" / "insar_full_test"
 OUT = FT / "phase_sim"
 PREREG = FT / "preregistration" / "X-095.yaml"

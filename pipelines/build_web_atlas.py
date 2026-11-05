@@ -9,7 +9,7 @@ documents. It also runs the consistency checks that the atlas depends on and
 writes their verdicts to `checks.json`, so a layer is never shown on a claim
 nobody verified.
 
-Deliberately NOT done here (CLAUDE.md): no MintPy, no phase linking, no null
+Deliberately NOT done here: no MintPy, no phase linking, no null
 realisations. Every layer below is read from a product that already exists, or
 is a closed-form transformation of one (per-pixel harmonic fit, D_A, seasonal
 means) with a ground-truth test in `tests/test_web_export.py`.
@@ -32,9 +32,9 @@ import yaml
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "src"))
 
-from insar_wetlands.placement import open_rtc  # X-122: relocated when RZECIN_RTC_RELOCATE=1
 from insar_wetlands.bootstrap import start  # noqa: E402
 from insar_wetlands.inversion.isbas import PHASE_TO_MM, WAVELENGTH_M  # noqa: E402
+from insar_wetlands.placement import open_rtc  # noqa: E402
 from insar_wetlands.web_export import (  # noqa: E402
     AtlasWriter,
     Provenance,
@@ -520,10 +520,8 @@ def add_backscatter_x063(W, hub: Path, P) -> None:
         prov=P(F / "zone_backscatter_series.csv", F / "zone_backscatter_summary.csv", root=hub))
 
 
-# The site speaks for the project, not about who asked for what: ticket titles are shown with neutral wording (the
-# ledger keeps its own). Plain substitutions, listed so they can be read.
-SITE_WORDING = [(r"the supervisor noted", "noted in review"), (r"per supervisor-review milestone", "per review milestone"),
-                (r"(?i)\bthe supervisor's\b", "the"), (r"(?i)\bsupervisor\b", "review")]
+# Ticket titles from the private ledger are normalised to concise public labels.
+SITE_WORDING: list[tuple[str, str]] = []
 
 
 def site_wording(text):
@@ -1200,8 +1198,8 @@ def main() -> None:
     tpl = ctx.template
     x, y = tpl.x.values, tpl.y.values
     W = AtlasWriter(out, x, y)
-    FIG = REPO / "docs" / "paper" / "figures"      # figure images
-    TAB = REPO / "results" / "tables"              # results tables (T*.csv) and series
+    FIG = REPO / "docs" / "paper" / "figures" if (REPO / "docs" / "paper" / "figures").exists() else HUB / "99_archive" / "first_study_2022_2024" / "docs" / "paper" / "figures"      # figure images
+    TAB = REPO / "results" / "tables" if (REPO / "results" / "tables").exists() else HUB / "99_archive" / "first_study_2022_2024" / "results" / "tables"              # results tables (T*.csv) and series
 
     def P(*files, root=D):
         pv = Provenance()
@@ -1848,7 +1846,10 @@ def main() -> None:
     # ------------------------------------------------------------ figure gallery
     gal = out / "figures"
     gal.mkdir()
-    listed = set(re.findall(r"`([FS]\d+_[a-z_]+\.png)`", (REPO / "docs/paper/figures_tables.md").read_text()))
+    ft_md = REPO / "docs/paper/figures_tables.md"
+    if not ft_md.exists():
+        ft_md = HUB / "99_archive/first_study_2022_2024/docs/paper/figures_tables.md"
+    listed = set(re.findall(r"`([FS]\d+_[a-z_]+\.png)`", ft_md.read_text())) if ft_md.exists() else set()
     gallery = []
     for f in sorted(FIG.glob("*.png")):
         shutil.copy2(f, gal / f.name)

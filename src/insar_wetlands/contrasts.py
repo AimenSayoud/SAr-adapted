@@ -16,7 +16,6 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-
 # ------------------------------------------------------------------------------ matching
 
 def match_nearest(treated: pd.DataFrame, control: pd.DataFrame, on: str, caliper: float, tie: str,

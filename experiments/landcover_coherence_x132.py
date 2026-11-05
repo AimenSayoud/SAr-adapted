@@ -1,5 +1,5 @@
 """X-132 — around P6, trees against open ground on and off the floating mat: how land cover, depth, water and weather
-drive coherence, backscatter and the six-day phase (the supervisor's plan, stages 1–2).
+drive coherence, backscatter and the six-day phase (X-132 canopy and land-cover stratification).
 
 Cells: 40 m cells of the corrected cube within 1 km of P6's cell, boardwalk share < 0.2, no hard targets, no open water.
 Wooded / open from the dated 2024 laser scan (C-072). Stage 1: a 2×2 (wooded / open × on / off the mat), each wooded
@@ -25,12 +25,18 @@ import xarray as xr
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import x065_hard_targets_x126 as X126  # noqa: E402  (X-126's pair list, consecutive rule, laser pairs)
+
 from insar_wetlands import contrasts as C  # noqa: E402
 from insar_wetlands.inversion.isbas import PHASE_TO_MM  # noqa: E402
 from insar_wetlands.paths import cube_root, hub_root  # noqa: E402
-from insar_wetlands.scoring import Protocol, assert_preregistered, guard_lockbox, increment_stats  # noqa: E402
+from insar_wetlands.scoring import (  # noqa: E402
+    Protocol,
+    assert_preregistered,
+    guard_lockbox,
+    increment_stats,
+)
 
-HUB, CUBE = hub_root(), cube_root()
+HUB, CUBE = (hub_root() or Path(".")), cube_root()
 FT = HUB / "08_deliverables" / "insar_full_test"
 OUT = FT / "landcover_x132"
 PREREG = FT / "preregistration" / "X-132.yaml"

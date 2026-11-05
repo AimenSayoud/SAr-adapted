@@ -35,8 +35,8 @@ from scipy import ndimage as ndi  # noqa: E402
 from insar_wetlands import field  # noqa: E402
 from insar_wetlands import field_link as fl  # noqa: E402
 from insar_wetlands import fusion as fu  # noqa: E402
-from insar_wetlands.inversion.isbas import PHASE_TO_MM  # noqa: E402
 from insar_wetlands.cube import cube_root  # noqa: E402  (RZECIN_CUBE_ROOT honoured, X-121 control)
+from insar_wetlands.inversion.isbas import PHASE_TO_MM  # noqa: E402
 
 HUB = field.field_root().parents[1]
 DLV = HUB / "08_deliverables"

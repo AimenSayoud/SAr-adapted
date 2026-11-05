@@ -32,7 +32,7 @@ from insar_wetlands import figstyle as fs  # noqa: E402
 from insar_wetlands.cube.core import WAVELENGTH_MM  # noqa: E402
 from insar_wetlands.paths import hub_root  # noqa: E402
 
-OUT = hub_root() / "08_deliverables" / "article_plan" / "figures" / "final"
+OUT = (hub_root() or __import__("pathlib").Path(".")) / "08_deliverables" / "article_plan" / "figures" / "final"
 WATER, WATER_FILL, PEAT, STEM, BANK = "#2C7FB8", "#dcecf7", "#8a6d3b", "#3f7d3a", "#c9c3b6"
 LOS, LOST, OUTSIDE, SHADE = "#0072B2", fs.CLASS["laser"], "#8250df", "#eef1f4"
 INC = 35.0                                            # schematic incidence, between the two tracks'

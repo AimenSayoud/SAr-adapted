@@ -9,13 +9,14 @@ import yaml
 
 
 def repo_root() -> Path:
-    """Racine du repo = dossier contenant config/config.yaml, en remontant depuis cwd."""
+    """Repository root containing ``config/config.yaml`` (searching upward from cwd, then package root)."""
     p = Path.cwd().resolve()
-    for cand in [p, *p.parents]:
+    pkg_repo = Path(__file__).resolve().parents[2]
+    for cand in [p, *p.parents, pkg_repo]:
         if (cand / "config" / "config.yaml").exists():
             return cand
     raise FileNotFoundError(
-        "config/config.yaml introuvable — lancer le notebook depuis le repo clone."
+        "config/config.yaml not found — run from inside the cloned repository."
     )
 
 

@@ -1,18 +1,18 @@
 """Run a register entry on Colab from this terminal with the ``colab`` CLI (google-colab-cli), headless.
 
-The browser launchers (``colab/<entry>.ipynb``) remain for runs started by hand. This is the same run driven from the
-Mac, step by step, so an agent can do everything except the one step Colab reserves for a person — mounting Drive:
+The browser launchers (``colab/<entry>.ipynb``) remain for runs started interactively. This CLI drives the same
+workflow from a local terminal, where only Google Drive OAuth mounting requires interactive browser confirmation:
 
     python -m insar_wetlands.colab_cli new <entry> -s <session>        # allocate a CPU VM; prints the mount command
-    colab drivemount -s <session> /content/drive                        # THE PERSON: open the URL, approve, Enter
+    colab drivemount -s <session> /content/drive                        # interactive OAuth approval in browser
     python -m insar_wetlands.colab_cli bootstrap <entry> -s <session> [--conda "pkgs"]   # clone, install
     python -m insar_wetlands.colab_cli netrc -s <session> [--machine urs.earthdata.nasa.gov]  # credentials file
     python -m insar_wetlands.colab_cli run <entry> -s <session> [--timeout 21600] [-- args]
     python -m insar_wetlands.colab_cli stop -s <session>
     python -m insar_wetlands.colab_cli release                          # free VMs the CLI lost track of (orphans)
 
-Rules from ``colab/TROUBLESHOOTING.md`` and the CLI's own guide (``colab skill``):
-- ``drive.mount()`` deadlocks headless (issue 2): Drive is mounted by ``colab drivemount``, by the person.
+Rules from ``colab/TROUBLESHOOTING.md`` and ``colab`` CLI documentation:
+- ``drive.mount()`` deadlocks in headless execution (issue 2): mount Drive beforehand via ``colab drivemount``.
 - Colab Secrets cannot be read headless (issue 8), and every executed code string lands in the CLI's history logs:
   credentials go up as a file with ``colab upload`` (only the needed ``~/.netrc`` line, from a private temp file
   deleted afterwards); no secret is ever part of executed code.
@@ -23,7 +23,6 @@ Rules from ``colab/TROUBLESHOOTING.md`` and the CLI's own guide (``colab skill``
 from __future__ import annotations
 
 import argparse
-import os
 import shlex
 import subprocess
 import sys
@@ -51,8 +50,8 @@ def vm_python(code: str, session: str, timeout: int = 3600) -> int:
 def cmd_new(entry: str, session: str) -> int:
     rc = colab("new", "-s", session)
     if rc == 0:
-        print(f"\n>>> Now, in a terminal, the person runs:\n    colab drivemount -s {session} /content/drive\n"
-              "    (open the URL it prints, approve Drive access, come back and press Enter)\n", flush=True)
+        print(f"\n>>> Next, mount Google Drive interactively:\n    colab drivemount -s {session} /content/drive\n"
+              "    (open the printed OAuth URL, approve Drive access, then press Enter)\n", flush=True)
     return rc
 
 
@@ -150,7 +149,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("step", choices=["new", "bootstrap", "netrc", "run", "stop", "release"])
     ap.add_argument("entry", nargs="?", default="")
     ap.add_argument("-s", "--session", default="")
-    ap.add_argument("--ref", default="fusion-x062")
+    ap.add_argument("--ref", default="main")
     ap.add_argument("--conda", default="", help="conda-forge packages for a micromamba environment on the VM")
     ap.add_argument("--machine", default="urs.earthdata.nasa.gov")
     ap.add_argument("--timeout", type=int, default=21600)

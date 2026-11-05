@@ -1,6 +1,6 @@
 """X-104 — do long pairs keep phase on the mat when coherence is estimated at full resolution with a small window?
 
-SETTLED §3: on the 40 m HyP3 products long pairs sat at the decorrelated level (T08); its reopen conditions include a
+On 40 m HyP3 products, long pairs sit at the decorrelated floor (T08); its reopen conditions include a
 full-resolution, small-window coherence (tampuu2020 kept coherence on an open bog that way) and same-water-table pairs.
 On the 2021 CSLCs of X-101: long pairs (>= 48 days, snow-free) from the highest-water-table date, and between dates
 of matched water table; coherence in 3 × 3 and 5 × 3 boxcars and in X-103's SHP windows; the share of mat pixels above
@@ -30,7 +30,7 @@ from insar_wetlands.cube import cube_root  # noqa: E402
 from insar_wetlands.paths import hub_root  # noqa: E402
 from insar_wetlands.scoring import Protocol, assert_preregistered  # noqa: E402
 
-HUB = hub_root()
+HUB = (hub_root() or Path("."))
 CUBE = cube_root()
 FT = HUB / "08_deliverables" / "insar_full_test"
 OUT = FT / "slc_long_pairs"
@@ -148,7 +148,7 @@ within {WTD_MATCH_CM} cm. "Above the floor" = coherence above the 95th percentil
 same number of looks (`noise_floor.csv`), so the estimator's bias at few looks is not counted as phase.
 
 ## Verdict (the mat keeps phase if its median share above the floor is >= {KEEP_SHARE} and >= half the grassland's,
-both tracks — SETTLED §3's reopen condition for that window)
+both tracks — testing matched-season long pairs on full-resolution SLCs)
 
 {_md(v)}
 

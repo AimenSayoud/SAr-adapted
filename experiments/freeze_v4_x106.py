@@ -29,9 +29,16 @@ from insar_wetlands import spams, v4  # noqa: E402
 from insar_wetlands.cube import cube_root  # noqa: E402
 from insar_wetlands.cube.core import rad_to_los_mm  # noqa: E402
 from insar_wetlands.paths import hub_root  # noqa: E402
-from insar_wetlands.scoring import Protocol, assert_preregistered, chain, detrended_stats, level_views, winter_steps  # noqa: E402
+from insar_wetlands.scoring import (  # noqa: E402
+    Protocol,
+    assert_preregistered,
+    chain,
+    detrended_stats,
+    level_views,
+    winter_steps,
+)
 
-HUB = hub_root()
+HUB = (hub_root() or Path("."))
 FT = HUB / "08_deliverables" / "insar_full_test"
 V4DIR = FT / "v4"
 PARAMS = V4DIR / "v4_frozen_params.yaml"

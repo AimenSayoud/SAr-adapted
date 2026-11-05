@@ -108,8 +108,12 @@ def test_dem_check_wants_the_copernicus_heights(tmp_path):
     import rasterio
     import xarray as xr
     from rasterio.transform import from_origin
+
     from insar_wetlands.cube import cube_root
-    st = xr.open_dataset(cube_root() / "silver" / "static_40m.nc")
+    nc = cube_root() / "silver" / "static_40m.nc"
+    if not nc.exists():
+        pytest.skip("local data cube not present")
+    st = xr.open_dataset(nc)
     ortho = float(np.nanmedian(st.dem_glo30_m.where(st.zone == 1)))
     for name, val, ok in (("ortho.tif", ortho, True), ("ell.tif", ortho + 34.5, False)):
         with rasterio.open(tmp_path / name, "w", driver="GTiff", height=200, width=200, count=1, dtype="float32",

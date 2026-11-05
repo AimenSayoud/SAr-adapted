@@ -34,7 +34,7 @@ from insar_wetlands import figstyle as fs  # noqa: E402
 from insar_wetlands.cube.core import WAVELENGTH_MM  # noqa: E402
 from insar_wetlands.paths import hub_root  # noqa: E402
 
-HUB = hub_root()
+HUB = (hub_root() or __import__("pathlib").Path("."))
 DLV = HUB / "08_deliverables"
 OUT = DLV / "article_plan" / "figures" / "final"
 X126 = DLV / "insar_full_test" / "x065_hard_targets"                 # X-126: hard targets, corrected cube, one scorer

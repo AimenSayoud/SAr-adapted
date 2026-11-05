@@ -1,0 +1,15 @@
+# Scoring protocol for the floating-mat InSAR benchmark (read by insar_wetlands.scoring.Protocol.load).
+# Contains only evaluation calendar windows, minimum epoch count, and sensor datum breaks.
+
+# Truth datum breaks on the P6 surface-elevation laser:
+# 1. July–August 2022: sensor re-levelled across a maintenance gap; levels on either side sit on distinct datums.
+# 2. April 2024: +3.1 cm sensor step across two daytime jumps while water-table depth stays flat.
+# No level view or across-winter step is differenced across a datum break.
+datum_breaks:
+  - ["2022-07-05", "2022-08-08"]
+  - ["2024-04-08", "2024-04-16"]
+
+season_months: [5, 11]      # snow-free growing season scored "within season" (May–November)
+spring_window: [3, 6]       # months in which the first post-winter epoch is searched (March–June)
+min_epochs: 8               # minimum scored epochs required for a detrended level view
+lockbox_years: []           # reserved for unseen validation years when available

@@ -37,7 +37,7 @@ from insar_wetlands.scoring import (  # noqa: E402
     guard_lockbox,
 )
 
-HUB = hub_root()
+HUB = (hub_root() or Path("."))
 FT = HUB / "08_deliverables" / "insar_full_test"
 OUT = FT / "nested_winter_x135"
 PREREG = FT / "preregistration" / "X-135.yaml"

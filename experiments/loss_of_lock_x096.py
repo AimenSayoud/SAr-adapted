@@ -13,8 +13,6 @@ segment list it writes is the input of X-093.
 """
 from __future__ import annotations
 
-from pathlib import Path
-
 import numpy as np
 import pandas as pd
 import xarray as xr
@@ -23,7 +21,7 @@ from insar_wetlands.cube import cube_root
 from insar_wetlands.paths import hub_root
 from insar_wetlands.scoring import SEASON_OF_MONTH, assert_preregistered
 
-HUB = hub_root()
+HUB = (hub_root() or __import__("pathlib").Path("."))
 CUBE = cube_root()
 FT = HUB / "08_deliverables" / "insar_full_test"
 OUT = FT / "loss_of_lock"

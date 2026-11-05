@@ -1,12 +1,12 @@
-"""C-074 — the figures of the supervisor pack: the nine cells around P6 (site, tree cover, backscatter, coherence and
+"""C-074 — P6 nine-cell diagnostic figures: the nine cells around P6 (site, tree cover, backscatter, coherence and
 phase against the laser), the phase against the laser at P6 and its neighbours, P6 through time; and the C-073
 figures of the wider analysis copied in beside them.
 
 Drawn from C-074's nine-cell tables, the cube and the committed C-073 figures; nothing is re-estimated. House style
 (``insar_wetlands.figstyle``); colour is never the only cue. Writes only to the hub
-(``08_deliverables/supervisor_pack_c074/``).
+(``08_deliverables/p6_diagnostic_pack_c074/``).
 
-    make run E=supervisor_figures_c074
+    make run E=p6_diagnostic_figures_c074
 """
 from __future__ import annotations
 
@@ -26,12 +26,15 @@ from matplotlib.patches import Rectangle  # noqa: E402
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import figures_landcover_footprint_c073 as F73  # noqa: E402  (map axes, export, the C-073 figures)
+
 from insar_wetlands import figstyle as fs  # noqa: E402
 from insar_wetlands.cube.core import WAVELENGTH_MM  # noqa: E402
 from insar_wetlands.paths import cube_root, hub_root  # noqa: E402
 
-HUB, CUBE = hub_root(), cube_root()
-PACK = HUB / "08_deliverables" / "supervisor_pack_c074"
+HUB, CUBE = (hub_root() or Path(".")), cube_root()
+from insar_wetlands.paths import deliverable_dir  # noqa: E402
+
+PACK = deliverable_dir("p6_diagnostic_pack_c074", "c074", HUB)
 TAB = PACK / "tables"
 C073 = HUB / "08_deliverables" / "figures_landcover_footprint"
 TRACKS = ("ascending", "descending")
@@ -136,7 +139,7 @@ def s1_site(cells: pd.DataFrame) -> None:
         fig.colorbar(im, ax=ax, shrink=0.8, extend="max", label="Canopy height (m); shrub 0.5–2 m, tree ≥ 2 m")
         fs.panel_label(ax, "b")
     export(fig, "S1_nine_cells_site", ["cube:raw/gugik_dated (RGB 2024, 10 cm)", "cube:silver/lidar_dated_1m.nc",
-                                       "hub:supervisor_pack_c074/tables/nine_cells.csv",
+                                       "hub:p6_diagnostic_pack_c074/tables/nine_cells.csv",
                                        "hub:field_first/plot_pixels.csv (P6 station)"],
            {"display": "orthophoto as delivered, resampled to 0.2 m; white squares: the 40 m radar cells (corrected grid)"},
            {"cells": cells.reset_index()})
@@ -199,7 +202,7 @@ def s2_cells(cells, bs):
                     title = f"{'Ascending' if j < 2 else 'Descending'} · {title}"
                 tiles(ax, vals, fmt, cmap, lo, hi, title)
     data = [{"panel": t, "cell": c, "value": v} for row in (top, bot) for (t, vals, *_r) in row for c, v in vals.items()]
-    export(fig, "S2_nine_cells_what_they_are", ["hub:supervisor_pack_c074/tables/nine_cells.csv",
+    export(fig, "S2_nine_cells_what_they_are", ["hub:p6_diagnostic_pack_c074/tables/nine_cells.csv",
                                                 "nine_cells_backscatter.csv (years 2021–2025)"],
            {"layout": READ, "scales": "fixed: VV −14…−9 dB, VH −20…−15 dB; shrub and boardwalk 0–20 %"},
            {"tiles": pd.DataFrame(data)})
@@ -226,7 +229,7 @@ def s2c_coherence_laser(by):
                 if j == 0:
                     ax.set_ylabel(f"{ROWLAB[g]}\nn = {n['ascending']} asc. / {n['descending']} desc.", fontsize=7.5,
                                   fontweight="bold", rotation=0, ha="right", va="center", labelpad=8)
-    export(fig, "S2c_nine_cells_coherence_laser", ["hub:supervisor_pack_c074/tables/nine_cells_by_group.csv"],
+    export(fig, "S2c_nine_cells_coherence_laser", ["hub:p6_diagnostic_pack_c074/tables/nine_cells_by_group.csv"],
            {"layout": "rows: 2021 6-day, 2022–24 12-day, 2025 6-day consecutive pairs; columns: coherence asc/desc, "
                       "r with the laser asc/desc", "scales": "coherence 0.5…1, r 0…1"},
            {"tiles": by[by.cell.isin(LAYOUT[0] + LAYOUT[1] + LAYOUT[2])]})
@@ -266,7 +269,7 @@ def s2b_forest(cells, by):
                             Line2D([], [], color=P6C, lw=0.7, ls=":", label="P6's slope"),
                             Line2D([], [], color=fs.MUTED, lw=0.5, ls="--", label="slope 1 (the laser's amplitude)")],
                    loc="outside lower center", ncol=5, fontsize=6.5)
-    export(fig, "S2b_nine_cells_slopes", ["hub:supervisor_pack_c074/tables/nine_cells_by_group.csv"],
+    export(fig, "S2b_nine_cells_slopes", ["hub:p6_diagnostic_pack_c074/tables/nine_cells_by_group.csv"],
            {"rows": "cells ordered by depth into the mat (shallow on top); label: depth · shrub cover 2024",
             "intervals": "2000 resamples of the pairs, seed 0 (C-074)"},
            {"slopes": by[by.cell.isin(order)]})
@@ -319,7 +322,7 @@ def s3_scatter(pairs, by):
                             Line2D([], [], color=P6C, lw=1.0, label="slope through origin, P6"),
                             Line2D([], [], color=NBC, lw=1.0, ls="-.", label="slope through origin, neighbours")],
                    loc="outside lower center", ncol=4, fontsize=6.5)
-    export(fig, "S3_phase_vs_laser", ["hub:supervisor_pack_c074/tables/nine_cells_pairs.csv", "nine_cells_by_group.csv"],
+    export(fig, "S3_phase_vs_laser", ["hub:p6_diagnostic_pack_c074/tables/nine_cells_pairs.csv", "nine_cells_by_group.csv"],
            {"pairs": "consecutive pairs as X-126 (hard-target reference); laser on the snow-evidence rule",
             "statistics": "r and slope through the origin with 2000-resample pair-bootstrap intervals"},
            {"pairs": d})
@@ -388,7 +391,7 @@ def s4_time(pairs):
                 axs[0].annotate(lab, (e.mid.min() + (e.mid.max() - e.mid.min()) / 2, 1.0), xycoords=("data", "axes fraction"),
                                 ha="center", va="bottom", fontsize=6.2, color=fs.MUTED, annotation_clip=False)
     export(fig, "S4_p6_through_time", ["cube:silver/site_hourly.csv.gz (laser_surface_cm, laser_ok, wtd_P6_cm)",
-                                       "hub:supervisor_pack_c074/tables/nine_cells_pairs.csv (P6)"],
+                                       "hub:p6_diagnostic_pack_c074/tables/nine_cells_pairs.csv (P6)"],
            {"display": "daily means; gaps left open; pair changes plotted at the pair's middle date, never joined",
             "laser": "snow-evidence rule; the July–August 2022 re-levelling splits the level into two datums",
             "left_out": "pairs ending in 2026 (held-out year), among them 26 Dec 2025 – 1 Jan 2026, which shifts all nine "
@@ -416,7 +419,6 @@ def readme(cells, by, bs) -> None:
     tr_max = cells.tree_share_2024.max()
     a21 = {c: g(c, "ascending", "2021", "slope_through_origin") for c in cells.index}
     lo_c, hi_c = min(a21, key=a21.get), max(a21, key=a21.get)
-    vv = bs[(bs.track == "ascending") & (bs.years == "2022–2024")].vv_median_db
     figs = [
         ("S1_nine_cells_site", "The nine cells around P6, 19 September 2024",
          f"(a) The 10 cm true-colour orthophoto of 19 Sep 2024 (GUGiK) with the nine 40 m radar cells around P6 on the "
@@ -481,8 +483,8 @@ def readme(cells, by, bs) -> None:
         ("S9_drivers_of_coherence", "What drives coherence", "From C-073 F3 (X-132).", "See C-073 F3."),
         ("S10_dated_land_cover", "Dated land cover around P6", "From C-073 F1 (C-072).", "See C-073 F1."),
     ]
-    lines = ["# Supervisor pack, October 2026 — figures and tables (generated)", "",
-             "Generated by SAr-adapted `experiments/supervisor_figures_c074.py` from the tables of "
+    lines = ["# P6 nine-cell diagnostic pack, October 2026 — figures and tables (generated)", "",
+             "Generated by SAr-adapted `experiments/p6_diagnostic_figures_c074.py` from the tables of "
              "`experiments/p6_nine_cells_c074.py` (`tables/`, pre-registered: `../insar_full_test/preregistration/"
              "C-074.yaml`) and the C-073 figures (`../figures_landcover_footprint/`, whose README holds the full "
              "captions of S5–S10). Do not edit.", "",

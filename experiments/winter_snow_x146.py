@@ -29,7 +29,7 @@ from insar_wetlands.cube.core import rad_to_los_mm  # noqa: E402
 from insar_wetlands.paths import cube_root, hub_root  # noqa: E402
 from insar_wetlands.scoring import assert_preregistered  # noqa: E402
 
-HUB, CUBE = hub_root(), cube_root()
+HUB, CUBE = (hub_root() or Path(".")), cube_root()
 FT = HUB / "08_deliverables" / "insar_full_test"
 OUT = FT / "winter_snow_x146"
 PREREG = FT / "preregistration" / "X-146.yaml"
@@ -150,7 +150,11 @@ def snow_slopes(p: pd.DataFrame, theta: dict[str, float], rng) -> pd.DataFrame:
                 th = np.mean(list(theta.values())) if track == "both" else theta[track]
                 lo_m, hi_m = sorted((delay_slope(RHO[1], th), delay_slope(RHO[0], th)))
                 b = ols(g[xcol], g[zone])
-                lo, hi = month_boot(g, lambda d: ols(d[xcol], d[zone]), rng) if len(g) > 5 else (np.nan, np.nan)
+                lo, hi = (
+                    month_boot(g, lambda d, _x=xcol, _z=zone: ols(d[_x], d[_z]), rng)
+                    if len(g) > 5
+                    else (np.nan, np.nan)
+                )
                 reading = ("visible, consistent with the model" if hi < 0 and lo <= hi_m and hi >= lo_m else
                            "visible" if hi < 0 else "not detected")
                 rows.append({"set": label, "zone": zone.replace("_mm", ""), "track": track, "pairs": len(g),
@@ -165,8 +169,8 @@ def freeze_thaw(p: pd.DataFrame, rng) -> pd.DataFrame:
         for track in ("both",) + TRACKS:
             g = p[on_track(p, track)].dropna(subset=[zone])
 
-            def diff(d):
-                a, b = d.loc[d.transition, zone], d.loc[~d.transition, zone]
+            def diff(d, _z=zone):
+                a, b = d.loc[d.transition, _z], d.loc[~d.transition, _z]
                 return float(a.mean() - b.mean()) if len(a) and len(b) else np.nan
             lo, hi = month_boot(g, diff, rng)
             rows.append({"zone": zone.replace("_mm", ""), "track": track, "transition_pairs": int(g.transition.sum()),
