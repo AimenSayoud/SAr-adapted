@@ -1,5 +1,7 @@
 # SAr-adapted
 
+![Conceptual overview of radar observations, a floating peat mat, and the alignment, ground-truth comparison and evaluation workflow.](docs/assets/study-overview.svg)
+
 Sentinel-1 InSAR processing and ground-truth evaluation for a floating peatland
 at Rzecin, western Poland. The code asks which radar observations can follow the
 mat’s vertical motion and how reliably they preserve its level across seasons.
@@ -37,6 +39,12 @@ The demo prints a perfect synthetic pair estimate and a deliberately half-sized
 estimate. Tests use synthetic inputs with known answers; an optional integration
 test skips when the local data cube is unavailable. Tests do not establish that
 every processing route works on real peatland data.
+
+![Synthetic scoring example: a half-sized estimate follows the same shape as the truth but has a slope of one half and nonzero increment error. This is not measured Rzecin performance.](docs/assets/synthetic-scoring.png)
+
+The figure uses the same deterministic series as `make demo`. See the
+[public figure gallery](docs/PRESENTATION.md) for sources, regeneration commands
+and a preview of the bundled GIS layers.
 
 Optional installation extras are `acquisition` (data-provider clients) and
 `figures` (map/figure tools); `.[all]` includes both and development tools. Heavy
